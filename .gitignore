@@ -68,3 +68,5 @@ docker-compose.override.yml
 
 rules/
 memory-bank/
+
+.qoder/

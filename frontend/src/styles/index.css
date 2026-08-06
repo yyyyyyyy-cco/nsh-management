@@ -1,0 +1,35 @@
+/* 全局样式：浅金色主题（依据 ui-style-guide.md） */
+:root {
+  --el-color-primary: #d4af37;
+  --el-color-primary-light-3: #e0c55f;
+  --el-color-primary-light-5: #ead488;
+  --el-color-primary-light-7: #f5e8b3;
+  --el-color-primary-light-8: #faf0cc;
+  --el-color-primary-light-9: #fff8e7;
+  --el-color-primary-dark-2: #b8960e;
+  --el-color-success: #22c55e;
+  --el-color-warning: #f59e0b;
+  --el-color-danger: #ef4444;
+  --el-color-info: #6366f1;
+  --el-border-radius-base: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  color: #374151;
+  background: #f5f0e8;
+  -webkit-font-smoothing: antialiased;
+}
