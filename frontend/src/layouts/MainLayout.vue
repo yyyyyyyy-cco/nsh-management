@@ -4,6 +4,7 @@
       <div class="logo">帮会联赛</div>
       <el-menu :default-active="activeMenu" router class="menu">
         <el-menu-item index="/">首页</el-menu-item>
+        <el-menu-item v-if="auth.isAdmin" index="/members">常驻库</el-menu-item>
       </el-menu>
     </aside>
     <div class="main">

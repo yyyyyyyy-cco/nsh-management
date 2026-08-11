@@ -8,6 +8,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.services.auth_service import AuthError
+from app.services.member_service import MemberServiceError
+from app.utils.excel_import import ExcelImportError
 
 app = FastAPI(title=settings.APP_NAME)
 
@@ -33,6 +35,16 @@ def error_response(status_code: int, message: str) -> JSONResponse:
 @app.exception_handler(AuthError)
 async def auth_error_handler(request: Request, exc: AuthError) -> JSONResponse:
     return error_response(exc.status_code, exc.message)
+
+
+@app.exception_handler(MemberServiceError)
+async def member_error_handler(request: Request, exc: MemberServiceError) -> JSONResponse:
+    return error_response(exc.status_code, exc.message)
+
+
+@app.exception_handler(ExcelImportError)
+async def excel_import_error_handler(request: Request, exc: ExcelImportError) -> JSONResponse:
+    return error_response(400, exc.message)
 
 
 @app.exception_handler(StarletteHTTPException)

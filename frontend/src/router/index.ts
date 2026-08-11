@@ -22,16 +22,28 @@ const router = createRouter({
           component: () => import('@/views/HomeView.vue'),
           meta: { title: '首页' },
         },
+        {
+          path: 'members',
+          name: 'members',
+          component: () => import('@/views/members/MemberListView.vue'),
+          meta: { title: '常驻库', adminOnly: true },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
   if (!to.meta.public && !auth.isLoggedIn) {
     return { name: 'login', query: { redirect: to.fullPath } }
+  }
+  if (auth.isLoggedIn && !auth.user) {
+    await auth.fetchMe().catch(() => auth.clear())
+  }
+  if (to.meta.adminOnly && !auth.isAdmin) {
+    return { name: 'home' }
   }
   if (to.name === 'login' && auth.isLoggedIn) {
     return { name: 'home' }

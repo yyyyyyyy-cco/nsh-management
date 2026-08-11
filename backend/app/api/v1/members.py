@@ -1,0 +1,95 @@
+"""常驻库接口：成员 CRUD、搜索筛选、批量删除、Excel 导入、出勤率统计。"""
+from fastapi import APIRouter, Depends, File, Query, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user, require_admin
+from app.core.database import get_db
+from app.models.user import User
+from app.schemas.member import (
+    AttendanceRateItem,
+    BatchDeleteRequest,
+    MemberCreate,
+    MemberOut,
+    MemberPage,
+    MemberUpdate,
+)
+from app.services import member_service
+from app.utils.excel_import import import_members
+
+router = APIRouter(prefix="/members", tags=["常驻库"])
+
+
+@router.get("", response_model=MemberPage)
+async def list_members(
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    keyword: str | None = Query(None, max_length=32),
+    profession: str | None = Query(None, max_length=16),
+    status: str | None = Query(None, max_length=16),
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> MemberPage:
+    items, total = await member_service.list_members(
+        session, current_user.guild_id, page, page_size, keyword, profession, status
+    )
+    return MemberPage(items=[MemberOut.model_validate(m) for m in items], total=total, page=page, page_size=page_size)
+
+
+@router.post("", response_model=MemberOut)
+async def create_member(
+    body: MemberCreate,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> MemberOut:
+    member = await member_service.create_member(session, current_user.guild_id, body)
+    return MemberOut.model_validate(member)
+
+
+@router.put("/{member_id}", response_model=MemberOut)
+async def update_member(
+    member_id: int,
+    body: MemberUpdate,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> MemberOut:
+    member = await member_service.update_member(session, current_user.guild_id, member_id, body)
+    return MemberOut.model_validate(member)
+
+
+@router.delete("/{member_id}")
+async def delete_member(
+    member_id: int,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    await member_service.delete_member(session, current_user.guild_id, member_id)
+    return {"message": "删除成功"}
+
+
+@router.post("/batch-delete")
+async def batch_delete(
+    body: BatchDeleteRequest,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    count = await member_service.batch_delete(session, current_user.guild_id, body.ids)
+    return {"message": f"已删除 {count} 名成员"}
+
+
+@router.post("/import")
+async def import_excel(
+    file: UploadFile = File(...),
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    content = await file.read()
+    result = await import_members(session, current_user.guild_id, content)
+    return {"message": f"导入成功 {result['imported']} 条，跳过 {result['skipped']} 条", **result}
+
+
+@router.get("/attendance-rate", response_model=list[AttendanceRateItem])
+async def attendance_rate(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> list[AttendanceRateItem]:
+    return await member_service.attendance_rate(session, current_user.guild_id)
