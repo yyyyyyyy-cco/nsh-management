@@ -90,7 +90,11 @@ async def import_members(session: AsyncSession, guild_id: int, content: bytes) -
         existing.add(name)
 
     if new_members:
-        session.add_all(new_members)
-        await session.commit()
-        imported = len(new_members)
+        try:
+            session.add_all(new_members)
+            await session.commit()
+            imported = len(new_members)
+        except Exception:
+            await session.rollback()
+            raise
     return {"imported": imported, "skipped": skipped, "errors": errors}
