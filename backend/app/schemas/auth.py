@@ -9,7 +9,7 @@ class LoginRequest(BaseModel):
 
 class UserOut(BaseModel):
     id: int
-    guild_id: int
+    guild_id: int | None
     username: str
     role: str
     status: str

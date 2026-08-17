@@ -17,6 +17,10 @@ if not exist "%BACKEND%\data\nsh.db" (
         pause
         exit /b 1
     )
+    REM 初始化账号（从环境变量读取密码，未设置则使用默认值）
+    if not defined DEVELOPER_PASSWORD set "DEVELOPER_PASSWORD=dev123456"
+    if not defined ADMIN_PASSWORD set "ADMIN_PASSWORD=admin123"
+    if not defined MEMBER_PASSWORD set "MEMBER_PASSWORD=member123"
     .venv\Scripts\python.exe -m app.init_db
     popd
     echo      数据库初始化完成
@@ -36,7 +40,11 @@ echo.
 echo 启动完成!
 echo   前端页面:  http://localhost:5173
 echo   接口文档:  http://127.0.0.1:8000/docs
-echo   测试账号:  admin / admin123(管理员)  member / member123(帮众)
+echo.
+echo   测试账号:
+echo     开发者:  developer / dev123456  (创建帮会、派发账号)
+echo     管理员:  admin / admin123       (管理帮会功能)
+echo     帮众:    member / member123     (查看数据、提交录屏)
 echo.
 echo 关闭方式:直接关闭弹出的「后端」和「前端」两个窗口即可。
 pause
