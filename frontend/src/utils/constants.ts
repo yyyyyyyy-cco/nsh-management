@@ -20,3 +20,11 @@ export const MEMBER_STATUSES = [
   { value: 'formal', label: '正式' },
   { value: 'substitute', label: '替补' },
 ] as const
+
+/** 比赛结果。 */
+export const SCHEDULE_RESULTS = [
+  { value: 'pending', label: '待定' },
+  { value: 'win', label: '胜' },
+  { value: 'lose', label: '负' },
+  { value: 'draw', label: '平' },
+] as const

@@ -1,4 +1,4 @@
-"""出勤记录表：客人以姓名快照存储，不关联常驻库。"""
+"""出勤记录表：补人以姓名快照存储，不关联常驻库。"""
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint
@@ -17,7 +17,7 @@ class AttendanceRecord(Base):
     member_name: Mapped[str] = mapped_column(String(32), nullable=False)  # 姓名快照
     profession: Mapped[str] = mapped_column(String(16), nullable=False)
     status: Mapped[str] = mapped_column(String(16), default="normal", nullable=False)  # normal / leave
-    is_guest: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    is_filler: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)  # 补人（非帮会成员）
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )

@@ -113,7 +113,7 @@ async def attendance_rate(session: AsyncSession, guild_id: int) -> list[dict]:
                 func.sum(case((AttendanceRecord.status == "normal", 1), else_=0)).label("normal_count"),
                 func.sum(case((AttendanceRecord.status == "leave", 1), else_=0)).label("leave_count"),
             )
-            .where(AttendanceRecord.is_guest.is_(False), AttendanceRecord.member_id.is_not(None))
+            .where(AttendanceRecord.is_filler.is_(False), AttendanceRecord.member_id.is_not(None))
             .group_by(AttendanceRecord.member_id)
         )
     ).all()

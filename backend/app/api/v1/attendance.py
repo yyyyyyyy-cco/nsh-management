@@ -1,0 +1,125 @@
+"""出勤库接口：列表统计、导入正式/替补、添加补人、状态切换、保存考勤。"""
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.deps import get_current_user, require_admin
+from app.core.database import get_db
+from app.models.user import User
+from app.schemas.attendance import (
+    AttendanceListResponse,
+    AttendanceRecordOut,
+    AttendanceStats,
+    AttendanceStatsResponse,
+    BatchStatusUpdate,
+    FillerCreate,
+    ImportSubstitutesRequest,
+    StatusUpdate,
+    SubstituteCandidateOut,
+)
+from app.services import attendance_service
+from app.utils import attendance_import
+
+router = APIRouter(prefix="/schedules/{schedule_id}/attendance", tags=["出勤库"])
+
+
+@router.get("", response_model=AttendanceListResponse)
+async def list_attendance(
+    schedule_id: int,
+    current_user: User = Depends(get_current_user),  # 帮众可查看
+    session: AsyncSession = Depends(get_db),
+) -> AttendanceListResponse:
+    records, stats = await attendance_service.list_attendance(session, current_user.guild_id, schedule_id)
+    return AttendanceListResponse(
+        items=[AttendanceRecordOut.model_validate(r) for r in records],
+        stats=AttendanceStats(**stats),
+    )
+
+
+@router.post("/import-formal")
+async def import_formal(
+    schedule_id: int,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    result = await attendance_import.import_formal(session, current_user.guild_id, schedule_id)
+    return {"message": f"导入正式成员 {result['imported']} 人（已存在跳过 {result['skipped']} 人）", **result}
+
+
+@router.get("/substitute-candidates", response_model=list[SubstituteCandidateOut])
+async def substitute_candidates(
+    schedule_id: int,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> list[SubstituteCandidateOut]:
+    members = await attendance_import.substitute_candidates(session, current_user.guild_id, schedule_id)
+    return [SubstituteCandidateOut.model_validate(m) for m in members]
+
+
+@router.post("/import-substitutes")
+async def import_substitutes(
+    schedule_id: int,
+    body: ImportSubstitutesRequest,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    result = await attendance_import.import_substitutes(session, current_user.guild_id, schedule_id, body.member_ids)
+    return {"message": f"导入替补成员 {result['imported']} 人", **result}
+
+
+@router.post("/fillers", response_model=AttendanceRecordOut)
+async def add_filler(
+    schedule_id: int,
+    body: FillerCreate,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> AttendanceRecordOut:
+    record = await attendance_service.add_filler(session, current_user.guild_id, schedule_id, body.name, body.profession)
+    return AttendanceRecordOut.model_validate(record)
+
+
+@router.put("/{record_id}/status", response_model=AttendanceRecordOut)
+async def update_status(
+    schedule_id: int,
+    record_id: int,
+    body: StatusUpdate,
+    current_user: User = Depends(get_current_user),  # 帮众可切换自己状态
+    session: AsyncSession = Depends(get_db),
+) -> AttendanceRecordOut:
+    record = await attendance_service.update_status(
+        session, current_user.guild_id, schedule_id, record_id, body.status
+    )
+    return AttendanceRecordOut.model_validate(record)
+
+
+@router.post("/batch-status")
+async def batch_status(
+    schedule_id: int,
+    body: BatchStatusUpdate,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    count = await attendance_service.batch_update_status(
+        session, current_user.guild_id, schedule_id, body.ids, body.status
+    )
+    return {"message": f"已更新 {count} 条出勤状态"}
+
+
+@router.delete("/{record_id}")
+async def delete_record(
+    schedule_id: int,
+    record_id: int,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    await attendance_service.delete_record(session, current_user.guild_id, schedule_id, record_id)
+    return {"message": "删除成功"}
+
+
+@router.post("/save", response_model=AttendanceStatsResponse)
+async def save_attendance(
+    schedule_id: int,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> AttendanceStatsResponse:
+    result = await attendance_service.save_attendance(session, current_user.guild_id, schedule_id)
+    return AttendanceStatsResponse(message=result["message"], stats=AttendanceStats(**result["stats"]))

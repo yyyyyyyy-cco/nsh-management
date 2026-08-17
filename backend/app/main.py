@@ -7,8 +7,11 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.services.attendance_service import AttendanceServiceError
 from app.services.auth_service import AuthError
+from app.services.lineup_service import LineupServiceError
 from app.services.member_service import MemberServiceError
+from app.services.schedule_service import ScheduleServiceError
 from app.utils.excel_import import ExcelImportError
 
 app = FastAPI(title=settings.APP_NAME)
@@ -39,6 +42,21 @@ async def auth_error_handler(request: Request, exc: AuthError) -> JSONResponse:
 
 @app.exception_handler(MemberServiceError)
 async def member_error_handler(request: Request, exc: MemberServiceError) -> JSONResponse:
+    return error_response(exc.status_code, exc.message)
+
+
+@app.exception_handler(ScheduleServiceError)
+async def schedule_error_handler(request: Request, exc: ScheduleServiceError) -> JSONResponse:
+    return error_response(exc.status_code, exc.message)
+
+
+@app.exception_handler(AttendanceServiceError)
+async def attendance_error_handler(request: Request, exc: AttendanceServiceError) -> JSONResponse:
+    return error_response(exc.status_code, exc.message)
+
+
+@app.exception_handler(LineupServiceError)
+async def lineup_error_handler(request: Request, exc: LineupServiceError) -> JSONResponse:
     return error_response(exc.status_code, exc.message)
 
 

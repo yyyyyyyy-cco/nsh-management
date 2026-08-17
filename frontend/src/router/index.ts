@@ -28,6 +28,18 @@ const router = createRouter({
           component: () => import('@/views/members/MemberListView.vue'),
           meta: { title: '常驻库', adminOnly: true },
         },
+        {
+          path: 'schedules',
+          name: 'schedules',
+          component: () => import('@/views/schedules/ScheduleListView.vue'),
+          meta: { title: '联赛日程' },
+        },
+        {
+          path: 'schedules/:id',
+          name: 'schedule-detail',
+          component: () => import('@/views/schedules/ScheduleDetailView.vue'),
+          meta: { title: '赛程详情' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
