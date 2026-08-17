@@ -40,6 +40,12 @@ const router = createRouter({
           component: () => import('@/views/schedules/ScheduleDetailView.vue'),
           meta: { title: '赛程详情' },
         },
+        {
+          path: 'config',
+          name: 'config',
+          component: () => import('@/views/config/ConfigView.vue'),
+          meta: { title: '系统配置', adminOnly: true },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },

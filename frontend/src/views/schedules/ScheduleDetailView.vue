@@ -45,10 +45,10 @@
           <LineupTab v-if="schedule" :schedule-id="schedule.id" />
         </el-tab-pane>
         <el-tab-pane label="录屏审核" name="recording">
-          <el-empty description="录屏审核功能开发中，敬请期待" />
+          <RecordingTab v-if="schedule" :schedule-id="schedule.id" />
         </el-tab-pane>
         <el-tab-pane label="数据分析" name="analysis">
-          <el-empty description="数据分析功能开发中，敬请期待" />
+          <MatchDataTab v-if="schedule" :schedule-id="schedule.id" />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -69,6 +69,8 @@ import type { ScheduleInfo } from '@/types/schedule'
 import { SCHEDULE_RESULTS } from '@/utils/constants'
 import AttendanceTab from '@/components/attendance/AttendanceTab.vue'
 import LineupTab from '@/components/lineups/LineupTab.vue'
+import RecordingTab from '@/components/recording/RecordingTab.vue'
+import MatchDataTab from '@/components/match-data/MatchDataTab.vue'
 import ScheduleFormDialog from '@/components/schedules/ScheduleFormDialog.vue'
 
 const route = useRoute()

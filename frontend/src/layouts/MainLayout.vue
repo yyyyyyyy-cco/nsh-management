@@ -6,6 +6,7 @@
         <el-menu-item index="/">首页</el-menu-item>
         <el-menu-item v-if="auth.isAdmin" index="/members">常驻库</el-menu-item>
         <el-menu-item index="/schedules">联赛日程</el-menu-item>
+        <el-menu-item v-if="auth.isAdmin" index="/config">系统配置</el-menu-item>
       </el-menu>
     </aside>
     <div class="main">
