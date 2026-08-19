@@ -2,10 +2,13 @@
   <div class="match-data-tab">
     <!-- 阵营统计 -->
     <div v-if="camps.length > 0" class="stats-bar">
-      <div v-for="camp in camps" :key="camp.camp" class="stat">
-        <span class="label">{{ camp.camp }}</span>
-        <span class="value">{{ camp.player_count }} 人</span>
-        <span class="detail">击杀 {{ camp.total_kills }} | 伤害 {{ formatNumber(camp.total_damage) }}</span>
+      <div v-for="(camp, i) in camps" :key="camp.camp" class="stat">
+        <span class="stat-label">
+          <i class="stat-dot" :style="{ background: campColor(i) }" />
+          {{ camp.camp }}
+        </span>
+        <span class="value num">{{ camp.player_count }} 人</span>
+        <span class="detail">击杀 <em class="num">{{ camp.total_kills }}</em> · 伤害 <em class="num">{{ formatNumber(camp.total_damage) }}</em></span>
       </div>
     </div>
 
@@ -17,6 +20,7 @@
       <el-select v-model="selectedCamp" placeholder="阵营筛选" clearable style="width: 150px">
         <el-option v-for="camp in camps" :key="camp.camp" :label="camp.camp" :value="camp.camp" />
       </el-select>
+      <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
       <div class="spacer" />
       <el-button v-if="items.length > 0" @click="onExportReport">导出报告</el-button>
     </div>
@@ -28,58 +32,46 @@
 
     <!-- 标签页切换 -->
     <el-tabs v-else v-model="activeTab">
+      <!-- 数据总览 -->
+      <el-tab-pane label="数据总览" name="overview">
+        <OverviewTab :items="filteredItems" :camps="camps" />
+      </el-tab-pane>
+
       <!-- 数据列表 -->
       <el-tab-pane label="数据列表" name="list">
         <el-table v-loading="loading" :data="filteredItems" max-height="500">
-          <el-table-column prop="player_name" label="玩家" min-width="100" fixed />
-          <el-table-column prop="profession" label="职业" width="80" />
-          <el-table-column prop="camp" label="阵营" width="120" />
-          <el-table-column prop="kills" label="击杀" width="80" align="right" sortable />
-          <el-table-column prop="assists" label="助攻" width="80" align="right" sortable />
-          <el-table-column prop="player_damage" label="伤害" width="100" align="right" sortable>
+          <el-table-column prop="player_name" label="ID" min-width="100" />
+          <el-table-column prop="profession" label="职业" min-width="70" />
+          <el-table-column prop="camp" label="阵营" min-width="100" />
+          <el-table-column prop="kills" label="击杀" min-width="70" align="right" sortable />
+          <el-table-column prop="assists" label="助攻" min-width="70" align="right" sortable />
+          <el-table-column prop="player_damage" label="伤害" min-width="90" align="right" sortable>
             <template #default="{ row }">{{ formatNumber(row.player_damage) }}</template>
           </el-table-column>
-          <el-table-column prop="healing" label="治疗" width="100" align="right" sortable>
+          <el-table-column prop="healing" label="治疗" min-width="90" align="right" sortable>
             <template #default="{ row }">{{ formatNumber(row.healing) }}</template>
           </el-table-column>
-          <el-table-column prop="damage_taken" label="承伤" width="100" align="right" sortable>
+          <el-table-column prop="damage_taken" label="承伤" min-width="90" align="right" sortable>
             <template #default="{ row }">{{ formatNumber(row.damage_taken) }}</template>
           </el-table-column>
-          <el-table-column prop="deaths" label="重伤" width="80" align="right" sortable />
-          <el-table-column prop="fen_gu" label="焚骨" width="80" align="right" sortable />
+          <el-table-column prop="deaths" label="重伤" min-width="70" align="right" sortable />
+          <el-table-column prop="fen_gu" label="焚骨" min-width="70" align="right" sortable />
         </el-table>
       </el-tab-pane>
 
-      <!-- 排行榜 -->
+      <!-- 排行榜（折线图 + 四榜） -->
       <el-tab-pane label="排行榜" name="ranking">
-        <div class="ranking-grid">
-          <div v-for="(ranking, key) in rankings" :key="key" class="ranking-card">
-            <h4>{{ rankingTitles[key] }}</h4>
-            <el-table :data="ranking" size="small" max-height="300">
-              <el-table-column type="index" width="50" label="#" />
-              <el-table-column prop="player_name" label="玩家" min-width="80" />
-              <el-table-column prop="profession" label="职业" width="70" />
-              <el-table-column prop="value" label="数值" width="80" align="right">
-                <template #default="{ row }">{{ formatNumber(row.value) }}</template>
-              </el-table-column>
-            </el-table>
-          </div>
-        </div>
+        <RankingTab :items="filteredItems" :rankings="rankings" />
       </el-tab-pane>
 
-      <!-- 职业统计 -->
-      <el-tab-pane label="职业统计" name="profession">
-        <el-table :data="professionStats" size="small">
-          <el-table-column prop="profession" label="职业" width="100" />
-          <el-table-column prop="count" label="人数" width="80" align="right" />
-          <el-table-column prop="avg_kills" label="平均击杀" width="100" align="right" />
-          <el-table-column prop="avg_damage" label="平均伤害" width="120" align="right">
-            <template #default="{ row }">{{ formatNumber(row.avg_damage) }}</template>
-          </el-table-column>
-          <el-table-column prop="avg_healing" label="平均治疗" width="120" align="right">
-            <template #default="{ row }">{{ formatNumber(row.avg_healing) }}</template>
-          </el-table-column>
-        </el-table>
+      <!-- 职业分析 -->
+      <el-tab-pane label="职业分析" name="profession">
+        <ProfessionTab :items="filteredItems" />
+      </el-tab-pane>
+
+      <!-- 综合评分 -->
+      <el-tab-pane label="综合评分" name="score">
+        <ScoreTab :items="filteredItems" />
       </el-tab-pane>
     </el-tabs>
 
@@ -89,12 +81,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 
-import { getMatchData, getProfessionStats, getRankings, getReportUrl, importCsv } from '@/api/matchData'
-import type { CampStats, MatchData, ProfessionStats, RankingsResponse } from '@/types/matchData'
+import { getMatchData, getRankings, getReportUrl, importCsv } from '@/api/matchData'
+import type { CampStats, MatchData, RankingsResponse } from '@/types/matchData'
 import { useAuthStore } from '@/stores/auth'
+import { CAMP_COLORS } from './analysis'
+import OverviewTab from './OverviewTab.vue'
+import RankingTab from './RankingTab.vue'
+import ProfessionTab from './ProfessionTab.vue'
+import ScoreTab from './ScoreTab.vue'
 
 const props = defineProps<{ scheduleId: number }>()
 
@@ -104,7 +102,8 @@ const importing = ref(false)
 const items = ref<MatchData[]>([])
 const camps = ref<CampStats[]>([])
 const selectedCamp = ref('')
-const activeTab = ref('list')
+const nameFilter = ref('')
+const activeTab = ref('overview')
 const fileInput = ref<HTMLInputElement | null>(null)
 const rankings = ref<RankingsResponse>({
   kills_ranking: [],
@@ -112,26 +111,24 @@ const rankings = ref<RankingsResponse>({
   healing_ranking: [],
   fen_gu_ranking: [],
 })
-const professionStats = ref<ProfessionStats[]>([])
 
-const rankingTitles: Record<string, string> = {
-  kills_ranking: '击杀榜',
-  damage_ranking: '伤害榜',
-  healing_ranking: '治疗榜',
-  fen_gu_ranking: '焚骨榜',
+function campColor(i: number) {
+  return CAMP_COLORS[i % CAMP_COLORS.length]
 }
 
 const filteredItems = computed(() => {
-  if (!selectedCamp.value) return items.value
-  return items.value.filter((r) => r.camp === selectedCamp.value)
+  let list = items.value
+  if (selectedCamp.value) {
+    list = list.filter((r) => r.camp === selectedCamp.value)
+  }
+  const kw = nameFilter.value.trim()
+  if (kw) {
+    list = list.filter((r) => r.player_name.includes(kw))
+  }
+  return list
 })
 
 onMounted(load)
-
-watch(selectedCamp, () => {
-  loadRankings()
-  loadProfessionStats()
-})
 
 async function load() {
   loading.value = true
@@ -139,7 +136,7 @@ async function load() {
     const data = await getMatchData(props.scheduleId)
     items.value = data.items
     camps.value = data.camps
-    await Promise.all([loadRankings(), loadProfessionStats()])
+    await loadRankings()
   } finally {
     loading.value = false
   }
@@ -150,13 +147,6 @@ async function loadRankings() {
     camp: selectedCamp.value || undefined,
     limit: 10,
   })
-}
-
-async function loadProfessionStats() {
-  const data = await getProfessionStats(props.scheduleId, {
-    camp: selectedCamp.value || undefined,
-  })
-  professionStats.value = data.items
 }
 
 function onImport() {
@@ -196,10 +186,12 @@ function formatNumber(value: number): string {
 .stats-bar {
   display: flex;
   gap: 24px;
-  padding: 12px 16px;
-  background: #fff8e7;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  padding: 14px 20px;
+  background: linear-gradient(135deg, var(--gold-50) 0%, var(--ink-bg-paper) 60%);
+  border: 1px solid var(--gold-200);
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
 }
 
 .stat {
@@ -208,20 +200,36 @@ function formatNumber(value: number): string {
   gap: 2px;
 }
 
-.label {
+.stat-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
-  color: #6b7280;
+  font-weight: 700;
+  color: var(--ink-700);
+}
+
+.stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
 
 .value {
-  font-size: 18px;
-  font-weight: 700;
-  color: #b8960e;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--gold-700);
 }
 
 .detail {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--ink-400);
+}
+
+.detail em {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--ink-600);
 }
 
 .toolbar {
@@ -235,22 +243,37 @@ function formatNumber(value: number): string {
   flex: 1;
 }
 
-.ranking-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
-}
+/* ===== 移动端适配 ===== */
+@media (max-width: 768px) {
+  .stats-bar {
+    flex-wrap: wrap;
+    gap: 10px 20px;
+    padding: 12px 14px;
+  }
 
-.ranking-card {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-}
+  .stat {
+    flex: 1 1 calc(50% - 10px);
+    min-width: 0;
+  }
 
-.ranking-card h4 {
-  margin: 0 0 12px 0;
-  color: #374151;
-  font-size: 14px;
+  .value {
+    font-size: 18px;
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .toolbar .el-select,
+  .toolbar .el-input {
+    flex: 1 1 calc(50% - 4px);
+    width: auto !important;
+  }
+
+  .toolbar .el-button {
+    flex: 1 1 calc(50% - 4px);
+    margin-left: 0 !important;
+  }
 }
 </style>

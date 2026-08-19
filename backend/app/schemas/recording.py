@@ -10,6 +10,7 @@ class RecordingOut(BaseModel):
     schedule_id: int
     member_id: int | None
     member_name: str
+    profession: str | None = None  # 职业快照（取自出勤库，便于按职业排序）
     round_number: int
     url: str | None
     status: str

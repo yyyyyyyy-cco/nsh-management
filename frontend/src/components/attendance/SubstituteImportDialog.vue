@@ -9,9 +9,9 @@
     />
     <el-table v-else :data="candidates" size="small" max-height="360" @selection-change="onSelectionChange">
       <el-table-column type="selection" width="44" />
-      <el-table-column prop="name" label="姓名" min-width="100" />
-      <el-table-column prop="main_profession" label="主职业" width="90" />
-      <el-table-column label="副职业" width="90">
+      <el-table-column prop="name" label="ID" min-width="100" />
+      <el-table-column prop="main_profession" label="主职业" min-width="80" />
+      <el-table-column label="副职业" min-width="80">
         <template #default="{ row }">{{ row.sub_profession || '-' }}</template>
       </el-table-column>
       <el-table-column prop="remark" label="备注" min-width="120" show-overflow-tooltip />
@@ -26,28 +26,31 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import { getSubstituteCandidates, importSubstitutes } from '@/api/attendance'
 import type { SubstituteCandidate } from '@/types/attendance'
 
-const props = defineProps<{ modelValue: boolean; scheduleId: number }>()
-const emit = defineEmits<{ 'update:modelValue': [value: boolean]; success: [] }>()
+const props = defineProps<{ scheduleId: number }>()
+const emit = defineEmits<{ success: [] }>()
+const visible = defineModel<boolean>({ required: true })
 
 const loading = ref(false)
 const candidates = ref<SubstituteCandidate[]>([])
 const selected = ref<SubstituteCandidate[]>([])
-const visible = computed({
-  get: () => props.modelValue,
-  set: (value) => {
-    emit('update:modelValue', value)
-    if (value) load()
-  },
+
+watch(visible, (v) => {
+  if (v) load()
 })
 
 async function load() {
-  candidates.value = await getSubstituteCandidates(props.scheduleId)
+  try {
+    candidates.value = await getSubstituteCandidates(props.scheduleId)
+  } catch {
+    // 错误提示已由 http 拦截器统一处理
+    candidates.value = []
+  }
   selected.value = []
 }
 

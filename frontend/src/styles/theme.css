@@ -1,0 +1,138 @@
+/**
+ * 全局设计令牌：浅色雅金风（宣纸鎏金）
+ * 依据 ui-style-guide.md v2：宣纸米白底 + 鎏金渐变 + 墨色文字 + 朱砂点睛
+ */
+:root {
+  /* ===== 宣纸底色 ===== */
+  --ink-bg-page: #f7f3ea;
+  --ink-bg-paper: #fffdf8;
+  --ink-bg-cream: #faf6ee;
+  --ink-bg-wash: #f4eee1;
+
+  /* ===== 鎏金主色（亮金） ===== */
+  --gold-50: #fdf9ec;
+  --gold-100: #f8efd5;
+  --gold-200: #f0e0a8;
+  --gold-300: #e8cd72;
+  --gold-400: #d9b64a;
+  --gold-500: #c9a13b;
+  --gold-600: #b18c2c;
+  --gold-700: #9c7a20;
+  --gold-gradient: linear-gradient(135deg, #f2dfa0 0%, #d9b64a 55%, #c9a13b 100%);
+  --gold-line: linear-gradient(90deg, transparent, #d9b64a 18%, #c9a13b 50%, #d9b64a 82%, transparent);
+
+  /* ===== 檀色辅助 ===== */
+  --tan-400: #a8927a;
+  --tan-500: #8b7355;
+  --tan-600: #6b5b45;
+  --tan-50: #f5f0e6;
+
+  /* ===== 墨色文字层级（暖灰提亮） ===== */
+  --ink-900: #3a352d;
+  --ink-700: #55503f;
+  --ink-600: #625d4e;
+  --ink-500: #7a7466;
+  --ink-400: #97917f;
+  --ink-300: #bfb9a8;
+  --ink-200: #ddd7c7;
+
+  /* ===== 边框 ===== */
+  --edge-strong: #e6ddca;
+  --edge-soft: #efe8d9;
+  --edge-faint: #f4efe5;
+
+  /* ===== 功能色（中式色名） ===== */
+  --cinnabar: #c0392b;        /* 朱砂：危险 */
+  --cinnabar-dark: #a93226;
+  --jade: #2e8b57;            /* 黛绿：成功 */
+  --ochre: #d97706;           /* 赭黄：警告 */
+  --indigo: #5b7a9d;          /* 靛青：信息 */
+
+  /* ===== 字体 ===== */
+  --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  --font-sans: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  --font-num: Georgia, 'Times New Roman', var(--font-serif);
+
+  /* ===== 阴影（暖色投影） ===== */
+  --shadow-sm: 0 1px 2px rgba(88, 66, 20, 0.06);
+  --shadow-md: 0 4px 10px -2px rgba(88, 66, 20, 0.1);
+  --shadow-lg: 0 12px 28px -8px rgba(88, 66, 20, 0.18);
+  --shadow-gold: 0 2px 10px -1px rgba(201, 161, 59, 0.35);
+
+  /* ===== 圆角 ===== */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 20px;
+
+  /* ===== 动效 ===== */
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-fast: 0.15s;
+  --dur-normal: 0.22s;
+  --dur-slow: 0.35s;
+
+  /* ===== Element Plus 主色映射 ===== */
+  --el-color-primary: #c9a13b;
+  --el-color-primary-light-3: #d9b563;
+  --el-color-primary-light-5: #e6cd8e;
+  --el-color-primary-light-7: #f1e2b8;
+  --el-color-primary-light-8: #f5ead0;
+  --el-color-primary-light-9: #faf3e2;
+  --el-color-primary-dark-2: #b18c2c;
+  --el-color-success: #2e8b57;
+  --el-color-success-light-3: #61a57e;
+  --el-color-success-light-5: #8fc2a5;
+  --el-color-success-light-7: #bddcc9;
+  --el-color-success-light-8: #d3e8dc;
+  --el-color-success-light-9: #e9f4ee;
+  --el-color-success-dark-2: #256f46;
+  --el-color-warning: #d97706;
+  --el-color-warning-light-3: #e2974d;
+  --el-color-warning-light-5: #ecb884;
+  --el-color-warning-light-7: #f5d6b5;
+  --el-color-warning-light-8: #f8e2cb;
+  --el-color-warning-light-9: #fcf0e1;
+  --el-color-warning-dark-2: #ae5f05;
+  --el-color-danger: #c0392b;
+  --el-color-danger-light-3: #d27165;
+  --el-color-danger-light-5: #e09e96;
+  --el-color-danger-light-7: #eec7c2;
+  --el-color-danger-light-8: #f3d8d4;
+  --el-color-danger-light-9: #f9eae8;
+  --el-color-danger-dark-2: #9a2e22;
+  --el-color-info: #8c8578;
+  --el-color-info-light-3: #aaa493;
+  --el-color-info-light-5: #c4c0b3;
+  --el-color-info-light-7: #dddad1;
+  --el-color-info-light-8: #e8e6df;
+  --el-color-info-light-9: #f3f1ed;
+  --el-color-info-dark-2: #706a60;
+
+  /* ===== Element Plus 基础变量 ===== */
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: 6px;
+  --el-border-radius-round: 20px;
+  --el-border-color: #e6ddca;
+  --el-border-color-light: #efe8d9;
+  --el-border-color-lighter: #f4efe5;
+  --el-border-color-extra-light: #f7f3ea;
+  --el-border-color-hover: #d4af37;
+  --el-fill-color: #f4efe5;
+  --el-fill-color-light: #f7f3ea;
+  --el-fill-color-lighter: #faf6ee;
+  --el-fill-color-extra-light: #fbf9f3;
+  --el-fill-color-blank: #fffdf8;
+  --el-text-color-primary: #2b2620;
+  --el-text-color-regular: #4b4438;
+  --el-text-color-secondary: #6f6759;
+  --el-text-color-placeholder: #b8b0a2;
+  --el-text-color-disabled: #d8d1c2;
+  --el-bg-color: #fffdf8;
+  --el-bg-color-page: #f7f3ea;
+  --el-bg-color-overlay: #fffdf8;
+  --el-mask-color: rgba(43, 38, 32, 0.45);
+  --el-box-shadow-light: 0 4px 10px -2px rgba(88, 66, 20, 0.1);
+  --el-box-shadow: 0 12px 28px -8px rgba(88, 66, 20, 0.18);
+  --el-disabled-bg-color: #f7f3ea;
+  --el-disabled-text-color: #b8b0a2;
+}

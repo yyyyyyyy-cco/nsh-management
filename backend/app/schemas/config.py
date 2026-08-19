@@ -12,6 +12,7 @@ class ProfessionConfigOut(BaseModel):
     guild_id: int
     profession: str
     target_count: int
+    remark: str | None = None  # 职业说明（可编辑，默认空）
 
     model_config = {"from_attributes": True}
 
@@ -19,6 +20,7 @@ class ProfessionConfigOut(BaseModel):
 class ProfessionConfigUpdate(BaseModel):
     """职业配置更新。"""
     target_count: int = Field(..., ge=0, description="目标人数")
+    remark: str | None = Field(None, max_length=255, description="职业说明")
 
 
 class ProfessionConfigBatchUpdate(BaseModel):
@@ -31,8 +33,10 @@ class ProfessionConfigBatchUpdate(BaseModel):
 class AccountOut(BaseModel):
     """账号输出。"""
     id: int
-    guild_id: int
+    guild_id: int | None
+    guild_name: str | None = None
     username: str
+    plain_password: str | None = None
     role: str
     status: str
     created_at: datetime
@@ -45,6 +49,7 @@ class AccountCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=64, description="登录名")
     password: str = Field(..., min_length=6, max_length=128, description="密码")
     role: str = Field("member", description="角色：admin/member")
+    guild_id: int | None = Field(None, description="目标帮会ID（开发者创建时必传，管理员默认本帮会）")
 
 
 class AccountUpdate(BaseModel):

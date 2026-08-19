@@ -6,6 +6,7 @@ export interface Recording {
   schedule_id: number
   member_id: number | null
   member_name: string
+  profession?: string | null
   round_number: number
   url: string | null
   status: 'pending' | 'approved' | 'rejected'

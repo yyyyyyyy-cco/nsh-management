@@ -33,6 +33,14 @@ export function updateStatus(
   return http.put(`/schedules/${scheduleId}/attendance/${recordId}/status`, { status })
 }
 
+export function updateProfession(
+  scheduleId: number,
+  recordId: number,
+  profession: string,
+): Promise<AttendanceRecord> {
+  return http.put(`/schedules/${scheduleId}/attendance/${recordId}/profession`, { profession })
+}
+
 export function batchStatus(
   scheduleId: number,
   ids: number[],
@@ -49,4 +57,15 @@ export function saveAttendance(
   scheduleId: number,
 ): Promise<{ message: string; stats: { total: number; normal_count: number; leave_count: number; gap: number } }> {
   return http.post(`/schedules/${scheduleId}/attendance/save`)
+}
+
+export function getMemberCandidates(scheduleId: number): Promise<SubstituteCandidate[]> {
+  return http.get(`/schedules/${scheduleId}/attendance/member-candidates`)
+}
+
+export function importAttendanceMembers(
+  scheduleId: number,
+  memberIds: number[],
+): Promise<{ message: string; imported: number; skipped: number }> {
+  return http.post(`/schedules/${scheduleId}/attendance/import-members`, { member_ids: memberIds })
 }

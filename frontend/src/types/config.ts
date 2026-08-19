@@ -3,17 +3,20 @@
 /** 职业配置 */
 export interface ProfessionConfig {
   id: number
-  guild_id: number
+  guild_id: number | null
   profession: string
   target_count: number
+  remark?: string | null
 }
 
 /** 账号信息 */
 export interface Account {
   id: number
-  guild_id: number
+  guild_id: number | null
+  guild_name: string | null
   username: string
-  role: 'admin' | 'member'
+  plain_password: string | null
+  role: 'developer' | 'admin' | 'member'
   status: 'active' | 'disabled'
   created_at: string
 }
@@ -23,6 +26,7 @@ export interface AccountCreateRequest {
   username: string
   password: string
   role: 'admin' | 'member'
+  guild_id: number | null
 }
 
 /** 更新账号请求 */
@@ -34,4 +38,16 @@ export interface AccountUpdateRequest {
 /** 更新账号状态请求 */
 export interface AccountStatusUpdateRequest {
   status: 'active' | 'disabled'
+}
+
+/** 帮会信息 */
+export interface Guild {
+  id: number
+  name: string
+  created_at: string
+}
+
+/** 创建帮会请求 */
+export interface GuildCreateRequest {
+  name: string
 }

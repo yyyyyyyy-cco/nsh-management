@@ -13,3 +13,4 @@ class ProfessionConfig(Base):
     guild_id: Mapped[int] = mapped_column(ForeignKey("guilds.id"), nullable=False)
     profession: Mapped[str] = mapped_column(String(16), nullable=False)
     target_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    remark: Mapped[str | None] = mapped_column(String(255), nullable=True)  # 职业说明（可编辑）

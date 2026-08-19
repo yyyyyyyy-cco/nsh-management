@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import require_admin
+from app.api.deps import get_current_user, require_admin
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.schedule import ScheduleCreate, ScheduleOut, ScheduleUpdate
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/schedules", tags=["联赛日程"])
 async def list_schedules(
     start: datetime | None = Query(None),
     end: datetime | None = Query(None),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),  # 帮众可查看（联赛总览）
     session: AsyncSession = Depends(get_db),
 ) -> list[ScheduleOut]:
     schedules = await schedule_service.list_schedules(session, current_user.guild_id, start, end)
@@ -37,7 +37,7 @@ async def create_schedule(
 @router.get("/{schedule_id}", response_model=ScheduleOut)
 async def get_schedule(
     schedule_id: int,
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(get_current_user),  # 帮众可查看
     session: AsyncSession = Depends(get_db),
 ) -> ScheduleOut:
     schedule = await schedule_service.get_schedule(session, current_user.guild_id, schedule_id)

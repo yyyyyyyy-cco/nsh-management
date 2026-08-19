@@ -17,17 +17,32 @@ http.interceptors.request.use((config) => {
   return config
 })
 
+/** 从响应体中提取错误消息（兼容 {message} 与 {detail} 两种格式）。 */
+function extractErrorMessage(error: unknown): string {
+  const data = (error as { response?: { data?: { message?: string; detail?: string } } })?.response?.data
+  return data?.message || data?.detail || '网络错误，请稍后重试'
+}
+
 http.interceptors.response.use(
   (response) => response.data,
-  (error) => {
+  async (error) => {
     const status = error.response?.status
-    const message = error.response?.data?.message || '网络错误，请稍后重试'
+    const isLoginRequest = String(error.config?.url ?? '').includes('/auth/login')
+
+    // 登录请求的错误（凭证错误、账号锁定、网络异常等）统一交由登录页展示
+    if (isLoginRequest) {
+      return Promise.reject(error)
+    }
+
     if (status === 401) {
+      // 非登录接口 401：Token 过期，清除本地凭证并跳转登录页
       const auth = useAuthStore()
       auth.clear()
-      window.location.assign('/login')
+      ElMessage.error('登录已过期，请重新登录')
+      const { default: router } = await import('@/router')
+      router.push({ name: 'login', query: { redirect: window.location.pathname + window.location.search } })
     } else {
-      ElMessage.error(message)
+      ElMessage.error(extractErrorMessage(error))
     }
     return Promise.reject(error)
   },

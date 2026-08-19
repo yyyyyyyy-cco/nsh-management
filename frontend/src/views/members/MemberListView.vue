@@ -1,12 +1,13 @@
 <template>
-  <div class="member-list">
-    <el-card shadow="never">
+  <div class="member-list page-enter">
+    <el-card shadow="never" class="page-card">
       <div class="toolbar">
         <el-input
           v-model="query.keyword"
-          placeholder="搜索姓名"
+          placeholder="搜索ID"
           clearable
           class="keyword"
+          :prefix-icon="Search"
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
@@ -17,8 +18,8 @@
           <el-option v-for="s in MEMBER_STATUSES" :key="s.value" :label="s.label" :value="s.value" />
         </el-select>
         <div class="spacer" />
-        <el-button type="primary" @click="openForm()">添加成员</el-button>
-        <el-button @click="importVisible = true">Excel 导入</el-button>
+        <el-button type="primary" :icon="Plus" @click="openForm()">添加成员</el-button>
+        <el-button :icon="Upload" @click="importVisible = true">Excel 导入</el-button>
         <el-button type="danger" plain :disabled="selectedIds.length === 0" @click="onBatchDelete">
           批量删除{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}
         </el-button>
@@ -26,12 +27,25 @@
 
       <el-table v-loading="loading" :data="items" @selection-change="onSelectionChange">
         <el-table-column type="selection" width="48" />
-        <el-table-column prop="name" label="姓名" min-width="120" />
-        <el-table-column prop="main_profession" label="主职业" width="100" />
-        <el-table-column prop="sub_profession" label="副职业" width="100">
-          <template #default="{ row }">{{ row.sub_profession || '-' }}</template>
+        <el-table-column prop="name" label="ID" min-width="120">
+          <template #default="{ row }">
+            <span class="member-name">{{ row.name }}</span>
+          </template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column prop="main_profession" label="主职业" min-width="100">
+          <template #default="{ row }">
+            <span class="prof-tag" :style="profStyle(row.main_profession)">{{ row.main_profession }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="sub_profession" label="副职业" min-width="90">
+          <template #default="{ row }">
+            <span v-if="row.sub_profession" class="prof-tag prof-tag--sub" :style="profStyle(row.sub_profession)">
+              {{ row.sub_profession }}
+            </span>
+            <span v-else class="dim">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="状态" min-width="80">
           <template #default="{ row }">
             <el-tag :type="row.status === 'formal' ? 'primary' : 'info'" effect="light">
               {{ row.status === 'formal' ? '正式' : '替补' }}
@@ -39,7 +53,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
-        <el-table-column label="操作" width="140" fixed="right">
+        <el-table-column label="操作" min-width="130">
           <template #default="{ row }">
             <el-button link type="primary" @click="openForm(row)">编辑</el-button>
             <el-button link type="danger" @click="onDelete(row)">删除</el-button>
@@ -59,7 +73,6 @@
     </el-card>
 
     <AttendanceRatePanel />
-
     <MemberFormDialog v-model="formVisible" :member="editingMember" @success="load" />
     <MemberImportDialog v-model="importVisible" @success="load" />
   </div>
@@ -67,6 +80,7 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
+import { Plus, Search, Upload } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { batchDeleteMembers, deleteMember, listMembers, type MemberQuery } from '@/api/members'
@@ -85,6 +99,20 @@ const importVisible = ref(false)
 const editingMember = ref<MemberInfo | null>(null)
 
 const query = reactive<MemberQuery>({ page: 1, page_size: 20 })
+
+/** 职业颜色（依据 ui-style-guide §9 职业色映射）。 */
+const PROF_COLORS: Record<string, string> = {
+  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
+  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
+  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
+}
+
+function profStyle(prof: string) {
+  const bg = PROF_COLORS[prof] || '#e5e7eb'
+  const dark = ['#3E6BF4', '#F04545', '#8B5CF6', '#4F95FF', '#605EF0', '#C6834D']
+  const color = dark.includes(bg) ? '#fff' : '#333'
+  return { background: bg, color }
+}
 
 onMounted(load)
 
@@ -148,8 +176,49 @@ async function onBatchDelete() {
   flex: 1;
 }
 
+.member-name {
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+/* 职业色标签 */
+.prof-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: var(--radius-xl);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.7;
+}
+
+.prof-tag--sub {
+  opacity: 0.75;
+}
+
+.dim {
+  color: var(--ink-300);
+}
+
 .pagination {
   margin-top: 16px;
   justify-content: flex-end;
+}
+
+/* ===== 移动端适配 ===== */
+@media (max-width: 768px) {
+  .keyword,
+  .filter {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .toolbar .el-button {
+    flex: 1;
+    margin-left: 0 !important;
+  }
+
+  .pagination {
+    justify-content: center;
+  }
 }
 </style>

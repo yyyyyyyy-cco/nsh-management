@@ -5,6 +5,8 @@ import type {
   AccountCreateRequest,
   AccountStatusUpdateRequest,
   AccountUpdateRequest,
+  Guild,
+  GuildCreateRequest,
   ProfessionConfig,
 } from '@/types/config'
 
@@ -45,4 +47,26 @@ export async function updateAccount(userId: number, data: AccountUpdateRequest):
 /** 更新账号状态 */
 export async function updateAccountStatus(userId: number, data: AccountStatusUpdateRequest): Promise<Account> {
   return http.put(`/config/accounts/${userId}/status`, data)
+}
+
+/** 删除账号 */
+export async function deleteAccount(userId: number): Promise<{ message: string }> {
+  return http.delete(`/config/accounts/${userId}`)
+}
+
+// ========== 帮会管理 ==========
+
+/** 获取帮会列表 */
+export async function getGuilds(): Promise<Guild[]> {
+  return http.get('/config/guilds')
+}
+
+/** 创建帮会 */
+export async function createGuild(data: GuildCreateRequest): Promise<Guild> {
+  return http.post('/config/guilds', data)
+}
+
+/** 删除帮会（级联删除全部关联数据） */
+export async function deleteGuild(guildId: number): Promise<{ message: string }> {
+  return http.delete(`/config/guilds/${guildId}`)
 }

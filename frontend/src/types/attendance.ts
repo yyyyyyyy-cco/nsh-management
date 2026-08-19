@@ -9,6 +9,7 @@ export interface AttendanceRecord {
   status: 'normal' | 'leave'
   is_filler: boolean
   member_status: 'formal' | 'substitute' | null
+  professions?: string[]
 }
 
 export interface AttendanceStats {
@@ -29,4 +30,5 @@ export interface SubstituteCandidate {
   main_profession: string
   sub_profession: string | null
   remark: string | null
+  member_status?: string
 }

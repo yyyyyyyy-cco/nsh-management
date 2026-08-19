@@ -1,11 +1,15 @@
 <template>
-  <div v-loading="loading" class="schedule-detail">
+  <div v-loading="loading" class="schedule-detail page-enter">
     <el-card shadow="never" class="info-card">
       <template #header>
         <div class="card-header">
-          <span>赛程详情</span>
+          <div class="card-header__left">
+            <el-icon class="card-header__icon"><Calendar /></el-icon>
+            <span>赛程详情</span>
+            <span v-if="schedule" class="card-header__opponent">vs {{ schedule.opponent }}</span>
+          </div>
           <div>
-            <el-button @click="router.back()">返回</el-button>
+            <el-button @click="goBack">返回</el-button>
             <el-button v-if="auth.isAdmin" type="primary" @click="formVisible = true">编辑</el-button>
             <el-button v-if="auth.isAdmin" type="danger" plain @click="onDelete">删除赛程</el-button>
           </div>
@@ -14,7 +18,6 @@
       <el-descriptions v-if="schedule" :column="2" border>
         <el-descriptions-item label="对手">{{ schedule.opponent }}</el-descriptions-item>
         <el-descriptions-item label="比赛时间">{{ formatTime(schedule.match_time) }}</el-descriptions-item>
-        <el-descriptions-item label="地点">{{ schedule.location || '-' }}</el-descriptions-item>
         <el-descriptions-item label="局数">{{ schedule.rounds }}局</el-descriptions-item>
         <el-descriptions-item label="比赛结果">
           <el-tag :type="resultType(schedule.result)" effect="light">{{ resultLabel(schedule.result) }}</el-tag>
@@ -37,15 +40,15 @@
     </el-card>
 
     <el-card shadow="never" class="tabs-card">
-      <el-tabs v-model="activeTab">
-        <el-tab-pane label="出勤库" name="attendance">
+      <el-tabs v-model="activeTab" @tab-change="onTabChange">
+        <el-tab-pane v-if="!isMember" label="出勤库" name="attendance">
           <AttendanceTab v-if="schedule" :schedule-id="schedule.id" />
         </el-tab-pane>
-        <el-tab-pane label="排表" name="lineup">
-          <LineupTab v-if="schedule" :schedule-id="schedule.id" />
+        <el-tab-pane v-if="!isMember" label="排表" name="lineup">
+          <LineupTab ref="lineupTabRef" v-if="schedule" :schedule-id="schedule.id" />
         </el-tab-pane>
         <el-tab-pane label="录屏审核" name="recording">
-          <RecordingTab v-if="schedule" :schedule-id="schedule.id" />
+          <RecordingTab ref="recordingTabRef" v-if="schedule" :schedule-id="schedule.id" />
         </el-tab-pane>
         <el-tab-pane label="数据分析" name="analysis">
           <MatchDataTab v-if="schedule" :schedule-id="schedule.id" />
@@ -58,8 +61,9 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Calendar } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -76,10 +80,15 @@ import ScheduleFormDialog from '@/components/schedules/ScheduleFormDialog.vue'
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const isMember = computed(() => auth.user?.role === 'member')
 const loading = ref(false)
 const schedule = ref<ScheduleInfo | null>(null)
 const formVisible = ref(false)
-const activeTab = ref('attendance')
+
+// 初始 Tab：支持 ?tab=recording 直达录屏；帮众默认录屏页
+const VALID_TABS = ['attendance', 'lineup', 'recording', 'analysis']
+const defaultTab = auth.user?.role === 'member' ? 'recording' : 'attendance'
+const activeTab = ref(VALID_TABS.includes(String(route.query.tab)) ? String(route.query.tab) : defaultTab)
 
 const resultLabel = (value: string) => SCHEDULE_RESULTS.find((r) => r.value === value)?.label || value
 const resultType = (value: string) =>
@@ -88,10 +97,30 @@ const formatTime = (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm')
 
 onMounted(load)
 
+/** 返回：从联赛总览进入则显式跳回总览，避免依赖浏览器历史栈导致后退异常。 */
+function goBack() {
+  if (route.query.from === 'overview') {
+    router.push({ name: 'league-overview' })
+  } else {
+    router.back()
+  }
+}
+
+const lineupTabRef = ref<InstanceType<typeof LineupTab>>()
+const recordingTabRef = ref<InstanceType<typeof RecordingTab>>()
+
+/** 切到排表/录屏 Tab 时刷新（同步出勤库新增的补人/成员）。 */
+function onTabChange(name: string | number) {
+  if (name === 'lineup') lineupTabRef.value?.reload()
+  if (name === 'recording') recordingTabRef.value?.reload()
+}
+
 async function load() {
   loading.value = true
   try {
     schedule.value = await getSchedule(Number(route.params.id))
+  } catch {
+    // 错误提示已由 http 拦截器统一处理，此处仅保证 loading 关闭
   } finally {
     loading.value = false
   }
@@ -117,11 +146,57 @@ async function onDelete() {
   justify-content: space-between;
 }
 
+.card-header__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.card-header__icon {
+  font-size: 15px;
+}
+
+.card-header__opponent {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gold-700);
+  background: var(--gold-100);
+  border-radius: var(--radius-xl);
+  padding: 1px 10px;
+}
+
 .round-tag {
   margin-right: 8px;
 }
 
 .tabs-card {
   margin-top: 16px;
+}
+
+/* ===== 移动端适配 ===== */
+@media (max-width: 768px) {
+  .card-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .card-header__left {
+    font-size: 14px;
+  }
+
+  .card-header > div:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .card-header > div:last-child .el-button {
+    flex: 1;
+    margin-left: 0;
+  }
 }
 </style>

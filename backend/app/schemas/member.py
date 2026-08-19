@@ -51,3 +51,8 @@ class AttendanceRateItem(BaseModel):
     normal_count: int
     leave_count: int
     attendance_rate: float | None  # 无出勤记录时为 None
+
+
+class ProfessionStat(BaseModel):
+    profession: str
+    count: int

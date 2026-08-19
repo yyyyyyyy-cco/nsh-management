@@ -1,0 +1,11 @@
+.git
+.claude
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/
+.env
+*.db
+*.sqlite3
+tests/

@@ -40,7 +40,12 @@ def error_response(status_code: int, message: str) -> JSONResponse:
 
 @app.exception_handler(AuthError)
 async def auth_error_handler(request: Request, exc: AuthError) -> JSONResponse:
-    return error_response(exc.status_code, exc.message)
+    # 账号锁定时 data 携带剩余解锁秒数，供前端禁用表单并倒计时
+    data = {"remaining_seconds": exc.remaining_seconds} if exc.remaining_seconds is not None else None
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"code": exc.status_code, "message": exc.message, "data": data},
+    )
 
 
 @app.exception_handler(MemberServiceError)

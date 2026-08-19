@@ -51,17 +51,47 @@ async def list_attendance(session: AsyncSession, guild_id: int, schedule_id: int
     await get_schedule(session, guild_id, schedule_id)
     rows = (
         await session.execute(
-            select(AttendanceRecord, Member.status)
+            select(AttendanceRecord, Member.status, Member.sub_profession)
             .outerjoin(Member, Member.id == AttendanceRecord.member_id)
             .where(AttendanceRecord.schedule_id == schedule_id)
             .order_by(AttendanceRecord.is_filler, AttendanceRecord.member_name)
         )
     ).all()
     records: list[AttendanceRecord] = []
-    for record, member_status in rows:
+    for record, member_status, sub_profession in rows:
         record.member_status = member_status  # 供响应输出正式/替补标记
+        # 可选职业：主+副去重（补人仅当前职业）
+        options = [record.profession]
+        if sub_profession and sub_profession != record.profession:
+            options.append(sub_profession)
+        record.professions = options
         records.append(record)
     return records, calc_stats(records)
+
+
+async def update_record_profession(
+    session: AsyncSession, guild_id: int, schedule_id: int, record_id: int, profession: str
+) -> AttendanceRecord:
+    """更新出勤记录的职业快照（主/副职业之一）。"""
+    await get_schedule(session, guild_id, schedule_id)
+    record = await session.get(AttendanceRecord, record_id)
+    if record is None or record.schedule_id != schedule_id:
+        raise AttendanceServiceError("出勤记录不存在", 404)
+    if profession not in PROFESSIONS:
+        raise AttendanceServiceError(f"无效的职业：{profession}")
+    # 校验职业在该成员可选范围内（常驻成员主/副，补人仅当前）
+    if record.member_id is not None:
+        member = await session.get(Member, record.member_id)
+        allowed = {member.main_profession, member.sub_profession} if member else {record.profession}
+        allowed.discard(None)
+        if profession not in allowed:
+            raise AttendanceServiceError("只能选择该成员的主职业或副职业")
+    elif profession != record.profession:
+        raise AttendanceServiceError("补人职业不可修改")
+    record.profession = profession
+    await session.commit()
+    await session.refresh(record)
+    return record
 
 
 async def add_filler(session: AsyncSession, guild_id: int, schedule_id: int, name: str, profession: str) -> AttendanceRecord:

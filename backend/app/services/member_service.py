@@ -60,6 +60,18 @@ async def list_members(
     return list(items), total
 
 
+async def profession_stats(session: AsyncSession, guild_id: int) -> list[dict]:
+    """职业分布统计（首页仪表盘聚合，避免全量拉取成员）。"""
+    rows = (
+        await session.execute(
+            select(Member.main_profession, func.count())
+            .where(Member.guild_id == guild_id)
+            .group_by(Member.main_profession)
+        )
+    ).all()
+    return [{"profession": p, "count": c} for p, c in rows]
+
+
 async def create_member(session: AsyncSession, guild_id: int, data: MemberCreate) -> Member:
     validate_profession(data.main_profession, data.sub_profession)
     if data.status not in MEMBER_STATUSES:

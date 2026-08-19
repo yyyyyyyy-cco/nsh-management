@@ -73,6 +73,7 @@ def upgrade() -> None:
     sa.Column('guild_id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=64), nullable=False),
     sa.Column('password_hash', sa.String(length=128), nullable=False),
+    sa.Column('plain_password', sa.String(length=128), nullable=True),
     sa.Column('role', sa.String(length=16), nullable=False),
     sa.Column('status', sa.String(length=16), nullable=False),
     sa.Column('failed_attempts', sa.Integer(), nullable=False),

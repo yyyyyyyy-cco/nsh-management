@@ -60,6 +60,49 @@ async def substitute_candidates(session: AsyncSession, guild_id: int, schedule_i
     return [m for m in substitutes if m.id not in imported_ids]
 
 
+async def all_member_candidates(session: AsyncSession, guild_id: int, schedule_id: int) -> list[Member]:
+    """常驻库所有成员（正式+替补），已导入本场的排除。"""
+    await get_schedule(session, guild_id, schedule_id)
+    imported_ids = await _imported_member_ids(session, schedule_id)
+    all_members = list(
+        (await session.execute(select(Member).where(Member.guild_id == guild_id))).scalars().all()
+    )
+    return [m for m in all_members if m.id not in imported_ids]
+
+
+async def import_members(session: AsyncSession, guild_id: int, schedule_id: int, member_ids: list[int]) -> dict:
+    """导入选中的常驻库成员（正式/替补均可），已导入的跳过。"""
+    await get_schedule(session, guild_id, schedule_id)
+    imported_ids = await _imported_member_ids(session, schedule_id)
+    members = list(
+        (
+            await session.execute(
+                select(Member).where(
+                    Member.guild_id == guild_id,
+                    Member.id.in_(member_ids),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    new_members = [m for m in members if m.id not in imported_ids]
+    await check_normal_capacity(session, schedule_id, len(new_members))
+    for member in new_members:
+        session.add(
+            AttendanceRecord(
+                schedule_id=schedule_id,
+                member_id=member.id,
+                member_name=member.name,
+                profession=member.main_profession,
+                status="normal",
+                is_filler=False,
+            )
+        )
+    await session.commit()
+    return {"imported": len(new_members), "skipped": len(members) - len(new_members)}
+
+
 async def import_substitutes(session: AsyncSession, guild_id: int, schedule_id: int, member_ids: list[int]) -> dict:
     """导入选中的替补成员。"""
     await get_schedule(session, guild_id, schedule_id)

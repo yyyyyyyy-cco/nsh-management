@@ -2,7 +2,7 @@
   <div class="config-view">
     <el-tabs v-model="activeTab">
       <!-- 职业配置 -->
-      <el-tab-pane label="职业配置" name="profession">
+      <el-tab-pane v-if="!auth.isDeveloper" label="职业配置" name="profession">
         <el-card shadow="never">
           <template #header>
             <div class="card-header">
@@ -12,8 +12,15 @@
           </template>
           <p class="tip">配置各职业的目标人数，用于出勤库的职业缺口分析。</p>
           <el-table :data="professionConfigs" border>
-            <el-table-column prop="profession" label="职业" width="120" />
-            <el-table-column label="目标人数" width="200">
+            <el-table-column prop="profession" label="职业" min-width="100">
+              <template #default="{ row }">
+                <span class="prof-cell">
+                  <i class="prof-dot" :style="{ background: profColor(row.profession) }" />
+                  {{ row.profession }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="目标人数" min-width="150">
               <template #default="{ row }">
                 <el-input-number
                   v-model="row.target_count"
@@ -26,64 +33,125 @@
             </el-table-column>
             <el-table-column label="说明">
               <template #default="{ row }">
-                <span class="profession-tip">{{ getProfessionTip(row.profession) }}</span>
+                <el-input
+                  v-model="row.remark"
+                  placeholder="说明（可选）"
+                  size="small"
+                  maxlength="255"
+                  clearable
+                />
               </template>
             </el-table-column>
           </el-table>
         </el-card>
       </el-tab-pane>
 
-      <!-- 账号管理 -->
-      <el-tab-pane label="账号管理" name="account">
-        <el-card shadow="never">
+      <!-- 账号管理（仅开发者） -->
+      <el-tab-pane v-if="auth.isDeveloper" label="账号管理" name="account">
+        <!-- 创建帮会按钮（仅开发者） -->
+        <el-card v-if="auth.isDeveloper" shadow="never" class="section-card">
           <template #header>
             <div class="card-header">
-              <span>账号列表</span>
-              <el-button type="primary" @click="showAccountDialog()">创建账号</el-button>
+              <span>帮会管理</span>
+              <el-button type="primary" @click="showGuildDialog()">创建帮会</el-button>
             </div>
           </template>
-          <el-table :data="accounts" border>
-            <el-table-column prop="username" label="登录名" min-width="150" />
-            <el-table-column label="角色" width="100">
-              <template #default="{ row }">
-                <el-tag :type="row.role === 'admin' ? 'danger' : 'info'" effect="light">
-                  {{ row.role === 'admin' ? '管理员' : '帮众' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" width="100">
-              <template #default="{ row }">
-                <el-tag :type="row.status === 'active' ? 'success' : 'warning'" effect="light">
-                  {{ row.status === 'active' ? '启用' : '禁用' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="创建时间" width="180">
+          <el-table :data="guilds" border empty-text="暂无帮会，请先创建">
+            <el-table-column prop="id" label="ID" width="60" />
+            <el-table-column prop="name" label="帮会名称" min-width="200" />
+            <el-table-column label="创建时间" min-width="160">
               <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column label="操作" min-width="100">
               <template #default="{ row }">
-                <el-button link type="primary" @click="showAccountDialog(row)">编辑</el-button>
-                <el-button
-                  v-if="row.id !== currentUserId"
-                  link
-                  :type="row.status === 'active' ? 'warning' : 'success'"
-                  @click="onToggleStatus(row)"
-                >
-                  {{ row.status === 'active' ? '禁用' : '启用' }}
-                </el-button>
+                <el-button link type="danger" @click="onDeleteGuild(row)">删除</el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-card>
+
+        <!-- 账号列表（按帮会分组，可折叠） -->
+        <el-card v-for="group in accountGroups" :key="group.guildId ?? 'none'" shadow="never" class="section-card">
+          <template #header>
+            <div class="card-header card-header--collapse" @click="toggleGroup(group.guildId)">
+              <span>{{ group.guildName }}</span>
+              <div class="header-actions">
+                <el-button v-if="group.guildId" type="primary" size="small" @click.stop="showAccountDialog(undefined, group.guildId)">创建账号</el-button>
+                <el-icon class="collapse-icon" :class="{ 'is-collapsed': isGroupCollapsed(group.guildId) }"><ArrowDown /></el-icon>
+              </div>
+            </div>
+          </template>
+          <el-collapse-transition>
+            <div v-show="!isGroupCollapsed(group.guildId)">
+              <el-table :data="group.accounts" border>
+                <el-table-column prop="username" label="登录名" min-width="130" />
+                <el-table-column label="密码" min-width="100">
+                  <template #default="{ row }">
+                    <span v-if="row.plain_password">{{ row.plain_password }}</span>
+                    <span v-else class="no-password">-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="角色" min-width="80">
+                  <template #default="{ row }">
+                    <el-tag :type="roleTagType(row.role)" effect="light">
+                      {{ roleLabel(row.role) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态" min-width="80">
+                  <template #default="{ row }">
+                    <el-tag :type="row.status === 'active' ? 'success' : 'warning'" effect="light">
+                      {{ row.status === 'active' ? '启用' : '禁用' }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" min-width="170">
+                  <template #default="{ row }">
+                    <el-button link type="primary" @click="showAccountDialog(row)">编辑</el-button>
+                    <el-button
+                      v-if="row.role !== 'developer' && row.id !== currentUserId"
+                      link
+                      :type="row.status === 'active' ? 'warning' : 'success'"
+                      @click="onToggleStatus(row)"
+                    >
+                      {{ row.status === 'active' ? '禁用' : '启用' }}
+                    </el-button>
+                    <el-button
+                      v-if="row.role !== 'developer' && row.id !== currentUserId"
+                      link
+                      type="danger"
+                      @click="onDeleteAccount(row)"
+                    >
+                      删除
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </el-collapse-transition>
+        </el-card>
       </el-tab-pane>
     </el-tabs>
+
+    <!-- 创建帮会弹窗 -->
+    <el-dialog v-model="guildDialogVisible" title="创建帮会" width="400px">
+      <el-form ref="guildFormRef" :model="guildForm" :rules="guildRules" label-width="80px">
+        <el-form-item label="帮会名称" prop="name">
+          <el-input v-model="guildForm.name" placeholder="请输入帮会名称" />
+        </el-form-item>
+        <p class="dialog-tip">将自动创建该帮会的管理员账号和帮众账号（默认密码均为 123456）。</p>
+      </el-form>
+      <template #footer>
+        <el-button @click="guildDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="onSaveGuild">确定</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 账号编辑弹窗 -->
     <el-dialog
       v-model="accountDialogVisible"
       :title="editingAccount ? '编辑账号' : '创建账号'"
-      width="400px"
+      width="420px"
     >
       <el-form ref="accountFormRef" :model="accountForm" :rules="accountRules" label-width="80px">
         <el-form-item label="登录名" prop="username">
@@ -116,25 +184,42 @@
 import { computed, onMounted, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
 import {
   batchUpdateProfessionConfigs,
   createAccount,
+  createGuild,
+  deleteAccount,
+  deleteGuild,
   getAccounts,
+  getGuilds,
   getProfessionConfigs,
   updateAccount,
   updateAccountStatus,
 } from '@/api/config'
-import type { Account, ProfessionConfig } from '@/types/config'
+import type { Account, Guild, ProfessionConfig } from '@/types/config'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
-const activeTab = ref('profession')
+const activeTab = ref(auth.isDeveloper ? 'account' : 'profession')
 const saving = ref(false)
 
 // 职业配置
 const professionConfigs = ref<ProfessionConfig[]>([])
+
+// 帮会管理
+const guilds = ref<Guild[]>([])
+const guildDialogVisible = ref(false)
+const guildFormRef = ref<FormInstance>()
+const guildForm = ref({ name: '' })
+const guildRules: FormRules = {
+  name: [
+    { required: true, message: '请输入帮会名称', trigger: 'blur' },
+    { min: 2, max: 64, message: '长度在 2 到 64 个字符', trigger: 'blur' },
+  ],
+}
 
 // 账号管理
 const accounts = ref<Account[]>([])
@@ -145,6 +230,7 @@ const accountForm = ref({
   username: '',
   password: '',
   role: 'member' as 'admin' | 'member',
+  guildId: null as number | null,
 })
 const accountRules: FormRules = {
   username: [
@@ -160,44 +246,133 @@ const accountRules: FormRules = {
 
 const currentUserId = computed(() => auth.user?.id)
 
-const professionTips: Record<string, string> = {
-  铁衣: '主T，前排坦克',
-  素问: '治疗，奶妈',
-  神相: '远程输出',
-  碎梦: '近战刺客',
-  血河: '近战输出',
-  玄机: '远程输出',
-  九灵: '远程召唤',
-  潮光: '远程辅助',
-  龙吟: '近战输出',
-  鸿音: '远程辅助',
-  沧澜: '近战控制',
+// 账号分组卡片折叠状态
+const collapsedGroups = ref<Set<number | null>>(new Set())
+
+function isGroupCollapsed(guildId: number | null): boolean {
+  return collapsedGroups.value.has(guildId)
+}
+
+function toggleGroup(guildId: number | null) {
+  const next = new Set(collapsedGroups.value)
+  if (next.has(guildId)) {
+    next.delete(guildId)
+  } else {
+    next.add(guildId)
+  }
+  collapsedGroups.value = next
+}
+
+// 账号按帮会分组
+const accountGroups = computed(() => {
+  const map = new Map<number | null, { guildId: number | null; guildName: string; accounts: Account[] }>()
+  for (const a of accounts.value) {
+    const key = a.guild_id
+    if (!map.has(key)) {
+      map.set(key, {
+        guildId: key,
+        guildName: a.guild_name ?? '无帮会（开发者）',
+        accounts: [],
+      })
+    }
+    map.get(key)!.accounts.push(a)
+  }
+  return [...map.values()]
+})
+
+/** 职业色映射（依据 ui-style-guide §9）。 */
+const PROF_COLORS: Record<string, string> = {
+  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
+  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
+  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
+}
+
+function profColor(prof: string) {
+  return PROF_COLORS[prof] || '#c9a13b'
 }
 
 onMounted(load)
 
 async function load() {
-  await Promise.all([loadProfessions(), loadAccounts()])
+  const tasks: Promise<void>[] = [loadAccounts()]
+  if (auth.isDeveloper) {
+    tasks.push(loadGuilds())
+  } else {
+    tasks.push(loadProfessions())
+  }
+  await Promise.all(tasks)
 }
 
 async function loadProfessions() {
   professionConfigs.value = await getProfessionConfigs()
 }
 
+async function loadGuilds() {
+  guilds.value = await getGuilds()
+}
+
 async function loadAccounts() {
   accounts.value = await getAccounts()
 }
 
-function getProfessionTip(profession: string): string {
-  return professionTips[profession] || ''
+function roleTagType(role: string): string {
+  return role === 'developer' ? '' : role === 'admin' ? 'danger' : 'info'
 }
 
+function roleLabel(role: string): string {
+  return role === 'developer' ? '开发者' : role === 'admin' ? '管理员' : '帮众'
+}
+
+// ===== 帮会操作 =====
+function showGuildDialog() {
+  guildForm.value = { name: '' }
+  guildDialogVisible.value = true
+}
+
+async function onDeleteGuild(guild: Guild) {
+  await ElMessageBox.confirm(
+    `确定删除帮会「${guild.name}」吗？该操作将级联删除该帮会的所有账号、成员、赛程、出勤、排表、录屏与分析数据，且不可恢复！`,
+    '危险操作',
+    { type: 'warning', confirmButtonText: '确认删除' },
+  )
+  const result = await deleteGuild(guild.id)
+  ElMessage.success(result.message)
+  await Promise.all([loadGuilds(), loadAccounts()])
+}
+
+async function onDeleteAccount(account: Account) {
+  await ElMessageBox.confirm(`确定删除账号「${account.username}」吗？删除后不可恢复！`, '危险操作', {
+    type: 'warning',
+    confirmButtonText: '确认删除',
+  })
+  const result = await deleteAccount(account.id)
+  ElMessage.success(result.message)
+  loadAccounts()
+}
+
+async function onSaveGuild() {
+  const valid = await guildFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  saving.value = true
+  try {
+    const result = await createGuild(guildForm.value)
+    ElMessage.success(`帮会「${result.name}」创建成功`)
+    guildDialogVisible.value = false
+    await Promise.all([loadGuilds(), loadAccounts()])
+  } finally {
+    saving.value = false
+  }
+}
+
+// ===== 职业配置操作 =====
 async function onSaveProfessions() {
   saving.value = true
   try {
     const configs = professionConfigs.value.map((c) => ({
       profession: c.profession,
       target_count: c.target_count,
+      remark: c.remark,
     }))
     const result = await batchUpdateProfessionConfigs(configs)
     ElMessage.success(result.message)
@@ -206,12 +381,14 @@ async function onSaveProfessions() {
   }
 }
 
-function showAccountDialog(account?: Account) {
+// ===== 账号操作 =====
+function showAccountDialog(account?: Account, guildId?: number | null) {
   editingAccount.value = account || null
   accountForm.value = {
     username: account?.username || '',
     password: '',
-    role: account?.role || 'member',
+    role: (account?.role === 'developer' ? 'member' : account?.role) || 'member',
+    guildId: account?.guild_id ?? guildId ?? null,
   }
   accountDialogVisible.value = true
 }
@@ -223,7 +400,6 @@ async function onSaveAccount() {
   saving.value = true
   try {
     if (editingAccount.value) {
-      // 编辑账号
       const data: { username?: string; password?: string } = {}
       if (accountForm.value.username !== editingAccount.value.username) {
         data.username = accountForm.value.username
@@ -234,8 +410,12 @@ async function onSaveAccount() {
       await updateAccount(editingAccount.value.id, data)
       ElMessage.success('账号更新成功')
     } else {
-      // 创建账号
-      await createAccount(accountForm.value)
+      await createAccount({
+        username: accountForm.value.username,
+        password: accountForm.value.password,
+        role: accountForm.value.role,
+        guild_id: accountForm.value.guildId,
+      })
       ElMessage.success('账号创建成功')
     }
     accountDialogVisible.value = false
@@ -268,10 +448,34 @@ function formatTime(value: string): string {
   padding: 0;
 }
 
+.section-card {
+  margin-bottom: 16px;
+}
+
 .card-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.card-header--collapse {
+  cursor: pointer;
+  user-select: none;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.collapse-icon {
+  color: var(--ink-400);
+  transition: transform 0.2s ease;
+}
+
+.collapse-icon.is-collapsed {
+  transform: rotate(-90deg);
 }
 
 .tip {
@@ -280,8 +484,46 @@ function formatTime(value: string): string {
   margin-bottom: 16px;
 }
 
-.profession-tip {
+.dialog-tip {
   color: #9ca3af;
   font-size: 12px;
+  margin: 0;
+  padding-left: 80px;
+}
+
+.profession-tip {
+  color: var(--ink-400);
+  font-size: 12px;
+}
+
+.prof-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.prof-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.no-password {
+  color: var(--ink-200);
+}
+
+/* ===== 移动端适配 ===== */
+@media (max-width: 768px) {
+  .card-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .dialog-tip {
+    padding-left: 0;
+  }
 }
 </style>

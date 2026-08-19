@@ -41,6 +41,12 @@ const router = createRouter({
           meta: { title: '赛程详情' },
         },
         {
+          path: 'league-overview',
+          name: 'league-overview',
+          component: () => import('@/views/schedules/LeagueOverviewView.vue'),
+          meta: { title: '联赛总览' },
+        },
+        {
           path: 'config',
           name: 'config',
           component: () => import('@/views/config/ConfigView.vue'),
@@ -64,12 +70,18 @@ router.beforeEach(async (to) => {
     return { name: 'home' }
   }
   if (to.name === 'login' && auth.isLoggedIn) {
+    if (auth.isDeveloper) return { name: 'config' }
+    if (auth.user?.role === 'member') return { name: 'league-overview' }
     return { name: 'home' }
+  }
+  // 开发者仅允许访问 首页、系统配置、登录页
+  if (auth.isDeveloper && to.name !== 'home' && to.name !== 'config' && !to.meta.public) {
+    return { name: 'config' }
   }
 })
 
 router.afterEach((to) => {
-  document.title = to.meta.title ? `${String(to.meta.title)} - 帮会联赛管理系统` : '帮会联赛管理系统'
+  document.title = to.meta.title ? `${String(to.meta.title)} - 轻衫都会用的帮会联赛管理系统` : '轻衫都会用的帮会联赛管理系统'
 })
 
 export default router

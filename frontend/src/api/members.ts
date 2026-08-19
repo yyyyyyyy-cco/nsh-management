@@ -9,6 +9,11 @@ export interface MemberPage {
   page_size: number
 }
 
+export interface ProfessionStat {
+  profession: string
+  count: number
+}
+
 export interface MemberQuery {
   page?: number
   page_size?: number
@@ -62,4 +67,8 @@ export function importMembers(file: File): Promise<ImportResult> {
 
 export function getAttendanceRate(): Promise<AttendanceRateItem[]> {
   return http.get('/members/attendance-rate')
+}
+
+export function getProfessionStats(): Promise<ProfessionStat[]> {
+  return http.get('/members/profession-stats')
 }

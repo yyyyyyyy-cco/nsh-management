@@ -1,17 +1,21 @@
 <template>
   <el-dialog v-model="visible" :title="isEdit ? '编辑成员' : '添加成员'" width="480px" destroy-on-close>
     <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
-      <el-form-item label="姓名" prop="name">
-        <el-input v-model="form.name" maxlength="32" placeholder="请输入姓名" />
+      <el-form-item label="ID" prop="name">
+        <el-input v-model="form.name" maxlength="32" placeholder="请输入ID" />
       </el-form-item>
       <el-form-item label="主职业" prop="main_profession">
         <el-select v-model="form.main_profession" placeholder="请选择主职业" style="width: 100%">
-          <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p" />
+          <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p">
+            <span class="opt"><i class="opt-dot" :style="{ background: profColor(p) }" />{{ p }}</span>
+          </el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="副职业" prop="sub_profession">
         <el-select v-model="form.sub_profession" placeholder="可选" clearable style="width: 100%">
-          <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p" />
+          <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p">
+            <span class="opt"><i class="opt-dot" :style="{ background: profColor(p) }" />{{ p }}</span>
+          </el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="状态" prop="status">
@@ -48,6 +52,17 @@ const visible = computed({
 })
 
 const isEdit = computed(() => Boolean(props.member))
+
+/** 职业色映射（依据 ui-style-guide §9）。 */
+const PROF_COLORS: Record<string, string> = {
+  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
+  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
+  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
+}
+
+function profColor(prof: string) {
+  return PROF_COLORS[prof] || '#c9a13b'
+}
 const form = reactive({
   name: '',
   main_profession: '',
@@ -57,7 +72,7 @@ const form = reactive({
 })
 
 const rules: FormRules = {
-  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
+  name: [{ required: true, message: '请输入ID', trigger: 'blur' }],
   main_profession: [{ required: true, message: '请选择主职业', trigger: 'change' }],
 }
 
@@ -92,3 +107,18 @@ async function onSubmit() {
   }
 }
 </script>
+
+<style scoped>
+.opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.opt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+</style>

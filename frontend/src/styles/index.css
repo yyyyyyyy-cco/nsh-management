@@ -1,18 +1,6 @@
-/* 全局样式：浅金色主题（依据 ui-style-guide.md） */
-:root {
-  --el-color-primary: #d4af37;
-  --el-color-primary-light-3: #e0c55f;
-  --el-color-primary-light-5: #ead488;
-  --el-color-primary-light-7: #f5e8b3;
-  --el-color-primary-light-8: #faf0cc;
-  --el-color-primary-light-9: #fff8e7;
-  --el-color-primary-dark-2: #b8960e;
-  --el-color-success: #22c55e;
-  --el-color-warning: #f59e0b;
-  --el-color-danger: #ef4444;
-  --el-color-info: #6366f1;
-  --el-border-radius-base: 8px;
-}
+/* 全局样式入口：浅色雅金风（宣纸鎏金） */
+@import './theme.css';
+@import './element-plus.css';
 
 * {
   margin: 0;
@@ -27,9 +15,91 @@ body,
 }
 
 body {
-  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
-  color: #374151;
-  background: #f5f0e8;
+  line-height: 1.6;
+  color: var(--ink-700);
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgba(212, 175, 55, 0.07), transparent 60%),
+    radial-gradient(900px 420px at -10% 110%, rgba(139, 115, 85, 0.06), transparent 55%),
+    var(--ink-bg-page);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 标题默认衬线 */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-serif);
+  color: var(--ink-900);
+}
+
+a {
+  color: var(--gold-600);
+  text-decoration: none;
+  transition: color var(--dur-fast);
+}
+
+a:hover {
+  color: var(--gold-700);
+}
+
+/* ===== 通用工具类 ===== */
+
+/* 页面进入动效：淡入 + 上移 */
+.page-enter {
+  animation: page-rise var(--dur-slow) var(--ease-out) both;
+}
+
+@keyframes page-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 金色分割线 */
+.gold-divider {
+  height: 1px;
+  background: var(--gold-line);
+  border: none;
+  margin: 16px 0;
+}
+
+/* 数字用衬线字体 */
+.num {
+  font-family: var(--font-num);
+}
+
+/* ===== 移动端基础适配 ===== */
+@media (max-width: 768px) {
+  /* 触屏设备去除点击高亮闪烁 */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 触屏滚动更顺滑 */
+  .content,
+  .el-table__body-wrapper,
+  .el-select-dropdown__list {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 输入框字号 ≥16px 防止 iOS 聚焦自动缩放 */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  /* 页面进入动效在触屏上保持轻盈 */
+  .page-enter {
+    animation-duration: var(--dur-normal);
+  }
 }

@@ -12,6 +12,7 @@ from app.schemas.member import (
     MemberOut,
     MemberPage,
     MemberUpdate,
+    ProfessionStat,
 )
 from app.services import member_service
 from app.utils.excel_import import import_members
@@ -85,6 +86,15 @@ async def import_excel(
     content = await file.read()
     result = await import_members(session, current_user.guild_id, content)
     return {"message": f"导入成功 {result['imported']} 条，跳过 {result['skipped']} 条", **result}
+
+
+@router.get("/profession-stats", response_model=list[ProfessionStat])
+async def profession_stats(
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> list[ProfessionStat]:
+    """职业分布统计（首页仪表盘用，聚合查询）。"""
+    return await member_service.profession_stats(session, current_user.guild_id)
 
 
 @router.get("/attendance-rate", response_model=list[AttendanceRateItem])

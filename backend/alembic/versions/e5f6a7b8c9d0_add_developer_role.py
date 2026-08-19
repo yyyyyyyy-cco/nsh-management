@@ -26,6 +26,7 @@ def upgrade() -> None:
             guild_id INTEGER,
             username VARCHAR(64) NOT NULL UNIQUE,
             password_hash VARCHAR(128) NOT NULL,
+            plain_password VARCHAR(128),
             role VARCHAR(16) NOT NULL DEFAULT 'member',
             status VARCHAR(16) NOT NULL DEFAULT 'active',
             failed_attempts INTEGER NOT NULL DEFAULT 0,
@@ -37,8 +38,8 @@ def upgrade() -> None:
 
     # 复制数据
     op.execute("""
-        INSERT INTO users_new (id, guild_id, username, password_hash, role, status, failed_attempts, locked_until, created_at)
-        SELECT id, guild_id, username, password_hash, role, status, failed_attempts, locked_until, created_at
+        INSERT INTO users_new (id, guild_id, username, password_hash, plain_password, role, status, failed_attempts, locked_until, created_at)
+        SELECT id, guild_id, username, password_hash, plain_password, role, status, failed_attempts, locked_until, created_at
         FROM users
     """)
 
@@ -64,6 +65,7 @@ def downgrade() -> None:
             guild_id INTEGER NOT NULL,
             username VARCHAR(64) NOT NULL UNIQUE,
             password_hash VARCHAR(128) NOT NULL,
+            plain_password VARCHAR(128),
             role VARCHAR(16) NOT NULL DEFAULT 'member',
             status VARCHAR(16) NOT NULL DEFAULT 'active',
             failed_attempts INTEGER NOT NULL DEFAULT 0,
@@ -74,8 +76,8 @@ def downgrade() -> None:
     """)
 
     op.execute("""
-        INSERT INTO users_old (id, guild_id, username, password_hash, role, status, failed_attempts, locked_until, created_at)
-        SELECT id, guild_id, username, password_hash, role, status, failed_attempts, locked_until, created_at
+        INSERT INTO users_old (id, guild_id, username, password_hash, plain_password, role, status, failed_attempts, locked_until, created_at)
+        SELECT id, guild_id, username, password_hash, plain_password, role, status, failed_attempts, locked_until, created_at
         FROM users
     """)
 

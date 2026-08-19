@@ -13,6 +13,7 @@ from app.schemas.attendance import (
     BatchStatusUpdate,
     FillerCreate,
     ImportSubstitutesRequest,
+    ProfessionUpdate,
     StatusUpdate,
     SubstituteCandidateOut,
 )
@@ -52,6 +53,8 @@ async def substitute_candidates(
     session: AsyncSession = Depends(get_db),
 ) -> list[SubstituteCandidateOut]:
     members = await attendance_import.substitute_candidates(session, current_user.guild_id, schedule_id)
+    for m in members:
+        m.member_status = m.status  # 注入 member_status
     return [SubstituteCandidateOut.model_validate(m) for m in members]
 
 
@@ -64,6 +67,31 @@ async def import_substitutes(
 ) -> dict:
     result = await attendance_import.import_substitutes(session, current_user.guild_id, schedule_id, body.member_ids)
     return {"message": f"导入替补成员 {result['imported']} 人", **result}
+
+
+@router.get("/member-candidates", response_model=list[SubstituteCandidateOut])
+async def member_candidates(
+    schedule_id: int,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> list[SubstituteCandidateOut]:
+    """常驻库所有成员（正式+替补），已导入本场的排除。"""
+    members = await attendance_import.all_member_candidates(session, current_user.guild_id, schedule_id)
+    for m in members:
+        m.member_status = m.status  # 注入 member_status
+    return [SubstituteCandidateOut.model_validate(m) for m in members]
+
+
+@router.post("/import-members")
+async def import_members(
+    schedule_id: int,
+    body: ImportSubstitutesRequest,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> dict:
+    """导入选中的常驻库成员（正式/替补均可）。"""
+    result = await attendance_import.import_members(session, current_user.guild_id, schedule_id, body.member_ids)
+    return {"message": f"导入成员 {result['imported']} 人（已存在跳过 {result['skipped']} 人）", **result}
 
 
 @router.post("/fillers", response_model=AttendanceRecordOut)
@@ -87,6 +115,21 @@ async def update_status(
 ) -> AttendanceRecordOut:
     record = await attendance_service.update_status(
         session, current_user.guild_id, schedule_id, record_id, body.status
+    )
+    return AttendanceRecordOut.model_validate(record)
+
+
+@router.put("/{record_id}/profession", response_model=AttendanceRecordOut)
+async def update_profession(
+    schedule_id: int,
+    record_id: int,
+    body: ProfessionUpdate,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> AttendanceRecordOut:
+    """更新出勤职业（主/副职业之一，管理员）。"""
+    record = await attendance_service.update_record_profession(
+        session, current_user.guild_id, schedule_id, record_id, body.profession
     )
     return AttendanceRecordOut.model_validate(record)
 

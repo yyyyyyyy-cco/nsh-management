@@ -72,11 +72,14 @@ async def list_recordings(
     """获取录屏列表和各局审核进度。"""
     schedule = await get_schedule(session, guild_id, schedule_id)
 
-    # 获取出勤库成员
+    # 获取出勤库成员（排除请假人员，请假无需提交录屏）
     attendance_records = list(
         (
             await session.execute(
-                select(AttendanceRecord).where(AttendanceRecord.schedule_id == schedule_id)
+                select(AttendanceRecord).where(
+                    AttendanceRecord.schedule_id == schedule_id,
+                    AttendanceRecord.status != "leave",
+                )
             )
         )
         .scalars()
@@ -85,6 +88,11 @@ async def list_recordings(
 
     # 确保录屏占位记录存在
     recordings = await ensure_recordings(session, schedule, attendance_records)
+
+    # 填充职业快照（按姓名匹配出勤库，补人与常驻成员均适用）
+    prof_map = {a.member_name: a.profession for a in attendance_records}
+    for r in recordings:
+        r.profession = prof_map.get(r.member_name)
 
     # 按 member_name 和 round_number 排序
     recordings.sort(key=lambda r: (r.member_name, r.round_number))
@@ -96,7 +104,8 @@ async def list_recordings(
         total = len(round_records)
         approved = sum(1 for r in round_records if r.status == "approved")
         rejected = sum(1 for r in round_records if r.status == "rejected")
-        pending = total - approved - rejected
+        # 待审 = 已填写链接且未审核；未填链接的占位记录不计入
+        pending = sum(1 for r in round_records if r.status == "pending" and r.url)
         progress.append({
             "round_number": round_num,
             "total": total,
