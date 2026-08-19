@@ -94,3 +94,6 @@ desktop.ini
 # 部署脚本与 Nginx 配置（包含服务器 IP/域名/凭据，不提交）
 deploy.sh
 frontend/nginx.conf
+
+# 本地备份（日常使用文件的备份副本）
+_backup/
