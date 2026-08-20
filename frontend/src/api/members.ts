@@ -2,11 +2,17 @@
 import http from './http'
 import type { MemberInfo } from '@/types/member'
 
+export interface MemberStats {
+  formal_count: number
+  substitute_count: number
+}
+
 export interface MemberPage {
   items: MemberInfo[]
   total: number
   page: number
   page_size: number
+  stats: MemberStats
 }
 
 export interface ProfessionStat {

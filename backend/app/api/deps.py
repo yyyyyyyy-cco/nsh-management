@@ -19,7 +19,12 @@ async def get_current_user(
     payload = decode_access_token(credentials.credentials)
     if payload is None:
         raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
-    user = await session.get(User, int(payload["sub"]))
+    # 防御异常 payload：sub 缺失或非数字时按未登录处理，避免 500
+    try:
+        user_id = int(payload["sub"])
+    except (KeyError, TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
+    user = await session.get(User, user_id)
     if user is None or user.status != "active":
         raise HTTPException(status_code=401, detail="账号不存在或已被禁用")
     return user

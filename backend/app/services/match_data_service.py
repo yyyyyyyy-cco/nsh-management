@@ -3,7 +3,7 @@ import csv
 import io
 from datetime import datetime, timezone
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.match_data import MatchData
@@ -135,19 +135,31 @@ def parse_csv(content: str) -> list[dict]:
 
 
 async def import_csv(
-    session: AsyncSession, guild_id: int, schedule_id: int, content: str
+    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int, content: str
 ) -> dict:
-    """导入 CSV 比赛数据。"""
+    """导入 CSV 比赛数据，覆盖该局已有数据（一局一表）。"""
     schedule = await get_schedule(session, guild_id, schedule_id)
+
+    # 校验局号范围（1 ~ schedule.rounds）
+    if round_no < 1 or round_no > schedule.rounds:
+        raise MatchDataError(f"局号无效：该赛程共 {schedule.rounds} 局，局号应为 1~{schedule.rounds}")
 
     # 解析 CSV
     data_list = parse_csv(content)
+
+    # 覆盖语义：先删除该局已有数据，保证一局只有一张表
+    await session.execute(
+        delete(MatchData).where(
+            MatchData.schedule_id == schedule_id, MatchData.round_no == round_no
+        )
+    )
 
     # 创建比赛数据记录
     records = []
     for data in data_list:
         record = MatchData(
             schedule_id=schedule_id,
+            round_no=round_no,
             player_name=data["player_name"],
             profession=data.get("profession"),
             camp=data["camp"],
@@ -177,23 +189,18 @@ async def import_csv(
 
 
 async def list_match_data(
-    session: AsyncSession, guild_id: int, schedule_id: int
-) -> tuple[list[MatchData], list[dict], int]:
-    """获取比赛数据列表、阵营统计、导入次数。"""
-    await get_schedule(session, guild_id, schedule_id)
+    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None
+) -> tuple[list[MatchData], list[dict], int, list[int], int]:
+    """获取比赛数据列表、阵营统计、导入次数、已导入局号、总局数。"""
+    schedule = await get_schedule(session, guild_id, schedule_id)
 
-    # 查询所有比赛数据
-    records = list(
-        (
-            await session.execute(
-                select(MatchData)
-                .where(MatchData.schedule_id == schedule_id)
-                .order_by(MatchData.camp, MatchData.player_name)
-            )
-        )
-        .scalars()
-        .all()
-    )
+    # 查询比赛数据（可按局过滤）
+    stmt = select(MatchData).where(MatchData.schedule_id == schedule_id)
+    if round_no is not None:
+        stmt = stmt.where(MatchData.round_no == round_no)
+    stmt = stmt.order_by(MatchData.camp, MatchData.player_name)
+
+    records = list((await session.execute(stmt)).scalars().all())
 
     # 计算阵营统计
     camps = {}
@@ -222,16 +229,31 @@ async def list_match_data(
         )
     ).scalar_one()
 
-    return records, list(camps.values()), import_count
+    # 该赛程已导入的局号列表（用于前端标记切换项状态）
+    imported_rounds = sorted(
+        (
+            await session.execute(
+                select(MatchData.round_no)
+                .where(MatchData.schedule_id == schedule_id)
+                .distinct()
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    return records, list(camps.values()), import_count, imported_rounds, schedule.rounds
 
 
 async def get_rankings(
-    session: AsyncSession, guild_id: int, schedule_id: int, camp: str | None = None, limit: int = 20
+    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None, camp: str | None = None, limit: int = 20
 ) -> dict:
-    """获取排行榜数据。"""
+    """获取排行榜数据（可按局过滤）。"""
     await get_schedule(session, guild_id, schedule_id)
 
     stmt = select(MatchData).where(MatchData.schedule_id == schedule_id)
+    if round_no is not None:
+        stmt = stmt.where(MatchData.round_no == round_no)
     if camp:
         stmt = stmt.where(MatchData.camp == camp)
 
@@ -253,18 +275,22 @@ async def get_rankings(
     return {
         "kills_ranking": get_ranking("kills"),
         "damage_ranking": get_ranking("player_damage"),
+        "building_ranking": get_ranking("building_damage"),
         "healing_ranking": get_ranking("healing"),
+        "taken_ranking": get_ranking("damage_taken"),
         "fen_gu_ranking": get_ranking("fen_gu"),
     }
 
 
 async def get_profession_stats(
-    session: AsyncSession, guild_id: int, schedule_id: int, camp: str | None = None
+    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None, camp: str | None = None
 ) -> list[dict]:
-    """获取职业统计数据。"""
+    """获取职业统计数据（可按局过滤）。"""
     await get_schedule(session, guild_id, schedule_id)
 
     stmt = select(MatchData).where(MatchData.schedule_id == schedule_id)
+    if round_no is not None:
+        stmt = stmt.where(MatchData.round_no == round_no)
     if camp:
         stmt = stmt.where(MatchData.camp == camp)
 
@@ -303,13 +329,15 @@ async def get_profession_stats(
 
 
 async def generate_html_report(
-    session: AsyncSession, guild_id: int, schedule_id: int
+    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None
 ) -> str:
-    """生成 HTML 分析报告。"""
+    """生成 HTML 分析报告（可按局生成）。"""
     schedule = await get_schedule(session, guild_id, schedule_id)
-    records, camps, _ = await list_match_data(session, guild_id, schedule_id)
-    rankings = await get_rankings(session, guild_id, schedule_id, limit=10)
-    prof_stats = await get_profession_stats(session, guild_id, schedule_id)
+    records, camps, _, _, _ = await list_match_data(session, guild_id, schedule_id, round_no)
+    rankings = await get_rankings(session, guild_id, schedule_id, round_no, limit=10)
+    prof_stats = await get_profession_stats(session, guild_id, schedule_id, round_no)
+
+    round_label = f"第 {round_no} 局" if round_no is not None else "全部局"
 
     # 生成 HTML
     html = f"""<!DOCTYPE html>
@@ -317,7 +345,7 @@ async def generate_html_report(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>比赛数据分析报告 - {schedule.opponent}</title>
+    <title>比赛数据分析报告（{round_label}） - {schedule.opponent}</title>
     <style>
         body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; background: #f9fafb; }}
         .container {{ max-width: 1200px; margin: 0 auto; }}
@@ -341,7 +369,7 @@ async def generate_html_report(
         <div class="info-card">
             <p><strong>对手：</strong>{schedule.opponent}</p>
             <p><strong>比赛时间：</strong>{schedule.match_time.strftime('%Y-%m-%d %H:%M') if schedule.match_time else '-'}</p>
-            <p><strong>局数：</strong>{schedule.rounds} 局</p>
+            <p><strong>局数：</strong>{schedule.rounds} 局（当前展示：{round_label}）</p>
         </div>
 
         <h2>阵营统计</h2>
@@ -365,8 +393,10 @@ async def generate_html_report(
 
     ranking_titles = {
         "kills_ranking": "击杀榜",
-        "damage_ranking": "伤害榜",
+        "damage_ranking": "玩家伤害榜",
+        "building_ranking": "建筑伤害榜",
         "healing_ranking": "治疗榜",
+        "taken_ranking": "承伤榜",
         "fen_gu_ranking": "焚骨榜",
     }
 

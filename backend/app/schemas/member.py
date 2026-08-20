@@ -32,11 +32,17 @@ class MemberOut(MemberBase):
     model_config = {"from_attributes": True}
 
 
+class MemberStats(BaseModel):
+    formal_count: int
+    substitute_count: int
+
+
 class MemberPage(BaseModel):
     items: list[MemberOut]
     total: int
     page: int
     page_size: int
+    stats: MemberStats
 
 
 class BatchDeleteRequest(BaseModel):

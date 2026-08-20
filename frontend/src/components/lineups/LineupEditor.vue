@@ -25,6 +25,10 @@
         <template v-else-if="board.autoSaveStatus.value === 'saving'">◉ 保存中</template>
         <template v-else>✓ 已保存</template>
       </span>
+      <el-radio-group v-model="board.mode.value" size="small" class="mode-switch" @change="onModeChange">
+        <el-radio-button value="drag">拖拽</el-radio-button>
+        <el-radio-button value="input">输入</el-radio-button>
+      </el-radio-group>
       <div class="spacer" />
       <el-button :icon="Download" @click="importVisible = true">导入历史排表</el-button>
       <el-button :loading="board.saving.value" type="primary" :icon="Check" @click="onSave">保存排表</el-button>
@@ -35,24 +39,35 @@
         <div class="panel-title">
           <span class="panel-title__dot" />
           帮众候选池
-          <span class="panel-title__sub">出勤正常 · 可拖拽 · {{ board.candidates.value.length }}人</span>
         </div>
-        <div v-for="[prof, list] in board.professionGroups.value" :key="prof" class="prof-group">
+        <el-input
+          v-model="poolKeyword"
+          size="small"
+          placeholder="搜索成员"
+          clearable
+          :prefix-icon="Search"
+          class="pool-search"
+        />
+        <div v-for="[prof, list] in filteredPoolGroups" :key="prof" class="prof-group">
           <div class="prof-group__label" :style="{ color: profColor(prof) }" @click="toggleProf(prof)">
             <el-icon class="collapse-arrow" :class="{ expanded: !collapsedProfs.has(prof) }"><ArrowRight /></el-icon>
             {{ prof }} <em class="num">{{ list.length }}</em>
           </div>
-          <draggable v-show="!collapsedProfs.has(prof)" :list="list" group="lineup" item-key="key" class="pool-list" :animation="150" @change="board.onCandidateChange">
+          <draggable v-show="!collapsedProfs.has(prof)" :list="list" group="lineup" item-key="key" class="pool-list" :animation="150" ghost-class="pool-ghost" :disabled="board.mode.value === 'input'" @change="board.onCandidateChange">
             <template #item="{ element }">
-              <div class="pool-item">
+              <div class="pool-item" @click="onPoolItemClick(element)">
                 <span class="prof-dot" :style="{ background: profColor(element.profession) }" />
                 <span class="name">{{ element.member_name }}</span>
                 <el-tag v-if="element.member_status === 'filler'" size="small" type="warning" effect="light">补</el-tag>
+                <el-tag v-else-if="element.member_status === 'substitute'" size="small" type="info" effect="plain">替</el-tag>
               </div>
             </template>
           </draggable>
         </div>
-        <div v-if="!board.candidates.value.length" class="pool-empty">暂无可用成员</div>
+        <div v-if="!filteredPoolGroups.length" class="pool-empty">
+          <el-icon class="pool-empty__icon"><User /></el-icon>
+          <span>{{ board.candidates.value.length ? '没有匹配的成员' : '暂无可用成员' }}</span>
+        </div>
       </div>
 
       <div class="teams">
@@ -83,12 +98,26 @@
                 item-key="key"
                 class="slot"
                 :animation="150"
+                :disabled="board.mode.value === 'input'"
                 @change="(evt: any) => board.onSlotChange(evt, team, si)"
               >
                 <template #item="{ element }">
-                  <div class="slot-card" :class="{ filled: element.member_name }" @dblclick="board.editRemark(team, si)">
+                  <div v-if="isEditing(team, si)" class="slot-card slot-card--edit">
+                    <el-input
+                      v-model="inputName"
+                      size="small"
+                      placeholder="输入姓名"
+                      autofocus
+                      class="slot-input"
+                      @keyup.enter="onInputEnter"
+                      @keyup.esc="cancelInput"
+                      @blur="onInputBlur"
+                    />
+                  </div>
+                  <div v-else class="slot-card" :class="{ filled: element.member_name }" @click="onSlotClick(team, si)" @dblclick="board.editRemark(team, si)">
                     <span v-if="element.member_name" class="slot-prof-dot" :style="{ background: profColor(element.profession) }" />
-                    <span class="slot-name">{{ element.member_name || '空' }}</span>
+                    <span v-if="element.member_name" class="slot-name">{{ element.member_name }}</span>
+                    <span v-else-if="board.mode.value === 'input'" class="slot-name slot-name--hint">点击输入</span>
                     <el-tag
                       v-if="element.member_name && element.profession"
                       size="small"
@@ -119,22 +148,117 @@
     </div>
 
     <ImportHistoryDialog v-model="importVisible" :schedule-id="scheduleId" @imported="onImported" />
+    <MatchConfirmDialog
+      v-model="matchVisible"
+      :matches="matchResults"
+      :keyword="matchKeyword"
+      @confirm="onMatchConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { Check, Close, Download, EditPen, ArrowRight } from '@element-plus/icons-vue'
+import { ArrowRight, Check, Close, Download, EditPen, Search, User } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 import draggable from 'vuedraggable'
 
-import { useLineupBoard, type TeamBox } from '@/composables/lineupBoard'
+import { useLineupBoard, type CandidateItem, type TeamBox } from '@/composables/lineupBoard'
 import ImportHistoryDialog from './ImportHistoryDialog.vue'
+import MatchConfirmDialog from './MatchConfirmDialog.vue'
 
 const props = defineProps<{ scheduleId: number }>()
 const emit = defineEmits<{ saved: [] }>()
 
 const board = useLineupBoard(props.scheduleId)
 const importVisible = ref(false)
+
+// ===== 输入模式：槽位点击输入 → 候选池匹配 → 确认填入 =====
+/** 当前编辑中的槽位（输入模式）。 */
+const editingSlot = ref<{ team: TeamBox; si: number } | null>(null)
+const inputName = ref('')
+const matchVisible = ref(false)
+const matchKeyword = ref('')
+const matchResults = ref<CandidateItem[]>([])
+
+function isEditing(team: TeamBox, si: number) {
+  return editingSlot.value?.team === team && editingSlot.value?.si === si
+}
+
+/** 输入模式下点击槽位进入编辑态。 */
+function onSlotClick(team: TeamBox, si: number) {
+  if (board.mode.value !== 'input') return
+  editingSlot.value = { team, si }
+  inputName.value = ''
+}
+
+function cancelInput() {
+  editingSlot.value = null
+  inputName.value = ''
+}
+
+/** 失焦取消编辑（点击候选池条目或匹配确认框导致的失焦除外）。 */
+function onInputBlur(e: FocusEvent) {
+  if (matchVisible.value) return
+  const target = e.relatedTarget as HTMLElement | null
+  if (target?.closest('.pool, .el-overlay')) return
+  cancelInput()
+}
+
+/** 回车触发候选池匹配。 */
+function onInputEnter() {
+  const slot = editingSlot.value
+  const kw = inputName.value.trim()
+  if (!slot || !kw) return
+  const matches = board.matchCandidates(kw)
+  if (!matches.length) {
+    ElMessage.warning(`候选池中未匹配到「${kw}」`)
+    return
+  }
+  matchKeyword.value = kw
+  matchResults.value = matches
+  matchVisible.value = true
+}
+
+/** 确认填入：与拖拽一致（原成员回池、候选池剔除、自动保存）。 */
+function onMatchConfirm(item: CandidateItem) {
+  const slot = editingSlot.value
+  if (slot) board.fillSlotByInput(slot.team, slot.si, item)
+  cancelInput()
+}
+
+/** 切换模式时退出编辑态。 */
+function onModeChange() {
+  cancelInput()
+}
+
+// 匹配框被取消关闭时，同样退出槽位编辑态
+watch(matchVisible, (v) => {
+  if (!v) cancelInput()
+})
+
+// ===== 候选池搜索过滤（输入模式下点击条目可直接填入当前编辑槽位）=====
+const poolKeyword = ref('')
+
+const filteredPoolGroups = computed(() => {
+  const kw = poolKeyword.value.trim().toLowerCase()
+  if (!kw) return board.professionGroups.value
+  return board.professionGroups.value
+    .map(([prof, list]) => [prof, list.filter((c) => c.member_name.toLowerCase().includes(kw))] as [string, CandidateItem[]])
+    .filter(([, list]) => list.length > 0)
+})
+
+/** 输入模式下点击候选池条目：直接填入当前编辑中的槽位。 */
+function onPoolItemClick(item: CandidateItem) {
+  if (board.mode.value !== 'input') return
+  const slot = editingSlot.value
+  if (!slot) {
+    ElMessage.info('请先点击一个槽位，再选择要填入的成员')
+    return
+  }
+  board.fillSlotByInput(slot.team, slot.si, item)
+  cancelInput()
+}
 
 /** 候选池职业折叠状态：记录已折叠的职业（默认全部展开）。 */
 const collapsedProfs = ref(new Set<string>())
@@ -207,6 +331,27 @@ onMounted(() => board.load())
 </script>
 
 <style scoped>
+/* ===== 填表模式切换 ===== */
+.mode-switch {
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+/* ===== 输入模式：槽位编辑态与提示 ===== */
+.slot-card--edit {
+  padding: 4px 6px;
+  cursor: default;
+}
+
+.slot-input :deep(.el-input__wrapper) {
+  padding: 1px 8px;
+}
+
+.slot-name--hint {
+  color: var(--ink-300);
+  font-weight: 400;
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -384,11 +529,8 @@ onMounted(() => board.load())
   background: var(--gold-gradient);
 }
 
-.panel-title__sub {
-  font-weight: 400;
-  font-size: 11px;
-  color: var(--ink-400);
-  letter-spacing: 0;
+.pool-search {
+  margin-bottom: 10px;
 }
 
 .prof-group {
@@ -423,10 +565,18 @@ onMounted(() => board.load())
 }
 
 .pool-empty {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   color: var(--ink-300);
   font-size: 12px;
-  padding: 20px 0;
+  padding: 24px 0;
+}
+
+.pool-empty__icon {
+  font-size: 26px;
+  opacity: 0.5;
 }
 
 .pool-item {
@@ -445,10 +595,17 @@ onMounted(() => board.load())
 .pool-item:hover {
   border-color: var(--gold-300);
   box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
 .pool-item:active {
   cursor: grabbing;
+}
+
+/* 拖拽幽灵占位样式 */
+.pool-ghost {
+  opacity: 0.4;
+  border-style: dashed;
 }
 
 .prof-dot {

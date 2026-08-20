@@ -6,10 +6,22 @@
       <EChart :option="scatterOption" :height="320" />
     </div>
 
+    <!-- 治疗 vs 承伤散点图 -->
+    <div class="chart-card">
+      <div class="chart-card__title">治疗 vs 承伤分析</div>
+      <EChart :option="healTakenOption" :height="320" />
+    </div>
+
     <!-- 职业×指标热力图 -->
     <div class="chart-card">
       <div class="chart-card__title">职业×指标热力图</div>
       <EChart :option="heatmapOption" :height="heatmapHeight" />
+    </div>
+
+    <!-- 玩家四维构成（Top10） -->
+    <div class="chart-card">
+      <div class="chart-card__title">玩家四维数据（Top 10）</div>
+      <EChart :option="playerBarsOption" :height="320" />
     </div>
 
     <!-- 阵营职业伤害/治疗构成堆叠柱状图 -->
@@ -30,7 +42,7 @@
 import { computed } from 'vue'
 
 import type { MatchData } from '@/types/matchData'
-import { aggregateCamps, calcKDA, fmtNum, profColor } from './analysis'
+import { aggregateCamps, calcKDA, computeScores, fmtNum, profColor } from './analysis'
 import EChart from './EChart.vue'
 import { CHART_THEME } from './chartTheme'
 
@@ -68,7 +80,7 @@ const scatterOption = computed(() => ({
   series: [
     {
       type: 'scatter',
-      symbolSize: (data: number[]) => Math.max(8, Math.min(18, data[5] * 3)),
+      symbolSize: (data: number[]) => Math.max(6, Math.min(13, data[5] * 2)),
       data: props.items.map((r) => [
         r.kills,
         r.player_damage,
@@ -117,10 +129,9 @@ const heatmapOption = computed(() => {
     })
   })
   const maxVals = metrics.map((_, xi) => Math.max(...raw.filter((r) => r.xi === xi).map((r) => r.avg)))
-  const minVals = metrics.map((_, xi) => Math.min(...raw.filter((r) => r.xi === xi).map((r) => r.avg)))
+  // 按平均值归一化：avg / 该列最高均值 * 100，颜色直接反映平均值大小（非列内 min-max 拉伸）
   const data = raw.map((r) => {
-    const range = maxVals[r.xi] - minVals[r.xi]
-    const normalized = range > 0 ? Math.round(((r.avg - minVals[r.xi]) / range) * 100) : 50
+    const normalized = maxVals[r.xi] > 0 ? Math.round((r.avg / maxVals[r.xi]) * 100) : 0
     return [r.xi, r.yi, normalized, fmtNum(r.avg), r.label, r.prof]
   })
   return {
@@ -150,13 +161,14 @@ const heatmapOption = computed(() => {
     visualMap: {
       min: 0,
       max: 100,
+      dimension: 2, // 显式绑定归一化值维度（data 第 3 项），否则默认取第一维 xi 导致颜色失效
       calculable: false,
       orient: 'horizontal',
       left: 'center',
       bottom: 4,
       itemWidth: 14,
       itemHeight: 100,
-      inRange: { color: ['#fff7bc', '#fec44f', '#fe9929', '#ec7014', '#cc4c02', '#8c2d04'] },
+      inRange: { color: ['#fbe6a0', '#f6c043', '#ef9121', '#dd6c0d', '#b95205', '#7a2604'] },
       textStyle: { color: '#8a8378', fontSize: 11 },
     },
     series: [
@@ -177,6 +189,88 @@ const heatmapOption = computed(() => {
         },
         emphasis: { itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0, 0, 0, 0.4)', borderColor: '#fff', borderWidth: 2 } },
       },
+    ],
+  }
+})
+
+/** 治疗 vs 承伤散点：气泡大小=综合评分，颜色=职业，评估治疗职业表现。 */
+const healTakenOption = computed(() => {
+  const scored = computeScores(props.items)
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      ...CHART_THEME.tooltip,
+      formatter: (p: unknown) => {
+        const d = (p as { data: number[] }).data
+        return `<b>${d[3]}</b> (${d[4]})<br/>治疗: ${fmtNum(d[0])}<br/>承伤: ${fmtNum(d[1])}<br/>评分: ${d[2]}<br/>KDA: ${d[5].toFixed(1)}`
+      },
+    },
+    grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },
+    xAxis: {
+      name: '治疗量',
+      nameLocation: 'middle',
+      nameGap: 32,
+      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), margin: 12 },
+      splitLine: CHART_THEME.axis.splitLine,
+      nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [8, 0, 0, 0] },
+    },
+    yAxis: {
+      name: '承受伤害',
+      nameLocation: 'middle',
+      nameGap: 50,
+      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+      splitLine: CHART_THEME.axis.splitLine,
+      nameTextStyle: { ...CHART_THEME.axis.axisName },
+    },
+    series: [
+      {
+        type: 'scatter',
+        symbolSize: (data: number[]) => Math.max(6, Math.min(13, (data[5] as number) * 2)),
+        data: scored.map((s) => [s.player.healing, s.player.damage_taken, s.total, s.player.player_name, s.player.profession || '未知', s.kda]),
+        itemStyle: {
+          color: (p: { data: (number | string)[] }) => profColor(String(p.data[4])),
+          opacity: 0.75,
+          borderColor: 'rgba(0,0,0,0.08)',
+          borderWidth: 1,
+        },
+        emphasis: { itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } },
+        markLine: {
+          silent: true,
+          lineStyle: { color: 'rgba(0,0,0,0.1)', type: 'dashed', width: 1 },
+          data: [
+            { type: 'average', name: '平均治疗' },
+            { type: 'average', valueIndex: 1, name: '平均承伤' },
+          ],
+          label: { show: true, position: 'end', fontSize: 10, color: '#aaa' },
+        },
+      },
+    ],
+  }
+})
+
+/** 玩家四维数据：Top10 按综合评分降序，玩家伤害/建筑伤害/治疗/承伤分组柱。 */
+const playerBarsOption = computed(() => {
+  const top = computeScores(props.items).slice(0, 10).map((s) => s.player)
+  return {
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', ...CHART_THEME.tooltip, valueFormatter: (v: number) => fmtNum(v) },
+    legend: { bottom: 0, data: ['玩家伤害', '建筑伤害', '治疗', '承伤'], ...CHART_THEME.legend },
+    grid: { left: 12, right: 24, top: 30, bottom: 40, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: top.map((r) => r.player_name),
+      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate' },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+      splitLine: CHART_THEME.axis.splitLine,
+    },
+    series: [
+      { name: '玩家伤害', type: 'bar', barWidth: 8, barGap: '25%', itemStyle: { color: '#c9a13b', borderRadius: [2, 2, 0, 0] }, data: top.map((r) => r.player_damage) },
+      { name: '建筑伤害', type: 'bar', barWidth: 8, itemStyle: { color: '#5b7a9d', borderRadius: [2, 2, 0, 0] }, data: top.map((r) => r.building_damage) },
+      { name: '治疗', type: 'bar', barWidth: 8, itemStyle: { color: '#2e8b57', borderRadius: [2, 2, 0, 0] }, data: top.map((r) => r.healing) },
+      { name: '承伤', type: 'bar', barWidth: 8, itemStyle: { color: '#c0392b', borderRadius: [2, 2, 0, 0] }, data: top.map((r) => r.damage_taken) },
     ],
   }
 })

@@ -8,6 +8,14 @@
       <EChart :option="kdaOption" :height="260" />
     </div>
 
+    <!-- KDA 构成堆叠图 -->
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <span class="chart-card__title">KDA 构成（Top 10）</span>
+      </div>
+      <EChart :option="kdaStackOption" :height="260" />
+    </div>
+
     <!-- 伤害分布折线图（玩家/建筑切换） -->
     <div class="chart-card">
       <div class="chart-card__header">
@@ -18,6 +26,14 @@
         </el-radio-group>
       </div>
       <EChart :option="damageOption" :height="260" />
+    </div>
+
+    <!-- 贡献度帕累托图 -->
+    <div class="chart-card">
+      <div class="chart-card__header">
+        <span class="chart-card__title">贡献度分析 · 伤害累计占比（Top 20）</span>
+      </div>
+      <EChart :option="paretoOption" :height="260" />
     </div>
 
     <!-- 治疗/承伤分布折线图（切换） -->
@@ -81,8 +97,10 @@ const healMode = ref<'healing' | 'taken'>('healing')
 
 const rankingTitles: Record<string, string> = {
   kills_ranking: '击杀榜',
-  damage_ranking: '伤害榜',
+  damage_ranking: '玩家伤害榜',
+  building_ranking: '建筑伤害榜',
   healing_ranking: '治疗榜',
+  taken_ranking: '承伤榜',
   fen_gu_ranking: '焚骨榜',
 }
 
@@ -204,6 +222,111 @@ const healOption = computed(() => {
 function formatNumber(value: number): string {
   return fmtNum(value)
 }
+
+/** KDA 构成堆叠（击杀/助攻/重伤），看 KDA 高分是打得猛还是死得少。 */
+const kdaStackOption = computed(() => {
+  const sorted = props.items.slice().sort((a, b) => calcKDA(b) - calcKDA(a)).slice(0, 10)
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      ...CHART_THEME.tooltip,
+      formatter: (params: unknown) => {
+        const list = params as { name: string; marker: string; seriesName: string; value: number }[]
+        let html = `<b>${list[0].name}</b><br/>`
+        list.forEach((p) => {
+          html += `${p.marker} ${p.seriesName}: ${p.value}<br/>`
+        })
+        return html
+      },
+    },
+    legend: { bottom: 0, data: ['击杀', '助攻', '重伤'], ...CHART_THEME.legend },
+    grid: { left: 12, right: 20, top: 30, bottom: 40, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: sorted.map((r) => r.player_name),
+      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate' },
+    },
+    yAxis: { type: 'value', axisLabel: CHART_THEME.axis.axisLabel, splitLine: CHART_THEME.axis.splitLine },
+    series: [
+      { name: '击杀', type: 'bar', stack: 'kda', barWidth: 18, itemStyle: { color: '#c9a13b' }, data: sorted.map((r) => r.kills) },
+      { name: '助攻', type: 'bar', stack: 'kda', itemStyle: { color: '#5b7a9d' }, data: sorted.map((r) => r.assists) },
+      { name: '重伤', type: 'bar', stack: 'kda', itemStyle: { color: '#c0392b' }, data: sorted.map((r) => r.deaths) },
+    ],
+  }
+})
+
+/** 贡献度帕累托图：玩家伤害降序柱 + 累计占比折线，识别核心输出。 */
+const paretoOption = computed(() => {
+  const sorted = props.items.slice().sort((a, b) => b.player_damage - a.player_damage).slice(0, 20)
+  const total = sorted.reduce((s, r) => s + r.player_damage, 0)
+  let acc = 0
+  const cum = sorted.map((r) => {
+    acc += r.player_damage
+    return total ? Math.round((acc / total) * 1000) / 10 : 0
+  })
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      ...CHART_THEME.tooltip,
+      formatter: (params: unknown) => {
+        const list = params as { name: string; marker: string; seriesName: string; value: number }[]
+        let html = `<b>${list[0].name}</b><br/>`
+        list.forEach((p) => {
+          html += `${p.marker} ${p.seriesName}: ${p.seriesName === '累计占比' ? p.value + '%' : fmtNum(p.value)}<br/>`
+        })
+        return html
+      },
+    },
+    grid: { left: 12, right: 40, top: 32, bottom: 8, containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: sorted.map((r) => r.player_name),
+      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate' },
+    },
+    yAxis: [
+      {
+        type: 'value',
+        name: '伤害',
+        axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+        splitLine: CHART_THEME.axis.splitLine,
+        nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [0, 40, 0, 0] },
+      },
+      {
+        type: 'value',
+        name: '累计占比',
+        max: 100,
+        axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: '{value}%' },
+        splitLine: { show: false },
+        nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [0, 0, 0, 40] },
+      },
+    ],
+    series: [
+      {
+        name: '玩家伤害',
+        type: 'bar',
+        barWidth: 14,
+        data: sorted.map((r) => r.player_damage),
+        itemStyle: {
+          color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#c9a13b' }, { offset: 1, color: '#c9a13b88' }] },
+          borderRadius: [4, 4, 0, 0],
+        },
+      },
+      {
+        name: '累计占比',
+        type: 'line',
+        yAxisIndex: 1,
+        data: cum,
+        smooth: true,
+        lineStyle: { width: 2, color: '#f04545', type: 'dashed' },
+        itemStyle: { color: '#f04545' },
+        symbol: 'circle',
+        symbolSize: 5,
+      },
+    ],
+  }
+})
 </script>
 
 <style scoped>
@@ -238,7 +361,7 @@ function formatNumber(value: number): string {
 
 .ranking-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr); /* 每行固定 2 个榜单 */
   gap: 16px;
 }
 

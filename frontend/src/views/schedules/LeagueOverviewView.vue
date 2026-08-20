@@ -4,12 +4,17 @@
       <div class="toolbar-info">
         <el-icon class="info-icon"><VideoCamera /></el-icon>
         <span>联赛总览</span>
-        <span class="info-sub">全部联赛场次（由新到旧），点击进入录屏上传</span>
+        <span class="info-sub">{{ filterSubText }}（由新到旧），点击进入录屏上传</span>
       </div>
+      <el-radio-group v-model="timeFilter" size="small" class="toolbar-filter">
+        <el-radio-button value="month">本月</el-radio-button>
+        <el-radio-button value="lastMonth">上个月</el-radio-button>
+        <el-radio-button value="all">全部</el-radio-button>
+      </el-radio-group>
     </div>
 
     <el-card shadow="never" class="table-card">
-      <el-table v-loading="loading" :data="sortedSchedules" size="small" @row-click="goRecording">
+      <el-table v-loading="loading" :data="filteredSchedules" size="small" @row-click="goRecording">
         <el-table-column label="时间" min-width="150">
           <template #default="{ row }">
             <span class="time-cell">
@@ -57,10 +62,31 @@ const router = useRouter()
 const loading = ref(false)
 const schedules = ref<ScheduleInfo[]>([])
 
+/** 时间筛选：本月 / 上个月 / 全部（默认全部，与原有展示一致）。 */
+const timeFilter = ref<'month' | 'lastMonth' | 'all'>('all')
+
 // 由新到旧排序
 const sortedSchedules = computed(() =>
   [...schedules.value].sort((a, b) => dayjs(b.match_time).valueOf() - dayjs(a.match_time).valueOf()),
 )
+
+/** 按时间窗过滤后的赛程（本月：当月 1 号起；上个月：上月 1 号起至当月 1 号前）。 */
+const filteredSchedules = computed(() => {
+  if (timeFilter.value === 'all') return sortedSchedules.value
+  const thisMonthStart = dayjs().startOf('month')
+  const start = timeFilter.value === 'month' ? thisMonthStart : thisMonthStart.subtract(1, 'month')
+  const end = timeFilter.value === 'month' ? thisMonthStart.add(1, 'month') : thisMonthStart
+  return sortedSchedules.value.filter((s) => {
+    const t = dayjs(s.match_time).valueOf()
+    return t >= start.valueOf() && t < end.valueOf()
+  })
+})
+
+const filterSubText = computed(() => {
+  if (timeFilter.value === 'month') return '本月场次'
+  if (timeFilter.value === 'lastMonth') return '上个月场次'
+  return '全部联赛场次'
+})
 
 const resultLabel = (value: string) => SCHEDULE_RESULTS.find((r) => r.value === value)?.label || value
 const resultType = (value: string) =>
@@ -105,6 +131,10 @@ function goRecording(schedule: ScheduleInfo) {
   letter-spacing: 1px;
 }
 
+.toolbar-filter {
+  flex-shrink: 0;
+}
+
 .info-icon {
   font-size: 18px;
 }
@@ -144,6 +174,11 @@ function goRecording(schedule: ScheduleInfo) {
 
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
   .toolbar-info {
     font-size: 15px;
   }

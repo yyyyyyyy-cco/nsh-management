@@ -12,6 +12,7 @@ class MatchData(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     schedule_id: Mapped[int] = mapped_column(ForeignKey("schedules.id"), nullable=False, index=True)
+    round_no: Mapped[int] = mapped_column(Integer, default=1, nullable=False, index=True)  # 第几局（1~rounds）
     player_name: Mapped[str] = mapped_column(String(32), nullable=False)
     profession: Mapped[str | None] = mapped_column(String(16), nullable=True)
     camp: Mapped[str] = mapped_column(String(32), nullable=False)  # CSV 区块标题，第一块为己方

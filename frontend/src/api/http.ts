@@ -23,6 +23,9 @@ function extractErrorMessage(error: unknown): string {
   return data?.message || data?.detail || '网络错误，请稍后重试'
 }
 
+/** 401 跳转去重锁：并发 401 只处理一次，避免重复提示与重复跳转（短暂置位后自动复位）。 */
+let authRedirectPending = false
+
 http.interceptors.response.use(
   (response) => response.data,
   async (error) => {
@@ -35,6 +38,11 @@ http.interceptors.response.use(
     }
 
     if (status === 401) {
+      if (authRedirectPending) return Promise.reject(error)
+      authRedirectPending = true
+      setTimeout(() => {
+        authRedirectPending = false
+      }, 1000)
       // 非登录接口 401：Token 过期，清除本地凭证并跳转登录页
       const auth = useAuthStore()
       auth.clear()

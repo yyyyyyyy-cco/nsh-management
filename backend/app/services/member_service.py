@@ -52,12 +52,25 @@ async def list_members(
     keyword: str | None = None,
     profession: str | None = None,
     status: str | None = None,
-) -> tuple[list[Member], int]:
+) -> tuple[list[Member], int, dict]:
     base = apply_filters(select(Member), guild_id, keyword, profession, status)
     total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
+    # 正式/替补人数（跟随当前筛选条件，供列表页统计展示）
+    # 注意：必须引用子查询列 sub.c.status，若引用 ORM 列 Member.status 会令原始表加入 FROM 产生笛卡尔积
+    sub = base.subquery()
+    status_rows = (
+        await session.execute(
+            select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status)
+        )
+    ).all()
+    status_counts = dict(status_rows)
+    stats = {
+        "formal_count": int(status_counts.get("formal", 0)),
+        "substitute_count": int(status_counts.get("substitute", 0)),
+    }
     stmt = base.order_by(Member.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
     items = (await session.execute(stmt)).scalars().all()
-    return list(items), total
+    return list(items), total, stats
 
 
 async def profession_stats(session: AsyncSession, guild_id: int) -> list[dict]:

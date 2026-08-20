@@ -109,10 +109,11 @@ function goBack() {
 const lineupTabRef = ref<InstanceType<typeof LineupTab>>()
 const recordingTabRef = ref<InstanceType<typeof RecordingTab>>()
 
-/** 切到排表/录屏 Tab 时刷新（同步出勤库新增的补人/成员）。 */
+/** 切到排表/录屏 Tab 时刷新（同步出勤库新增的补人/成员），并把当前 Tab 写入 URL 便于刷新后保持。 */
 function onTabChange(name: string | number) {
   if (name === 'lineup') lineupTabRef.value?.reload()
   if (name === 'recording') recordingTabRef.value?.reload()
+  router.replace({ query: { ...route.query, tab: String(name) } })
 }
 
 async function load() {

@@ -19,17 +19,17 @@
   font-weight: 600;
 }
 
-/* ===== 主按钮：鎏金渐变 + 微光 ===== */
+/* ===== 主按钮：浅鎏金渐变 + 微光（颜色调浅，动效保持不变） ===== */
 .el-button--primary {
-  --el-button-bg-color: var(--gold-500);
-  --el-button-border-color: var(--gold-500);
-  --el-button-hover-bg-color: var(--gold-600);
-  --el-button-hover-border-color: var(--gold-600);
-  --el-button-active-bg-color: var(--gold-700);
-  --el-button-active-border-color: var(--gold-700);
-  background-image: linear-gradient(135deg, #f2dfa0 0%, #d9b64a 60%, #c9a13b 100%);
+  --el-button-bg-color: var(--gold-300);
+  --el-button-border-color: var(--gold-300);
+  --el-button-hover-bg-color: var(--gold-400);
+  --el-button-hover-border-color: var(--gold-400);
+  --el-button-active-bg-color: var(--gold-500);
+  --el-button-active-border-color: var(--gold-500);
+  background-image: linear-gradient(135deg, #f6ecd0 0%, #eedda4 55%, #e8cd72 100%);
   border: none;
-  box-shadow: 0 2px 8px -2px rgba(201, 161, 59, 0.4);
+  box-shadow: 0 2px 8px -2px rgba(201, 161, 59, 0.35);
   position: relative;
   overflow: hidden;
   transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
@@ -37,7 +37,7 @@
 
 .el-button--primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px -2px rgba(201, 161, 59, 0.5);
+  box-shadow: 0 4px 12px -2px rgba(201, 161, 59, 0.45);
 }
 
 .el-button--primary::after {

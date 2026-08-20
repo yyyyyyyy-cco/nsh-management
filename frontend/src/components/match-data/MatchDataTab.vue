@@ -1,7 +1,20 @@
 <template>
   <div class="match-data-tab">
-    <!-- 阵营统计 -->
-    <div v-if="camps.length > 0" class="stats-bar">
+    <!-- 局切换：赛程有几局即可切换几局，已导入的局打勾标记 -->
+    <div v-if="rounds > 1" class="round-bar">
+      <span class="round-bar__label">当前局</span>
+      <el-radio-group v-model="roundNo" size="small" @change="onRoundChange">
+        <el-radio-button v-for="n in roundOptions" :key="n" :value="n">
+          第{{ n }}局<template v-if="importedRounds.includes(n)"><i class="round-bar__check"> ✓</i></template>
+        </el-radio-button>
+      </el-radio-group>
+      <span class="round-bar__hint">
+        {{ importedRounds.includes(roundNo) ? '该局已导入，重新导入将覆盖数据' : '该局暂未导入数据' }}
+      </span>
+    </div>
+
+    <!-- 阵营统计（切局/加载时遮罩，避免旧局数据闪现） -->
+    <div v-if="camps.length > 0" v-loading="loading" class="stats-bar">
       <div v-for="(camp, i) in camps" :key="camp.camp" class="stat">
         <span class="stat-label">
           <i class="stat-dot" :style="{ background: campColor(i) }" />
@@ -25,13 +38,15 @@
       <el-button v-if="items.length > 0" @click="onExportReport">导出报告</el-button>
     </div>
 
-    <!-- 数据为空提示 -->
-    <el-empty v-if="!loading && items.length === 0" description="暂无比赛数据，请导入 CSV 文件">
+    <!-- 该局无任何数据（加载中保持空态并叠加遮罩，避免视图切换闪烁） -->
+    <el-empty v-if="items.length === 0" v-loading="loading" :description="`第 ${roundNo} 局暂无比赛数据，请导入 CSV 文件`">
       <el-button v-if="auth.isAdmin" type="primary" @click="onImport">导入 CSV</el-button>
     </el-empty>
+    <!-- 有数据但被筛选过滤为空 -->
+    <el-empty v-else-if="filteredItems.length === 0" v-loading="loading" description="无符合当前筛选条件的数据" />
 
-    <!-- 标签页切换 -->
-    <el-tabs v-else v-model="activeTab">
+    <!-- 标签页切换（切局/加载时整体遮罩） -->
+    <el-tabs v-else v-loading="loading" v-model="activeTab">
       <!-- 数据总览 -->
       <el-tab-pane label="数据总览" name="overview">
         <OverviewTab :items="filteredItems" :camps="camps" />
@@ -39,7 +54,7 @@
 
       <!-- 数据列表 -->
       <el-tab-pane label="数据列表" name="list">
-        <el-table v-loading="loading" :data="filteredItems" max-height="500">
+        <el-table :data="filteredItems" max-height="500">
           <el-table-column prop="player_name" label="ID" min-width="100" />
           <el-table-column prop="profession" label="职业" min-width="70" />
           <el-table-column prop="camp" label="阵营" min-width="100" />
@@ -82,7 +97,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 
 import { getMatchData, getRankings, getReportUrl, importCsv } from '@/api/matchData'
@@ -97,10 +112,13 @@ import ScoreTab from './ScoreTab.vue'
 const props = defineProps<{ scheduleId: number }>()
 
 const auth = useAuthStore()
-const loading = ref(false)
+const loading = ref(true) // 初始即加载态，避免空局先渲染空态再切遮罩的闪烁
 const importing = ref(false)
 const items = ref<MatchData[]>([])
 const camps = ref<CampStats[]>([])
+const rounds = ref(1) // 赛程总局数（1~3）
+const importedRounds = ref<number[]>([]) // 已导入的局号列表
+const roundNo = ref(1) // 当前展示/导入目标局
 const selectedCamp = ref('')
 const nameFilter = ref('')
 const activeTab = ref('overview')
@@ -108,9 +126,13 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const rankings = ref<RankingsResponse>({
   kills_ranking: [],
   damage_ranking: [],
+  building_ranking: [],
   healing_ranking: [],
+  taken_ranking: [],
   fen_gu_ranking: [],
 })
+
+const roundOptions = computed(() => Array.from({ length: rounds.value }, (_, i) => i + 1))
 
 function campColor(i: number) {
   return CAMP_COLORS[i % CAMP_COLORS.length]
@@ -133,17 +155,26 @@ onMounted(load)
 async function load() {
   loading.value = true
   try {
-    const data = await getMatchData(props.scheduleId)
+    const data = await getMatchData(props.scheduleId, roundNo.value)
     items.value = data.items
     camps.value = data.camps
+    importedRounds.value = data.imported_rounds
+    rounds.value = data.rounds
+    if (roundNo.value > rounds.value) roundNo.value = rounds.value
     await loadRankings()
   } finally {
     loading.value = false
   }
 }
 
+/** 切换局时重新加载当前局数据 */
+function onRoundChange() {
+  load()
+}
+
 async function loadRankings() {
   rankings.value = await getRankings(props.scheduleId, {
+    roundNo: roundNo.value,
     camp: selectedCamp.value || undefined,
     limit: 10,
   })
@@ -158,19 +189,33 @@ async function onFileChange(event: Event) {
   const file = input.files?.[0]
   if (!file) return
 
+  // 该局已有数据时确认覆盖（一局一表）
+  if (importedRounds.value.includes(roundNo.value)) {
+    try {
+      await ElMessageBox.confirm(
+        `第 ${roundNo.value} 局已导入过数据，重新导入将覆盖该局原有数据，是否继续？`,
+        '覆盖确认',
+        { type: 'warning' },
+      )
+    } catch {
+      input.value = '' // 取消覆盖，重置 input
+      return
+    }
+  }
+
   importing.value = true
   try {
-    const result = await importCsv(props.scheduleId, file)
+    const result = await importCsv(props.scheduleId, file, roundNo.value)
     ElMessage.success(result.message)
     load()
   } finally {
     importing.value = false
-    input.value = ''  // 重置 input
+    input.value = '' // 重置 input
   }
 }
 
 function onExportReport() {
-  const url = getReportUrl(props.scheduleId)
+  const url = getReportUrl(props.scheduleId, roundNo.value)
   window.open(url, '_blank')
 }
 
@@ -183,6 +228,36 @@ function formatNumber(value: number): string {
 </script>
 
 <style scoped>
+.round-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-lg);
+  background: var(--ink-bg-wash);
+}
+
+.round-bar__label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-600);
+}
+
+.round-bar__check {
+  font-style: normal;
+  font-weight: 700;
+  color: var(--gold-700);
+}
+
+.round-bar__hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
 .stats-bar {
   display: flex;
   gap: 24px;

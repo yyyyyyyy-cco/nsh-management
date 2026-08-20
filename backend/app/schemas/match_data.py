@@ -8,6 +8,7 @@ class MatchDataOut(BaseModel):
     """比赛数据输出。"""
     id: int
     schedule_id: int
+    round_no: int
     player_name: str
     profession: str | None
     camp: str
@@ -52,13 +53,17 @@ class MatchDataListResponse(BaseModel):
     items: list[MatchDataOut]
     camps: list[CampStats]
     import_count: int
+    imported_rounds: list[int]  # 已导入的局号列表
+    rounds: int  # 赛程总局数
 
 
 class RankingsResponse(BaseModel):
     """排行榜响应。"""
     kills_ranking: list[PlayerRanking]
     damage_ranking: list[PlayerRanking]
+    building_ranking: list[PlayerRanking]
     healing_ranking: list[PlayerRanking]
+    taken_ranking: list[PlayerRanking]
     fen_gu_ranking: list[PlayerRanking]
 
 

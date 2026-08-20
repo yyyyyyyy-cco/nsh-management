@@ -54,8 +54,12 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> t
         remaining = settings.LOGIN_MAX_FAILURES - record["failed_attempts"]
         raise AuthError(f"用户名或密码错误，还可尝试 {remaining} 次")
 
-    if user.locked_until and user.locked_until > now:
-        seconds_left = max(1, int((user.locked_until - now).total_seconds()))
+    # SQLite 读回的 locked_until 丢失时区信息（naive），统一按 UTC 处理后再比较
+    locked_until = user.locked_until
+    if locked_until is not None and locked_until.tzinfo is None:
+        locked_until = locked_until.replace(tzinfo=timezone.utc)
+    if locked_until and locked_until > now:
+        seconds_left = max(1, int((locked_until - now).total_seconds()))
         minutes_left = max(1, math.ceil(seconds_left / 60))
         raise AuthError(
             f"登录失败次数过多，账号已锁定，请 {minutes_left} 分钟后重试",

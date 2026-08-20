@@ -4,6 +4,7 @@
 export interface MatchData {
   id: number
   schedule_id: number
+  round_no: number
   player_name: string
   profession: string | null
   camp: string
@@ -45,7 +46,9 @@ export interface PlayerRanking {
 export interface RankingsResponse {
   kills_ranking: PlayerRanking[]
   damage_ranking: PlayerRanking[]
+  building_ranking: PlayerRanking[]
   healing_ranking: PlayerRanking[]
+  taken_ranking: PlayerRanking[]
   fen_gu_ranking: PlayerRanking[]
 }
 
@@ -63,4 +66,6 @@ export interface MatchDataListResponse {
   items: MatchData[]
   camps: CampStats[]
   import_count: number
+  imported_rounds: number[]
+  rounds: number
 }

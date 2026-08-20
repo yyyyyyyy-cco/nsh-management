@@ -1,38 +1,57 @@
 <template>
   <div class="member-list page-enter">
-    <el-card shadow="never" class="page-card">
+    <el-tabs v-model="activeTab" class="member-tabs" @tab-change="onTabChange">
+      <el-tab-pane label="成员列表" name="list">
+        <el-card shadow="never" class="page-card">
+      <div class="stats-bar">
+        <span class="stats-item">正式 <b class="num">{{ stats.formal_count }}</b> 人</span>
+        <span class="stats-sep" />
+        <span class="stats-item">替补 <b class="num">{{ stats.substitute_count }}</b> 人</span>
+        <span class="stats-sep" />
+        <span class="stats-item">当前筛选共 <b class="num">{{ total }}</b> 人</span>
+      </div>
       <div class="toolbar">
-        <el-input
-          v-model="query.keyword"
-          placeholder="搜索ID"
-          clearable
-          class="keyword"
-          :prefix-icon="Search"
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        />
-        <el-select v-model="query.profession" placeholder="职业筛选" clearable class="filter" @change="handleSearch">
-          <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p" />
-        </el-select>
-        <el-select v-model="query.status" placeholder="状态筛选" clearable class="filter" @change="handleSearch">
-          <el-option v-for="s in MEMBER_STATUSES" :key="s.value" :label="s.label" :value="s.value" />
-        </el-select>
-        <div class="spacer" />
-        <el-button type="primary" :icon="Plus" @click="openForm()">添加成员</el-button>
-        <el-button :icon="Upload" @click="importVisible = true">Excel 导入</el-button>
-        <el-button type="danger" plain :disabled="selectedIds.length === 0" @click="onBatchDelete">
-          批量删除{{ selectedIds.length ? `（${selectedIds.length}）` : '' }}
-        </el-button>
+        <div class="toolbar-filters">
+          <el-input
+            v-model="query.keyword"
+            placeholder="搜索ID"
+            clearable
+            class="keyword"
+            :prefix-icon="Search"
+            @keyup.enter="handleSearch"
+            @clear="handleSearch"
+          />
+          <el-select v-model="query.profession" placeholder="职业筛选" clearable class="filter" @change="handleSearch">
+            <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p" />
+          </el-select>
+          <el-select v-model="query.status" placeholder="状态筛选" clearable class="filter" @change="handleSearch">
+            <el-option v-for="s in MEMBER_STATUSES" :key="s.value" :label="s.label" :value="s.value" />
+          </el-select>
+        </div>
+        <div class="toolbar-actions">
+          <el-button type="primary" :icon="Plus" @click="openForm()">添加成员</el-button>
+          <el-button :icon="Upload" @click="importVisible = true">Excel 导入</el-button>
+          <el-button
+            type="danger"
+            plain
+            :icon="Delete"
+            :disabled="selectedIds.length === 0"
+            @click="onBatchDelete"
+          >
+            批量删除
+            <span v-if="selectedIds.length" class="batch-count num">{{ selectedIds.length }}</span>
+          </el-button>
+        </div>
       </div>
 
       <el-table v-loading="loading" :data="items" @selection-change="onSelectionChange">
         <el-table-column type="selection" width="48" />
-        <el-table-column prop="name" label="ID" min-width="120">
+        <el-table-column prop="name" label="ID" min-width="120" sortable :sort-method="sortByName">
           <template #default="{ row }">
             <span class="member-name">{{ row.name }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="main_profession" label="主职业" min-width="100">
+        <el-table-column prop="main_profession" label="主职业" min-width="100" sortable :sort-method="sortByProfession">
           <template #default="{ row }">
             <span class="prof-tag" :style="profStyle(row.main_profession)">{{ row.main_profession }}</span>
           </template>
@@ -70,9 +89,13 @@
         class="pagination"
         @change="load"
       />
-    </el-card>
+      </el-card>
+      </el-tab-pane>
+      <el-tab-pane label="出勤率统计" name="rate">
+        <AttendanceRatePanel />
+      </el-tab-pane>
+    </el-tabs>
 
-    <AttendanceRatePanel />
     <MemberFormDialog v-model="formVisible" :member="editingMember" @success="load" />
     <MemberImportDialog v-model="importVisible" @success="load" />
   </div>
@@ -80,10 +103,11 @@
 
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
-import { Plus, Search, Upload } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Plus, Search, Upload, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { batchDeleteMembers, deleteMember, listMembers, type MemberQuery } from '@/api/members'
+import { batchDeleteMembers, deleteMember, listMembers, type MemberStats, type MemberQuery } from '@/api/members'
 import type { MemberInfo } from '@/types/member'
 import { MEMBER_STATUSES, PROFESSIONS } from '@/utils/constants'
 import AttendanceRatePanel from '@/components/members/AttendanceRatePanel.vue'
@@ -91,8 +115,23 @@ import MemberFormDialog from '@/components/members/MemberFormDialog.vue'
 import MemberImportDialog from '@/components/members/MemberImportDialog.vue'
 
 const loading = ref(false)
+const activeTab = ref('list')
+const route = useRoute()
+const router = useRouter()
+
+// 支持从首页「出勤排行」跳转直达出勤率统计 Tab；刷新时从 URL 恢复当前 Tab
+if (route.query.tab === 'rate') {
+  activeTab.value = 'rate'
+}
+
+/** Tab 切换同步到 URL，刷新后保持当前 Tab。 */
+function onTabChange(name: string | number) {
+  router.replace({ query: { ...route.query, tab: String(name) } })
+}
+
 const items = ref<MemberInfo[]>([])
 const total = ref(0)
+const stats = ref<MemberStats>({ formal_count: 0, substitute_count: 0 })
 const selectedIds = ref<number[]>([])
 const formVisible = ref(false)
 const importVisible = ref(false)
@@ -114,6 +153,11 @@ function profStyle(prof: string) {
   return { background: bg, color }
 }
 
+/** 中文按拼音首字母排序（localeCompare zh 区域设置）。 */
+const byPinyin = (a: string, b: string) => a.localeCompare(b, 'zh-Hans-CN')
+const sortByName = (a: MemberInfo, b: MemberInfo) => byPinyin(a.name, b.name)
+const sortByProfession = (a: MemberInfo, b: MemberInfo) => byPinyin(a.main_profession, b.main_profession)
+
 onMounted(load)
 
 async function load() {
@@ -122,6 +166,7 @@ async function load() {
     const page = await listMembers(query)
     items.value = page.items
     total.value = page.total
+    stats.value = page.stats
   } finally {
     loading.value = false
   }
@@ -157,11 +202,71 @@ async function onBatchDelete() {
 </script>
 
 <style scoped>
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--ink-500);
+}
+
+.stats-item b {
+  font-size: 17px;
+  color: var(--gold-700);
+}
+
+.stats-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--gold-300);
+}
+
 .toolbar {
   display: flex;
+  align-items: center;
   gap: 12px;
   margin-bottom: 16px;
   flex-wrap: wrap;
+}
+
+.toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* 筛选区与操作区以淡分割线区分 */
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  padding-left: 16px;
+  border-left: 1px solid var(--edge-faint);
+}
+
+/* 批量删除选中数量徽标 */
+.batch-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 4px;
+  border-radius: 9px;
+  background: var(--cinnabar);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.member-name {
+  font-weight: 600;
+  color: var(--ink-900);
 }
 
 .keyword {
@@ -170,15 +275,6 @@ async function onBatchDelete() {
 
 .filter {
   width: 140px;
-}
-
-.spacer {
-  flex: 1;
-}
-
-.member-name {
-  font-weight: 600;
-  color: var(--ink-900);
 }
 
 /* 职业色标签 */
@@ -206,15 +302,26 @@ async function onBatchDelete() {
 
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
+  .toolbar-filters {
+    flex: 1 1 100%;
+  }
+
+  .toolbar-actions {
+    flex: 1 1 100%;
+    border-left: none;
+    padding-left: 0;
+    justify-content: space-between;
+  }
+
+  .toolbar-actions .el-button {
+    flex: 1;
+    margin-left: 0 !important;
+  }
+
   .keyword,
   .filter {
     flex: 1 1 100%;
     width: 100%;
-  }
-
-  .toolbar .el-button {
-    flex: 1;
-    margin-left: 0 !important;
   }
 
   .pagination {

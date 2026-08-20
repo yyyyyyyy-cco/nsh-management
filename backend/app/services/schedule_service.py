@@ -41,7 +41,7 @@ async def list_schedules(
         stmt = stmt.where(Schedule.match_time >= start)
     if end:
         stmt = stmt.where(Schedule.match_time < end)
-    stmt = stmt.order_by(Schedule.match_time)
+    stmt = stmt.order_by(Schedule.match_time.desc())
     return list((await session.execute(stmt)).scalars().all())
 
 

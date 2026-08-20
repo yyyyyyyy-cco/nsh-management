@@ -64,7 +64,13 @@ router.beforeEach(async (to) => {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
   if (auth.isLoggedIn && !auth.user) {
-    await auth.fetchMe().catch(() => auth.clear())
+    try {
+      await auth.fetchMe()
+    } catch {
+      // Token 失效或网络异常：清除凭证并回到登录页，避免悬空在受保护页
+      auth.clear()
+      return { name: 'login', query: { redirect: to.fullPath } }
+    }
   }
   if (to.meta.adminOnly && !auth.isAdmin) {
     return { name: 'home' }

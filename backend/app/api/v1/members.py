@@ -11,6 +11,7 @@ from app.schemas.member import (
     MemberCreate,
     MemberOut,
     MemberPage,
+    MemberStats,
     MemberUpdate,
     ProfessionStat,
 )
@@ -30,10 +31,16 @@ async def list_members(
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> MemberPage:
-    items, total = await member_service.list_members(
+    items, total, stats = await member_service.list_members(
         session, current_user.guild_id, page, page_size, keyword, profession, status
     )
-    return MemberPage(items=[MemberOut.model_validate(m) for m in items], total=total, page=page, page_size=page_size)
+    return MemberPage(
+        items=[MemberOut.model_validate(m) for m in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        stats=MemberStats(**stats),
+    )
 
 
 @router.post("", response_model=MemberOut)

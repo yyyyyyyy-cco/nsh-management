@@ -78,11 +78,27 @@ function toCandidateItem(el: SlotItem | CandidateItem): CandidateItem {
   }
 }
 
+/** 空槽位占位元素：删除成员后补回，保持槽位可编辑备注、可作拖放目标（与初始加载一致）。 */
+function emptySlot(si: number): SlotItem {
+  return {
+    key: keyOf(null, ''),
+    slot_index: si,
+    member_id: null,
+    member_name: '',
+    profession: '',
+    member_status: 'filler',
+    remark: '',
+  }
+}
+
 export function useLineupBoard(scheduleId: number) {
   const loading = ref(false)
   const saving = ref(false)
   const teams = ref<TeamBox[]>([])
   const candidates = ref<CandidateItem[]>([])
+
+  /** 填表模式：drag 拖拽 / input 输入（互斥，切换后行为一致：自动保存、备注等）。 */
+  const mode = ref<'drag' | 'input'>('drag')
 
   /** 自动保存状态：idle / pending（待保存） / saving（保存中） / saved（已保存）。 */
   const autoSaveStatus = ref<'idle' | 'pending' | 'saving' | 'saved'>('idle')
@@ -184,7 +200,27 @@ export function useLineupBoard(scheduleId: number) {
     }
     if (evt.removed) {
       backToCandidate(evt.removed.element)
+      // 补回空占位元素，避免槽位变为空数组导致备注图标与拖放目标丢失
+      if (!box.length) box.push(emptySlot(si))
     }
+    scheduleAutoSave()
+  }
+
+  /** 候选池按姓名包含匹配（忽略大小写），供输入模式使用。 */
+  function matchCandidates(keyword: string): CandidateItem[] {
+    const kw = keyword.trim().toLowerCase()
+    if (!kw) return []
+    return candidates.value.filter((c) => c.member_name.toLowerCase().includes(kw))
+  }
+
+  /** 输入模式填入：替换槽位成员（原成员回池），候选池剔除，触发自动保存。 */
+  function fillSlotByInput(team: TeamBox, si: number, item: CandidateItem) {
+    const box = team.slots[si]
+    box.filter((s) => s.member_name).forEach((o) => backToCandidate(o))
+    box.length = 0
+    box.push({ ...toSlotItem(item), slot_index: si })
+    const idx = candidates.value.findIndex((c) => c.key === item.key)
+    if (idx >= 0) candidates.value.splice(idx, 1)
     scheduleAutoSave()
   }
 
@@ -238,6 +274,8 @@ export function useLineupBoard(scheduleId: number) {
     if (!box.length) return
     backToCandidate(box[0])
     box.length = 0
+    // 补回空占位元素，避免槽位变为空数组导致备注图标与拖放目标丢失
+    box.push(emptySlot(si))
     scheduleAutoSave()
   }
 
@@ -294,6 +332,7 @@ export function useLineupBoard(scheduleId: number) {
     loading,
     saving,
     autoSaveStatus,
+    mode,
     teams,
     candidates,
     placedCount,
@@ -308,6 +347,8 @@ export function useLineupBoard(scheduleId: number) {
     onRemoveSlot,
     onSlotChange,
     onCandidateChange,
+    matchCandidates,
+    fillSlotByInput,
     load,
   }
 }

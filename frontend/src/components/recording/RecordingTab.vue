@@ -33,7 +33,7 @@
         </el-button>
         <el-select v-model="statusFilter" placeholder="状态筛选" clearable style="width: 120px">
           <el-option label="待审核" value="pending" />
-          <el-option label="已提交" value="submitted" />
+          <el-option label="未提交" value="unsubmitted" />
           <el-option label="已通过" value="approved" />
           <el-option label="已驳回" value="rejected" />
         </el-select>
@@ -63,8 +63,17 @@
             <el-button size="small" @click="editingId = null">取消</el-button>
           </div>
           <div v-else-if="row.url" class="url-display">
-            <a v-if="auth.isAdmin" :href="row.url" target="_blank" class="url-link">{{ row.url }}</a>
+            <a v-if="auth.isAdmin" :href="normalizeUrl(row.url)" target="_blank" rel="noopener" class="url-link">{{ row.url }}</a>
             <span v-else class="submitted-hint">已提交</span>
+            <el-button
+              v-if="auth.isAdmin"
+              link
+              type="primary"
+              size="small"
+              :icon="CopyDocument"
+              title="复制链接"
+              @click="onCopyUrl(row.url)"
+            />
             <el-button v-if="!auth.isAdmin" link type="primary" size="small" @click="startEdit(row)">修改</el-button>
           </div>
           <div v-else>
@@ -104,7 +113,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { CopyDocument, Search } from '@element-plus/icons-vue'
 
 import {
   approveRecording,
@@ -144,9 +153,12 @@ const filteredItems = computed(() => {
   if (roundFilter.value !== null) {
     list = list.filter((r) => r.round_number === roundFilter.value)
   }
-  if (statusFilter.value === 'submitted') {
-    // 已提交：已填写链接且未审核（占位记录不计入）
+  if (statusFilter.value === 'pending') {
+    // 待审核：仅已填写链接且未审核，未提交的占位记录不计入
     list = list.filter((r) => r.status === 'pending' && r.url)
+  } else if (statusFilter.value === 'unsubmitted') {
+    // 未提交：尚未填写录屏链接
+    list = list.filter((r) => r.status === 'pending' && !r.url)
   } else if (statusFilter.value) {
     list = list.filter((r) => r.status === statusFilter.value)
   }
@@ -167,6 +179,21 @@ const PROF_COLORS: Record<string, string> = {
 
 function profColor(prof: string | null | undefined) {
   return (prof && PROF_COLORS[prof]) || '#c9a13b'
+}
+
+/** 补全录屏链接协议（用户常只填域名/编号，缺协议浏览器无法直接打开）。 */
+function normalizeUrl(url: string): string {
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`
+}
+
+/** 复制录屏链接到剪贴板。 */
+async function onCopyUrl(url: string) {
+  try {
+    await navigator.clipboard.writeText(url)
+    ElMessage.success('录屏链接已复制')
+  } catch {
+    ElMessage.error('复制失败，请手动复制')
+  }
 }
 
 onMounted(load)

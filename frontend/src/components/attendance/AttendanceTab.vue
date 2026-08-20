@@ -366,9 +366,9 @@ async function onSave() {
   margin-bottom: 12px;
 }
 
-/* ===== 出勤状态开关（雅金风） ===== */
+/* ===== 出勤状态开关（浅金风，颜色更浅更柔和） ===== */
 .attendance-tab :deep(.el-switch.is-checked .el-switch__core) {
-  background: var(--gold-gradient);
+  background: linear-gradient(135deg, #f0e0a8 0%, #e8cd72 100%);
   border-color: transparent;
 }
 

@@ -49,6 +49,7 @@ import { batchStatus } from '@/api/attendance'
 import type { AttendanceRecord } from '@/types/attendance'
 
 const props = defineProps<{ scheduleId: number; records: AttendanceRecord[] }>()
+const emit = defineEmits<{ success: [] }>()
 const visible = defineModel<boolean>({ required: true })
 
 const rawText = ref('')
@@ -109,6 +110,7 @@ async function onConfirm() {
     const res = await batchStatus(props.scheduleId, ids, 'leave')
     ElMessage.success(res.message)
     visible.value = false
+    emit('success')
   } finally {
     saving.value = false
   }

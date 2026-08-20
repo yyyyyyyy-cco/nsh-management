@@ -11,6 +11,24 @@
       </el-tag>
     </div>
 
+    <!-- 今日比赛提醒 -->
+    <div v-if="todaySchedules.length" class="today-banner" @click="goTodaySchedule">
+      <div class="today-banner__badge">
+        <el-icon><Bell /></el-icon>
+      </div>
+      <div class="today-banner__info">
+        <span class="today-banner__title">今日比赛</span>
+        <div class="today-banner__matches">
+          <span v-for="s in todaySchedules" :key="s.id" class="today-banner__match">
+            vs {{ s.opponent }} · {{ formatTime(s.match_time) }}{{ s.rounds ? ` · ${s.rounds}局` : '' }}
+          </span>
+        </div>
+      </div>
+      <el-button link type="primary" class="today-banner__link">
+        前往查看 <el-icon><ArrowRight /></el-icon>
+      </el-button>
+    </div>
+
     <!-- 统计卡片 -->
     <div class="stat-grid">
       <div v-for="(card, i) in statCards" :key="card.key" class="stat-card" :class="`stat-card--${card.theme}`" :style="{ animationDelay: `${i * 60}ms` }">
@@ -41,7 +59,7 @@
               查看全部 <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
-          <div class="card__body">
+          <div class="card__body recent-body">
             <template v-if="recentSchedules.length === 0">
               <div class="empty-state">
                 <div class="empty-state__icon">&#x1F4C5;</div>
@@ -91,6 +109,19 @@
             </div>
           </div>
         </div>
+
+        <!-- 历史总览 -->
+        <div class="overview-bar">
+          <div class="overview-item">
+            <div class="overview-item__value num">{{ memberCount }}</div>
+            <div class="overview-item__label">帮众总数</div>
+          </div>
+          <div class="overview-item__sep" />
+          <div class="overview-item">
+            <div class="overview-item__value num">{{ scheduleCount }}</div>
+            <div class="overview-item__label">历史比赛</div>
+          </div>
+        </div>
       </div>
 
       <!-- 右栏 -->
@@ -102,7 +133,7 @@
               <el-icon class="card__header-icon"><Medal /></el-icon>
               <span class="card__title">出勤排行</span>
             </div>
-            <el-button link type="primary" @click="router.push('/members')">
+            <el-button link type="primary" @click="router.push({ path: '/members', query: { tab: 'rate' } })">
               查看全部 <el-icon><ArrowRight /></el-icon>
             </el-button>
           </div>
@@ -156,19 +187,6 @@
             </div>
           </div>
         </div>
-
-        <!-- 历史总览 -->
-        <div class="overview-bar">
-          <div class="overview-item">
-            <div class="overview-item__value num">{{ memberCount }}</div>
-            <div class="overview-item__label">帮众总数</div>
-          </div>
-          <div class="overview-item__sep" />
-          <div class="overview-item">
-            <div class="overview-item__value num">{{ scheduleCount }}</div>
-            <div class="overview-item__label">历史比赛</div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -179,6 +197,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowRight,
+  Bell,
   Calendar,
   Lightning,
   Medal,
@@ -201,9 +220,15 @@ const auth = useAuthStore()
 const loading = ref(true)
 const memberCount = ref(0)
 const scheduleCount = ref(0)
+const allSchedules = ref<ScheduleInfo[]>([])
 const recentSchedules = ref<ScheduleInfo[]>([])
 const topAttendance = ref<AttendanceRateItem[]>([])
 const professionStats = ref<{ name: string; count: number; color: string }[]>([])
+
+/** 今日比赛：从完整赛程中筛选（recentSchedules 仅保留 5 条，不能作为判断依据）。 */
+const todaySchedules = computed(() =>
+  allSchedules.value.filter((s) => dayjs(s.match_time).isSame(dayjs(), 'day')),
+)
 
 /** 职业色映射（依据 ui-style-guide，全站一致）。 */
 const PROF_COLORS: Record<string, string> = {
@@ -251,13 +276,13 @@ const statCards = computed(() => {
 const quickActions = computed(() => {
   if (auth.isDeveloper) {
     return [
-      { label: '系统配置', icon: Setting, path: '/config', color: '#5b7a9d' },
+      { label: '系统配置', icon: Setting, path: '/config', color: '#D97706' },
     ]
   }
   return [
-    { label: '常驻库', icon: UserFilled, path: '/members', color: '#3E60D5' },
+    { label: '常驻库', icon: UserFilled, path: '/members', color: '#2E8B57' },
     { label: '联赛日程', icon: Calendar, path: '/schedules', color: '#c9a13b' },
-    { label: '系统配置', icon: Setting, path: '/config', color: '#5b7a9d' },
+    { label: '系统配置', icon: Setting, path: '/config', color: '#D97706' },
   ]
 })
 
@@ -285,6 +310,13 @@ function resultLabel(r: string) {
   return r === 'win' ? '胜利' : r === 'lose' ? '失败' : r === 'draw' ? '平局' : '待定'
 }
 
+/** 跳转今日第一场比赛详情（多条时前往第一条）。 */
+function goTodaySchedule() {
+  if (todaySchedules.value.length) {
+    router.push(`/schedules/${todaySchedules.value[0].id}`)
+  }
+}
+
 onMounted(async () => {
   loading.value = true
   try {
@@ -300,6 +332,7 @@ onMounted(async () => {
     const end = dayjs().add(1, 'month').format('YYYY-MM-DD')
     tasks.push(
       listSchedules({ start, end }).then((r) => {
+        allSchedules.value = r
         recentSchedules.value = r.slice(0, 5)
         scheduleCount.value = r.length
       })
@@ -359,6 +392,70 @@ onMounted(async () => {
   font-size: 13px;
   color: var(--ink-400);
   margin: 0;
+}
+
+/* ===== 今日比赛提醒横幅 ===== */
+.today-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, var(--gold-100) 0%, var(--gold-50) 100%);
+  border: 1px solid var(--gold-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: box-shadow var(--dur-fast), transform var(--dur-fast);
+}
+
+.today-banner:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.today-banner__badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f2dfa0 0%, #d9b64a 60%, #c9a13b 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-gold);
+}
+
+.today-banner__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.today-banner__title {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold-700);
+  letter-spacing: 1px;
+}
+
+.today-banner__matches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 2px;
+}
+
+.today-banner__match {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-700);
+}
+
+.today-banner__link {
+  flex-shrink: 0;
 }
 
 /* ===== 统计卡片 ===== */
@@ -485,6 +582,16 @@ onMounted(async () => {
   gap: 16px;
 }
 
+/* 左右两栏底部对齐：栏内最后一张卡片/条弹性填满剩余空间 */
+.column > * {
+  flex-shrink: 0;
+}
+
+.column > .card:last-child,
+.column > .overview-bar:last-child {
+  flex: 1;
+}
+
 /* ===== 通用卡片：顶部鎏金细条 ===== */
 .card {
   position: relative;
@@ -534,6 +641,25 @@ onMounted(async () => {
 
 .card__body {
   padding: 8px;
+}
+
+/* ===== 最近比赛：固定高度展示 3 场，超出滚动 ===== */
+.recent-body {
+  height: 208px; /* 3 场 × 64px/场 + 上下 padding 16px */
+  overflow-y: auto;
+}
+
+.recent-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.recent-body::-webkit-scrollbar-thumb {
+  background: var(--gold-300);
+  border-radius: 3px;
+}
+
+.recent-body::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* ===== 比赛列表项 ===== */
@@ -659,6 +785,21 @@ onMounted(async () => {
 /* ===== 出勤排行 ===== */
 .rank-list {
   padding: 12px 16px !important;
+  height: 252px; /* 6 人 × 38px/人 + 上下 padding 24px */
+  overflow-y: auto;
+}
+
+.rank-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rank-list::-webkit-scrollbar-thumb {
+  background: var(--gold-300);
+  border-radius: 3px;
+}
+
+.rank-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .rank-item {
@@ -732,6 +873,7 @@ onMounted(async () => {
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   padding: 16px;
+  align-content: center; /* 卡片拉高时图标组垂直居中 */
 }
 
 .quick-action {
@@ -818,6 +960,16 @@ onMounted(async () => {
 }
 
 @media (max-width: 480px) {
+  .today-banner {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .today-banner__link {
+    margin-left: auto;
+  }
+
   .stat-grid {
     grid-template-columns: 1fr;
   }

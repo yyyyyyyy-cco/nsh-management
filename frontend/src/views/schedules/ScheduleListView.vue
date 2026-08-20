@@ -4,7 +4,6 @@
       <div class="toolbar-info">
         <el-icon class="info-icon"><Calendar /></el-icon>
         <span>联赛日程</span>
-        <span class="info-sub">赛程创建后将自动生成出勤、排表、录屏与数据分析关联</span>
       </div>
       <el-button v-if="auth.isAdmin" type="primary" :icon="Plus" @click="openCreate()">创建赛程</el-button>
     </div>
@@ -158,14 +157,6 @@ async function onDelete(row: ScheduleInfo) {
   font-size: 18px;
 }
 
-.info-sub {
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--ink-400);
-  letter-spacing: 0;
-}
-
 .table-card {
   margin-top: 16px;
 }
@@ -223,10 +214,6 @@ async function onDelete(row: ScheduleInfo) {
 
   .toolbar-info {
     font-size: 15px;
-  }
-
-  .info-sub {
-    display: none; /* 窄屏隐藏长副标题，避免溢出 */
   }
 
   .table-header {

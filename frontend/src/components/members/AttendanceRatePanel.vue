@@ -3,10 +3,9 @@
     <template #header>
       <div class="panel-header">
         <span>出勤率统计</span>
-        <span class="sub">正常 / (正常 + 请假)，低于 50% 标红预警</span>
       </div>
     </template>
-    <el-table :data="rateItems" size="small" max-height="260">
+    <el-table :data="rateItems" size="small">
       <el-table-column prop="name" label="ID" min-width="110">
         <template #default="{ row }">
           <span class="member-name">{{ row.name }}</span>
@@ -71,12 +70,6 @@ onMounted(async () => {
   display: flex;
   align-items: baseline;
   gap: 12px;
-}
-
-.sub {
-  font-size: 12px;
-  color: var(--ink-400);
-  font-weight: normal;
 }
 
 .member-name {
