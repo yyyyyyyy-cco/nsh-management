@@ -68,7 +68,7 @@ async def get_rankings(
     schedule_id: int,
     round_no: int | None = Query(None, description="按局号过滤，为空则返回全部局"),
     camp: str | None = None,
-    limit: int = 20,
+    limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
 ) -> RankingsResponse:

@@ -88,5 +88,5 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> t
     # 账号不存在时的失败记录随同名账号创建后登录成功一并清理
     _unknown_login_failures.pop(username, None)
 
-    token = create_access_token(user.id, user.role)
+    token = create_access_token(user.id, user.role, user.token_version)
     return token, user

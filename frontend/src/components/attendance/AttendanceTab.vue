@@ -49,18 +49,29 @@
         批量正常
       </el-button>
       <el-button type="warning" plain @click="leaveImportVisible = true">导入请假</el-button>
+      <el-button type="danger" plain @click="onOpenRemove">一键移除</el-button>
       <div class="spacer" />
-      <el-button type="primary" @click="onSave">保存考勤</el-button>
     </div>
 
-    <!-- ID 筛选 -->
-    <el-input
-      v-model="keyword"
-      placeholder="搜索 ID 过滤"
-      clearable
-      :prefix-icon="Search"
-      class="keyword-input"
-    />
+    <!-- ID 搜索 + 职业筛选 -->
+    <div class="filter-row">
+      <el-input
+        v-model="keyword"
+        placeholder="搜索 ID 过滤"
+        clearable
+        :prefix-icon="Search"
+        class="keyword-input"
+      />
+      <el-select v-model="professionFilter" placeholder="职业筛选" clearable class="prof-filter">
+        <el-option v-for="p in PROF_ORDER" :key="p" :label="p" :value="p" />
+      </el-select>
+      <el-select v-model="typeFilter" placeholder="类型筛选" clearable class="small-filter">
+        <el-option v-for="t in TYPE_OPTIONS" :key="t.value" :label="t.label" :value="t.value" />
+      </el-select>
+      <el-select v-model="statusFilter" placeholder="状态筛选" clearable class="small-filter">
+        <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
+      </el-select>
+    </div>
 
     <el-table v-loading="loading" :data="filteredItems" @selection-change="onSelectionChange">
       <el-table-column v-if="auth.isAdmin" type="selection" width="44" />
@@ -107,6 +118,25 @@
     <SubstituteImportDialog v-model="substituteVisible" :schedule-id="scheduleId" @success="load" />
     <LeaveImportDialog v-model="leaveImportVisible" :schedule-id="scheduleId" :records="items" @success="load" />
     <ImportMemberDialog v-model="memberImportVisible" :schedule-id="scheduleId" @success="load" />
+
+    <!-- 一键移除：候选池中未被排入排表的已出勤（正常）成员 -->
+    <el-dialog v-model="removeVisible" title="移除未排入排表的人员" width="min(420px, 92vw)" append-to-body>
+      <div class="remove-hint">
+        以下成员已出勤（正常），但在排表候选池中未被排入排表，确认后将移出出勤表：
+      </div>
+      <el-checkbox-group v-model="removeSelected" class="remove-list">
+        <el-checkbox v-for="r in removableItems" :key="r.id" :value="r.member_name" class="remove-item">
+          <span class="remove-item__name">{{ r.member_name }}</span>
+          <span class="remove-item__prof" :style="{ color: profColor(r.profession) }">{{ r.profession }}</span>
+        </el-checkbox>
+      </el-checkbox-group>
+      <template #footer>
+        <el-button @click="removeVisible = false">取消</el-button>
+        <el-button type="danger" :disabled="removeSelected.length === 0" @click="onConfirmRemove">
+          移除（{{ removeSelected.length }}）
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -120,11 +150,11 @@ import {
   deleteRecord,
   getAttendance,
   importFormal,
-  saveAttendance,
   updateProfession,
   updateStatus,
 } from '@/api/attendance'
 import { getProfessionConfigs } from '@/api/config'
+import { getLineup, getLineupCandidates } from '@/api/lineups'
 import type { ProfessionConfig } from '@/types/config'
 import type { AttendanceRecord, AttendanceStats } from '@/types/attendance'
 import { PROF_ORDER } from '@/composables/lineupBoard'
@@ -146,13 +176,39 @@ const substituteVisible = ref(false)
 const leaveImportVisible = ref(false)
 const memberImportVisible = ref(false)
 const keyword = ref('')
-const professionConfigs = ref<ProfessionConfig[]>([])
+const professionFilter = ref('')
+const typeFilter = ref('')
+const statusFilter = ref('')
 
-/** 按 ID 客户端过滤 */
+/** 类型筛选选项：正式 / 替补 / 补人。 */
+const TYPE_OPTIONS = [
+  { value: 'formal', label: '正式' },
+  { value: 'substitute', label: '替补' },
+  { value: 'filler', label: '补人' },
+]
+
+/** 状态筛选选项：正常 / 请假。 */
+const STATUS_OPTIONS = [
+  { value: 'normal', label: '正常' },
+  { value: 'leave', label: '请假' },
+]
+const professionConfigs = ref<ProfessionConfig[]>([])
+const removeVisible = ref(false)
+const removableItems = ref<AttendanceRecord[]>([])
+const removeSelected = ref<string[]>([])
+
+/** 按 ID / 职业 / 类型 / 状态客户端过滤 */
 const filteredItems = computed(() => {
-  if (!keyword.value) return items.value
   const kw = keyword.value.toLowerCase()
-  return items.value.filter((r) => r.member_name.toLowerCase().includes(kw))
+  return items.value.filter((r) => {
+    if (professionFilter.value && r.profession !== professionFilter.value) return false
+    if (statusFilter.value && r.status !== statusFilter.value) return false
+    if (typeFilter.value) {
+      const type = r.is_filler ? 'filler' : r.member_status === 'substitute' ? 'substitute' : 'formal'
+      if (type !== typeFilter.value) return false
+    }
+    return !kw || r.member_name.toLowerCase().includes(kw)
+  })
 })
 
 /** 职业色映射（依据 ui-style-guide）。 */
@@ -236,10 +292,44 @@ async function onDelete(row: AttendanceRecord) {
   load()
 }
 
-async function onSave() {
-  const result = await saveAttendance(props.scheduleId)
-  ElMessage.success(result.message)
-  stats.value = result.stats
+/** 一键移除：候选池中未被排入排表的已出勤（正常）成员，弹窗勾选后移出出勤表。 */
+async function onOpenRemove() {
+  const [candidates, lineup] = await Promise.all([
+    getLineupCandidates(props.scheduleId),
+    getLineup(props.scheduleId),
+  ])
+  // 已排入排表的成员集合（正式按 member_id，补人按 member_name）
+  const placed = new Set<string>()
+  for (const team of lineup.data) {
+    for (const slot of team.slots) {
+      if (slot.member_id != null) placed.add(`id:${slot.member_id}`)
+      if (slot.member_name) placed.add(`name:${slot.member_name}`)
+    }
+  }
+  const unplacedNames = new Set(
+    candidates
+      .filter((c) => !placed.has(`id:${c.member_id}`) && !placed.has(`name:${c.member_name}`))
+      .map((c) => c.member_name),
+  )
+  removableItems.value = items.value.filter(
+    (r) => r.status === 'normal' && unplacedNames.has(r.member_name),
+  )
+  if (!removableItems.value.length) {
+    ElMessage.info('没有可移除的人员：未排入排表的已出勤成员为空')
+    return
+  }
+  removeSelected.value = removableItems.value.map((r) => r.member_name)
+  removeVisible.value = true
+}
+
+async function onConfirmRemove() {
+  const targets = removableItems.value.filter((r) => removeSelected.value.includes(r.member_name))
+  for (const t of targets) {
+    await deleteRecord(props.scheduleId, t.id)
+  }
+  ElMessage.success(`已移除 ${targets.length} 名成员`)
+  removeVisible.value = false
+  load()
 }
 </script>
 
@@ -362,8 +452,64 @@ async function onSave() {
 }
 
 /* ===== ID 搜索框 ===== */
-.keyword-input {
+.filter-row {
+  display: flex;
+  gap: 12px;
   margin-bottom: 12px;
+}
+
+.filter-row .keyword-input {
+  flex: 1;
+  max-width: 280px;
+  margin-bottom: 0;
+}
+
+.filter-row .prof-filter {
+  width: 140px;
+}
+
+.filter-row .small-filter {
+  width: 110px;
+}
+
+/* ===== 一键移除弹窗 ===== */
+.remove-hint {
+  font-size: 12px;
+  color: var(--ink-500);
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.remove-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.remove-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-right: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+}
+
+.remove-item:hover {
+  background: var(--gold-50);
+}
+
+.remove-item__name {
+  font-weight: 600;
+  color: var(--ink-800);
+  margin-right: 8px;
+}
+
+.remove-item__prof {
+  font-size: 12px;
 }
 
 /* ===== 出勤状态开关（浅金风，颜色更浅更柔和） ===== */
@@ -403,14 +549,52 @@ async function onSave() {
     margin-right: 0;
   }
 
+  .filter-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .filter-row .keyword-input {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .filter-row .prof-filter {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .filter-row .small-filter {
+    flex: 1 1 calc(50% - 4px);
+    width: 100%;
+  }
+
   .toolbar {
     gap: 6px;
+  }
+
+  .spacer {
+    display: none;
   }
 }
 
 @media (max-width: 480px) {
   .value {
     font-size: 19px;
+  }
+
+  .toolbar .el-button {
+    font-size: 12px;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .gap-bar__label {
+    flex-basis: 100%;
+  }
+
+  .stats-bar .label {
+    font-size: 11px;
   }
 }
 </style>

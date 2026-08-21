@@ -27,6 +27,9 @@ async def get_current_user(
     user = await session.get(User, user_id)
     if user is None or user.status != "active":
         raise HTTPException(status_code=401, detail="账号不存在或已被禁用")
+    # 令牌版本校验：登出/改密后旧 Token 立即失效（旧版 Token 无 ver 声明同样拒绝）
+    if payload.get("ver") != user.token_version:
+        raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
     return user
 
 

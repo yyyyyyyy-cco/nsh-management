@@ -8,7 +8,7 @@ class LineupSlot(BaseModel):
     slot_index: int = Field(..., ge=0, le=5)
     member_id: int | None = None
     member_name: str = ""
-    remark: str = ""
+    remark: str = Field("", max_length=255, description="槽位备注")
     profession: str | None = None  # 职业快照（读取时填充，保存时忽略）
 
 

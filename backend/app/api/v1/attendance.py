@@ -1,4 +1,4 @@
-"""出勤库接口：列表统计、导入正式/替补、添加补人、状态切换、保存考勤。"""
+"""出勤库接口：列表统计、导入正式/替补、添加补人、状态切换。"""
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +9,6 @@ from app.schemas.attendance import (
     AttendanceListResponse,
     AttendanceRecordOut,
     AttendanceStats,
-    AttendanceStatsResponse,
     BatchStatusUpdate,
     FillerCreate,
     ImportSubstitutesRequest,
@@ -110,7 +109,7 @@ async def update_status(
     schedule_id: int,
     record_id: int,
     body: StatusUpdate,
-    current_user: User = Depends(get_current_user),  # 帮众可切换自己状态
+    current_user: User = Depends(require_admin),  # 仅管理员可切换出勤状态（安全收紧）
     session: AsyncSession = Depends(get_db),
 ) -> AttendanceRecordOut:
     record = await attendance_service.update_status(
@@ -156,13 +155,3 @@ async def delete_record(
 ) -> dict:
     await attendance_service.delete_record(session, current_user.guild_id, schedule_id, record_id)
     return {"message": "删除成功"}
-
-
-@router.post("/save", response_model=AttendanceStatsResponse)
-async def save_attendance(
-    schedule_id: int,
-    current_user: User = Depends(require_admin),
-    session: AsyncSession = Depends(get_db),
-) -> AttendanceStatsResponse:
-    result = await attendance_service.save_attendance(session, current_user.guild_id, schedule_id)
-    return AttendanceStatsResponse(message=result["message"], stats=AttendanceStats(**result["stats"]))

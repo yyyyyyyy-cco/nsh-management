@@ -213,6 +213,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getProfessionStats, listMembers, getAttendanceRate, type AttendanceRateItem } from '@/api/members'
 import { listSchedules } from '@/api/schedules'
 import type { ScheduleInfo } from '@/types/schedule'
+import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -333,7 +334,7 @@ onMounted(async () => {
     tasks.push(
       listSchedules({ start, end }).then((r) => {
         allSchedules.value = r
-        recentSchedules.value = r.slice(0, 5)
+        recentSchedules.value = sortSchedulesByProximity(r).slice(0, 5)
         scheduleCount.value = r.length
       })
     )

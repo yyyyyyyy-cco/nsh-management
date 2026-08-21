@@ -25,6 +25,8 @@ body {
     var(--ink-bg-page);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* 移动端禁止水平滑屏跳转，不影响纵向滚动与表格横向滚动 */
+  overscroll-behavior-x: none;
 }
 
 /* 标题默认衬线 */
@@ -48,9 +50,11 @@ a:hover {
 
 /* ===== 通用工具类 ===== */
 
-/* 页面进入动效：淡入 + 上移 */
+/* 页面进入动效：淡入 + 上移
+   注意：fill-mode 用 backwards 而非 both，动画结束后不残留 transform，
+   否则 transform 包含块会让 fixed 定位（弹窗/浮球/遮罩）以页面容器为基准 */
 .page-enter {
-  animation: page-rise var(--dur-slow) var(--ease-out) both;
+  animation: page-rise var(--dur-slow) var(--ease-out) backwards;
 }
 
 @keyframes page-rise {

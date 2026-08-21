@@ -174,9 +174,3 @@ async def delete_record(session: AsyncSession, guild_id: int, schedule_id: int, 
         raise AttendanceServiceError("出勤记录不存在", 404)
     await session.delete(record)
     await session.commit()
-
-
-async def save_attendance(session: AsyncSession, guild_id: int, schedule_id: int) -> dict:
-    """保存考勤：校验并返回统计（含缺口提示）。"""
-    records, stats = await list_attendance(session, guild_id, schedule_id)
-    return {"message": f"考勤已保存：正常 {stats['normal_count']} 人，请假 {stats['leave_count']} 人", "stats": stats}

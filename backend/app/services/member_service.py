@@ -52,6 +52,8 @@ async def list_members(
     keyword: str | None = None,
     profession: str | None = None,
     status: str | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
 ) -> tuple[list[Member], int, dict]:
     base = apply_filters(select(Member), guild_id, keyword, profession, status)
     total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
@@ -68,7 +70,19 @@ async def list_members(
         "formal_count": int(status_counts.get("formal", 0)),
         "substitute_count": int(status_counts.get("substitute", 0)),
     }
-    stmt = base.order_by(Member.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    # 排序（白名单字段防注入）：指定字段时按 asc/desc，否则默认按创建时间倒序
+    sortable = {
+        "name": Member.name,
+        "main_profession": Member.main_profession,
+        "status": Member.status,
+        "created_at": Member.created_at,
+    }
+    if sort_by and sort_by in sortable:
+        col = sortable[sort_by]
+        order_expr = col.desc() if sort_order == "desc" else col.asc()
+    else:
+        order_expr = Member.created_at.desc()
+    stmt = base.order_by(order_expr).offset((page - 1) * page_size).limit(page_size)
     items = (await session.execute(stmt)).scalars().all()
     return list(items), total, stats
 

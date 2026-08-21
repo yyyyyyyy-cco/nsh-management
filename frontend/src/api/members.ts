@@ -26,6 +26,8 @@ export interface MemberQuery {
   keyword?: string
   profession?: string
   status?: string
+  sort_by?: string
+  sort_order?: 'asc' | 'desc'
 }
 
 export interface AttendanceRateItem {

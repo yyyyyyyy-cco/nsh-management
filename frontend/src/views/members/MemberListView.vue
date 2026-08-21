@@ -10,6 +10,7 @@
         <span class="stats-sep" />
         <span class="stats-item">当前筛选共 <b class="num">{{ total }}</b> 人</span>
       </div>
+      <ProfessionShortage :refresh-key="shortageRefreshKey" />
       <div class="toolbar">
         <div class="toolbar-filters">
           <el-input
@@ -44,14 +45,20 @@
         </div>
       </div>
 
-      <el-table v-loading="loading" :data="items" @selection-change="onSelectionChange">
+      <el-table
+        v-loading="loading"
+        :data="items"
+        :default-sort="{ prop: 'name', order: 'ascending' }"
+        @selection-change="onSelectionChange"
+        @sort-change="onSortChange"
+      >
         <el-table-column type="selection" width="48" />
-        <el-table-column prop="name" label="ID" min-width="120" sortable :sort-method="sortByName">
+        <el-table-column prop="name" label="ID" min-width="120" sortable="custom">
           <template #default="{ row }">
             <span class="member-name">{{ row.name }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="main_profession" label="主职业" min-width="100" sortable :sort-method="sortByProfession">
+        <el-table-column prop="main_profession" label="主职业" min-width="100" sortable="custom">
           <template #default="{ row }">
             <span class="prof-tag" :style="profStyle(row.main_profession)">{{ row.main_profession }}</span>
           </template>
@@ -111,11 +118,13 @@ import { batchDeleteMembers, deleteMember, listMembers, type MemberStats, type M
 import type { MemberInfo } from '@/types/member'
 import { MEMBER_STATUSES, PROFESSIONS } from '@/utils/constants'
 import AttendanceRatePanel from '@/components/members/AttendanceRatePanel.vue'
+import ProfessionShortage from '@/components/members/ProfessionShortage.vue'
 import MemberFormDialog from '@/components/members/MemberFormDialog.vue'
 import MemberImportDialog from '@/components/members/MemberImportDialog.vue'
 
 const loading = ref(false)
 const activeTab = ref('list')
+const shortageRefreshKey = ref(0) // 成员数据变更（添加/导入/删除）后递增，驱动缺少职业组件刷新
 const route = useRoute()
 const router = useRouter()
 
@@ -137,7 +146,8 @@ const formVisible = ref(false)
 const importVisible = ref(false)
 const editingMember = ref<MemberInfo | null>(null)
 
-const query = reactive<MemberQuery>({ page: 1, page_size: 20 })
+/** 初始默认按 ID 正序（与后端白名单字段 name 对应）。 */
+const query = reactive<MemberQuery>({ page: 1, page_size: 20, sort_by: 'name', sort_order: 'asc' })
 
 /** 职业颜色（依据 ui-style-guide §9 职业色映射）。 */
 const PROF_COLORS: Record<string, string> = {
@@ -153,10 +163,18 @@ function profStyle(prof: string) {
   return { background: bg, color }
 }
 
-/** 中文按拼音首字母排序（localeCompare zh 区域设置）。 */
-const byPinyin = (a: string, b: string) => a.localeCompare(b, 'zh-Hans-CN')
-const sortByName = (a: MemberInfo, b: MemberInfo) => byPinyin(a.name, b.name)
-const sortByProfession = (a: MemberInfo, b: MemberInfo) => byPinyin(a.main_profession, b.main_profession)
+/** 服务端排序变化：携带排序参数重新请求全量数据（无视分页）。 */
+function onSortChange({ prop, order }: { prop: string; order: 'ascending' | 'descending' | null }) {
+  if (order) {
+    query.sort_by = prop
+    query.sort_order = order === 'ascending' ? 'asc' : 'desc'
+  } else {
+    delete query.sort_by
+    delete query.sort_order
+  }
+  query.page = 1
+  load()
+}
 
 onMounted(load)
 
@@ -169,6 +187,7 @@ async function load() {
     stats.value = page.stats
   } finally {
     loading.value = false
+    shortageRefreshKey.value += 1
   }
 }
 
@@ -300,6 +319,45 @@ async function onBatchDelete() {
   justify-content: flex-end;
 }
 
+/* ===== 排序箭头强化：激活态放大并高亮，便于区分升/降序 ===== */
+.member-list :deep(.caret-wrapper) {
+  width: 20px;
+  height: 34px;
+}
+
+.member-list :deep(.caret-wrapper .sort-caret) {
+  border-width: 6px;
+  left: 6px;
+}
+
+.member-list :deep(.caret-wrapper .sort-caret.ascending) {
+  border-bottom-color: var(--gold-300);
+  top: 4px;
+}
+
+.member-list :deep(.caret-wrapper .sort-caret.descending) {
+  border-top-color: var(--gold-300);
+  bottom: 6px;
+}
+
+.member-list :deep(.el-table__header th.ascending .sort-caret.ascending) {
+  border-bottom-color: var(--gold-600);
+}
+
+.member-list :deep(.el-table__header th.descending .sort-caret.descending) {
+  border-top-color: var(--gold-600);
+}
+
+.member-list :deep(.el-table__header th.is-sortable .cell) {
+  color: var(--ink-800);
+  font-weight: 600;
+}
+
+.member-list :deep(.el-table__header th.ascending .cell),
+.member-list :deep(.el-table__header th.descending .cell) {
+  color: var(--gold-700);
+}
+
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
   .toolbar-filters {
@@ -326,6 +384,19 @@ async function onBatchDelete() {
 
   .pagination {
     justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar-actions {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .toolbar-actions .el-button {
+    flex: 1 1 100%;
+    margin-left: 0 !important;
+    min-width: 0;
   }
 }
 </style>

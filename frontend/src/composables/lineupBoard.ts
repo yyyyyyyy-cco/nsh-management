@@ -98,7 +98,7 @@ export function useLineupBoard(scheduleId: number) {
   const candidates = ref<CandidateItem[]>([])
 
   /** 填表模式：drag 拖拽 / input 输入（互斥，切换后行为一致：自动保存、备注等）。 */
-  const mode = ref<'drag' | 'input'>('drag')
+  const mode = ref<'drag' | 'input'>('input')
 
   /** 自动保存状态：idle / pending（待保存） / saving（保存中） / saved（已保存）。 */
   const autoSaveStatus = ref<'idle' | 'pending' | 'saving' | 'saved'>('idle')
@@ -191,19 +191,90 @@ export function useLineupBoard(scheduleId: number) {
     }
   }
 
+  /** 拖拽上下文：记录被拖成员来源（槽位或候选池），用于交换与回滚。 */
+  let dragCtx: { key: string; team: TeamBox | null; si: number } | null = null
+
+  /** 拖拽开始：记录被拖成员的来源槽位（元素上携带 data-key）。 */
+  function onSlotDragStart(evt: any, team: TeamBox, si: number) {
+    const key = evt.item?.dataset?.key as string | undefined
+    if (!key) return
+    dragCtx = { key, team, si }
+  }
+
+  /** 拖拽开始：来源为候选池（team 为 null，表示替换而非交换）。 */
+  function onPoolDragStart(evt: any) {
+    const key = evt.item?.dataset?.key as string | undefined
+    if (!key) return
+    dragCtx = { key, team: null, si: -1 }
+  }
+
+  /** 拖拽结束：清空上下文。 */
+  function onDragEnd() {
+    dragCtx = null
+  }
+
   function onSlotChange(evt: any, team: TeamBox, si: number) {
     const box = team.slots[si]
     if (evt.added) {
-      box.filter((s) => s !== evt.added.element).forEach((o) => backToCandidate(o))
+      const el = evt.added.element
+      // 防御：空占位被拖入（无成员名），恢复原槽位内容并忽略
+      if (!el.member_name) {
+        const keep = box.find((s) => s !== el && s.member_name)
+        box.length = 0
+        box.push(keep ? { ...keep } : emptySlot(si))
+        return
+      }
+      const replaced = box.find((s) => s !== el && s.member_name)
+      const ctx = dragCtx
+      if (replaced && ctx && ctx.key === el.key && ctx.team) {
+        // 槽位 → 已有成员的槽位：弹窗确认后交换，取消则回滚
+        confirmSwap(el, replaced, { key: ctx.key, team: ctx.team, si: ctx.si }, box, si)
+        return
+      }
+      // 其余情况：直接填入（来自候选池替换时原成员回池）
+      if (replaced) backToCandidate(replaced)
       box.length = 0
-      box.push({ ...toSlotItem(evt.added.element), slot_index: si })
+      box.push({ ...toSlotItem(el), slot_index: si })
+      scheduleAutoSave()
     }
     if (evt.removed) {
-      backToCandidate(evt.removed.element)
-      // 补回空占位元素，避免槽位变为空数组导致备注图标与拖放目标丢失
+      // 源槽位：元素已移走，只补回空占位（去向由目标列表的 added 处理：进槽位或回候选池）
       if (!box.length) box.push(emptySlot(si))
     }
-    scheduleAutoSave()
+  }
+
+  /** 槽位间拖拽交换：确认后双方互换位置，取消则回滚（双方维持原状）。 */
+  async function confirmSwap(
+    incoming: SlotItem | CandidateItem,
+    replaced: SlotItem,
+    ctx: { key: string; team: TeamBox; si: number },
+    box: SlotItem[],
+    si: number,
+  ) {
+    const srcBox = ctx.team.slots[ctx.si]
+    const nameA = incoming.member_name
+    const nameB = replaced.member_name
+    const ok = await ElMessageBox.confirm(`将「${nameA}」与「${nameB}」交换位置？`, '交换确认', {
+      type: 'warning',
+      confirmButtonText: '交 换',
+      cancelButtonText: '取 消',
+    })
+      .then(() => true)
+      .catch(() => false)
+    if (ok) {
+      // 确认交换：目标槽位保留拖入者，被替换者回到来源槽位
+      box.length = 0
+      box.push({ ...toSlotItem(incoming), slot_index: si })
+      srcBox.length = 0
+      srcBox.push({ ...toSlotItem(replaced), slot_index: ctx.si })
+      scheduleAutoSave()
+    } else {
+      // 取消：回滚拖拽，双方维持原状
+      box.length = 0
+      box.push({ ...toSlotItem(replaced), slot_index: si })
+      srcBox.length = 0
+      srcBox.push({ ...toSlotItem(incoming), slot_index: ctx.si })
+    }
   }
 
   /** 候选池按姓名包含匹配（忽略大小写），供输入模式使用。 */
@@ -346,6 +417,9 @@ export function useLineupBoard(scheduleId: number) {
     editGroupRemark,
     onRemoveSlot,
     onSlotChange,
+    onSlotDragStart,
+    onPoolDragStart,
+    onDragEnd,
     onCandidateChange,
     matchCandidates,
     fillSlotByInput,

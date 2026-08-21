@@ -68,6 +68,7 @@ import { deleteSchedule, listSchedules } from '@/api/schedules'
 import { useAuthStore } from '@/stores/auth'
 import type { ScheduleInfo } from '@/types/schedule'
 import { SCHEDULE_RESULTS } from '@/utils/constants'
+import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 import ScheduleCalendar from '@/components/schedules/ScheduleCalendar.vue'
 import ScheduleFormDialog from '@/components/schedules/ScheduleFormDialog.vue'
 
@@ -94,9 +95,9 @@ async function load(month: string) {
     if (viewMode.value === 'month') {
       const start = `${month}-01`
       const end = dayjs(`${month}-01`).add(1, 'month').format('YYYY-MM-DD')
-      schedules.value = await listSchedules({ start, end })
+      schedules.value = sortSchedulesByProximity(await listSchedules({ start, end }))
     } else {
-      schedules.value = await listSchedules()
+      schedules.value = sortSchedulesByProximity(await listSchedules())
     }
   } finally {
     loading.value = false

@@ -16,7 +16,7 @@ from app.schemas.member import (
     ProfessionStat,
 )
 from app.services import member_service
-from app.utils.excel_import import import_members
+from app.utils.excel_import import MAX_FILE_SIZE, ExcelImportError, import_members
 
 router = APIRouter(prefix="/members", tags=["常驻库"])
 
@@ -28,11 +28,13 @@ async def list_members(
     keyword: str | None = Query(None, max_length=32),
     profession: str | None = Query(None, max_length=16),
     status: str | None = Query(None, max_length=16),
+    sort_by: str | None = Query(None, description="排序字段：name/main_profession/status/created_at"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> MemberPage:
     items, total, stats = await member_service.list_members(
-        session, current_user.guild_id, page, page_size, keyword, profession, status
+        session, current_user.guild_id, page, page_size, keyword, profession, status, sort_by, sort_order
     )
     return MemberPage(
         items=[MemberOut.model_validate(m) for m in items],
@@ -90,7 +92,15 @@ async def import_excel(
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
+    # 文件类型校验：仅支持 .xlsx（openpyxl 可解析格式）
+    if not (file.filename or "").lower().endswith(".xlsx"):
+        raise ExcelImportError("仅支持 .xlsx 格式的 Excel 文件")
+    # 文件大小校验：声明长度检查 + 读取后二次兜底（Content-Length 可能缺失或伪造）
+    if file.size and file.size > MAX_FILE_SIZE:
+        raise ExcelImportError("文件大小超过 5MB 限制")
     content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise ExcelImportError("文件大小超过 5MB 限制")
     result = await import_members(session, current_user.guild_id, content)
     return {"message": f"导入成功 {result['imported']} 条，跳过 {result['skipped']} 条", **result}
 

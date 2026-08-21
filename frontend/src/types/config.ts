@@ -44,10 +44,13 @@ export interface AccountStatusUpdateRequest {
 export interface Guild {
   id: number
   name: string
+  icon_char?: string | null
   created_at: string
 }
 
-/** 创建帮会请求 */
+/** 创建帮会请求（管理员/帮众初始密码由创建者指定） */
 export interface GuildCreateRequest {
   name: string
+  admin_password: string
+  member_password: string
 }

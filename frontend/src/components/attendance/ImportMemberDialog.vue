@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="导入常驻库成员" width="520px" destroy-on-close>
+  <el-dialog v-model="visible" title="导入常驻库成员" width="520px" destroy-on-close append-to-body>
     <el-alert
       v-if="candidates.length === 0"
       type="info"

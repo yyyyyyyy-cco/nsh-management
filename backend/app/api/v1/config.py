@@ -11,7 +11,9 @@ from app.schemas.config import (
     AccountStatusUpdate,
     AccountUpdate,
     GuildCreate,
+    GuildIconUpdate,
     GuildOut,
+    GuildRename,
     ProfessionConfigBatchUpdate,
     ProfessionConfigOut,
     ProfessionConfigUpdate,
@@ -73,6 +75,9 @@ async def list_accounts(
     for a in accounts:
         out = AccountOut.model_validate(a)
         out.guild_name = a.guild.name if a.guild else None
+        # 安全：明文密码仅开发者可见，管理员/帮众不可见
+        if current_user.role != "developer":
+            out.plain_password = None
         result.append(out)
     return result
 
@@ -160,8 +165,8 @@ async def create_guild(
     current_user: User = Depends(require_developer),
     session: AsyncSession = Depends(get_db),
 ) -> GuildOut:
-    """创建帮会，并自动生成管理员和帮众账号（仅开发者）。"""
-    return await config_service.create_guild(session, body.name)
+    """创建帮会，并自动生成管理员和帮众账号（初始密码由创建者指定，仅开发者）。"""
+    return await config_service.create_guild(session, body.name, body.admin_password, body.member_password)
 
 
 @router.delete("/guilds/{guild_id}", response_model=dict)
@@ -173,3 +178,31 @@ async def delete_guild(
     """删除帮会及其全部关联数据（仅开发者）。"""
     await config_service.delete_guild(session, guild_id)
     return {"message": "帮会已删除"}
+
+
+@router.put("/guilds/{guild_id}", response_model=GuildOut)
+async def rename_guild(
+    guild_id: int,
+    body: GuildRename,
+    current_user: User = Depends(require_developer),
+    session: AsyncSession = Depends(get_db),
+) -> GuildOut:
+    """帮会更名（仅开发者）。"""
+    guild = await config_service.rename_guild(session, guild_id, body.name)
+    return GuildOut.model_validate(guild)
+
+
+@router.put("/guilds/{guild_id}/icon", response_model=GuildOut)
+async def update_guild_icon(
+    guild_id: int,
+    body: GuildIconUpdate,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> GuildOut:
+    """设置本帮会图标字（管理员，仅限自己所属帮会）。"""
+    if current_user.guild_id != guild_id:
+        from app.services.config_service import ConfigServiceError
+
+        raise ConfigServiceError("只能设置自己所属帮会的图标", 403)
+    guild = await config_service.update_guild_icon(session, guild_id, body.icon_char)
+    return GuildOut.model_validate(guild)

@@ -21,9 +21,16 @@ export function fmtNum(n: number): string {
   return n.toLocaleString()
 }
 
-/** KDA = (击杀 + 助攻) / 死亡（重伤）。 */
+/**
+ * KDA = (击杀 + 助攻) / 死亡（重伤）。
+ * 治疗为主（治疗量 > 伤害量，即治疗占比 > 50%）的玩家视为治疗职业，
+ * 其助攻按 ×0.8 折算、死亡按 ×1.2 加重。
+ */
 export function calcKDA(p: MatchData): number {
-  return (p.kills + p.assists) / Math.max(p.deaths, 1)
+  const isHealer = p.healing > p.player_damage
+  const assists = isHealer ? p.assists * 0.8 : p.assists
+  const deaths = isHealer ? p.deaths * 1.2 : p.deaths
+  return (p.kills + assists) / Math.max(deaths, 1)
 }
 
 /** 占比字符串。 */

@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" :title="isEdit ? '编辑赛程' : '创建赛程'" width="520px" destroy-on-close>
+  <el-dialog v-model="visible" :title="isEdit ? '编辑赛程' : '创建赛程'" width="520px" destroy-on-close append-to-body>
     <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
       <el-form-item label="对手" prop="opponent">
         <el-input v-model="form.opponent" maxlength="64" placeholder="请输入对手名称" />

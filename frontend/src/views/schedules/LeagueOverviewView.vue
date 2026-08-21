@@ -4,7 +4,7 @@
       <div class="toolbar-info">
         <el-icon class="info-icon"><VideoCamera /></el-icon>
         <span>联赛总览</span>
-        <span class="info-sub">{{ filterSubText }}（由新到旧），点击进入录屏上传</span>
+        <span class="info-sub">{{ filterSubText }}（按距今天由近到远），点击进入录屏上传</span>
       </div>
       <el-radio-group v-model="timeFilter" size="small" class="toolbar-filter">
         <el-radio-button value="month">本月</el-radio-button>
@@ -57,6 +57,7 @@ import dayjs from 'dayjs'
 import { listSchedules } from '@/api/schedules'
 import type { ScheduleInfo } from '@/types/schedule'
 import { SCHEDULE_RESULTS } from '@/utils/constants'
+import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 
 const router = useRouter()
 const loading = ref(false)
@@ -65,10 +66,8 @@ const schedules = ref<ScheduleInfo[]>([])
 /** 时间筛选：本月 / 上个月 / 全部（默认全部，与原有展示一致）。 */
 const timeFilter = ref<'month' | 'lastMonth' | 'all'>('all')
 
-// 由新到旧排序
-const sortedSchedules = computed(() =>
-  [...schedules.value].sort((a, b) => dayjs(b.match_time).valueOf() - dayjs(a.match_time).valueOf()),
-)
+// 按离今天日期绝对值排序（与排表页、首页一致）
+const sortedSchedules = computed(() => sortSchedulesByProximity(schedules.value))
 
 /** 按时间窗过滤后的赛程（本月：当月 1 号起；上个月：上月 1 号起至当月 1 号前）。 */
 const filteredSchedules = computed(() => {

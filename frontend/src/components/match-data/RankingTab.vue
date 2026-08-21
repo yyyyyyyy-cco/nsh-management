@@ -11,7 +11,7 @@
     <!-- KDA 构成堆叠图 -->
     <div class="chart-card">
       <div class="chart-card__header">
-        <span class="chart-card__title">KDA 构成（Top 10）</span>
+        <span class="chart-card__title">KDA 构成（Top 20）</span>
       </div>
       <EChart :option="kdaStackOption" :height="260" />
     </div>
@@ -109,11 +109,11 @@ const kdaOption = computed(() => {
   return {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', ...CHART_THEME.tooltip },
-    grid: { left: 12, right: 12, top: 32, bottom: 8, containLabel: true },
+    grid: { left: 12, right: 12, top: 32, bottom: 32, containLabel: true },
     xAxis: {
       type: 'category',
       data: sorted.map((r) => r.player_name),
-      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate' },
+      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate', hideOverlap: true },
     },
     yAxis: [
       { type: 'value', name: 'KDA', axisLabel: { ...CHART_THEME.axis.axisLabel, width: 50, overflow: 'truncate' }, splitLine: CHART_THEME.axis.splitLine, nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [0, 40, 0, 0] } },
@@ -155,11 +155,11 @@ const damageOption = computed(() => {
   return {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', ...CHART_THEME.tooltip, valueFormatter: (v: number) => fmtNum(v) },
-    grid: { left: 12, right: 24, top: 28, bottom: 8, containLabel: true },
+    grid: { left: 12, right: 24, top: 28, bottom: 32, containLabel: true },
     xAxis: {
       type: 'category',
       data: sorted.map((r) => r.player_name),
-      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate' },
+      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate', hideOverlap: true },
     },
     yAxis: {
       type: 'value',
@@ -191,11 +191,11 @@ const healOption = computed(() => {
   return {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', ...CHART_THEME.tooltip, valueFormatter: (v: number) => fmtNum(v) },
-    grid: { left: 12, right: 24, top: 28, bottom: 8, containLabel: true },
+    grid: { left: 12, right: 24, top: 28, bottom: 32, containLabel: true },
     xAxis: {
       type: 'category',
       data: sorted.map((r) => r.player_name),
-      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate' },
+      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate', hideOverlap: true },
     },
     yAxis: {
       type: 'value',
@@ -225,7 +225,7 @@ function formatNumber(value: number): string {
 
 /** KDA 构成堆叠（击杀/助攻/重伤），看 KDA 高分是打得猛还是死得少。 */
 const kdaStackOption = computed(() => {
-  const sorted = props.items.slice().sort((a, b) => calcKDA(b) - calcKDA(a)).slice(0, 10)
+  const sorted = props.items.slice().sort((a, b) => calcKDA(b) - calcKDA(a)).slice(0, 20)
   return {
     backgroundColor: 'transparent',
     tooltip: {
@@ -245,7 +245,7 @@ const kdaStackOption = computed(() => {
     xAxis: {
       type: 'category',
       data: sorted.map((r) => r.player_name),
-      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate' },
+      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate', hideOverlap: true },
     },
     yAxis: { type: 'value', axisLabel: CHART_THEME.axis.axisLabel, splitLine: CHART_THEME.axis.splitLine },
     series: [
@@ -279,11 +279,11 @@ const paretoOption = computed(() => {
         return html
       },
     },
-    grid: { left: 12, right: 40, top: 32, bottom: 8, containLabel: true },
+    grid: { left: 12, right: 40, top: 32, bottom: 32, containLabel: true },
     xAxis: {
       type: 'category',
       data: sorted.map((r) => r.player_name),
-      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate' },
+      axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate', hideOverlap: true },
     },
     yAxis: [
       {

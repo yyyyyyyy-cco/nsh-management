@@ -184,6 +184,8 @@ async def update_account(
     if password is not None:
         user.password_hash = hash_password(password)
         user.plain_password = password
+        # 改密后吊销该账号所有已签发 Token（旧 Token 立即失效）
+        user.token_version += 1
 
     await session.commit()
     await session.refresh(user)
@@ -221,8 +223,10 @@ async def list_guilds(session: AsyncSession) -> list[Guild]:
     )
 
 
-async def create_guild(session: AsyncSession, name: str) -> Guild:
-    """创建帮会，并自动生成管理员和帮众账号。"""
+async def create_guild(
+    session: AsyncSession, name: str, admin_password: str, member_password: str
+) -> Guild:
+    """创建帮会，并自动生成管理员和帮众账号（初始密码由创建者指定）。"""
     # 检查帮会名是否已存在
     existing = (
         await session.execute(select(Guild).where(Guild.name == name))
@@ -234,8 +238,7 @@ async def create_guild(session: AsyncSession, name: str) -> Guild:
     session.add(guild)
     await session.flush()
 
-    # 创建管理员账号
-    admin_password = "123456"
+    # 创建管理员账号（初始密码由创建者指定）
     admin_user = User(
         guild_id=guild.id,
         username=f"{name}_admin",
@@ -246,8 +249,7 @@ async def create_guild(session: AsyncSession, name: str) -> Guild:
     )
     session.add(admin_user)
 
-    # 创建帮众账号
-    member_password = "123456"
+    # 创建帮众账号（初始密码由创建者指定）
     member_user = User(
         guild_id=guild.id,
         username=f"{name}_member",
@@ -308,3 +310,30 @@ async def delete_guild(session: AsyncSession, guild_id: int) -> None:
     await session.execute(delete(User).where(User.guild_id == guild_id))
     await session.delete(guild)
     await session.commit()
+
+
+async def rename_guild(session: AsyncSession, guild_id: int, name: str) -> Guild:
+    """帮会更名（仅开发者）。"""
+    guild = await session.get(Guild, guild_id)
+    if guild is None:
+        raise ConfigServiceError("帮会不存在", 404)
+    existing = (
+        await session.execute(select(Guild).where(Guild.name == name, Guild.id != guild_id))
+    ).scalar_one_or_none()
+    if existing:
+        raise ConfigServiceError(f"帮会「{name}」已存在")
+    guild.name = name
+    await session.commit()
+    await session.refresh(guild)
+    return guild
+
+
+async def update_guild_icon(session: AsyncSession, guild_id: int, icon_char: str) -> Guild:
+    """设置帮会图标字（管理员，仅本帮会）。空串清除。"""
+    guild = await session.get(Guild, guild_id)
+    if guild is None:
+        raise ConfigServiceError("帮会不存在", 404)
+    guild.icon_char = icon_char.strip() or None
+    await session.commit()
+    await session.refresh(guild)
+    return guild

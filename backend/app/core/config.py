@@ -16,6 +16,9 @@ class Settings:
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10 * 60  # JWT 有效期 10 小时
 
+    # 调试开关：生产默认关闭（异常详情不入响应），本地开发可设 DEBUG=true
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+
     # 数据库
     DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{DATA_DIR / 'nsh.db'}")
 

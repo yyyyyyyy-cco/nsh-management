@@ -41,9 +41,9 @@
     </div>
 
     <!-- 录屏列表 -->
-    <el-table v-loading="loading" :data="filteredItems" :default-sort="{ prop: 'profession', order: 'ascending' }" @selection-change="onSelectionChange">
+    <el-table v-loading="loading" :data="filteredItems" :default-sort="{ prop: 'member_name', order: 'ascending' }" @selection-change="onSelectionChange">
       <el-table-column v-if="auth.isAdmin" type="selection" width="44" />
-      <el-table-column prop="member_name" label="ID" min-width="100" />
+      <el-table-column prop="member_name" label="ID" min-width="100" sortable />
       <el-table-column prop="profession" label="职业" min-width="80" sortable>
         <template #default="{ row }">
           <span class="prof-cell">

@@ -59,8 +59,3 @@ class ProfessionUpdate(BaseModel):
 class BatchStatusUpdate(BaseModel):
     ids: list[int]
     status: str  # normal / leave
-
-
-class AttendanceStatsResponse(BaseModel):
-    message: str
-    stats: AttendanceStats

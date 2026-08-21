@@ -53,12 +53,6 @@ export function deleteRecord(scheduleId: number, recordId: number): Promise<{ me
   return http.delete(`/schedules/${scheduleId}/attendance/${recordId}`)
 }
 
-export function saveAttendance(
-  scheduleId: number,
-): Promise<{ message: string; stats: { total: number; normal_count: number; leave_count: number; gap: number } }> {
-  return http.post(`/schedules/${scheduleId}/attendance/save`)
-}
-
 export function getMemberCandidates(scheduleId: number): Promise<SubstituteCandidate[]> {
   return http.get(`/schedules/${scheduleId}/attendance/member-candidates`)
 }

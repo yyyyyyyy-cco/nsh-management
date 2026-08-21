@@ -150,6 +150,9 @@ async function onExportOverview() {
       backgroundColor: '#ffffff',
       scale: 2,
       useCORS: true,
+      // 固定 PC 视口尺寸渲染，导出的图片大小与布局不受当前浏览器窗口影响
+      windowWidth: 1440,
+      windowHeight: Math.max(window.innerHeight, 3000),
     })
     const link = document.createElement('a')
     link.download = `排表总览_${props.scheduleId}.png`
@@ -279,6 +282,8 @@ onMounted(loadOverview)
   font-size: 13px;
   color: var(--gold-700);
   letter-spacing: 1px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .og-group--defense .og-group__label {
@@ -289,6 +294,8 @@ onMounted(loadOverview)
   margin-left: auto;
   font-size: 11px;
   color: var(--ink-400);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .og-group__remark {
@@ -298,7 +305,9 @@ onMounted(loadOverview)
   background: var(--gold-100);
   border-radius: var(--radius-xl);
   padding: 0 6px;
-  max-width: 100px;
+  max-width: 320px;
+  min-width: 0;
+  flex-shrink: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -356,17 +365,20 @@ onMounted(loadOverview)
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .og-slot__remark {
   margin-left: auto;
-  flex-shrink: 0;
+  flex-shrink: 10; /* 空间不足时优先折叠备注（10:1 收缩），保证姓名完整 */
+  min-width: 0;
   font-size: 10.5px;
   color: var(--gold-700);
   background: var(--gold-100);
   border-radius: var(--radius-xl);
   padding: 0 6px;
-  max-width: 64px;
+  max-width: 130px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -467,6 +479,14 @@ onMounted(loadOverview)
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     padding: 10px 12px;
+  }
+
+  .og-group__remark {
+    max-width: 140px; /* 窄屏限制备注宽度，避免挤压标题与队数标签 */
+  }
+
+  .og-slot__remark {
+    max-width: 88px; /* 窄屏提前触发备注折叠，让位给姓名 */
   }
 
   .prof-stats {

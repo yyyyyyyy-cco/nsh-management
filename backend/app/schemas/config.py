@@ -1,7 +1,24 @@
 """系统配置 Pydantic Schema。"""
+import re
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+def _validate_password_complexity(value: str) -> str:
+    """密码复杂度校验：必须同时包含字母和数字（长度由 Field 约束）。
+    注：不用 Field(pattern=...) 是因为 pydantic-core 的 Rust 正则不支持 look-ahead。
+    """
+    if not re.search(r"[A-Za-z]", value) or not re.search(r"\d", value):
+        raise ValueError("密码需同时包含字母和数字")
+    return value
+
+
+def _validate_password_optional(value: str | None) -> str | None:
+    """可选密码字段的复杂度校验（None 直接放行）。"""
+    if value is None:
+        return value
+    return _validate_password_complexity(value)
 
 
 # ========== 职业配置 ==========
@@ -47,15 +64,25 @@ class AccountOut(BaseModel):
 class AccountCreate(BaseModel):
     """创建账号。"""
     username: str = Field(..., min_length=3, max_length=64, description="登录名")
-    password: str = Field(..., min_length=6, max_length=128, description="密码")
+    password: str = Field(
+        ..., min_length=8, max_length=128,
+        description="密码（8-128 位，需含字母和数字）",
+    )
     role: str = Field("member", description="角色：admin/member")
     guild_id: int | None = Field(None, description="目标帮会ID（开发者创建时必传，管理员默认本帮会）")
+
+    _password_complexity = field_validator("password")(_validate_password_complexity)
 
 
 class AccountUpdate(BaseModel):
     """更新账号。"""
     username: str | None = Field(None, min_length=3, max_length=64, description="登录名")
-    password: str | None = Field(None, min_length=6, max_length=128, description="密码")
+    password: str | None = Field(
+        None, min_length=8, max_length=128,
+        description="密码（8-128 位，需含字母和数字）",
+    )
+
+    _password_complexity = field_validator("password")(_validate_password_optional)
 
 
 class AccountStatusUpdate(BaseModel):
@@ -67,11 +94,33 @@ class GuildOut(BaseModel):
     """帮会输出。"""
     id: int
     name: str
+    icon_char: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
 
 class GuildCreate(BaseModel):
-    """创建帮会。"""
+    """创建帮会（管理员/帮众初始密码由创建者指定，按密码策略校验）。"""
     name: str = Field(..., min_length=2, max_length=64, description="帮会名称")
+    admin_password: str = Field(
+        ..., min_length=8, max_length=128,
+        description="管理员初始密码（8-128 位，需含字母和数字）",
+    )
+    member_password: str = Field(
+        ..., min_length=8, max_length=128,
+        description="帮众初始密码（8-128 位，需含字母和数字）",
+    )
+
+    _validate_admin_password = field_validator("admin_password")(_validate_password_complexity)
+    _validate_member_password = field_validator("member_password")(_validate_password_complexity)
+
+
+class GuildRename(BaseModel):
+    """帮会更名。"""
+    name: str = Field(..., min_length=2, max_length=64, description="新帮会名称")
+
+
+class GuildIconUpdate(BaseModel):
+    """帮会图标字设置（空串表示清除）。"""
+    icon_char: str = Field("", max_length=4, description="显示的首字，空串清除")

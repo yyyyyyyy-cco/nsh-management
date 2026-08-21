@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="导入替补成员" width="480px" destroy-on-close>
+  <el-dialog v-model="visible" title="导入替补成员" width="480px" destroy-on-close append-to-body>
     <el-alert
       v-if="candidates.length === 0"
       type="info"

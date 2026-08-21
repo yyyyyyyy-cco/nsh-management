@@ -12,6 +12,7 @@ class Guild(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    icon_char: Mapped[str | None] = mapped_column(String(4), nullable=True)  # 侧边栏折叠按钮显示的首字
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )

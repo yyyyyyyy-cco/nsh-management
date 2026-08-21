@@ -117,7 +117,16 @@
 /* 斑马纹可选，这里不做 */
 
 /* ===== 弹窗：宣纸面板 + 宋体标题 ===== */
+/* 弹窗在视口内垂直居中（桌面与移动端统一，避免内容偏高/超出视口） */
+.el-overlay-dialog {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
+}
+
 .el-dialog {
+  margin: 0 !important;
   border-radius: var(--radius-lg);
   border: 1px solid var(--edge-strong);
   box-shadow: var(--shadow-lg);
@@ -379,12 +388,24 @@
 
 /* ===== 移动端（≤768px）Element Plus 组件适配 ===== */
 @media (max-width: 768px) {
-  /* 弹窗近全宽，避免固定宽度溢出视口 */
+  /* 弹窗近全宽，避免固定宽度溢出视口；高度受限时 body 内部滚动 */
   .el-dialog {
-    --el-dialog-margin-top: 6vh;
     width: calc(100vw - 24px) !important;
     max-width: calc(100vw - 24px);
-    margin-bottom: 6vh;
+    max-height: calc(100vh - 48px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 弹窗内容超高时 body 内部滚动，头部/底部按钮保持可见 */
+  .el-dialog__body {
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .el-dialog__header,
+  .el-dialog__footer {
+    flex-shrink: 0;
   }
 
   .el-message-box {
@@ -456,6 +477,18 @@
 @media (max-width: 480px) {
   .el-dialog {
     padding: 18px;
+  }
+
+  /* 弹窗内单选/复选组自动换行，避免挤压溢出 */
+  .el-dialog .el-radio-group,
+  .el-dialog .el-checkbox-group {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  /* 弹窗内提示条长文本自动换行 */
+  .el-dialog .el-alert__content {
+    word-break: break-word;
   }
 
   .el-dialog__footer .el-button {

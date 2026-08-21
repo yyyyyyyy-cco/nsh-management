@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="添加补人" width="420px" destroy-on-close>
+  <el-dialog v-model="visible" title="添加补人" width="420px" destroy-on-close append-to-body>
     <el-form ref="formRef" :model="form" :rules="rules" label-width="70px">
       <el-form-item label="ID" prop="name">
         <el-input v-model="form.name" maxlength="32" placeholder="请输入补人名称" />

@@ -1,15 +1,15 @@
 <template>
   <div class="player-analysis">
-    <!-- 击杀 vs 伤害散点图 -->
-    <div class="chart-card">
-      <div class="chart-card__title">击杀 vs 伤害分析</div>
-      <EChart :option="scatterOption" :height="320" />
-    </div>
-
-    <!-- 治疗 vs 承伤散点图 -->
-    <div class="chart-card">
-      <div class="chart-card__title">治疗 vs 承伤分析</div>
-      <EChart :option="healTakenOption" :height="320" />
+    <!-- 第一行：击杀 vs 伤害散点图 + 治疗 vs 承伤散点图（并排） -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-card__title">击杀 vs 伤害分析</div>
+        <EChart :option="scatterOption" :height="320" />
+      </div>
+      <div class="chart-card">
+        <div class="chart-card__title">治疗 vs 承伤分析</div>
+        <EChart :option="healTakenOption" :height="320" />
+      </div>
     </div>
 
     <!-- 职业×指标热力图 -->
@@ -319,7 +319,8 @@ function stackOption(field: 'player_damage' | 'healing') {
   gap: 12px;
 }
 
-.stack-row {
+.stack-row,
+.chart-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
@@ -344,7 +345,8 @@ function stackOption(field: 'player_damage' | 'healing') {
 
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
-  .stack-row {
+  .stack-row,
+  .chart-row {
     grid-template-columns: 1fr;
   }
 }

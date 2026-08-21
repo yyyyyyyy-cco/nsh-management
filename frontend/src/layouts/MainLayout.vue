@@ -37,7 +37,8 @@
       <header class="header">
         <div class="header-left">
           <button type="button" class="collapse-btn" :title="isMobile ? '打开导航菜单' : collapsed ? '展开侧边栏' : '收起侧边栏'" @click="onToggleSidebar">
-            <el-icon :size="15"><component :is="isMobile ? Menu : collapsed ? Expand : Fold" /></el-icon>
+            <span v-if="guildIconChar" class="collapse-btn__char">{{ guildIconChar }}</span>
+            <el-icon v-else :size="15"><component :is="isMobile ? Menu : collapsed ? Expand : Fold" /></el-icon>
           </button>
           <div class="page-title">
             <span class="page-title__bar" />
@@ -117,6 +118,8 @@ function onMenuSelect() {
 
 const activeMenu = computed(() => route.path)
 const pageTitle = computed(() => String(route.meta.title || ''))
+/** 帮会图标首字（管理员在系统配置设置，PC 与窄屏一致显示）。 */
+const guildIconChar = computed(() => (auth.user?.guild_icon || '').charAt(0))
 const roleText = computed(() => {
   const role = auth.user?.role
   return role === 'developer' ? '开发者' : role === 'admin' ? '管理员' : '帮众'
@@ -381,6 +384,13 @@ async function onCommand(command: string | number | object) {
 }
 
 .collapse-btn:hover { background: var(--gold-100); border-color: var(--gold-400); }
+
+.collapse-btn__char {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+}
 
 .page-title {
   display: flex;

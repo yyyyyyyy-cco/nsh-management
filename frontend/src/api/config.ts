@@ -70,3 +70,13 @@ export async function createGuild(data: GuildCreateRequest): Promise<Guild> {
 export async function deleteGuild(guildId: number): Promise<{ message: string }> {
   return http.delete(`/config/guilds/${guildId}`)
 }
+
+/** 帮会更名（仅开发者） */
+export function renameGuild(guildId: number, name: string): Promise<Guild> {
+  return http.put(`/config/guilds/${guildId}`, { name })
+}
+
+/** 设置本帮会图标字（管理员，空串清除） */
+export function updateGuildIcon(guildId: number, iconChar: string): Promise<Guild> {
+  return http.put(`/config/guilds/${guildId}/icon`, { icon_char: iconChar })
+}

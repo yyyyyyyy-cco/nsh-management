@@ -30,21 +30,26 @@ async def ensure_recordings(session: AsyncSession, schedule: Schedule, attendanc
         )
     ).scalars().all()
 
-    # 按 (member_id, round_number) 建立索引
+    # 按 (member_name, round_number) 建立索引（补人 member_id 为 NULL，用姓名更可靠）
     existing_map = {}
     for r in existing:
-        key = (r.member_id, r.round_number)
-        existing_map[key] = r
+        key = (r.member_name, r.round_number)
+        if key not in existing_map:
+            existing_map[key] = r
 
-    # 为出勤库成员创建录屏占位记录
+    # 为出勤库成员创建录屏占位记录（出勤成员按姓名去重，防止同名多条出勤导致重复占位）
+    seen_names = set()
     recordings = []
     for record in attendance_records:
+        if record.member_name in seen_names:
+            continue
+        seen_names.add(record.member_name)
         for round_num in range(1, schedule.rounds + 1):
-            key = (record.member_id, round_num)
+            key = (record.member_name, round_num)
             if key in existing_map:
                 recordings.append(existing_map[key])
             else:
-                # 创建新的占位记录
+                # 创建新的占位记录，并写回索引防止重复创建
                 new_recording = Recording(
                     schedule_id=schedule.id,
                     member_id=record.member_id,
@@ -54,6 +59,7 @@ async def ensure_recordings(session: AsyncSession, schedule: Schedule, attendanc
                     status="pending",
                 )
                 session.add(new_recording)
+                existing_map[key] = new_recording
                 recordings.append(new_recording)
 
     if any(r.id is None for r in recordings):
@@ -72,13 +78,14 @@ async def list_recordings(
     """获取录屏列表和各局审核进度。"""
     schedule = await get_schedule(session, guild_id, schedule_id)
 
-    # 获取出勤库成员（排除请假人员，请假无需提交录屏）
+    # 录屏审核范围：正式/替补（非补人）且状态正常的人员（补人与请假无需提交录屏）
     attendance_records = list(
         (
             await session.execute(
                 select(AttendanceRecord).where(
                     AttendanceRecord.schedule_id == schedule_id,
-                    AttendanceRecord.status != "leave",
+                    AttendanceRecord.status == "normal",
+                    AttendanceRecord.is_filler.is_(False),
                 )
             )
         )

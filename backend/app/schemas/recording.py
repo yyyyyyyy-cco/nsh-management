@@ -22,8 +22,11 @@ class RecordingOut(BaseModel):
 
 
 class RecordingSubmit(BaseModel):
-    """提交录屏链接。"""
-    url: str = Field(..., min_length=1, max_length=512, description="录屏链接")
+    """提交录屏链接（须以 http:// 或 https:// 开头，防任意字符串/伪协议注入）。"""
+    url: str = Field(
+        ..., min_length=1, max_length=512, pattern=r"^https?://",
+        description="录屏链接（须以 http:// 或 https:// 开头）",
+    )
 
 
 class RecordingReview(BaseModel):

@@ -17,8 +17,8 @@ async def create_guild(
     current_user: User = Depends(require_developer),
     session: AsyncSession = Depends(get_db),
 ) -> GuildOut:
-    """创建帮会，并自动生成管理员和帮众账号（仅开发者）。"""
-    guild = await config_service.create_guild(session, body.name)
+    """创建帮会，并自动生成管理员和帮众账号（初始密码由创建者指定，仅开发者）。"""
+    guild = await config_service.create_guild(session, body.name, body.admin_password, body.member_password)
     return GuildOut.model_validate(guild)
 
 

@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" :title="isEdit ? '编辑成员' : '添加成员'" width="480px" destroy-on-close>
+  <el-dialog v-model="visible" :title="isEdit ? '编辑成员' : '添加成员'" width="480px" destroy-on-close append-to-body>
     <el-form ref="formRef" :model="form" :rules="rules" label-width="80px">
       <el-form-item label="ID" prop="name">
         <el-input v-model="form.name" maxlength="32" placeholder="请输入ID" />

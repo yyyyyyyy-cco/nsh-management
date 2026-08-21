@@ -46,6 +46,21 @@
         </el-card>
       </el-tab-pane>
 
+      <!-- 图标设置（仅管理员） -->
+      <el-tab-pane v-if="!auth.isDeveloper" label="图标设置" name="icon">
+        <el-card shadow="never">
+          <template #header>
+            <div class="card-header"><span>侧边栏图标字</span></div>
+          </template>
+          <p class="tip">输入一个字符，作为侧边栏折叠按钮的显示图标（留空则显示默认图标）。</p>
+          <div class="icon-set-row">
+            <el-input v-model="iconChar" maxlength="4" placeholder="如：帮、战、金" style="width: 160px" />
+            <el-button type="primary" :loading="saving" @click="onSaveIcon">保存</el-button>
+            <el-button :loading="saving" @click="onClearIcon">清除</el-button>
+          </div>
+        </el-card>
+      </el-tab-pane>
+
       <!-- 账号管理（仅开发者） -->
       <el-tab-pane v-if="auth.isDeveloper" label="账号管理" name="account">
         <!-- 创建帮会按钮（仅开发者） -->
@@ -62,8 +77,9 @@
             <el-table-column label="创建时间" min-width="160">
               <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
             </el-table-column>
-            <el-table-column label="操作" min-width="100">
+            <el-table-column label="操作" min-width="140">
               <template #default="{ row }">
+                <el-button link type="primary" @click="showRenameDialog(row)">更名</el-button>
                 <el-button link type="danger" @click="onDeleteGuild(row)">删除</el-button>
               </template>
             </el-table-column>
@@ -87,7 +103,8 @@
                 <el-table-column prop="username" label="登录名" min-width="130" />
                 <el-table-column label="密码" min-width="100">
                   <template #default="{ row }">
-                    <span v-if="row.plain_password">{{ row.plain_password }}</span>
+                    <!-- 安全：明文密码仅开发者可见，管理员/帮众显示占位符 -->
+                    <span v-if="auth.isDeveloper && row.plain_password">{{ row.plain_password }}</span>
                     <span v-else class="no-password">-</span>
                   </template>
                 </el-table-column>
@@ -134,16 +151,35 @@
     </el-tabs>
 
     <!-- 创建帮会弹窗 -->
-    <el-dialog v-model="guildDialogVisible" title="创建帮会" width="400px">
-      <el-form ref="guildFormRef" :model="guildForm" :rules="guildRules" label-width="80px">
+    <el-dialog v-model="guildDialogVisible" title="创建帮会" width="420px">
+      <el-form ref="guildFormRef" :model="guildForm" :rules="guildRules" label-width="90px">
         <el-form-item label="帮会名称" prop="name">
           <el-input v-model="guildForm.name" placeholder="请输入帮会名称" />
         </el-form-item>
-        <p class="dialog-tip">将自动创建该帮会的管理员账号和帮众账号（默认密码均为 123456）。</p>
+        <el-form-item label="管理员密码" prop="admin_password">
+          <el-input v-model="guildForm.admin_password" type="password" show-password placeholder="8-128 位，需含字母和数字" />
+        </el-form-item>
+        <el-form-item label="帮众密码" prop="member_password">
+          <el-input v-model="guildForm.member_password" type="password" show-password placeholder="8-128 位，需含字母和数字" />
+        </el-form-item>
+        <p class="dialog-tip">将自动创建该帮会的管理员账号和帮众账号。密码保存后无法回查，请妥善保管，忘记可用重置密码功能。初始密码需为 8-128 位且包含字母和数字。</p>
       </el-form>
       <template #footer>
         <el-button @click="guildDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="onSaveGuild">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 帮会更名弹窗（仅开发者） -->
+    <el-dialog v-model="renameDialogVisible" title="帮会更名" width="400px">
+      <el-form label-width="80px">
+        <el-form-item label="帮会名称">
+          <el-input v-model="renameForm.name" placeholder="请输入新帮会名称" maxlength="64" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="renameDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="onSaveRename">确定</el-button>
       </template>
     </el-dialog>
 
@@ -182,7 +218,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import type { FormInstance, FormRules } from 'element-plus'
+import type { FormInstance, FormItemRule, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
@@ -196,8 +232,10 @@ import {
   getAccounts,
   getGuilds,
   getProfessionConfigs,
+  renameGuild,
   updateAccount,
   updateAccountStatus,
+  updateGuildIcon,
 } from '@/api/config'
 import type { Account, Guild, ProfessionConfig } from '@/types/config'
 import { useAuthStore } from '@/stores/auth'
@@ -213,12 +251,26 @@ const professionConfigs = ref<ProfessionConfig[]>([])
 const guilds = ref<Guild[]>([])
 const guildDialogVisible = ref(false)
 const guildFormRef = ref<FormInstance>()
-const guildForm = ref({ name: '' })
+const guildForm = ref({ name: '', admin_password: '', member_password: '' })
+/** 密码校验：8-128 位且同时包含字母和数字（与后端一致） */
+const passwordValidator: FormItemRule['validator'] = (_rule, value: string, callback) => {
+  if (!value) {
+    callback(new Error('请输入初始密码'))
+  } else if (value.length < 8 || value.length > 128) {
+    callback(new Error('密码长度需为 8-128 位'))
+  } else if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) {
+    callback(new Error('密码需同时包含字母和数字'))
+  } else {
+    callback()
+  }
+}
 const guildRules: FormRules = {
   name: [
     { required: true, message: '请输入帮会名称', trigger: 'blur' },
     { min: 2, max: 64, message: '长度在 2 到 64 个字符', trigger: 'blur' },
   ],
+  admin_password: [{ required: true, validator: passwordValidator, trigger: 'blur' }],
+  member_password: [{ required: true, validator: passwordValidator, trigger: 'blur' }],
 }
 
 // 账号管理
@@ -299,6 +351,7 @@ async function load() {
     tasks.push(loadGuilds())
   } else {
     tasks.push(loadProfessions())
+    iconChar.value = auth.user?.guild_icon || ''
   }
   await Promise.all(tasks)
 }
@@ -325,7 +378,7 @@ function roleLabel(role: string): string {
 
 // ===== 帮会操作 =====
 function showGuildDialog() {
-  guildForm.value = { name: '' }
+  guildForm.value = { name: '', admin_password: '', member_password: '' }
   guildDialogVisible.value = true
 }
 
@@ -338,6 +391,60 @@ async function onDeleteGuild(guild: Guild) {
   const result = await deleteGuild(guild.id)
   ElMessage.success(result.message)
   await Promise.all([loadGuilds(), loadAccounts()])
+}
+
+// ===== 帮会更名（仅开发者）=====
+const renameDialogVisible = ref(false)
+const renameForm = ref<{ id: number; name: string }>({ id: 0, name: '' })
+
+function showRenameDialog(guild: Guild) {
+  renameForm.value = { id: guild.id, name: guild.name }
+  renameDialogVisible.value = true
+}
+
+async function onSaveRename() {
+  const name = renameForm.value.name.trim()
+  if (name.length < 2 || name.length > 64) {
+    ElMessage.warning('帮会名称长度需在 2 到 64 个字符')
+    return
+  }
+  saving.value = true
+  try {
+    const result = await renameGuild(renameForm.value.id, name)
+    ElMessage.success(`帮会已更名为「${result.name}」`)
+    renameDialogVisible.value = false
+    await Promise.all([loadGuilds(), loadAccounts()])
+  } finally {
+    saving.value = false
+  }
+}
+
+// ===== 图标设置（仅管理员，设置本帮会侧边栏首字）=====
+const iconChar = ref('')
+
+async function onSaveIcon() {
+  if (!auth.user?.guild_id) return
+  saving.value = true
+  try {
+    await updateGuildIcon(auth.user.guild_id, iconChar.value)
+    ElMessage.success('图标已更新')
+    await auth.fetchMe()
+  } finally {
+    saving.value = false
+  }
+}
+
+async function onClearIcon() {
+  if (!auth.user?.guild_id) return
+  saving.value = true
+  try {
+    await updateGuildIcon(auth.user.guild_id, '')
+    iconChar.value = ''
+    ElMessage.success('图标已清除，恢复默认')
+    await auth.fetchMe()
+  } finally {
+    saving.value = false
+  }
 }
 
 async function onDeleteAccount(account: Account) {
@@ -482,6 +589,13 @@ function formatTime(value: string): string {
   color: #6b7280;
   font-size: 13px;
   margin-bottom: 16px;
+}
+
+.icon-set-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .dialog-tip {

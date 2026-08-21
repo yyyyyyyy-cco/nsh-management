@@ -103,7 +103,9 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
     """全局异常处理，捕获所有未处理的异常。"""
     import traceback
     print(f"未处理的异常: {traceback.format_exc()}")
-    return error_response(500, f"服务器内部错误: {str(exc)}")
+    # 安全：生产环境不向客户端泄露异常详情，仅本地开发（DEBUG=true）可见
+    message = f"服务器内部错误: {str(exc)}" if settings.DEBUG else "服务器内部错误"
+    return error_response(500, message)
 
 
 @app.get("/")

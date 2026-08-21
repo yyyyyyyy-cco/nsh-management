@@ -35,10 +35,11 @@
     </div>
 
     <div v-loading="board.loading.value" class="editor">
-      <div class="pool">
+      <div class="pool" :class="{ 'pool--open': poolOpen }">
         <div class="panel-title">
           <span class="panel-title__dot" />
           帮众候选池
+          <el-icon class="pool-close" @click="poolOpen = false"><Close /></el-icon>
         </div>
         <el-input
           v-model="poolKeyword"
@@ -53,9 +54,9 @@
             <el-icon class="collapse-arrow" :class="{ expanded: !collapsedProfs.has(prof) }"><ArrowRight /></el-icon>
             {{ prof }} <em class="num">{{ list.length }}</em>
           </div>
-          <draggable v-show="!collapsedProfs.has(prof)" :list="list" group="lineup" item-key="key" class="pool-list" :animation="150" ghost-class="pool-ghost" :disabled="board.mode.value === 'input'" @change="board.onCandidateChange">
+          <draggable v-show="!collapsedProfs.has(prof)" :list="list" group="lineup" item-key="key" class="pool-list" :animation="150" ghost-class="pool-ghost" :disabled="board.mode.value === 'input'" @start="(evt: any) => board.onPoolDragStart(evt)" @end="board.onDragEnd" @change="board.onCandidateChange">
             <template #item="{ element }">
-              <div class="pool-item" @click="onPoolItemClick(element)">
+              <div class="pool-item" :data-key="element.key" @click="onPoolItemClick(element)">
                 <span class="prof-dot" :style="{ background: profColor(element.profession) }" />
                 <span class="name">{{ element.member_name }}</span>
                 <el-tag v-if="element.member_status === 'filler'" size="small" type="warning" effect="light">补</el-tag>
@@ -99,10 +100,12 @@
                 class="slot"
                 :animation="150"
                 :disabled="board.mode.value === 'input'"
+                @start="(evt: any) => board.onSlotDragStart(evt, team, si)"
+                @end="board.onDragEnd"
                 @change="(evt: any) => board.onSlotChange(evt, team, si)"
               >
                 <template #item="{ element }">
-                  <div v-if="isEditing(team, si)" class="slot-card slot-card--edit">
+                  <div v-if="isEditing(team, si)" :data-key="element.key" class="slot-card slot-card--edit">
                     <el-input
                       v-model="inputName"
                       size="small"
@@ -114,7 +117,7 @@
                       @blur="onInputBlur"
                     />
                   </div>
-                  <div v-else class="slot-card" :class="{ filled: element.member_name }" @click="onSlotClick(team, si)" @dblclick="board.editRemark(team, si)">
+                  <div v-else :data-key="element.key" class="slot-card" :class="{ filled: element.member_name }" @click="onSlotClick(team, si)" @dblclick="board.editRemark(team, si)">
                     <span v-if="element.member_name" class="slot-prof-dot" :style="{ background: profColor(element.profession) }" />
                     <span v-if="element.member_name" class="slot-name">{{ element.member_name }}</span>
                     <span v-else-if="board.mode.value === 'input'" class="slot-name slot-name--hint">点击输入</span>
@@ -134,7 +137,7 @@
                     <el-icon
                       v-if="element.member_name"
                       class="slot-remove"
-                      @click.stop="board.onRemoveSlot(team, si)"
+                      @click.stop="onRemoveSlotClick(team, si)"
                     >
                       <Close />
                     </el-icon>
@@ -146,6 +149,13 @@
         </div>
       </div>
     </div>
+
+    <!-- 窄屏：候选池浮动小球 + 遮罩（点击小球展开候选池浮层） -->
+    <div class="pool-fab" @click="poolOpen = true">
+      <el-icon class="pool-fab__icon"><User /></el-icon>
+      <span class="pool-fab__count num">{{ board.candidates.value.length }}</span>
+    </div>
+    <div v-if="poolOpen" class="pool-mask" @click="poolOpen = false" />
 
     <ImportHistoryDialog v-model="importVisible" :schedule-id="scheduleId" @imported="onImported" />
     <MatchConfirmDialog
@@ -160,7 +170,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { ArrowRight, Check, Close, Download, EditPen, Search, User } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import draggable from 'vuedraggable'
 
 import { useLineupBoard, type CandidateItem, type TeamBox } from '@/composables/lineupBoard'
@@ -239,6 +249,7 @@ watch(matchVisible, (v) => {
 
 // ===== 候选池搜索过滤（输入模式下点击条目可直接填入当前编辑槽位）=====
 const poolKeyword = ref('')
+const poolOpen = ref(false) // 窄屏候选池浮层开关（桌面端不生效）
 
 const filteredPoolGroups = computed(() => {
   const kw = poolKeyword.value.trim().toLowerCase()
@@ -317,6 +328,14 @@ const teamGroups = computed(() => {
 async function onSave() {
   await board.onSave()
   emit('saved')
+}
+
+/** 移除槽位成员：确认后再从排表下掉。 */
+async function onRemoveSlotClick(team: TeamBox, si: number) {
+  const name = team.slots[si][0]?.member_name
+  if (!name) return
+  await ElMessageBox.confirm(`确定将「${name}」从排表中移除吗？`, '移除确认', { type: 'warning' })
+  board.onRemoveSlot(team, si)
 }
 
 /** 历史排表导入成功后：刷新编辑器数据并通知父级刷新总览。 */
@@ -708,7 +727,9 @@ onMounted(() => board.load())
 }
 
 .slot {
+  height: 44px;
   min-height: 44px;
+  overflow: hidden;
   border: 1px dashed var(--edge-strong);
   border-radius: var(--radius-md);
   background: rgba(255, 253, 248, 0.7);
@@ -724,6 +745,8 @@ onMounted(() => board.load())
   display: flex;
   justify-content: space-between;
   align-items: center;
+  height: 100%;
+  box-sizing: border-box;
   padding: 10px 12px;
   font-size: 13px;
   border-radius: var(--radius-sm);
@@ -802,6 +825,19 @@ onMounted(() => board.load())
   background: var(--el-color-danger-light-9);
 }
 
+/* ===== 候选池浮球/遮罩（默认隐藏，仅窄屏显示） ===== */
+.pool-close {
+  display: none;
+}
+
+.pool-fab {
+  display: none;
+}
+
+.pool-mask {
+  display: none;
+}
+
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
   .toolbar {
@@ -828,9 +864,80 @@ onMounted(() => board.load())
     gap: 12px;
   }
 
+  /* 候选池：窄屏改为浮动小球 + 展开浮层（视口居中） */
   .pool {
-    width: 100%;
-    max-height: 300px;
+    display: none;
+    width: calc(100vw - 24px);
+    max-width: 420px;
+    max-height: 70vh;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1001;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .pool.pool--open {
+    display: block;
+  }
+
+  .pool-close {
+    display: inline-flex;
+    margin-left: auto;
+    cursor: pointer;
+    color: var(--ink-500);
+    font-size: 15px;
+  }
+
+  .pool-close:hover {
+    color: var(--cinnabar);
+  }
+
+  .pool-fab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    right: 16px;
+    bottom: 24px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #fdf6e3 0%, #f0e0a8 100%);
+    border: 1px solid var(--gold-300);
+    color: var(--gold-700);
+    box-shadow: 0 4px 14px -2px rgba(201, 161, 59, 0.3);
+    cursor: pointer;
+    z-index: 1002;
+  }
+
+  .pool-fab__icon {
+    font-size: 22px;
+  }
+
+  .pool-fab__count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    line-height: 20px;
+    padding: 0 5px;
+    border-radius: 10px;
+    background: var(--cinnabar);
+    color: #fff;
+    font-size: 11px;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .pool-mask {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1000;
   }
 
   .teams {

@@ -1,21 +1,15 @@
 <template>
   <div v-if="camps.length >= 2" class="camp-compare">
-    <!-- 阵营对比雷达图 -->
-    <div class="chart-card">
-      <div class="chart-card__title">阵营对比 · 雷达图</div>
-      <EChart :option="radarOption" :height="360" />
-    </div>
-
-    <!-- 阵营职业人数构成 -->
-    <div class="chart-card">
-      <div class="chart-card__title">阵营职业人数构成</div>
-      <EChart :option="profStackOption" :height="300" />
-    </div>
-
-    <!-- 阵营关键数据对比柱状图 -->
-    <div class="chart-card">
-      <div class="chart-card__title">阵营关键数据对比</div>
-      <EChart :option="barOption" :height="300" />
+    <!-- 第一行：阵营对比雷达图 + 阵营关键数据对比（并排） -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-card__title">阵营对比 · 雷达图</div>
+        <EChart :option="radarOption" :height="360" />
+      </div>
+      <div class="chart-card">
+        <div class="chart-card__title">阵营关键数据对比</div>
+        <EChart :option="barOption" :height="360" />
+      </div>
     </div>
 
     <!-- 占比分析表（独立一行） -->
@@ -47,7 +41,7 @@
 import { computed } from 'vue'
 
 import type { MatchData } from '@/types/matchData'
-import { aggregateCamps, CAMP_COLORS, fmtNum, pctStr, profColor } from './analysis'
+import { aggregateCamps, CAMP_COLORS, fmtNum, pctStr } from './analysis'
 import EChart from './EChart.vue'
 import { CHART_THEME } from './chartTheme'
 
@@ -90,29 +84,6 @@ const radarOption = computed(() => {
         })),
       },
     ],
-  }
-})
-
-/** 阵营职业人数构成堆叠图。 */
-const profStackOption = computed(() => {
-  const profs = [...new Set(props.items.map((r) => r.profession || '未知'))].sort()
-  return {
-    backgroundColor: 'transparent',
-    tooltip: { trigger: 'axis', ...CHART_THEME.tooltip },
-    legend: { top: 0, type: 'scroll', ...CHART_THEME.legend },
-    grid: { left: 16, right: 20, top: 40, bottom: 8, containLabel: true },
-    xAxis: { type: 'category', data: camps.value.map((c) => c.camp), axisLabel: { ...CHART_THEME.axis.axisLabel, interval: 0 } },
-    yAxis: { type: 'value', axisLabel: CHART_THEME.axis.axisLabel, splitLine: CHART_THEME.axis.splitLine },
-    series: profs.map((prof) => ({
-      name: prof,
-      type: 'bar',
-      stack: 'total',
-      barWidth: 36,
-      itemStyle: { color: profColor(prof), borderRadius: 0 },
-      data: camps.value.map((c) =>
-        props.items.filter((r) => r.camp === c.camp && (r.profession || '未知') === prof).length,
-      ),
-    })),
   }
 })
 
@@ -191,6 +162,18 @@ const ratioRows = computed(() => {
   flex-direction: column;
   gap: 12px;
   margin-bottom: 14px;
+}
+
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .chart-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .chart-card {
