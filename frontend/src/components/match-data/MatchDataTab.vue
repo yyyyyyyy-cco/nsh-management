@@ -54,23 +54,33 @@
 
       <!-- 数据列表 -->
       <el-tab-pane label="数据列表" name="list">
-        <el-table :data="filteredItems" max-height="500">
-          <el-table-column prop="player_name" label="ID" min-width="100" />
-          <el-table-column prop="profession" label="职业" min-width="70" />
-          <el-table-column prop="camp" label="阵营" min-width="100" />
-          <el-table-column prop="kills" label="击杀" min-width="70" align="right" sortable />
-          <el-table-column prop="assists" label="助攻" min-width="70" align="right" sortable />
-          <el-table-column prop="player_damage" label="伤害" min-width="90" align="right" sortable>
+        <el-table :data="filteredItems" max-height="500" fit>
+          <el-table-column prop="player_name" label="ID" align="center" />
+          <el-table-column prop="profession" label="职业" align="center" />
+          <el-table-column prop="camp" label="阵营" align="center" />
+          <el-table-column prop="kills" label="击杀" align="center" sortable />
+          <el-table-column prop="assists" label="助攻" align="center" sortable />
+          <el-table-column prop="player_damage" label="对玩家伤害" align="center" sortable>
             <template #default="{ row }">{{ formatNumber(row.player_damage) }}</template>
           </el-table-column>
-          <el-table-column prop="healing" label="治疗" min-width="90" align="right" sortable>
+          <el-table-column prop="armor_break_damage" label="人伤卸甲" align="center" sortable>
+            <template #default="{ row }">{{ formatNumber(row.armor_break_damage) }}</template>
+          </el-table-column>
+          <el-table-column prop="building_damage" label="对建筑伤害" align="center" sortable>
+            <template #default="{ row }">{{ formatNumber(row.building_damage) }}</template>
+          </el-table-column>
+          <el-table-column prop="tower_break_damage" label="破塔卸甲" align="center" sortable>
+            <template #default="{ row }">{{ formatNumber(row.tower_break_damage) }}</template>
+          </el-table-column>
+          <el-table-column prop="healing" label="治疗" align="center" sortable>
             <template #default="{ row }">{{ formatNumber(row.healing) }}</template>
           </el-table-column>
-          <el-table-column prop="damage_taken" label="承伤" min-width="90" align="right" sortable>
+          <el-table-column prop="damage_taken" label="承伤" align="center" sortable>
             <template #default="{ row }">{{ formatNumber(row.damage_taken) }}</template>
           </el-table-column>
-          <el-table-column prop="deaths" label="重伤" min-width="70" align="right" sortable />
-          <el-table-column prop="fen_gu" label="焚骨" min-width="70" align="right" sortable />
+          <el-table-column prop="deaths" label="重伤" align="center" sortable />
+          <el-table-column prop="revives" label="复活/清泉" align="center" sortable />
+          <el-table-column prop="fen_gu" label="焚骨" align="center" sortable />
         </el-table>
       </el-tab-pane>
 

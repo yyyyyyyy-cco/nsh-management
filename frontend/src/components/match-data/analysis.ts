@@ -160,7 +160,7 @@ export function computeScores(items: MatchData[]): PlayerScore[] {
       const healing = (p.healing / maxHealing) * 100
       const survival = ((p.damage_taken / maxTaken) * 0.6 + (1 - p.deaths / maxDeaths) * 0.4) * 100
       const special = ((p.revives / maxRevives) * 0.5 + (p.fen_gu / maxFenGu) * 0.5) * 100
-      const total = output * 0.3 + building * 0.15 + healing * 0.15 + survival * 0.25 + special * 0.15
+      const total = output * 0.3 + building * 0.2 + healing * 0.15 + survival * 0.25 + special * 0.1
       return {
         player: p,
         output: Math.round(output),
