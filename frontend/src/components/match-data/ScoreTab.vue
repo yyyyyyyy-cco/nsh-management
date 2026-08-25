@@ -71,11 +71,11 @@ const radarOption = computed(() => ({
     radius: '60%',
     axisName: { ...CHART_THEME.axis.axisName, overflow: 'truncate', width: 40 },
     indicator: [
-      { name: '输出', max: 200 },
-      { name: '建筑', max: 200 },
-      { name: '治疗', max: 200 },
-      { name: '生存', max: 200 },
-      { name: '特殊', max: 200 },
+      { name: '输出', max: 100 },
+      { name: '建筑', max: 100 },
+      { name: '治疗', max: 100 },
+      { name: '生存', max: 100 },
+      { name: '特殊', max: 100 },
     ],
   },
   series: [
