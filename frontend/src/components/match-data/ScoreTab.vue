@@ -54,7 +54,7 @@
 import { computed } from 'vue'
 
 import type { MatchData } from '@/types/matchData'
-import { computeScores, profColor, ROLE_CONFIG, type RoleType } from './analysis'
+import { computeScores, profColor } from './analysis'
 import EChart from './EChart.vue'
 import { CHART_THEME } from './chartTheme'
 
@@ -147,15 +147,6 @@ function scoreClass(total: number): string {
   return total >= 120 ? 'is-high' : total >= 80 ? 'is-mid' : 'is-low'
 }
 
-function getRoleTagType(roleType: RoleType): string {
-  const typeMap: Record<RoleType, string> = {
-    healer: 'success',
-    tank: 'warning',
-    tower: '',
-    fighter: 'danger',
-  }
-  return typeMap[roleType] || 'info'
-}
 </script>
 
 <style scoped>
