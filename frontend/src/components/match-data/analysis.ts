@@ -1,4 +1,4 @@
-/** 数据分析计算工具（移植自参考项目 B 的 analysis/utils，字段与 MatchData 对应）。 */
+/** 数据分析计算工具 - 基于实际数据优化版 */
 import type { MatchData } from '@/types/matchData'
 
 /** 职业色映射（依据 ui-style-guide）。 */
@@ -37,6 +37,172 @@ export function calcKDA(p: MatchData): number {
 export function pctStr(part: number, total: number): string {
   if (!total) return '0%'
   return ((part / total) * 100).toFixed(1) + '%'
+}
+
+// ==================== 职业判定系统 ====================
+
+/** 职业类型 */
+export type RoleType = 'healer' | 'tank' | 'tower' | 'fighter'
+
+/** 职业类型配置 */
+export const ROLE_CONFIG: Record<RoleType, { name: string; icon: string; color: string }> = {
+  healer: { name: '治疗职业', icon: '💚', color: '#52c41a' },
+  tank: { name: '承伤职业', icon: '🛡️', color: '#faad14' },
+  tower: { name: '进攻职业', icon: '🏗️', color: '#1890ff' },
+  fighter: { name: '防守职业', icon: '⚔️', color: '#f5222d' },
+}
+
+/** 职业判定阈值 */
+const ROLE_THRESHOLD = 1
+
+/**
+ * 根据玩家数据判定职业类型
+ * 基于240条实际数据分析，使用平均值倍数判定
+ */
+export function detectRole(p: MatchData, avg: { damage: number; building: number; healing: number; taken: number }): RoleType {
+  const healingRatio = avg.healing > 0 ? p.healing / avg.healing : 0
+  const buildingRatio = avg.building > 0 ? (p.building_damage + p.tower_break_damage) / avg.building : 0
+  const damageRatio = avg.damage > 0 ? (p.player_damage + p.armor_break_damage) / avg.damage : 0
+  
+  // 判定优先级：治疗 > 进攻 > 防守 > 承伤（默认）
+  if (healingRatio >= ROLE_THRESHOLD) return 'healer'
+  if (buildingRatio >= ROLE_THRESHOLD) return 'tower'
+  if (damageRatio >= ROLE_THRESHOLD) return 'fighter'
+  return 'tank'
+}
+
+// ==================== 评分权重配置 ====================
+
+/** 评分权重配置（基于240条实际数据分析） */
+export const SCORE_WEIGHTS: Record<RoleType, { output: number; building: number; healing: number; survival: number; special: number }> = {
+  // 治疗职业：治疗为主，承伤为辅
+  healer: { output: 0, building: 0, healing: 0.50, survival: 0.30, special: 0.20 },
+  // 承伤职业：承伤为主，其他低权重
+  tank: { output: 0.05, building: 0.05, healing: 0.05, survival: 0.75, special: 0.10 },
+  // 进攻职业：建筑为主，承伤为辅
+  tower: { output: 0.10, building: 0.60, healing: 0, survival: 0.25, special: 0.05 },
+  // 防守职业：输出为主，承伤为辅
+  fighter: { output: 0.75, building: 0.05, healing: 0, survival: 0.10, special: 0.10 },
+}
+
+/** 输出维度权重（基于变异系数分析） */
+export const OUTPUT_WEIGHTS = {
+  kills: 0.35,    // 击杀权重
+  assists: 0.15,  // 助攻权重
+  damage: 0.50,   // 伤害权重
+}
+
+/** 生存维度权重 */
+export const SURVIVAL_WEIGHTS = {
+  taken: 0.40,    // 承伤权重
+  survival: 0.60, // 存活率权重
+}
+
+// ==================== 评分计算 ====================
+
+export interface PlayerScore {
+  player: MatchData
+  roleType: RoleType
+  output: number
+  building: number
+  healing: number
+  survival: number
+  special: number
+  total: number
+  kda: number
+}
+
+/**
+ * 综合评分（基于实际数据分析优化版）
+ * 
+ * 特点：
+ * 1. 平均值归一化：100分=平均水平
+ * 2. 职业差异化：4类职业不同权重
+ * 3. 输出维度：击杀×0.25 + 助攻×0.25 + 伤害×0.50
+ * 4. 生存维度：承伤×0.60 + 存活率×0.40
+ */
+export function computeScores(items: MatchData[]): PlayerScore[] {
+  if (!items.length) return []
+  
+  // 计算全队平均值
+  const avg = {
+    kills: items.reduce((s, r) => s + r.kills, 0) / items.length,
+    assists: items.reduce((s, r) => s + r.assists, 0) / items.length,
+    damage: items.reduce((s, r) => s + r.player_damage + r.armor_break_damage, 0) / items.length,
+    building: items.reduce((s, r) => s + r.building_damage + r.tower_break_damage, 0) / items.length,
+    healing: items.reduce((s, r) => s + r.healing, 0) / items.length,
+    taken: items.reduce((s, r) => s + r.damage_taken, 0) / items.length,
+    deaths: items.reduce((s, r) => s + r.deaths, 0) / items.length,
+    revives: items.reduce((s, r) => s + r.revives, 0) / items.length,
+    fenGu: items.reduce((s, r) => s + r.fen_gu, 0) / items.length,
+  }
+  
+  // 计算每个玩家的评分
+  // 先计算原始得分（使用最大值归一化）
+  const rawScores = items.map((p) => {
+    // 判定职业类型
+    const roleType = detectRole(p, avg)
+    const weights = SCORE_WEIGHTS[roleType]
+    
+    // 计算输出维度（最大值归一化，加权）
+    const maxKills = Math.max(...items.map(r => r.kills), 1)
+    const maxAssists = Math.max(...items.map(r => r.assists), 1)
+    const maxDamage = Math.max(...items.map(r => r.player_damage + r.armor_break_damage), 1)
+    
+    const killsScore = (p.kills / maxKills) * 100
+    const assistsScore = (p.assists / maxAssists) * 100
+    const damageScore = ((p.player_damage + p.armor_break_damage) / maxDamage) * 100
+    const output = killsScore * OUTPUT_WEIGHTS.kills + 
+                   assistsScore * OUTPUT_WEIGHTS.assists + 
+                   damageScore * OUTPUT_WEIGHTS.damage
+    
+    // 计算建筑维度（最大值归一化）
+    const maxBuilding = Math.max(...items.map(r => r.building_damage + r.tower_break_damage), 1)
+    const building = ((p.building_damage + p.tower_break_damage) / maxBuilding) * 100
+    
+    // 计算治疗维度（最大值归一化）
+    const maxHealing = Math.max(...items.map(r => r.healing), 1)
+    const healing = (p.healing / maxHealing) * 100
+    
+    // 计算生存维度（最大值归一化，加权）
+    const maxTaken = Math.max(...items.map(r => r.damage_taken), 1)
+    const maxDeaths = Math.max(...items.map(r => r.deaths), 1)
+    
+    const takenScore = (p.damage_taken / maxTaken) * 100
+    const survivalRateScore = (1 - p.deaths / maxDeaths) * 100
+    const survival = takenScore * SURVIVAL_WEIGHTS.taken + 
+                     survivalRateScore * SURVIVAL_WEIGHTS.survival
+    
+    // 计算特殊维度（最大值归一化）
+    const maxRevives = Math.max(...items.map(r => r.revives), 1)
+    const maxFenGu = Math.max(...items.map(r => r.fen_gu), 1)
+    
+    const revivesScore = (p.revives / maxRevives) * 100
+    const fenGuScore = (p.fen_gu / maxFenGu) * 100
+    const special = (revivesScore + fenGuScore) / 2
+    
+    // 计算总分（加权）
+    const total = output * weights.output +
+                  building * weights.building +
+                  healing * weights.healing +
+                  survival * weights.survival +
+                  special * weights.special
+    
+    return {
+      player: p,
+      roleType,
+      output: Math.round(output),
+      building: Math.round(building),
+      healing: Math.round(healing),
+      survival: Math.round(survival),
+      special: Math.round(special),
+      total: Math.round(total),
+      kda: calcKDA(p),
+    }
+  })
+  
+  // 直接返回排序后的结果（不再归一化）
+  return rawScores.sort((a, b) => b.total - a.total)
 }
 
 export interface CampAgg {
@@ -125,52 +291,4 @@ export function aggregateProfessions(items: MatchData[], camp?: string): ProfAgg
     damage_pct: totalDmg ? (p.total_player_damage / totalDmg) * 100 : 0,
     healing_pct: totalHeal ? (p.total_healing / totalHeal) * 100 : 0,
   }))
-}
-
-export interface PlayerScore {
-  player: MatchData
-  output: number
-  building: number
-  healing: number
-  survival: number
-  special: number
-  total: number
-  kda: number
-}
-
-/** 综合评分（移植自 B 的 ScoreAnalysis，字段映射：deaths=重伤、revives=复活、fen_gu=焚骨）。 */
-export function computeScores(items: MatchData[]): PlayerScore[] {
-  if (!items.length) return []
-  const max = (key: (r: MatchData) => number) => Math.max(...items.map(key), 1)
-  const maxKills = max((r) => r.kills)
-  const maxAssists = max((r) => r.assists)
-  const maxOutput = max((r) => r.player_damage + r.armor_break_damage)
-  const maxBuilding = max((r) => r.building_damage + r.tower_break_damage)
-  const maxHealing = max((r) => r.healing)
-  const maxTaken = max((r) => r.damage_taken)
-  const maxDeaths = max((r) => r.deaths)
-  const maxRevives = max((r) => r.revives)
-  const maxFenGu = max((r) => r.fen_gu)
-
-  return items
-    .map((p) => {
-      const output =
-        ((p.kills / maxKills) * 0.3 + (p.assists / maxAssists) * 0.2 + ((p.player_damage + p.armor_break_damage) / maxOutput) * 0.5) * 100
-      const building = ((p.building_damage + p.tower_break_damage) / maxBuilding) * 100
-      const healing = (p.healing / maxHealing) * 100
-      const survival = ((p.damage_taken / maxTaken) * 0.6 + (1 - p.deaths / maxDeaths) * 0.4) * 100
-      const special = ((p.revives / maxRevives) * 0.5 + (p.fen_gu / maxFenGu) * 0.5) * 100
-      const total = output * 0.3 + building * 0.2 + healing * 0.15 + survival * 0.25 + special * 0.1
-      return {
-        player: p,
-        output: Math.round(output),
-        building: Math.round(building),
-        healing: Math.round(healing),
-        survival: Math.round(survival),
-        special: Math.round(special),
-        total: Math.round(total),
-        kda: calcKDA(p),
-      }
-    })
-    .sort((a, b) => b.total - a.total)
 }

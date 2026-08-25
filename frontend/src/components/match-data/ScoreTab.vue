@@ -15,7 +15,7 @@
     <!-- 综合评分排名表 -->
     <div class="chart-card">
       <div class="chart-card__title">综合评分排名</div>
-      <el-table :data="scores" size="small" max-height="500">
+      <el-table :data="scores" size="small" max-height="500" :cell-style="{ textAlign: 'center' }" :header-cell-style="{ textAlign: 'center' }">
         <el-table-column label="排名" width="55" align="center">
           <template #default="{ $index }">
             <span class="rank-badge num" :class="`rank-badge--${$index + 1}`">{{ $index + 1 }}</span>
@@ -30,7 +30,8 @@
           </template>
         </el-table-column>
         <el-table-column prop="player.profession" label="职业" min-width="70" />
-        <el-table-column prop="player.camp" label="阵营" min-width="70" />
+
+        <el-table-column prop="player.camp" label="阵营" min-width="55" />
         <el-table-column label="总分" min-width="65" align="right" sortable :sort-by="'total'">
           <template #default="{ row }">
             <span class="score-num" :class="scoreClass(row.total)">{{ row.total }}</span>
@@ -53,7 +54,7 @@
 import { computed } from 'vue'
 
 import type { MatchData } from '@/types/matchData'
-import { computeScores, profColor } from './analysis'
+import { computeScores, profColor, ROLE_CONFIG, type RoleType } from './analysis'
 import EChart from './EChart.vue'
 import { CHART_THEME } from './chartTheme'
 
@@ -70,11 +71,11 @@ const radarOption = computed(() => ({
     radius: '60%',
     axisName: { ...CHART_THEME.axis.axisName, overflow: 'truncate', width: 40 },
     indicator: [
-      { name: '输出', max: 100 },
-      { name: '建筑', max: 100 },
-      { name: '治疗', max: 100 },
-      { name: '生存', max: 100 },
-      { name: '特殊', max: 100 },
+      { name: '输出', max: 200 },
+      { name: '建筑', max: 200 },
+      { name: '治疗', max: 200 },
+      { name: '生存', max: 200 },
+      { name: '特殊', max: 200 },
     ],
   },
   series: [
@@ -143,7 +144,17 @@ const scatterOption = computed(() => ({
 }))
 
 function scoreClass(total: number): string {
-  return total >= 70 ? 'is-high' : total >= 50 ? 'is-mid' : 'is-low'
+  return total >= 120 ? 'is-high' : total >= 80 ? 'is-mid' : 'is-low'
+}
+
+function getRoleTagType(roleType: RoleType): string {
+  const typeMap: Record<RoleType, string> = {
+    healer: 'success',
+    tank: 'warning',
+    tower: '',
+    fighter: 'danger',
+  }
+  return typeMap[roleType] || 'info'
 }
 </script>
 
