@@ -112,7 +112,12 @@
 
       <!-- 职业差值/波动值表 -->
       <div class="chart-card">
-        <div class="chart-card__title">职业差值 / 波动值（基于分阵营均值）</div>
+        <div class="chart-card__head">
+          <span class="chart-card__title">职业差值 / 波动值（基于分阵营均值）</span>
+          <el-select v-model="profFilter" placeholder="按职业筛选" clearable size="small" style="width: 160px">
+            <el-option v-for="p in allProfs" :key="p" :label="p" :value="p" />
+          </el-select>
+        </div>
         <el-table :data="comparisonRows" size="small" max-height="360">
           <el-table-column prop="profession" label="职业" min-width="80" />
           <el-table-column prop="label" label="指标" min-width="90" />
@@ -157,7 +162,9 @@ const props = defineProps<{ scheduleId: number; roundNo: number }>()
 const loading = ref(false)
 const profStats = ref<ProfessionStats[]>([])
 const campFilter = ref('')
+const profFilter = ref('')
 const campOptions = computed(() => [...new Set(profStats.value.flatMap((p) => p.camps.map((c) => c.camp)))])
+const allProfs = computed(() => profStats.value.map((p) => p.profession))
 
 async function load() {
   loading.value = true
@@ -287,7 +294,10 @@ const METRIC_LABELS: Record<string, string> = {
 
 const comparisonRows = computed(() => {
   const rows: { profession: string; label: string; value1: number; value2: number; diff: number; wave: number; metric: string }[] = []
-  for (const p of profStats.value) {
+  const list = profFilter.value
+    ? profStats.value.filter((p) => p.profession === profFilter.value)
+    : profStats.value
+  for (const p of list) {
     for (const cmp of p.comparison) {
       rows.push({
         profession: p.profession,
@@ -358,6 +368,18 @@ function fmtCmpValue(row: { metric: string }, v: number): string {
   letter-spacing: 1px;
   color: var(--ink-800);
   margin-bottom: 10px;
+}
+
+.chart-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.chart-card__head .chart-card__title {
+  margin-bottom: 0;
 }
 
 .prof-cell {
