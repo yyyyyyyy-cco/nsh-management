@@ -30,7 +30,7 @@
 - [x] 出勤库 API（导入成员/替补/补人、请假导入、状态管理、职业切换、保存考勤）（P1）
 - [x] 排表 API（候选池、JSON 排表存取、导入历史排表、标题/组备注）（P2）
 - [x] 录屏审核 API（提交、审核、批量审核、全局进度）（P2）
-- [x] 数据分析 API（CSV 导入解析、榜单查询、HTML 报告导出）（P2）
+- [x] 数据分析 API（CSV 导入解析、6 榜排行、职业 17 项统计、16 项衍生指标、阵营对比、小队分析）（P2）
 - [x] 系统配置 API（职业配置、账号管理、帮会管理、开发者角色）（P2）
 - [x] Docker 部署（Dockerfile、docker-compose、deploy.sh、entrypoint.sh）（P2）
 
@@ -70,7 +70,10 @@
 - ✅ 排表备注（title_remark 标题备注、groups_remark 各组备注 JSON）
 - ✅ 排表请假联动（get_lineup 读取时自动清空请假成员槽位）
 - ✅ 录屏审核 API：提交/审核/批量审核/全局进度（请假人员自动排除）
-- ✅ 数据分析 API：CSV 导入/排行榜/职业统计/HTML 报告导出
+- ✅ 数据分析 API：CSV 导入/6 榜排行/职业 17 项统计/16 项衍生指标/阵营对比/小队分析（HTML 报告导出已移除）
+- ✅ 16 项衍生指标计算（calculate_indicators：效率/生存/占比/技能四类）
+- ✅ 阵营对比接口（camp-compare：11 项指标差值/波动值）
+- ✅ 小队分析接口（squad-analysis：关联排表，仅我方阵营，未排表兜底）
 - ✅ 系统配置 API：职业配置（含 remark 说明字段）、账号管理、帮会管理（开发者）
 - ✅ 级联删除帮会（DELETE /config/guilds/{id}，仅开发者，删除全部关联数据）
 - ✅ 删除账号（DELETE /config/accounts/{id}，不能删自己/开发者）
@@ -106,3 +109,4 @@
 | 2026-08-18 | 认证增强（未知账号锁定/锁定倒计时 remaining_seconds） |
 | 2026-08-18 | Docker 部署完成（Dockerfile/docker-compose/deploy.sh/nginx.conf） |
 | 2026-08-18 | 测试脚本清理（删除 7 个硬编码脚本，新增 generate_import_template） |
+| 2026-08-26 | 数据分析 API 增强（16 项衍生指标/阵营对比/小队分析接口）、移除 HTML 报告导出，文档对齐 |
