@@ -160,7 +160,7 @@ const scatterOption = computed(() => ({
   ],
 }))
 
-const heatmapHeight = computed(() => Math.max(340, allProfs.value.length * 44 + 120))
+const heatmapHeight = computed(() => Math.max(320, Math.min(480, allProfs.value.length * 28 + 80)))
 
 const heatmapOption = computed(() => {
   const metrics = [
@@ -194,18 +194,18 @@ const heatmapOption = computed(() => {
         return `<b>${d[5]}</b> · ${d[4]}<br/>平均值: ${d[3]}<br/>相对水平: ${d[2]}%`
       },
     },
-    grid: { left: 72, right: 24, top: 12, bottom: 64 },
+    grid: { left: 64, right: 20, top: 10, bottom: 52 },
     xAxis: {
       type: 'category',
       data: metrics.map((m) => m.label),
-      axisLabel: { ...CHART_THEME.axis.axisLabel, interval: 0, fontSize: 13 },
+      axisLabel: { ...CHART_THEME.axis.axisLabel, interval: 0, fontSize: 12 },
       axisTick: { show: false },
       splitArea: { show: true, areaStyle: { color: ['transparent', 'rgba(0,0,0,0.015)'] } },
     },
     yAxis: {
       type: 'category',
       data: allProfs.value,
-      axisLabel: { ...CHART_THEME.axis.axisLabel, fontSize: 13, fontWeight: 600, width: 56, overflow: 'truncate' },
+      axisLabel: { ...CHART_THEME.axis.axisLabel, fontSize: 11, fontWeight: 600, width: 48, overflow: 'truncate' },
       axisTick: { show: false },
       axisLine: { show: false },
     },
@@ -216,11 +216,11 @@ const heatmapOption = computed(() => {
       calculable: false,
       orient: 'horizontal',
       left: 'center',
-      bottom: 4,
-      itemWidth: 14,
-      itemHeight: 100,
-      inRange: { color: ['#fbe6a0', '#f6c043', '#ef9121', '#dd6c0d', '#b95205', '#7a2604'] },
-      textStyle: { color: '#8a8378', fontSize: 11 },
+      bottom: 2,
+      itemWidth: 12,
+      itemHeight: 80,
+      inRange: { color: ['#fef9e7', '#fce38a', '#f8b739', '#e67e22', '#d35400', '#a93226'] },
+      textStyle: { color: '#8a8378', fontSize: 10 },
     },
     series: [
       {
@@ -228,17 +228,17 @@ const heatmapOption = computed(() => {
         data,
         label: {
           show: true,
-          fontSize: 11,
-          color: '#333',
+          fontSize: 10,
+          color: '#444',
           fontWeight: 500,
           formatter: (p: unknown) => (p as { data: number[] }).data[3],
         },
         itemStyle: {
           borderColor: '#fff',
-          borderWidth: 3,
-          borderRadius: 4,
+          borderWidth: 2,
+          borderRadius: 3,
         },
-        emphasis: { itemStyle: { shadowBlur: 12, shadowColor: 'rgba(0, 0, 0, 0.4)', borderColor: '#fff', borderWidth: 2 } },
+        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0, 0, 0, 0.3)', borderColor: '#fff', borderWidth: 2 } },
       },
     ],
   }
