@@ -24,43 +24,49 @@
       </div>
     </div>
 
-    <!-- 玩家综合能力雷达图 -->
-    <div class="chart-card">
-      <div class="chart-card__head">
-        <span class="chart-card__title">玩家综合能力雷达图（对比）</span>
-        <div class="radar-selectors">
-          <el-select
-            v-model="radarLeft"
-            filterable
-            placeholder="搜索左侧玩家"
-            size="small"
-            style="width: 180px"
-          >
-            <el-option
-              v-for="p in allPlayers"
-              :key="'L-' + p.player_name"
-              :label="p.player_name"
-              :value="p.player_name"
-            />
-          </el-select>
-          <span class="radar-vs">VS</span>
-          <el-select
-            v-model="radarRight"
-            filterable
-            placeholder="搜索右侧玩家"
-            size="small"
-            style="width: 180px"
-          >
-            <el-option
-              v-for="p in allPlayers"
-              :key="'R-' + p.player_name"
-              :label="p.player_name"
-              :value="p.player_name"
-            />
-          </el-select>
+    <!-- 玩家综合能力雷达图 + 伤害分布饼图（并排） -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-card__head">
+          <span class="chart-card__title">玩家综合能力雷达图（对比）</span>
+          <div class="radar-selectors">
+            <el-select
+              v-model="radarLeft"
+              filterable
+              placeholder="搜索左侧玩家"
+              size="small"
+              style="width: 180px"
+            >
+              <el-option
+                v-for="p in allPlayers"
+                :key="'L-' + p.player_name"
+                :label="p.player_name"
+                :value="p.player_name"
+              />
+            </el-select>
+            <span class="radar-vs">VS</span>
+            <el-select
+              v-model="radarRight"
+              filterable
+              placeholder="搜索右侧玩家"
+              size="small"
+              style="width: 180px"
+            >
+              <el-option
+                v-for="p in allPlayers"
+                :key="'R-' + p.player_name"
+                :label="p.player_name"
+                :value="p.player_name"
+              />
+            </el-select>
+          </div>
         </div>
+        <EChart :option="radarOption" :height="380" />
       </div>
-      <EChart :option="radarOption" :height="380" />
+      <div class="chart-card">
+        <div class="chart-card__title">伤害分布（玩家伤害 / 建筑伤害 / 治疗）</div>
+        <EChart :option="damagePieOption" :height="380" />
+      </div>
     </div>
 
     <!-- 职业×指标热力图 + 玩家四维构成（并排） -->
@@ -519,6 +525,40 @@ const radarOption = computed(() => {
           symbol: 'circle',
           symbolSize: 5,
         })),
+      },
+    ],
+  }
+})
+
+/** 伤害分布饼图：玩家伤害 / 建筑伤害 / 治疗。 */
+const damagePieOption = computed(() => {
+  const total = (key: keyof MatchData) => props.items.reduce((s, r) => s + (r[key] as number), 0)
+  const rows = [
+    { name: '玩家伤害', value: total('player_damage') },
+    { name: '建筑伤害', value: total('building_damage') },
+    { name: '治疗', value: total('healing') },
+  ].filter((r) => r.value > 0)
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      ...CHART_THEME.tooltip,
+      formatter: (p: { name: string; value: number; percent: number }) =>
+        `${p.name}: ${fmtNum(p.value)} (${p.percent}%)`,
+    },
+    legend: { orient: 'vertical', right: 5, top: 'center', ...CHART_THEME.legend },
+    series: [
+      {
+        type: 'pie',
+        radius: ['45%', '72%'],
+        center: ['40%', '50%'],
+        data: rows.map((r, i) => ({
+          name: r.name,
+          value: r.value,
+          itemStyle: { color: ['#c9a13b', '#5b7a9d', '#2e8b57'][i], borderColor: '#fff', borderWidth: 2 },
+        })),
+        label: { show: false },
+        emphasis: { label: { show: true, fontWeight: 'bold' }, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
       },
     ],
   }
