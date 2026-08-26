@@ -111,12 +111,34 @@
       <el-dialog
         v-model="detailVisible"
         :title="detailSquad + ' · 成员明细'"
-        width="80%"
-        top="4vh"
+        width="85%"
+        top="3vh"
         destroy-on-close
       >
+        <!-- 可视化图表区 -->
+        <div class="chart-row">
+          <div>
+            <div class="chart-card__title">成员四维对比</div>
+            <EChart :option="detailContribOption" :height="280" />
+          </div>
+          <div>
+            <div class="chart-card__title">成员能力雷达图</div>
+            <EChart :option="detailRadarOption" :height="280" />
+          </div>
+        </div>
+        <div class="chart-row" style="margin-top: 10px">
+          <div>
+            <div class="chart-card__title">成员占比构成</div>
+            <EChart :option="detailRatioBarOption" :height="280" />
+          </div>
+          <div>
+            <div class="chart-card__title">成员 KDA 散点</div>
+            <EChart :option="detailKdaScatter" :height="280" />
+          </div>
+        </div>
+
         <!-- 成员表：3 个子标签 -->
-        <el-tabs v-model="detailSubTab" class="detail-sub-tabs">
+        <el-tabs v-model="detailSubTab" class="detail-sub-tabs" style="margin-top: 12px">
           <el-tab-pane label="基础数据" name="basic">
             <el-table :data="detailMembers" size="small" border max-height="360">
               <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
@@ -191,18 +213,6 @@
             </el-table>
           </el-tab-pane>
         </el-tabs>
-
-        <!-- 成员贡献可视化 -->
-        <div class="chart-row" style="margin-top: 12px">
-          <div>
-            <div class="chart-card__title">成员贡献构成</div>
-            <EChart :option="detailContribOption" :height="260" />
-          </div>
-          <div>
-            <div class="chart-card__title">成员职业分布</div>
-            <EChart :option="detailProfPie" :height="260" />
-          </div>
-        </div>
       </el-dialog>
 
       <!-- 多小队对比弹窗 -->
@@ -264,7 +274,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { getSquadAnalysis } from '@/api/matchData'
-import type { SquadAnalysis } from '@/types/matchData'
+import type { SquadAnalysis, SquadMember } from '@/types/matchData'
 import { fmtNum, profColor } from './analysis'
 import EChart from './EChart.vue'
 import { CHART_THEME } from './chartTheme'
@@ -391,14 +401,15 @@ function openDetail(name: string) {
 const detailSquadData = computed(() => squads.value.find((s) => s.squad_name === detailSquad.value))
 const detailMembers = computed(() => detailSquadData.value?.members ?? [])
 
-const CONTRIB_COLORS = ['#c9a13b', '#5b7a9d', '#2e8b57']
+const CONTRIB_COLORS = ['#c9a13b', '#5b7a9d', '#2e8b57', '#c0392b']
 
+/** 成员四维对比：玩家伤害/建筑伤害/治疗/承伤 分组柱状图 */
 const detailContribOption = computed(() => {
   const members = detailMembers.value
   return {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', ...CHART_THEME.tooltip, valueFormatter: (v: number) => fmtNum(v) },
-    legend: { bottom: 0, data: ['玩家伤害', '建筑伤害', '治疗'], ...CHART_THEME.legend },
+    legend: { bottom: 0, data: ['玩家伤害', '建筑伤害', '治疗', '承伤'], ...CHART_THEME.legend },
     grid: { left: 12, right: 16, top: 20, bottom: 36, containLabel: true },
     xAxis: {
       type: 'category',
@@ -407,31 +418,134 @@ const detailContribOption = computed(() => {
     },
     yAxis: { type: 'value', axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 50, overflow: 'truncate' }, splitLine: CHART_THEME.axis.splitLine },
     series: [
-      { name: '玩家伤害', type: 'bar', barWidth: 8, barGap: '20%', itemStyle: { color: CONTRIB_COLORS[0], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.player_damage) },
-      { name: '建筑伤害', type: 'bar', barWidth: 8, itemStyle: { color: CONTRIB_COLORS[1], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.building_damage) },
-      { name: '治疗', type: 'bar', barWidth: 8, itemStyle: { color: CONTRIB_COLORS[2], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.healing) },
+      { name: '玩家伤害', type: 'bar', barWidth: 7, barGap: '15%', itemStyle: { color: CONTRIB_COLORS[0], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.player_damage) },
+      { name: '建筑伤害', type: 'bar', barWidth: 7, itemStyle: { color: CONTRIB_COLORS[1], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.building_damage) },
+      { name: '治疗', type: 'bar', barWidth: 7, itemStyle: { color: CONTRIB_COLORS[2], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.healing) },
+      { name: '承伤', type: 'bar', barWidth: 7, itemStyle: { color: CONTRIB_COLORS[3], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.damage_taken) },
     ],
   }
 })
 
-const detailProfPie = computed(() => {
-  const counts = new Map<string, number>()
-  for (const m of detailMembers.value) {
-    const prof = m.profession || '未知'
-    counts.set(prof, (counts.get(prof) ?? 0) + 1)
-  }
+/** 成员能力雷达图（全员叠加） */
+const detailRadarOption = computed(() => {
+  const members = detailMembers.value
+  if (!members.length) return {}
+  const maxOf = (fn: (m: SquadAnalysis['members'][number]) => number) => Math.max(...members.map(fn), 1) * 1.15
+  const dims = [
+    { name: '击杀', max: maxOf((m) => m.kills) },
+    { name: '助攻', max: maxOf((m) => m.assists) },
+    { name: '伤害', max: maxOf((m) => m.player_damage) },
+    { name: '治疗', max: maxOf((m) => m.healing) },
+    { name: '承伤', max: maxOf((m) => m.damage_taken) },
+    { name: 'KDA', max: maxOf((m) => m.kda) },
+  ]
+  const RADAR_MEMBER_COLORS = ['#c9a13b', '#5b7a9d', '#2e8b57', '#c0392b', '#8B5CF6', '#f6ff00']
   return {
     backgroundColor: 'transparent',
-    tooltip: { trigger: 'item', ...CHART_THEME.tooltip, formatter: '{b}: {c}人 ({d}%)' },
-    legend: { orient: 'vertical', right: 5, top: 'center', ...CHART_THEME.legend },
+    tooltip: { ...CHART_THEME.tooltip },
+    legend: { bottom: 0, data: members.map((m) => m.player_name), ...CHART_THEME.legend, type: 'scroll' },
+    radar: {
+      center: ['50%', '44%'],
+      radius: '58%',
+      axisName: { ...CHART_THEME.axis.axisName, overflow: 'truncate', width: 40 },
+      indicator: dims.map((d) => ({ name: d.name, max: Math.round(d.max) })),
+    },
     series: [{
-      type: 'pie', radius: ['45%', '72%'], center: ['40%', '50%'],
-      data: [...counts.entries()].map(([name, value]) => ({
-        name, value,
-        itemStyle: { color: profColor(name), borderColor: '#fff', borderWidth: 2 },
+      type: 'radar',
+      data: members.map((m, i) => ({
+        name: m.player_name,
+        value: [m.kills, m.assists, m.player_damage, m.healing, m.damage_taken, m.kda],
+        areaStyle: { opacity: 0.06 },
+        lineStyle: { width: 2, color: RADAR_MEMBER_COLORS[i % RADAR_MEMBER_COLORS.length] },
+        itemStyle: { color: RADAR_MEMBER_COLORS[i % RADAR_MEMBER_COLORS.length] },
+        symbol: 'circle',
+        symbolSize: 4,
       })),
-      label: { show: false },
-      emphasis: { label: { show: true, fontWeight: 'bold' }, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+    }],
+  }
+})
+
+/** 成员占比构成：击杀/助攻/人伤/拆塔/承伤/治疗 占比 堆叠条形图 */
+const detailRatioBarOption = computed(() => {
+  const members = detailMembers.value
+  const ratios = [
+    { key: 'kill_ratio', label: '击杀占比' },
+    { key: 'assist_ratio', label: '助攻占比' },
+    { key: 'player_damage_ratio', label: '人伤占比' },
+    { key: 'building_ratio', label: '拆塔占比' },
+    { key: 'taken_ratio', label: '承伤占比' },
+    { key: 'heal_ratio', label: '治疗占比' },
+  ]
+  const COLORS = ['#c9a13b', '#e8d48b', '#5b7a9d', '#2e8b57', '#c0392b', '#FF9CF2']
+  return {
+    backgroundColor: 'transparent',
+    tooltip: { trigger: 'axis', ...CHART_THEME.tooltip, valueFormatter: (v: number) => (v * 100).toFixed(1) + '%' },
+    legend: { bottom: 0, data: ratios.map((r) => r.label), ...CHART_THEME.legend, type: 'scroll' },
+    grid: { left: 12, right: 16, top: 20, bottom: 40, containLabel: true },
+    xAxis: {
+      type: 'value',
+      max: 1,
+      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => (v * 100) + '%' },
+    },
+    yAxis: {
+      type: 'category',
+      data: members.map((m) => m.player_name),
+      axisLabel: { ...CHART_THEME.axis.axisLabel, width: 50, overflow: 'truncate' },
+    },
+    series: ratios.map((r, i) => ({
+      name: r.label,
+      type: 'bar',
+      stack: 'total',
+      barWidth: 14,
+      itemStyle: { color: COLORS[i] },
+      data: members.map((m) => (m[r.key as keyof SquadMember] as number) ?? 0),
+    })),
+  }
+})
+
+/** 成员 KDA 散点：击杀 vs 重伤，气泡大小=伤害 */
+const detailKdaScatter = computed(() => {
+  const members = detailMembers.value
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      ...CHART_THEME.tooltip,
+      formatter: (p: unknown) => {
+        const d = (p as { data: (number | string)[] }).data
+        return `<b>${d[3]}</b> (${d[4]})<br/>击杀: ${d[0]}<br/>重伤: ${d[1]}<br/>KDA: ${Number(d[5]).toFixed(2)}<br/>伤害: ${fmtNum(Number(d[2]))}`
+      },
+    },
+    grid: { left: 16, right: 20, top: 20, bottom: 16, containLabel: true },
+    xAxis: {
+      name: '击杀', nameLocation: 'middle', nameGap: 28,
+      axisLabel: { ...CHART_THEME.axis.axisLabel, margin: 10 },
+      splitLine: CHART_THEME.axis.splitLine,
+      nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [6, 0, 0, 0] },
+    },
+    yAxis: {
+      name: '重伤', nameLocation: 'middle', nameGap: 40,
+      axisLabel: { ...CHART_THEME.axis.axisLabel, width: 40, overflow: 'truncate' },
+      splitLine: CHART_THEME.axis.splitLine,
+      nameTextStyle: { ...CHART_THEME.axis.axisName },
+    },
+    series: [{
+      type: 'scatter',
+      symbolSize: (data: number[]) => Math.max(8, Math.min(22, Math.sqrt(data[2]) / 400)),
+      data: members.map((m) => [m.kills, m.deaths, m.player_damage, m.player_name, m.profession || '未知', m.kda]),
+      itemStyle: {
+        color: (p: { data: (number | string)[] }) => profColor(String(p.data[4])),
+        opacity: 0.8,
+        borderColor: 'rgba(0,0,0,0.1)',
+        borderWidth: 1,
+      },
+      emphasis: { itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } },
+      label: {
+        show: true,
+        formatter: (p: unknown) => (p as { data: (string | number)[] }).data[3],
+        fontSize: 10,
+        color: '#555',
+        position: 'top',
+      },
     }],
   }
 })
