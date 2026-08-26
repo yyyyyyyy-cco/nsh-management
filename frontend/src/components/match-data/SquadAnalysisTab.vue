@@ -140,7 +140,7 @@
         <!-- 成员表：3 个子标签 -->
         <el-tabs v-model="detailSubTab" class="detail-sub-tabs" style="margin-top: 12px">
           <el-tab-pane label="基础数据" name="basic">
-            <el-table :data="detailMembers" size="small" border max-height="200">
+            <el-table :data="detailMembers" size="small" border max-height="240">
               <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
               <el-table-column prop="profession" label="职业" min-width="70" />
               <el-table-column prop="kills" label="击杀" min-width="55" align="right" sortable />
@@ -165,7 +165,7 @@
           </el-tab-pane>
 
           <el-tab-pane label="效率指标" name="efficiency">
-            <el-table :data="detailMembers" size="small" border max-height="200">
+            <el-table :data="detailMembers" size="small" border max-height="240">
               <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
               <el-table-column prop="profession" label="职业" min-width="70" />
               <el-table-column prop="dps" label="秒伤" min-width="70" align="right" sortable />
@@ -186,7 +186,7 @@
           </el-tab-pane>
 
           <el-tab-pane label="占比指标" name="ratio">
-            <el-table :data="detailMembers" size="small" border max-height="200">
+            <el-table :data="detailMembers" size="small" border max-height="240">
               <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
               <el-table-column prop="profession" label="职业" min-width="70" />
               <el-table-column prop="kill_ratio" label="击杀占比" min-width="80" align="right" sortable>
@@ -859,7 +859,7 @@ const compareDiffRows = computed(() => {
 /* 2×2 图表网格 */
 .chart-grid-2x2 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -910,7 +910,7 @@ const compareDiffRows = computed(() => {
   }
 
   .chart-grid-2x2 {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .squad-grid {
