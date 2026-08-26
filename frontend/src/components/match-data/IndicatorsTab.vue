@@ -106,6 +106,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 
 import { getIndicators } from '@/api/matchData'
@@ -113,13 +114,18 @@ import type { CampTotals, MatchDataIndicators } from '@/types/matchData'
 
 const props = defineProps<{ scheduleId: number; roundNo: number }>()
 
+const route = useRoute()
+const router = useRouter()
+
 const loading = ref(false)
 const items = ref<MatchDataIndicators[]>([])
 const camps = ref<CampTotals[]>([])
 const campFilter = ref('')
 const profFilter = ref('')
 const nameFilter = ref('')
-const subTab = ref('basic')
+const subTab = ref((route.query.sub as string) || 'basic')
+
+watch(subTab, (v) => { router.replace({ query: { ...route.query, sub: v } }) })
 
 const professions = computed(() => [...new Set(items.value.map((r) => r.profession || '未知'))].sort())
 

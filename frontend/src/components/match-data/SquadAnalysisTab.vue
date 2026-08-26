@@ -256,6 +256,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import { getSquadAnalysis } from '@/api/matchData'
 import type { SquadAnalysis } from '@/types/matchData'
@@ -265,14 +266,19 @@ import { CHART_THEME } from './chartTheme'
 
 const props = defineProps<{ scheduleId: number; roundNo: number }>()
 
+const route = useRoute()
+const router = useRouter()
+
 const loading = ref(false)
 const squads = ref<SquadAnalysis[]>([])
 const pieSquad = ref('')
-const mainTab = ref('overview')
+const mainTab = ref((route.query.squadTab as string) || 'overview')
 
 // 详情面板
 const detailSquad = ref('')
 const detailSubTab = ref('basic')
+
+watch(mainTab, (v) => { router.replace({ query: { ...route.query, squadTab: v } }) })
 
 // 对比模式
 const compareMode = ref(false)

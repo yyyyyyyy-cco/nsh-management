@@ -169,6 +169,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import { getProfessionStats } from '@/api/matchData'
 import type { ProfessionStats } from '@/types/matchData'
@@ -178,13 +179,18 @@ import { CHART_THEME } from './chartTheme'
 
 const props = defineProps<{ scheduleId: number; roundNo: number }>()
 
+const route = useRoute()
+const router = useRouter()
+
 const loading = ref(false)
 const profStats = ref<ProfessionStats[]>([])
 const campFilter = ref('')
 const profFilter = ref('')
-const metricSubTab = ref('efficiency')
+const metricSubTab = ref((route.query.metricSub as string) || 'efficiency')
 const campOptions = ref<string[]>([])
 const allProfs = computed(() => profStats.value.map((p) => p.profession))
+
+watch(metricSubTab, (v) => { router.replace({ query: { ...route.query, metricSub: v } }) })
 
 async function load() {
   loading.value = true

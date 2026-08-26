@@ -101,6 +101,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled, Search } from '@element-plus/icons-vue'
 
@@ -120,6 +121,8 @@ import MetricsGuideDialog from './MetricsGuideDialog.vue'
 
 const props = defineProps<{ scheduleId: number }>()
 
+const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const loading = ref(true) // 初始即加载态，避免空局先渲染空态再切遮罩的闪烁
 const importing = ref(false)
@@ -130,7 +133,7 @@ const importedRounds = ref<number[]>([]) // 已导入的局号列表
 const roundNo = ref(1) // 当前展示/导入目标局
 const selectedCamp = ref('')
 const nameFilter = ref('')
-const activeTab = ref('overview')
+const activeTab = ref((route.query.tab as string) || 'overview')
 const fileInput = ref<HTMLInputElement | null>(null)
 const guideRef = ref<InstanceType<typeof MetricsGuideDialog> | null>(null)
 const rankings = ref<RankingsResponse>({
@@ -158,6 +161,11 @@ const filteredItems = computed(() => {
     list = list.filter((r) => r.player_name.includes(kw))
   }
   return list
+})
+
+/** activeTab 变化时同步到 URL query */
+watch(activeTab, (tab) => {
+  router.replace({ query: { ...route.query, tab } })
 })
 
 onMounted(load)
