@@ -45,6 +45,12 @@
           <div class="card-toolbar">
             <span class="card-toolbar__count">共 {{ squads.length }} 个小队 · {{ totalPlayers }} 人</span>
             <el-checkbox v-model="compareMode" label="对比模式" />
+            <el-button
+              v-if="compareMode && compareSelectedNames.length >= 2"
+              type="primary"
+              size="small"
+              @click="openCompare"
+            >对比所选小队（{{ compareSelectedNames.length }}）</el-button>
           </div>
         </div>
 
@@ -99,21 +105,16 @@
             </div>
           </div>
         </template>
-
-        <!-- 对比按钮 -->
-        <div v-if="compareMode && compareSelectedNames.length >= 2" class="compare-bar">
-          <span>已选 {{ compareSelectedNames.length }} 个小队</span>
-          <el-button type="primary" size="small" @click="openCompare">对比所选小队</el-button>
-        </div>
       </div>
 
-      <!-- 小队详情面板 -->
-      <div v-if="detailSquad" class="chart-card detail-panel">
-        <div class="chart-card__head">
-          <span class="chart-card__title">{{ detailSquad }} · 成员明细</span>
-          <el-button text size="small" @click="detailSquad = ''">关闭</el-button>
-        </div>
-
+      <!-- 小队详情弹窗 -->
+      <el-dialog
+        v-model="detailVisible"
+        :title="detailSquad + ' · 成员明细'"
+        width="80%"
+        top="4vh"
+        destroy-on-close
+      >
         <!-- 成员表：3 个子标签 -->
         <el-tabs v-model="detailSubTab" class="detail-sub-tabs">
           <el-tab-pane label="基础数据" name="basic">
@@ -193,30 +194,31 @@
 
         <!-- 成员贡献可视化 -->
         <div class="chart-row" style="margin-top: 12px">
-          <div class="chart-card" style="border: none; padding: 0; box-shadow: none">
+          <div>
             <div class="chart-card__title">成员贡献构成</div>
             <EChart :option="detailContribOption" :height="260" />
           </div>
-          <div class="chart-card" style="border: none; padding: 0; box-shadow: none">
+          <div>
             <div class="chart-card__title">成员职业分布</div>
             <EChart :option="detailProfPie" :height="260" />
           </div>
         </div>
-      </div>
+      </el-dialog>
 
-      <!-- 多小队对比面板 -->
-      <div v-if="compareVisible" class="chart-card compare-panel">
-        <div class="chart-card__head">
-          <span class="chart-card__title">小队对比（{{ compareSelectedNames.join(' vs ') }}）</span>
-          <el-button text size="small" @click="compareVisible = false">关闭</el-button>
-        </div>
-
+      <!-- 多小队对比弹窗 -->
+      <el-dialog
+        v-model="compareVisible"
+        :title="'小队对比（' + compareSelectedNames.join(' vs ') + '）'"
+        width="80%"
+        top="4vh"
+        destroy-on-close
+      >
         <div class="chart-row">
-          <div class="chart-card" style="border: none; padding: 0; box-shadow: none">
+          <div>
             <div class="chart-card__title">汇总对比</div>
             <EChart :option="compareSummaryBar" :height="300" />
           </div>
-          <div class="chart-card" style="border: none; padding: 0; box-shadow: none">
+          <div>
             <div class="chart-card__title">均值指标雷达图</div>
             <EChart :option="compareRadar" :height="300" />
           </div>
@@ -250,7 +252,7 @@
             </el-table-column>
           </el-table>
         </div>
-      </div>
+      </el-dialog>
       </el-tab-pane>
       </el-tabs>
     </template>
@@ -277,7 +279,8 @@ const squads = ref<SquadAnalysis[]>([])
 const pieSquad = ref('')
 const mainTab = ref((route.query.squadTab as string) || 'overview')
 
-// 详情面板
+// 详情弹窗
+const detailVisible = ref(false)
 const detailSquad = ref('')
 const detailSubTab = ref('basic')
 
@@ -380,8 +383,9 @@ const profPieOption = computed(() => {
 // ==================== 详情面板 ====================
 
 function openDetail(name: string) {
-  detailSquad.value = detailSquad.value === name ? '' : name
+  detailSquad.value = name
   detailSubTab.value = 'basic'
+  detailVisible.value = true
 }
 
 const detailSquadData = computed(() => squads.value.find((s) => s.squad_name === detailSquad.value))
@@ -722,24 +726,6 @@ const compareDiffRows = computed(() => {
 .squad-card__footer {
   margin-top: 8px;
   text-align: right;
-}
-
-/* ===== 对比栏 ===== */
-.compare-bar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  padding-top: 8px;
-  border-top: 1px solid var(--edge-faint);
-  font-size: 13px;
-  color: var(--ink-500);
-}
-
-/* ===== 详情面板 ===== */
-.detail-panel,
-.compare-panel {
-  border-color: var(--gold-300);
 }
 
 .detail-sub-tabs :deep(.el-tabs__header) {
