@@ -35,6 +35,10 @@
       </el-select>
       <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
       <div class="spacer" />
+      <el-button text type="primary" @click="guideRef?.open()">
+        <el-icon><InfoFilled /></el-icon>
+        指标说明
+      </el-button>
     </div>
 
     <!-- 该局无任何数据（加载中保持空态并叠加遮罩，避免视图切换闪烁） -->
@@ -87,15 +91,18 @@
       </el-tab-pane>
     </el-tabs>
 
+    <!-- 指标说明弹窗 -->
+    <MetricsGuideDialog ref="guideRef" />
+
     <!-- 隐藏的文件输入 -->
     <input ref="fileInput" type="file" accept=".csv" style="display: none" @change="onFileChange" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { InfoFilled, Search } from '@element-plus/icons-vue'
 
 import { getMatchData, getRankings, importCsv } from '@/api/matchData'
 import type { CampStats, MatchData, RankingsResponse } from '@/types/matchData'
@@ -109,6 +116,7 @@ import IndicatorsTab from './IndicatorsTab.vue'
 import CampCompareTab from './CampCompareTab.vue'
 import SquadAnalysisTab from './SquadAnalysisTab.vue'
 import ProfessionDetailTab from './ProfessionDetailTab.vue'
+import MetricsGuideDialog from './MetricsGuideDialog.vue'
 
 const props = defineProps<{ scheduleId: number }>()
 
@@ -124,6 +132,7 @@ const selectedCamp = ref('')
 const nameFilter = ref('')
 const activeTab = ref('overview')
 const fileInput = ref<HTMLInputElement | null>(null)
+const guideRef = ref<InstanceType<typeof MetricsGuideDialog> | null>(null)
 const rankings = ref<RankingsResponse>({
   kills_ranking: [],
   damage_ranking: [],
@@ -180,6 +189,11 @@ async function loadRankings() {
     limit: 10,
   })
 }
+
+/** 阵营筛选变化时重载排行榜 */
+watch(selectedCamp, () => {
+  if (items.value.length > 0) loadRankings()
+})
 
 function onImport() {
   fileInput.value?.click()

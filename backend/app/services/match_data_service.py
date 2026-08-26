@@ -30,8 +30,9 @@ CSV_COLUMN_MAP = {
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 
-# 比赛时长固定 23 分钟（秒），用于秒伤/技能使用率等指标
+# 比赛时长固定 23 分钟，用于秒伤/技能使用率等指标
 MATCH_DURATION_SECONDS = 23 * 60
+MATCH_DURATION_MINUTES = 23
 
 
 class MatchDataError(Exception):
@@ -238,8 +239,8 @@ def calculate_indicators(record, camp_totals: dict) -> dict:
         "taken_ratio": ratio(damage_taken, camp_totals["damage_taken"]),
         "death_ratio": ratio(deaths, camp_totals["deaths"]),
         "heal_ratio": ratio(healing, camp_totals["healing"]),
-        "revive_rate": round(revives / MATCH_DURATION_SECONDS, 4),
-        "fen_gu_rate": round(fen_gu / MATCH_DURATION_SECONDS, 4),
+        "revive_rate": round(revives / MATCH_DURATION_MINUTES, 4),
+        "fen_gu_rate": round(fen_gu / MATCH_DURATION_MINUTES, 4),
     }
 
 

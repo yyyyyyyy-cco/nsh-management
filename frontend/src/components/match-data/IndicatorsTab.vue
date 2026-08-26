@@ -1,13 +1,15 @@
 <template>
   <div class="indicators-tab">
-    <!-- 工具栏：阵营筛选 + ID 搜索 -->
+    <!-- 工具栏：阵营筛选 + 职业筛选 + ID 搜索 -->
     <div class="toolbar">
       <el-select v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px">
         <el-option v-for="c in camps" :key="c.camp" :label="c.camp" :value="c.camp" />
       </el-select>
+      <el-select v-model="profFilter" placeholder="职业筛选" clearable style="width: 150px">
+        <el-option v-for="p in professions" :key="p" :label="p" :value="p" />
+      </el-select>
       <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
       <span class="toolbar__count">{{ filteredItems.length }} 人</span>
-      <span class="toolbar__hint">占比分母 = 整个阵营 · 秒伤/使用率基于固定 23 分钟</span>
     </div>
 
     <div class="chart-card">
@@ -60,10 +62,10 @@
               <template #default="{ row }">{{ row.heal_conversion.toFixed(2) }}</template>
             </el-table-column>
             <el-table-column prop="revive_rate" label="清泉羽化率" align="right" min-width="100" sortable>
-              <template #default="{ row }">{{ pct(row.revive_rate) }}</template>
+              <template #default="{ row }">{{ row.revive_rate.toFixed(2) }}<em class="unit">次/分</em></template>
             </el-table-column>
             <el-table-column prop="fen_gu_rate" label="焚骨率" align="right" min-width="80" sortable>
-              <template #default="{ row }">{{ pct(row.fen_gu_rate) }}</template>
+              <template #default="{ row }">{{ row.fen_gu_rate.toFixed(2) }}<em class="unit">次/分</em></template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
@@ -115,12 +117,16 @@ const loading = ref(false)
 const items = ref<MatchDataIndicators[]>([])
 const camps = ref<CampTotals[]>([])
 const campFilter = ref('')
+const profFilter = ref('')
 const nameFilter = ref('')
 const subTab = ref('basic')
+
+const professions = computed(() => [...new Set(items.value.map((r) => r.profession || '未知'))].sort())
 
 const filteredItems = computed(() => {
   let list = items.value
   if (campFilter.value) list = list.filter((r) => r.camp === campFilter.value)
+  if (profFilter.value) list = list.filter((r) => (r.profession || '未知') === profFilter.value)
   const kw = nameFilter.value.trim()
   if (kw) list = list.filter((r) => r.player_name.includes(kw))
   return list
@@ -168,12 +174,6 @@ function fmtNum(v: number): string {
   color: var(--ink-500);
 }
 
-.toolbar__hint {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--ink-400);
-}
-
 .chart-card {
   border: 1px solid var(--edge-soft);
   border-radius: var(--radius-lg);
@@ -204,5 +204,12 @@ function fmtNum(v: number): string {
 
 .indicator-sub-tabs :deep(.el-tabs__content) {
   padding: 0;
+}
+
+.unit {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--ink-400);
+  margin-left: 2px;
 }
 </style>

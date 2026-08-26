@@ -1,13 +1,5 @@
 <template>
   <div class="profession-tab">
-    <!-- 筛选栏 -->
-    <div class="toolbar">
-      <el-select v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px">
-        <el-option v-for="c in camps" :key="c" :label="c" :value="c" />
-      </el-select>
-      <span class="toolbar__count">{{ filteredItems.length }} 人</span>
-    </div>
-
     <!-- 三个图表 -->
     <div class="chart-grid">
       <div class="chart-card">
@@ -26,7 +18,7 @@
 
     <!-- 明细表 -->
     <div class="chart-card">
-      <div class="chart-card__title">职业明细</div>
+      <div class="chart-card__title">职业明细（{{ props.items.length }} 人）</div>
       <el-table :data="profStats" size="small">
         <el-table-column prop="profession" label="职业" min-width="70">
           <template #default="{ row }">
@@ -92,12 +84,7 @@ onBeforeUnmount(() => {
   mq?.removeEventListener('change', onMqChange)
 })
 
-const campFilter = ref('')
-const camps = computed(() => [...new Set(props.items.map((r) => r.camp))])
-const filteredItems = computed(() =>
-  campFilter.value ? props.items.filter((r) => r.camp === campFilter.value) : props.items,
-)
-const profStats = computed(() => aggregateProfessions(props.items, campFilter.value || undefined))
+const profStats = computed(() => aggregateProfessions(props.items))
 
 function hex(c: string): string {
   return c.length > 7 ? c.slice(0, 7) : c
@@ -202,17 +189,6 @@ const barOption = computed(() => {
   gap: 12px;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.toolbar__count {
-  font-size: 13px;
-  color: var(--ink-500);
-}
-
 .chart-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -258,10 +234,6 @@ const barOption = computed(() => {
 
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
-  .toolbar {
-    flex-wrap: wrap;
-  }
-
   .chart-grid {
     grid-template-columns: 1fr;
   }

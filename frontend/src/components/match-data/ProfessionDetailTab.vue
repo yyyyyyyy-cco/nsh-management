@@ -118,11 +118,11 @@
               <el-table-column prop="avg_heal_ratio" label="治疗占比" min-width="80" align="right" sortable>
                 <template #default="{ row }">{{ pct(row.avg_heal_ratio) }}</template>
               </el-table-column>
-              <el-table-column prop="avg_revive_rate" label="清泉羽化率" min-width="90" align="right" sortable>
-                <template #default="{ row }">{{ pct(row.avg_revive_rate) }}</template>
+              <el-table-column prop="avg_revive_rate" label="清泉羽化率" min-width="100" align="right" sortable>
+                <template #default="{ row }">{{ row.avg_revive_rate.toFixed(2) }}<em class="unit">次/分</em></template>
               </el-table-column>
-              <el-table-column prop="avg_fen_gu_rate" label="焚骨率" min-width="80" align="right" sortable>
-                <template #default="{ row }">{{ pct(row.avg_fen_gu_rate) }}</template>
+              <el-table-column prop="avg_fen_gu_rate" label="焚骨率" min-width="90" align="right" sortable>
+                <template #default="{ row }">{{ row.avg_fen_gu_rate.toFixed(2) }}<em class="unit">次/分</em></template>
               </el-table-column>
             </el-table>
           </el-tab-pane>
@@ -286,7 +286,7 @@ const skillBarOption = computed(() => {
     tooltip: {
       trigger: 'axis',
       ...CHART_THEME.tooltip,
-      valueFormatter: (v: number) => (v * 100).toFixed(2) + '%',
+      valueFormatter: (v: number) => v.toFixed(2) + ' 次/分钟',
     },
     legend: { bottom: 0, data: ['清泉羽化率', '焚骨率'], ...CHART_THEME.legend },
     grid: { left: 16, right: 20, top: 30, bottom: 40, containLabel: true },
@@ -295,7 +295,7 @@ const skillBarOption = computed(() => {
       data: list.map((p) => p.profession),
       axisLabel: { ...CHART_THEME.axis.axisLabel, interval: 0 },
     },
-    yAxis: { type: 'value', axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => (v * 100).toFixed(2) + '%' }, splitLine: CHART_THEME.axis.splitLine },
+    yAxis: { type: 'value', axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => v.toFixed(1) }, splitLine: CHART_THEME.axis.splitLine },
     series: [
       { name: '清泉羽化率', type: 'bar', barWidth: 14, itemStyle: { color: '#c9a13b', borderRadius: [3, 3, 0, 0] }, data: list.map((p) => p.avg_revive_rate) },
       { name: '焚骨率', type: 'bar', barWidth: 14, itemStyle: { color: '#5b7a9d', borderRadius: [3, 3, 0, 0] }, data: list.map((p) => p.avg_fen_gu_rate) },
@@ -413,6 +413,13 @@ function fmtCmpValue(row: { metric: string }, v: number): string {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+}
+
+.unit {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--ink-400);
+  margin-left: 2px;
 }
 
 .diff-pos {
