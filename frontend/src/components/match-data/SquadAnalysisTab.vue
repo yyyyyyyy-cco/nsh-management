@@ -38,7 +38,7 @@
         <!-- 子 tab 2：小队明细 -->
         <el-tab-pane label="小队明细" name="detail">
 
-      <!-- 小队卡片网格 -->
+      <!-- 小队卡片网格（按 category 分组，每组一行） -->
       <div class="chart-card">
         <div class="chart-card__head">
           <span class="chart-card__title">小队概览</span>
@@ -48,54 +48,57 @@
           </div>
         </div>
 
-        <div class="squad-grid">
-          <div
-            v-for="s in squads"
-            :key="s.squad_name"
-            class="squad-card"
-            :class="{ 'squad-card--active': detailSquad === s.squad_name }"
-            @click="openDetail(s.squad_name)"
-          >
-            <div class="squad-card__header">
-              <el-checkbox
-                v-if="compareMode"
-                v-model="compareChecked[s.squad_name]"
-                @click.stop
-              />
-              <span class="squad-card__name">{{ s.squad_name }}</span>
-              <span class="squad-card__count">{{ s.totals.player_count }}人</span>
-            </div>
-            <div class="squad-card__metrics">
-              <div class="metric-item">
-                <span class="metric-label">击杀</span>
-                <span class="metric-value num">{{ s.totals.kills }}</span>
+        <template v-for="group in squadGroups" :key="group.category">
+          <div class="squad-group-label">{{ group.category }}</div>
+          <div class="squad-row">
+            <div
+              v-for="s in group.items"
+              :key="s.squad_name"
+              class="squad-card"
+              :class="{ 'squad-card--active': detailSquad === s.squad_name }"
+              @click="openDetail(s.squad_name)"
+            >
+              <div class="squad-card__header">
+                <el-checkbox
+                  v-if="compareMode"
+                  v-model="compareChecked[s.squad_name]"
+                  @click.stop
+                />
+                <span class="squad-card__name">{{ s.squad_name }}</span>
+                <span class="squad-card__count">{{ s.totals.player_count }}人</span>
               </div>
-              <div class="metric-item">
-                <span class="metric-label">伤害</span>
-                <span class="metric-value num">{{ fmtNum(s.totals.player_damage) }}</span>
+              <div class="squad-card__metrics">
+                <div class="metric-item">
+                  <span class="metric-label">击杀</span>
+                  <span class="metric-value num">{{ s.totals.kills }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">伤害</span>
+                  <span class="metric-value num">{{ fmtNum(s.totals.player_damage) }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">塔伤</span>
+                  <span class="metric-value num">{{ fmtNum(s.totals.building_damage) }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">治疗</span>
+                  <span class="metric-value num">{{ fmtNum(s.totals.healing) }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">承伤</span>
+                  <span class="metric-value num">{{ fmtNum(s.totals.damage_taken) }}</span>
+                </div>
+                <div class="metric-item">
+                  <span class="metric-label">KDA</span>
+                  <span class="metric-value num">{{ s.indicators.kda.toFixed(2) }}</span>
+                </div>
               </div>
-              <div class="metric-item">
-                <span class="metric-label">塔伤</span>
-                <span class="metric-value num">{{ fmtNum(s.totals.building_damage) }}</span>
+              <div class="squad-card__footer">
+                <el-button text type="primary" size="small">查看详情 →</el-button>
               </div>
-              <div class="metric-item">
-                <span class="metric-label">治疗</span>
-                <span class="metric-value num">{{ fmtNum(s.totals.healing) }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">承伤</span>
-                <span class="metric-value num">{{ fmtNum(s.totals.damage_taken) }}</span>
-              </div>
-              <div class="metric-item">
-                <span class="metric-label">KDA</span>
-                <span class="metric-value num">{{ s.indicators.kda.toFixed(2) }}</span>
-              </div>
-            </div>
-            <div class="squad-card__footer">
-              <el-button text type="primary" size="small">查看详情 →</el-button>
             </div>
           </div>
-        </div>
+        </template>
 
         <!-- 对比按钮 -->
         <div v-if="compareMode && compareSelectedNames.length >= 2" class="compare-bar">
@@ -286,6 +289,17 @@ const compareChecked = reactive<Record<string, boolean>>({})
 const compareVisible = ref(false)
 
 const totalPlayers = computed(() => squads.value.reduce((s, sq) => s + sq.totals.player_count, 0))
+
+/** 按 category 分组，保持原始顺序 */
+const squadGroups = computed(() => {
+  const map = new Map<string, SquadAnalysis[]>()
+  for (const s of squads.value) {
+    const cat = s.category || '其他'
+    if (!map.has(cat)) map.set(cat, [])
+    map.get(cat)!.push(s)
+  }
+  return [...map.entries()].map(([category, items]) => ({ category, items }))
+})
 
 async function load() {
   loading.value = true
@@ -620,12 +634,26 @@ const compareDiffRows = computed(() => {
   color: var(--ink-400);
 }
 
-/* ===== 卡片网格 ===== */
-.squad-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+/* ===== 卡片分组 ===== */
+.squad-group-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-700);
+  margin: 10px 0 6px;
+  padding-left: 4px;
+  border-left: 3px solid var(--gold-500);
+  padding-left: 8px;
+}
+
+.squad-group-label:first-of-type {
+  margin-top: 0;
+}
+
+.squad-row {
+  display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
 .squad-card {
@@ -635,6 +663,8 @@ const compareDiffRows = computed(() => {
   cursor: pointer;
   transition: all 0.2s;
   background: var(--ink-bg-paper);
+  flex: 0 0 200px;
+  max-width: 240px;
 }
 
 .squad-card:hover {
