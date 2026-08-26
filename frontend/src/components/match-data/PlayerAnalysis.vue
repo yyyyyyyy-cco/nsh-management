@@ -444,7 +444,7 @@ const dmgHealBubbleOption = computed(() => ({
   series: [
     {
       type: 'scatter',
-      symbolSize: (data: number[]) => Math.max(6, Math.min(30, Math.sqrt(data[2]) / 100)),
+      symbolSize: (data: number[]) => Math.max(4, Math.min(14, Math.sqrt(data[2]) / 300)),
       data: props.items.map((r) => [r.player_damage, r.healing, r.damage_taken, r.player_name, r.profession || '未知']),
       itemStyle: {
         color: (p: { data: (number | string)[] }) => profColor(String(p.data[4])),
