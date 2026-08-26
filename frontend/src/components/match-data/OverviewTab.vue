@@ -52,6 +52,12 @@
       </div>
     </div>
 
+    <!-- 伤害分布饼图（设计文档 图表2） -->
+    <div v-if="items.length > 0" class="chart-card">
+      <div class="chart-card__title">伤害分布（玩家伤害 / 建筑伤害 / 治疗）</div>
+      <EChart :option="damagePieOption" :height="300" />
+    </div>
+
     <!-- 图表区块 -->
     <CampCompare :items="items" />
     <PlayerAnalysis :items="items" />
@@ -65,6 +71,8 @@ import type { CampStats, MatchData } from '@/types/matchData'
 import { CAMP_COLORS, fmtNum, profColor } from './analysis'
 import CampCompare from './CampCompare.vue'
 import PlayerAnalysis from './PlayerAnalysis.vue'
+import EChart from './EChart.vue'
+import { CHART_THEME } from './chartTheme'
 
 const props = defineProps<{ items: MatchData[]; camps: CampStats[] }>()
 
@@ -100,6 +108,40 @@ const campProfs = computed(() => {
     map[r.camp] = list
   }
   return map
+})
+
+/** 伤害分布饼图：玩家伤害 / 建筑伤害 / 治疗（设计文档 图表2）。 */
+const damagePieOption = computed(() => {
+  const total = (key: keyof MatchData) => props.items.reduce((s, r) => s + (r[key] as number), 0)
+  const rows = [
+    { name: '玩家伤害', value: total('player_damage') },
+    { name: '建筑伤害', value: total('building_damage') },
+    { name: '治疗', value: total('healing') },
+  ].filter((r) => r.value > 0)
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'item',
+      ...CHART_THEME.tooltip,
+      formatter: (p: { name: string; value: number; percent: number }) =>
+        `${p.name}: ${fmtNum(p.value)} (${p.percent}%)`,
+    },
+    legend: { orient: 'vertical', right: 5, top: 'center', ...CHART_THEME.legend },
+    series: [
+      {
+        type: 'pie',
+        radius: ['45%', '72%'],
+        center: ['40%', '50%'],
+        data: rows.map((r, i) => ({
+          name: r.name,
+          value: r.value,
+          itemStyle: { color: ['#c9a13b', '#5b7a9d', '#2e8b57'][i], borderColor: '#fff', borderWidth: 2 },
+        })),
+        label: { show: false },
+        emphasis: { label: { show: true, fontWeight: 'bold' }, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+      },
+    ],
+  }
 })
 
 function campColor(i: number) {
@@ -254,6 +296,24 @@ function campColor(i: number) {
   height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.chart-card {
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  background: var(--ink-bg-paper);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 14px;
+}
+
+.chart-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-serif);
+  letter-spacing: 1px;
+  color: var(--ink-800);
+  margin-bottom: 10px;
 }
 
 /* ===== 移动端适配 ===== */

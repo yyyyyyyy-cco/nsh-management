@@ -1,19 +1,24 @@
-"""比赛数据分析接口：CSV 导入、数据查询、排行榜、职业统计、报告导出。"""
+"""比赛数据分析接口：CSV 导入、数据查询、排行榜、职业统计、衍生指标、阵营对比、小队分析。"""
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
-from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_admin
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.match_data import (
+    CampCompareResponse,
+    CampTotals,
+    CampStats,
+    IndicatorOut,
+    IndicatorsResponse,
     MatchDataListResponse,
     MatchDataOut,
-    ProfessionStatsResponse,
-    ProfessionStats,
-    RankingsResponse,
     PlayerRanking,
-    CampStats,
+    ProfessionStats,
+    ProfessionStatsResponse,
+    RankingsResponse,
+    SquadAnalysisResponse,
+    SquadOut,
 )
 from app.services import match_data_service
 
@@ -103,15 +108,43 @@ async def get_profession_stats(
     )
 
 
-@router.get("/report", response_class=HTMLResponse)
-async def get_report(
+@router.get("/indicators", response_model=IndicatorsResponse)
+async def get_indicators(
     schedule_id: int,
-    round_no: int | None = Query(None, description="按局号生成报告，为空则包含全部局"),
+    round_no: int | None = Query(None, description="按局号过滤，为空则返回全部局"),
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
-) -> HTMLResponse:
-    """导出 HTML 分析报告。"""
-    html = await match_data_service.generate_html_report(
-        session, current_user.guild_id, schedule_id, round_no
+) -> IndicatorsResponse:
+    """获取带 16 项衍生指标的数据列表。"""
+    data = await match_data_service.get_indicators(session, current_user.guild_id, schedule_id, round_no)
+    return IndicatorsResponse(
+        items=[IndicatorOut(**i) for i in data["items"]],
+        camps=[CampTotals(**c) for c in data["camps"]],
     )
-    return HTMLResponse(content=html)
+
+
+@router.get("/camp-compare", response_model=CampCompareResponse)
+async def get_camp_compare(
+    schedule_id: int,
+    round_no: int | None = Query(None, description="按局号过滤，为空则返回全部局"),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> CampCompareResponse:
+    """获取阵营对比数据（各阵营汇总 + 差值/波动值）。"""
+    data = await match_data_service.get_camp_comparison(session, current_user.guild_id, schedule_id, round_no)
+    return CampCompareResponse(
+        camps={name: CampTotals(**t) for name, t in data["camps"].items()},
+        comparison=data["comparison"],
+    )
+
+
+@router.get("/squad-analysis", response_model=SquadAnalysisResponse)
+async def get_squad_analysis(
+    schedule_id: int,
+    round_no: int | None = Query(None, description="按局号过滤，为空则返回全部局"),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> SquadAnalysisResponse:
+    """获取小队维度分析数据。"""
+    data = await match_data_service.get_squad_analysis(session, current_user.guild_id, schedule_id, round_no)
+    return SquadAnalysisResponse(squads=[SquadOut(**s) for s in data["squads"]])

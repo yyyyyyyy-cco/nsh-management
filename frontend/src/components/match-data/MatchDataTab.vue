@@ -35,7 +35,6 @@
       </el-select>
       <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
       <div class="spacer" />
-      <el-button v-if="items.length > 0" @click="onExportReport">导出报告</el-button>
     </div>
 
     <!-- 该局无任何数据（加载中保持空态并叠加遮罩，避免视图切换闪烁） -->
@@ -52,36 +51,9 @@
         <OverviewTab :items="filteredItems" :camps="camps" />
       </el-tab-pane>
 
-      <!-- 数据列表 -->
+      <!-- 数据列表（16 项衍生指标） -->
       <el-tab-pane label="数据列表" name="list">
-        <el-table :data="filteredItems" max-height="500" fit>
-          <el-table-column prop="player_name" label="ID" align="center" />
-          <el-table-column prop="profession" label="职业" align="center" />
-          <el-table-column prop="camp" label="阵营" align="center" />
-          <el-table-column prop="kills" label="击杀" align="center" sortable />
-          <el-table-column prop="assists" label="助攻" align="center" sortable />
-          <el-table-column prop="player_damage" label="对玩家伤害" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.player_damage) }}</template>
-          </el-table-column>
-          <el-table-column prop="armor_break_damage" label="人伤卸甲" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.armor_break_damage) }}</template>
-          </el-table-column>
-          <el-table-column prop="building_damage" label="对建筑伤害" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.building_damage) }}</template>
-          </el-table-column>
-          <el-table-column prop="tower_break_damage" label="破塔卸甲" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.tower_break_damage) }}</template>
-          </el-table-column>
-          <el-table-column prop="healing" label="治疗" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.healing) }}</template>
-          </el-table-column>
-          <el-table-column prop="damage_taken" label="承伤" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.damage_taken) }}</template>
-          </el-table-column>
-          <el-table-column prop="deaths" label="重伤" align="center" sortable />
-          <el-table-column prop="revives" label="复活/清泉" align="center" sortable />
-          <el-table-column prop="fen_gu" label="焚骨" align="center" sortable />
-        </el-table>
+        <IndicatorsTab :schedule-id="scheduleId" :round-no="roundNo" />
       </el-tab-pane>
 
       <!-- 排行榜（折线图 + 四榜） -->
@@ -89,9 +61,24 @@
         <RankingTab :items="filteredItems" :rankings="rankings" />
       </el-tab-pane>
 
+      <!-- 阵营对比 -->
+      <el-tab-pane label="阵营对比" name="camp-compare">
+        <CampCompareTab :schedule-id="scheduleId" :round-no="roundNo" />
+      </el-tab-pane>
+
+      <!-- 小队分析 -->
+      <el-tab-pane label="小队分析" name="squad">
+        <SquadAnalysisTab :schedule-id="scheduleId" :round-no="roundNo" />
+      </el-tab-pane>
+
       <!-- 职业分析 -->
       <el-tab-pane label="职业分析" name="profession">
         <ProfessionTab :items="filteredItems" />
+      </el-tab-pane>
+
+      <!-- 职业深度（17 项指标） -->
+      <el-tab-pane label="职业深度" name="profession-detail">
+        <ProfessionDetailTab :schedule-id="scheduleId" :round-no="roundNo" />
       </el-tab-pane>
 
       <!-- 综合评分 -->
@@ -110,7 +97,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 
-import { getMatchData, getRankings, getReportUrl, importCsv } from '@/api/matchData'
+import { getMatchData, getRankings, importCsv } from '@/api/matchData'
 import type { CampStats, MatchData, RankingsResponse } from '@/types/matchData'
 import { useAuthStore } from '@/stores/auth'
 import { CAMP_COLORS } from './analysis'
@@ -118,6 +105,10 @@ import OverviewTab from './OverviewTab.vue'
 import RankingTab from './RankingTab.vue'
 import ProfessionTab from './ProfessionTab.vue'
 import ScoreTab from './ScoreTab.vue'
+import IndicatorsTab from './IndicatorsTab.vue'
+import CampCompareTab from './CampCompareTab.vue'
+import SquadAnalysisTab from './SquadAnalysisTab.vue'
+import ProfessionDetailTab from './ProfessionDetailTab.vue'
 
 const props = defineProps<{ scheduleId: number }>()
 
@@ -222,11 +213,6 @@ async function onFileChange(event: Event) {
     importing.value = false
     input.value = '' // 重置 input
   }
-}
-
-function onExportReport() {
-  const url = getReportUrl(props.scheduleId, roundNo.value)
-  window.open(url, '_blank')
 }
 
 function formatNumber(value: number): string {
