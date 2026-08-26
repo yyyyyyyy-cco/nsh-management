@@ -112,35 +112,35 @@
         v-model="detailVisible"
         :title="detailSquad + ' · 成员明细'"
         width="85%"
-        top="3vh"
+        top="2vh"
         destroy-on-close
+        class="detail-dialog"
       >
-        <!-- 可视化图表区 -->
-        <div class="chart-row">
-          <div>
-            <div class="chart-card__title">成员四维对比</div>
-            <EChart :option="detailContribOption" :height="280" />
+        <div class="detail-body">
+          <!-- 可视化图表区 -->
+          <div class="chart-grid-2x2">
+            <div>
+              <div class="chart-card__title">成员四维对比</div>
+              <EChart :option="detailContribOption" :height="220" />
+            </div>
+            <div>
+              <div class="chart-card__title">成员能力雷达图</div>
+              <EChart :option="detailRadarOption" :height="220" />
+            </div>
+            <div>
+              <div class="chart-card__title">成员占比构成</div>
+              <EChart :option="detailRatioBarOption" :height="220" />
+            </div>
+            <div>
+              <div class="chart-card__title">成员 KDA 散点</div>
+              <EChart :option="detailKdaScatter" :height="220" />
+            </div>
           </div>
-          <div>
-            <div class="chart-card__title">成员能力雷达图</div>
-            <EChart :option="detailRadarOption" :height="280" />
-          </div>
-        </div>
-        <div class="chart-row" style="margin-top: 10px">
-          <div>
-            <div class="chart-card__title">成员占比构成</div>
-            <EChart :option="detailRatioBarOption" :height="280" />
-          </div>
-          <div>
-            <div class="chart-card__title">成员 KDA 散点</div>
-            <EChart :option="detailKdaScatter" :height="280" />
-          </div>
-        </div>
 
         <!-- 成员表：3 个子标签 -->
         <el-tabs v-model="detailSubTab" class="detail-sub-tabs" style="margin-top: 12px">
           <el-tab-pane label="基础数据" name="basic">
-            <el-table :data="detailMembers" size="small" border max-height="360">
+            <el-table :data="detailMembers" size="small" border max-height="240">
               <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
               <el-table-column prop="profession" label="职业" min-width="70" />
               <el-table-column prop="kills" label="击杀" min-width="55" align="right" sortable />
@@ -165,7 +165,7 @@
           </el-tab-pane>
 
           <el-tab-pane label="效率指标" name="efficiency">
-            <el-table :data="detailMembers" size="small" border max-height="360">
+            <el-table :data="detailMembers" size="small" border max-height="240">
               <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
               <el-table-column prop="profession" label="职业" min-width="70" />
               <el-table-column prop="dps" label="秒伤" min-width="70" align="right" sortable />
@@ -186,7 +186,7 @@
           </el-tab-pane>
 
           <el-tab-pane label="占比指标" name="ratio">
-            <el-table :data="detailMembers" size="small" border max-height="360">
+            <el-table :data="detailMembers" size="small" border max-height="240">
               <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
               <el-table-column prop="profession" label="职业" min-width="70" />
               <el-table-column prop="kill_ratio" label="击杀占比" min-width="80" align="right" sortable>
@@ -213,6 +213,7 @@
             </el-table>
           </el-tab-pane>
         </el-tabs>
+        </div>
       </el-dialog>
 
       <!-- 多小队对比弹窗 -->
@@ -840,6 +841,27 @@ const compareDiffRows = computed(() => {
 .squad-card__footer {
   margin-top: 8px;
   text-align: right;
+}
+
+/* 弹窗 body 滚动 */
+.detail-dialog :deep(.el-dialog__body) {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+.detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* 2×2 图表网格 */
+.chart-grid-2x2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
 }
 
 .detail-sub-tabs :deep(.el-tabs__header) {
