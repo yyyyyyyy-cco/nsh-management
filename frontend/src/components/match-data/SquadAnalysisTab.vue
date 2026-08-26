@@ -2,34 +2,41 @@
   <div class="squad-analysis-tab">
     <el-empty v-if="!loading && squads.length === 0" description="暂无数据或未关联排表（需先导入 CSV 与排表）" />
     <template v-else>
-      <!-- 图表行 1：击杀 + 伤害 -->
-      <div class="chart-row">
-        <div class="chart-card">
-          <div class="chart-card__title">小队击杀对比</div>
-          <EChart :option="killsBarOption" :height="340" />
-        </div>
-        <div class="chart-card">
-          <div class="chart-card__title">小队伤害对比（万）</div>
-          <EChart :option="damageBarOption" :height="340" />
-        </div>
-      </div>
-
-      <!-- 图表行 2：塔伤 + 职业分布 -->
-      <div class="chart-row">
-        <div class="chart-card">
-          <div class="chart-card__title">小队塔伤贡献（万）</div>
-          <EChart :option="towerBarOption" :height="340" />
-        </div>
-        <div class="chart-card">
-          <div class="chart-card__head">
-            <span class="chart-card__title">小队职业分布</span>
-            <el-select v-model="pieSquad" size="small" style="width: 180px">
-              <el-option v-for="s in squads" :key="s.squad_name" :label="s.squad_name" :value="s.squad_name" />
-            </el-select>
+      <el-tabs v-model="mainTab" class="squad-main-tabs">
+        <!-- 子 tab 1：总览图表 -->
+        <el-tab-pane label="总览图表" name="overview">
+          <!-- 图表行 1：击杀 + 伤害 -->
+          <div class="chart-row">
+            <div class="chart-card">
+              <div class="chart-card__title">小队击杀对比</div>
+              <EChart :option="killsBarOption" :height="340" />
+            </div>
+            <div class="chart-card">
+              <div class="chart-card__title">小队伤害对比（万）</div>
+              <EChart :option="damageBarOption" :height="340" />
+            </div>
           </div>
-          <EChart :option="profPieOption" :height="300" />
-        </div>
-      </div>
+
+          <!-- 图表行 2：塔伤 + 职业分布 -->
+          <div class="chart-row">
+            <div class="chart-card">
+              <div class="chart-card__title">小队塔伤贡献（万）</div>
+              <EChart :option="towerBarOption" :height="340" />
+            </div>
+            <div class="chart-card">
+              <div class="chart-card__head">
+                <span class="chart-card__title">小队职业分布</span>
+                <el-select v-model="pieSquad" size="small" style="width: 180px">
+                  <el-option v-for="s in squads" :key="s.squad_name" :label="s.squad_name" :value="s.squad_name" />
+                </el-select>
+              </div>
+              <EChart :option="profPieOption" :height="300" />
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <!-- 子 tab 2：小队明细 -->
+        <el-tab-pane label="小队明细" name="detail">
 
       <!-- 小队卡片网格 -->
       <div class="chart-card">
@@ -241,6 +248,8 @@
           </el-table>
         </div>
       </div>
+      </el-tab-pane>
+      </el-tabs>
     </template>
   </div>
 </template>
@@ -259,6 +268,7 @@ const props = defineProps<{ scheduleId: number; roundNo: number }>()
 const loading = ref(false)
 const squads = ref<SquadAnalysis[]>([])
 const pieSquad = ref('')
+const mainTab = ref('overview')
 
 // 详情面板
 const detailSquad = ref('')
@@ -547,6 +557,20 @@ const compareDiffRows = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.squad-main-tabs :deep(.el-tabs__header) {
+  margin-bottom: 12px;
+}
+
+.squad-main-tabs :deep(.el-tabs__item) {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.squad-main-tabs :deep(.el-tabs__content) {
+  padding: 0;
 }
 
 .chart-row {
