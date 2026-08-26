@@ -25,7 +25,7 @@
       <!-- 图表行 2：平均伤害 + 平均治疗 -->
       <div class="chart-row">
         <div class="chart-card">
-          <div class="chart-card__title">职业平均伤害（我方 / 敌方）</div>
+          <div class="chart-card__title">职业平均玩家伤害（我方 / 敌方）</div>
           <EChart :option="metricBarOption('avg_player_damage')" :height="340" />
         </div>
         <div class="chart-card">
@@ -37,7 +37,7 @@
       <!-- 图表行 3：平均承伤 -->
       <div class="chart-row">
         <div class="chart-card">
-          <div class="chart-card__title">职业平均承伤（承伤职业：铁衣 / 血河 / 沧澜）</div>
+          <div class="chart-card__title">职业平均承伤（承伤职业：铁衣 / 血河 / 沧澜 / 素问）</div>
           <EChart :option="metricBarOption('avg_damage_taken', { filterProf: isTank, fmt: fmtNum })" :height="340" />
         </div>
         <div class="chart-card">
@@ -183,7 +183,7 @@ const profStats = ref<ProfessionStats[]>([])
 const campFilter = ref('')
 const profFilter = ref('')
 const metricSubTab = ref('efficiency')
-const campOptions = computed(() => [...new Set(profStats.value.flatMap((p) => p.camps.map((c) => c.camp)))])
+const campOptions = ref<string[]>([])
 const allProfs = computed(() => profStats.value.map((p) => p.profession))
 
 async function load() {
@@ -194,18 +194,23 @@ async function load() {
       camp: campFilter.value || undefined,
     })
     profStats.value = data.items
+    // 首次加载时记录所有阵营选项（后续筛选不再更新，保证可切换回全部）
+    if (campOptions.value.length === 0) {
+      campOptions.value = [...new Set(data.items.flatMap((p) => p.camps.map((c) => c.camp)))]
+    }
   } finally {
     loading.value = false
   }
 }
 
-watch(() => props.roundNo, load, { immediate: true })
+watch(() => props.roundNo, () => { campOptions.value = []; campFilter.value = ''; load() }, { immediate: true })
 
 const HEALERS = new Set(['素问', '鸿音', '潮光'])
-const TANKS = new Set(['铁衣', '血河', '沧澜'])
+const TANKS = new Set(['铁衣', '血河', '沧澜', '素问'])
 
+/** 治疗职业判定：职业名在候选列表中，且该职业整体治疗量 > 伤害量。 */
 function isHealer(p: ProfessionStats) {
-  return HEALERS.has(p.profession) && p.camps.some((c) => c.avg_healing > 0)
+  return HEALERS.has(p.profession) && p.avg_healing > p.avg_damage
 }
 
 function isTank(p: ProfessionStats) {
