@@ -63,16 +63,16 @@
       <EChart :option="radarOption" :height="380" />
     </div>
 
-    <!-- 职业×指标热力图 -->
-    <div class="chart-card">
-      <div class="chart-card__title">职业×指标热力图</div>
-      <EChart :option="heatmapOption" :height="heatmapHeight" />
-    </div>
-
-    <!-- 玩家四维构成（Top10） -->
-    <div class="chart-card">
-      <div class="chart-card__title">玩家四维数据（Top 10）</div>
-      <EChart :option="playerBarsOption" :height="320" />
+    <!-- 职业×指标热力图 + 玩家四维构成（并排） -->
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-card__title">职业×指标热力图</div>
+        <EChart :option="heatmapOption" :height="heatmapHeight" />
+      </div>
+      <div class="chart-card">
+        <div class="chart-card__title">玩家四维数据（Top 10）</div>
+        <EChart :option="playerBarsOption" :height="320" />
+      </div>
     </div>
 
     <!-- 阵营职业伤害/治疗构成堆叠柱状图 -->
