@@ -18,13 +18,16 @@ nsh-management/
 │   ├── design-document-v2.md     # 产品设计文档（当前主文档）
 │   ├── implementation-plan.md    # 实施方案文档
 │   ├── progress.md               # 项目进度文档
+│   ├── security-review.md        # 安全审查文档
 │   ├── tech-stack.md             # 技术栈文档
 │   └── ui-style-guide.md         # UI风格参考文档
 ├── backend/
 │   └── docs/README.md            # 后端模块开发文档
 ├── frontend/
 │   └── docs/README.md            # 前端模块开发文档
+├── CLAUDE.md                     # AI 项目入门指南（自动读取）
 ├── DEPLOY.md                     # 部署文档（Docker Compose）
+├── GIT-GUIDE.md                  # Git 管理规范
 ├── .gitignore                    # Git忽略规则
 └── README.md                     # 项目说明
 ```
@@ -46,7 +49,7 @@ nsh-management/
 
 ### 2. 数据库设计文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\database-design.md`
-- **作用**：定义全部数据表结构（9 表）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.5（含 developer 角色、plain_password、remark、title_remark、groups_remark）
+- **作用**：定义全部数据表结构（10 表，含 squad_adjustments）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.6（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整）
 - **更新时机**：表结构变更、业务规则调整时更新
 
 ### 3. 技术栈文档
@@ -156,6 +159,7 @@ nsh-management/
 | 2026-08-26 | 文档命名统一：DATA_ANALYSIS_COMPLETE.md → data-analysis-complete.md、SECURITY-REVIEW.md → security-review.md，memory-bank 全部文件统一为小写 kebab-case；同步更新所有内部引用 | architecture.md, progress.md, deploy.sh, security-review.md |
 | 2026-08-26 | 全面审查修复：code_rule.md 4条失效路径更正（design-document.md→design-document-v2.md、.trae/→.claude/）；architecture.md 目录树 .trae→.claude 并补充 git-commit-message.md 索引；implementation-plan.md 修正 Python 3.12→3.13、JWT 7天→10小时、模块依赖树补充分析调整；backend/.env.example 补充 DEBUG 变量、移除无效 ALGORITHM/ACCESS_TOKEN_EXPIRE 配置 | code_rule.md, architecture.md, implementation-plan.md, backend/.env.example |
 | 2026-08-26 | 新增 AI 入门文档：根目录 `CLAUDE.md`（精简版，AI 自动读取）+ `memory-bank/ai-context.md`（完整扩展版），涵盖项目概述、技术栈、编码规范、Git 工作流、文档体系、安全要点 | CLAUDE.md, ai-context.md, architecture.md |
+| 2026-08-26 | 目录树补全：architecture.md 和 progress.md 补充 CLAUDE.md、GIT-GUIDE.md、.claude/rules/ 入库条目；architecture.md 数据库设计描述修正 9 表→10 表、v1.5→v1.6；progress.md database-design 版本号 v1.5→v1.6 | architecture.md, progress.md |
 
 ---
 

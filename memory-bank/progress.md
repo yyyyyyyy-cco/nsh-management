@@ -62,18 +62,26 @@ nsh-management/
 │   ├── ai-context.md           # AI 项目完整上下文文档
 │   ├── architecture.md         # 文档索引
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
-│   ├── database-design.md      # 数据库设计文档（v1.5）
+│   ├── database-design.md      # 数据库设计文档（v1.6）
 │   ├── design-document-v2.md   # 产品设计文档（当前主文档）
 │   ├── implementation-plan.md  # 实施方案文档
 │   ├── progress.md             # 本文档 - 代码结构与进度
 │   ├── security-review.md      # 安全审查文档
 │   ├── tech-stack.md           # 技术栈文档
 │   └── ui-style-guide.md       # UI风格参考文档
+├── .claude/                    # AI 编码规则（已入库）
+│   └── rules/
+│       ├── code_rule.md        # 项目规则
+│       ├── file-length-rule.md # 文件行数限制
+│       ├── function_rule.md    # 模块开发文档规则
+│       └── git-commit-message.md # Git 提交信息规范
+├── CLAUDE.md                   # AI 项目入门指南（自动读取）
 ├── start.bat                   # 一键启动脚本（前后端+首次建库）
 ├── deploy.sh                   # Linux 部署脚本（Docker Compose 一键部署）
 ├── docker-compose.yml          # Docker Compose 编排（Nginx + FastAPI + SQLite 卷）
 ├── .env.example                # 部署环境变量模板（复制为 .env 填写）
 ├── DEPLOY.md                   # 部署文档（Docker Compose 全流程）
+├── GIT-GUIDE.md                # Git 管理规范（分支/提交/发布/双远程）
 ├── .gitignore                  # Git忽略规则
 └── README.md                   # 项目说明
 ```
@@ -204,6 +212,7 @@ nsh-management/
 | 2026-08-26 | 文档全面对齐：progress.md 代码目录结构与模块说明同步实际代码（修复 Alembic 迁移数 12→9、补全 services/api/utils 文件列表、新增分析调整/开发者 API 模块）；architecture.md 补全文档索引；design-document-v2.md 修正布局尺寸、补充开发者角色与分析调整；tech-stack.md 修正 ECharts 版本 5→6、FastAPI 版本、补全文件列表；backend/frontend docs 补全 developer 角色与分析调整模块 | 全文档 |
 | 2026-08-26 | 文档命名统一：DATA_ANALYSIS_COMPLETE.md → data-analysis-complete.md、SECURITY-REVIEW.md → security-review.md，memory-bank 全部文件统一为小写 kebab-case | 全文档 |
 | 2026-08-26 | 新增 AI 入门文档：根目录 CLAUDE.md（精简版，AI 自动读取）+ memory-bank/ai-context.md（完整扩展版），涵盖项目概述、技术栈、编码规范、Git 工作流、文档体系、安全要点 | CLAUDE.md, ai-context.md |
+| 2026-08-26 | 目录树补全：补充 CLAUDE.md、GIT-GUIDE.md、.claude/rules/ 入库条目；database-design 版本号 v1.5→v1.6 | progress.md |
 
 ---
 
