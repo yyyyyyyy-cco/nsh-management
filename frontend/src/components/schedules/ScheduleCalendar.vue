@@ -7,7 +7,7 @@
         <el-button size="small" class="nav-btn" @click="changeMonth(1)"><el-icon><ArrowRight /></el-icon></el-button>
       </el-button-group>
       <span class="month-title">{{ viewMonth.format('YYYY年MM月') }}</span>
-      <span class="header-hint">点击日期创建赛程 · 点击赛程查看详情</span>
+      <span class="header-hint">{{ isAdmin ? '点击日期创建赛程 · ' : '' }}点击赛程查看详情</span>
     </div>
     <div class="weekdays">
       <span v-for="w in WEEKDAYS" :key="w" class="weekday" :class="{ 'weekday--weekend': w === '六' || w === '日' }">
@@ -44,6 +44,7 @@ import { computed, ref } from 'vue'
 import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 
+import { useAuthStore } from '@/stores/auth'
 import type { ScheduleInfo } from '@/types/schedule'
 
 const props = defineProps<{ schedules: ScheduleInfo[] }>()
@@ -52,6 +53,9 @@ const emit = defineEmits<{
   'select-date': [date: string]
   'month-change': [month: string]
 }>()
+
+const auth = useAuthStore()
+const isAdmin = computed(() => auth.isAdmin)
 
 const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 const viewMonth = ref(dayjs().startOf('month'))

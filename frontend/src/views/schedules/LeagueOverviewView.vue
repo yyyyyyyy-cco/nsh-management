@@ -3,7 +3,7 @@
     <div class="toolbar">
       <div class="toolbar-info">
         <el-icon class="info-icon"><VideoCamera /></el-icon>
-        <span>联赛总览</span>
+        <span>录屏上传</span>
         <span class="info-sub">{{ filterSubText }}（按距今天由近到远），点击进入录屏上传</span>
       </div>
       <el-radio-group v-model="timeFilter" size="small" class="toolbar-filter">
@@ -63,8 +63,8 @@ const router = useRouter()
 const loading = ref(false)
 const schedules = ref<ScheduleInfo[]>([])
 
-/** 时间筛选：本月 / 上个月 / 全部（默认全部，与原有展示一致）。 */
-const timeFilter = ref<'month' | 'lastMonth' | 'all'>('all')
+/** 时间筛选：本月 / 上个月 / 全部（默认本月）。 */
+const timeFilter = ref<'month' | 'lastMonth' | 'all'>('month')
 
 // 按离今天日期绝对值排序（与排表页、首页一致）
 const sortedSchedules = computed(() => sortSchedulesByProximity(schedules.value))

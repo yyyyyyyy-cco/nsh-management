@@ -14,9 +14,17 @@
           <el-icon><HomeFilled /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'member'" index="/league-overview" :title="collapsed ? '联赛总览' : undefined">
+        <el-menu-item v-if="auth.user?.role === 'member'" index="/league-overview" :title="collapsed ? '录屏上传' : undefined">
           <el-icon><VideoCamera /></el-icon>
-          <span>联赛总览</span>
+          <span>录屏上传</span>
+        </el-menu-item>
+        <el-menu-item v-if="auth.user?.role === 'member'" index="/my-stats" :title="collapsed ? '个人战绩' : undefined">
+          <el-icon><TrendCharts /></el-icon>
+          <span>个人战绩</span>
+        </el-menu-item>
+        <el-menu-item v-if="auth.user?.role === 'member'" index="/schedules" :title="collapsed ? '联赛日程' : undefined">
+          <el-icon><Calendar /></el-icon>
+          <span>联赛日程</span>
         </el-menu-item>
         <el-menu-item v-if="auth.isAdmin && !auth.isDeveloper" index="/members" :title="collapsed ? '常驻库' : undefined">
           <el-icon><UserFilled /></el-icon>
@@ -68,7 +76,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowDown, Calendar, Expand, Fold, HomeFilled, Menu, Setting, UserFilled, VideoCamera } from '@element-plus/icons-vue'
+import { ArrowDown, Calendar, Expand, Fold, HomeFilled, Menu, Setting, TrendCharts, UserFilled, VideoCamera } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 
 import { useAuthStore } from '@/stores/auth'

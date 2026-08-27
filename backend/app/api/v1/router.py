@@ -1,7 +1,7 @@
 """API v1 路由汇总。"""
 from fastapi import APIRouter
 
-from app.api.v1 import attendance, auth, config, developer, lineups, match_data, members, recording, schedules, squad_adjustments
+from app.api.v1 import attendance, auth, config, developer, lineups, match_data, members, my_stats, recording, schedules, squad_adjustments
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
@@ -14,3 +14,4 @@ api_router.include_router(match_data.router)
 api_router.include_router(config.router)
 api_router.include_router(developer.router)
 api_router.include_router(squad_adjustments.router)
+api_router.include_router(my_stats.router)
