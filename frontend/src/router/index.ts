@@ -52,6 +52,12 @@ const router = createRouter({
           component: () => import('@/views/config/ConfigView.vue'),
           meta: { title: '系统配置', adminOnly: true },
         },
+        {
+          path: 'my-stats',
+          name: 'my-stats',
+          component: () => import('@/views/member/MyStatsView.vue'),
+          meta: { title: '个人战绩' },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
