@@ -12,6 +12,7 @@ nsh-management/
 │       └── git-commit-message.md     # Git 提交信息规范
 ├── memory-bank/
 │   ├── ai-context.md           # AI 项目完整上下文文档（CLAUDE.md 扩展版）
+│   ├── ai-checklist.md         # AI 操作检查清单（错误记录与联动规则）
 │   ├── architecture.md         # 本文档 - 项目文档索引
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
 │   ├── database-design.md        # 数据库设计文档
@@ -122,6 +123,11 @@ nsh-management/
 - **作用**：根目录 `CLAUDE.md` 的完整扩展版，为 AI 助手提供项目全貌：功能模块、技术栈详情、编码规范、Git 工作流、文档体系、安全要点、已知待优化项
 - **更新时机**：项目架构、技术栈、规范发生重大变更时更新
 
+### 16. AI 操作检查清单
+- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ai-checklist.md`
+- **作用**：记录 AI 在本项目中犯过的错误和容易遗漏的联动点（版本号散落、文件重命名联动、目录树同步、.env 对齐等），每次修改前必读
+- **更新时机**：发现新的遗漏模式时补充
+
 ---
 
 ## 更新记录
@@ -160,6 +166,7 @@ nsh-management/
 | 2026-08-26 | 全面审查修复：code_rule.md 4条失效路径更正（design-document.md→design-document-v2.md、.trae/→.claude/）；architecture.md 目录树 .trae→.claude 并补充 git-commit-message.md 索引；implementation-plan.md 修正 Python 3.12→3.13、JWT 7天→10小时、模块依赖树补充分析调整；backend/.env.example 补充 DEBUG 变量、移除无效 ALGORITHM/ACCESS_TOKEN_EXPIRE 配置 | code_rule.md, architecture.md, implementation-plan.md, backend/.env.example |
 | 2026-08-26 | 新增 AI 入门文档：根目录 `CLAUDE.md`（精简版，AI 自动读取）+ `memory-bank/ai-context.md`（完整扩展版），涵盖项目概述、技术栈、编码规范、Git 工作流、文档体系、安全要点 | CLAUDE.md, ai-context.md, architecture.md |
 | 2026-08-26 | 目录树补全：architecture.md 和 progress.md 补充 CLAUDE.md、GIT-GUIDE.md、.claude/rules/ 入库条目；architecture.md 数据库设计描述修正 9 表→10 表、v1.5→v1.6；progress.md database-design 版本号 v1.5→v1.6 | architecture.md, progress.md |
+| 2026-08-26 | 新增 AI 操作检查清单（ai-checklist.md）：记录版本号散落、文件重命名联动、目录树同步、.env 对齐等易错模式与自检流程；CLAUDE.md 新增"操作前必读"提示；architecture.md/progress.md 同步更新索引与目录树 | ai-checklist.md, CLAUDE.md, architecture.md, progress.md |
 
 ---
 

@@ -26,6 +26,9 @@
 
 ## 关键约定
 
+### 操作前必读
+> ⚠️ **每次修改文档或代码前，先读 `memory-bank/ai-checklist.md`** — 记录了所有犯过的错误和容易遗漏的联动点。
+
 ### 开发前必读
 1. **产品设计**：`memory-bank/design-document-v2.md`（功能定义、权限矩阵、页面结构）
 2. **数据库设计**：`memory-bank/database-design.md`（10 张表、v1.6）
@@ -94,6 +97,7 @@ nsh-management/
 | 项目进度 | `memory-bank/progress.md` | 代码目录结构、模块状态、变更记录 |
 | 数据分析方案 | `memory-bank/data-analysis-complete.md` | CSV 结构、16 项衍生指标、ECharts 图表 |
 | 安全审查 | `memory-bank/security-review.md` | 安全审查结论与改进项 |
+| AI 操作检查清单 | `memory-bank/ai-checklist.md` | 犯过的错误、遗漏的联动点、修改后自检流程 |
 | 部署文档 | `DEPLOY.md` | Docker Compose 部署全流程 |
 | Git 规范 | `GIT-GUIDE.md` | 分支/提交/发布/tag/双远程同步 |
 | 后端开发文档 | `backend/docs/README.md` | 后端模块需求、开发计划、进度 |
