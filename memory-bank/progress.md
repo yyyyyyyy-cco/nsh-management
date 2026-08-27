@@ -59,6 +59,7 @@ nsh-management/
 │   ├── docs/README.md         # 前端模块开发文档
 │   └── package.json
 ├── memory-bank/                # 项目文档
+│   ├── ai-context.md           # AI 项目完整上下文文档
 │   ├── architecture.md         # 文档索引
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
 │   ├── database-design.md      # 数据库设计文档（v1.5）
@@ -202,6 +203,7 @@ nsh-management/
 | 2026-08-26 | 新增分析调整模块（squad_adjustments）：后端 model/schema/service/api + 前端类型/API；小队分析内支持手动分配未排表成员到目标队伍，仅作用于分析视图不改正式排表 | 分析调整 |
 | 2026-08-26 | 文档全面对齐：progress.md 代码目录结构与模块说明同步实际代码（修复 Alembic 迁移数 12→9、补全 services/api/utils 文件列表、新增分析调整/开发者 API 模块）；architecture.md 补全文档索引；design-document-v2.md 修正布局尺寸、补充开发者角色与分析调整；tech-stack.md 修正 ECharts 版本 5→6、FastAPI 版本、补全文件列表；backend/frontend docs 补全 developer 角色与分析调整模块 | 全文档 |
 | 2026-08-26 | 文档命名统一：DATA_ANALYSIS_COMPLETE.md → data-analysis-complete.md、SECURITY-REVIEW.md → security-review.md，memory-bank 全部文件统一为小写 kebab-case | 全文档 |
+| 2026-08-26 | 新增 AI 入门文档：根目录 CLAUDE.md（精简版，AI 自动读取）+ memory-bank/ai-context.md（完整扩展版），涵盖项目概述、技术栈、编码规范、Git 工作流、文档体系、安全要点 | CLAUDE.md, ai-context.md |
 
 ---
 

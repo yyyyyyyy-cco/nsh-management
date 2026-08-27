@@ -11,7 +11,8 @@ nsh-management/
 │       ├── function_rule.md          # 模块开发文档规则
 │       └── git-commit-message.md     # Git 提交信息规范
 ├── memory-bank/
-│   ├── architecture.md           # 本文档 - 项目文档索引
+│   ├── ai-context.md           # AI 项目完整上下文文档（CLAUDE.md 扩展版）
+│   ├── architecture.md         # 本文档 - 项目文档索引
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
 │   ├── database-design.md        # 数据库设计文档
 │   ├── design-document-v2.md     # 产品设计文档（当前主文档）
@@ -113,6 +114,11 @@ nsh-management/
 - **作用**：项目安全审查记录，涵盖认证、权限、数据安全等方面的审查结论与改进项
 - **更新时机**：安全相关变更或审查时更新
 
+### 15. AI 项目完整上下文文档
+- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ai-context.md`
+- **作用**：根目录 `CLAUDE.md` 的完整扩展版，为 AI 助手提供项目全貌：功能模块、技术栈详情、编码规范、Git 工作流、文档体系、安全要点、已知待优化项
+- **更新时机**：项目架构、技术栈、规范发生重大变更时更新
+
 ---
 
 ## 更新记录
@@ -149,6 +155,7 @@ nsh-management/
 | 2026-08-26 | 文档全面对齐：architecture.md 补充 security-review.md 索引；progress.md 修复 Alembic 迁移数 12→9、补全 services/api/utils 文件列表、新增分析调整/开发者 API 模块；design-document-v2.md 修正布局尺寸与角色描述、补充分析调整；tech-stack.md 修正 ECharts/FastAPI 版本、补全文件列表；backend/frontend docs 补全 developer 角色与分析调整模块 | 全部文档 |
 | 2026-08-26 | 文档命名统一：DATA_ANALYSIS_COMPLETE.md → data-analysis-complete.md、SECURITY-REVIEW.md → security-review.md，memory-bank 全部文件统一为小写 kebab-case；同步更新所有内部引用 | architecture.md, progress.md, deploy.sh, security-review.md |
 | 2026-08-26 | 全面审查修复：code_rule.md 4条失效路径更正（design-document.md→design-document-v2.md、.trae/→.claude/）；architecture.md 目录树 .trae→.claude 并补充 git-commit-message.md 索引；implementation-plan.md 修正 Python 3.12→3.13、JWT 7天→10小时、模块依赖树补充分析调整；backend/.env.example 补充 DEBUG 变量、移除无效 ALGORITHM/ACCESS_TOKEN_EXPIRE 配置 | code_rule.md, architecture.md, implementation-plan.md, backend/.env.example |
+| 2026-08-26 | 新增 AI 入门文档：根目录 `CLAUDE.md`（精简版，AI 自动读取）+ `memory-bank/ai-context.md`（完整扩展版），涵盖项目概述、技术栈、编码规范、Git 工作流、文档体系、安全要点 | CLAUDE.md, ai-context.md, architecture.md |
 
 ---
 
