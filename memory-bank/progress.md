@@ -6,19 +6,20 @@
 nsh-management/
 ├── backend/                   # 后端项目（FastAPI）
 │   ├── app/
-│   │   ├── api/               # API 路由（v1/auth、deps 依赖注入）
+│   │   ├── api/               # API 路由（v1/ 路由注册 + deps 依赖注入）
 │   │   ├── core/              # 配置、数据库、安全（JWT/密码）
-│   │   ├── models/            # 9 张表 SQLAlchemy 模型
+│   │   ├── models/            # 10 张表 SQLAlchemy 模型（含 squad_adjustments）
 │   │   ├── schemas/           # Pydantic 数据模型
-│   │   ├── services/          # 业务逻辑（auth/config/lineup/member/recording/attendance）
-│   │   ├── utils/             # 工具函数（attendance_import）
+│   │   ├── services/          # 业务逻辑（auth/config/lineup/member/recording/attendance/match_data/schedule/squad_adjustment）
+│   │   ├── utils/             # 工具函数（attendance_import/excel_import/constants）
 │   │   ├── init_db.py         # 初始化默认帮会与账号（开发者/admin/member）
 │   │   └── main.py            # 应用入口（CORS/异常处理/AuthError锁定秒数）
-│   ├── alembic/               # 数据库迁移（12 个版本）
+│   ├── alembic/               # 数据库迁移（9 个版本）
 │   ├── data/                  # SQLite 数据库（nsh.db）
 │   ├── docs/README.md         # 后端模块开发文档
 │   ├── scripts/               # 工具脚本
-│   │   └── generate_import_template.py  # 生成成员导入模板
+│   │   ├── generate_import_template.py  # 生成成员导入模板
+│   │   └── selfcheck_indicators.py      # 衍生指标自检脚本
 │   ├── templates/             # Excel 模板
 │   │   └── member_import_template.xlsx  # 成员导入模板
 │   ├── Dockerfile             # 后端容器镜像（多阶段构建）
@@ -28,12 +29,12 @@ nsh-management/
 │   └── .venv/                 # 虚拟环境（Python 3.13）
 ├── frontend/                  # 前端项目（Vue3+TS+Vite）
 │   ├── src/
-│   │   ├── api/               # Axios 封装（http/auth/config/lineups/members/attendance）
+│   │   ├── api/               # Axios 封装（http/auth/config/lineups/members/attendance/matchData/recording/schedules/squadAdjustments）
 │   │   ├── components/        # 业务组件
 │   │   │   ├── attendance/    # 出勤库（AttendanceTab/FillerDialog/ImportMemberDialog/LeaveImportDialog/SubstituteImportDialog）
-│   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab/ImportHistoryDialog）
+│   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab/ImportHistoryDialog/MatchConfirmDialog）
 │   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab/CampCompareTab/SquadAnalysisTab/ProfessionTab/ProfessionDetailTab/ScoreTab/CampCompare/PlayerAnalysis/MetricsGuideDialog/EChart/analysis.ts/chartTheme.ts）
-│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberFormDialog）
+│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberFormDialog/MemberImportDialog/ProfessionShortage）
 │   │   │   ├── recording/     # 录屏审核（RecordingTab）
 │   │   │   └── schedules/     # 联赛日程（ScheduleCalendar）
 │   │   ├── composables/       # 组合式函数（lineupBoard）
@@ -41,7 +42,8 @@ nsh-management/
 │   │   ├── router/            # 路由与守卫
 │   │   ├── stores/            # Pinia（auth）
 │   │   ├── styles/            # 浅色雅金风主题（theme.css 令牌 / element-plus.css 组件 / index.css 入口）
-│   │   ├── types/             # TS 类型定义
+│   │   ├── types/             # TS 类型定义（attendance/auth/config/lineup/matchData/member/recording/schedule）
+│   │   ├── utils/             # 工具函数（constants/scheduleSort）
 │   │   └── views/             # 页面
 │   │       ├── HomeView.vue           # 首页仪表盘
 │   │       ├── LoginView.vue          # 登录页（含锁定倒计时）
@@ -58,10 +60,12 @@ nsh-management/
 │   └── package.json
 ├── memory-bank/                # 项目文档
 │   ├── architecture.md         # 文档索引
+│   ├── data-analysis-complete.md # 数据分析模块完整方案
 │   ├── database-design.md      # 数据库设计文档（v1.5）
 │   ├── design-document-v2.md   # 产品设计文档（当前主文档）
 │   ├── implementation-plan.md  # 实施方案文档
 │   ├── progress.md             # 本文档 - 代码结构与进度
+│   ├── security-review.md      # 安全审查文档
 │   ├── tech-stack.md           # 技术栈文档
 │   └── ui-style-guide.md       # UI风格参考文档
 ├── start.bat                   # 一键启动脚本（前后端+首次建库）
@@ -98,7 +102,7 @@ nsh-management/
 | 模块 | 路径 | 作用 | 状态 |
 |------|------|------|------|
 | 基础框架 | app/core | 配置（JWT 10h）、异步数据库、JWT/密码 | ✅ 已完成 |
-| 数据模型 | app/models | 9 张表 SQLAlchemy 模型 + 12 个 Alembic 迁移 | ✅ 已完成 |
+| 数据模型 | app/models | 10 张表 SQLAlchemy 模型 + 9 个 Alembic 迁移 | ✅ 已完成 |
 | 认证模块 | app/api/v1/auth.py | 登录/登出/me + 登录限流（含未知账号锁定） | ✅ 已完成 |
 | 常驻库 API | app/api/v1/members.py | CRUD/筛选/批量删/Excel导入/出勤率/职业统计 | ✅ 已完成 |
 | 联赛日程 API | app/api/v1/schedules.py | CRUD/时间范围/级联创建删除 | ✅ 已完成 |
@@ -106,6 +110,8 @@ nsh-management/
 | 排表 API | app/api/v1/lineups.py | 候选池/读写/保存校验/规范化/导入历史/备注 | ✅ 已完成 |
 | 录屏审核 API | app/api/v1/recording.py | 提交/审核/批量审核/进度 | ✅ 已完成 |
 | 数据分析 API | app/api/v1/match_data.py | CSV导入/6榜排行/职业17项统计/16项衍生指标/阵营对比/小队分析 | ✅ 已完成 |
+| 分析调整 API | app/api/v1/squad_adjustments.py | 小队分析内未排表成员→目标队伍的临时分配（仅作用于分析视图，不改正式排表） | ✅ 已完成 |
+| 开发者 API | app/api/v1/developer.py | 开发者专属路由（帮会管理/账号管理等） | ✅ 已完成 |
 | 系统配置 API | app/api/v1/config.py | 职业配置/账号管理/帮会管理（开发者）/删除帮会/删除账号 | ✅ 已完成 |
 | 部署 | Dockerfile/docker-compose/deploy.sh | Docker Compose 一键部署（Nginx+FastAPI+SQLite） | ✅ 已完成 |
 
@@ -192,7 +198,10 @@ nsh-management/
 | 2026-08-18 | 全站样式系统完善：element-plus.css（+496 行）深度定制 Element Plus 组件主题；theme.css（+138 行）设计令牌扩展；index.css（+106 行）全局样式重构 | 样式系统 |
 | 2026-08-18 | 后端测试脚本清理：删除 7 个硬编码测试脚本（smoke_test/attendance_test/config_test/import_test/lineup_test/match_data_test/recording_test），新增 generate_import_template.py（生成成员导入 Excel 模板） | 后端脚本 |
 | 2026-08-18 | deploy.sh 新增：Linux 一键部署脚本（Docker Compose 构建+启动+健康检查） | 部署 |
-| 2026-08-26 | 数据分析模块文档对齐：8 Tab（新增阵营对比/小队分析/职业深度/指标说明）、后端 7 接口（衍生指标/阵营对比/小队分析）、16 项衍生指标；移除 HTML 报告导出描述；DATA_ANALYSIS_COMPLETE.md 移入 memory-bank | 数据分析 |
+| 2026-08-26 | 数据分析模块文档对齐：8 Tab（新增阵营对比/小队分析/职业深度/指标说明）、后端 7 接口（衍生指标/阵营对比/小队分析）、16 项衍生指标；移除 HTML 报告导出描述；data-analysis-complete.md 移入 memory-bank | 数据分析 |
+| 2026-08-26 | 新增分析调整模块（squad_adjustments）：后端 model/schema/service/api + 前端类型/API；小队分析内支持手动分配未排表成员到目标队伍，仅作用于分析视图不改正式排表 | 分析调整 |
+| 2026-08-26 | 文档全面对齐：progress.md 代码目录结构与模块说明同步实际代码（修复 Alembic 迁移数 12→9、补全 services/api/utils 文件列表、新增分析调整/开发者 API 模块）；architecture.md 补全文档索引；design-document-v2.md 修正布局尺寸、补充开发者角色与分析调整；tech-stack.md 修正 ECharts 版本 5→6、FastAPI 版本、补全文件列表；backend/frontend docs 补全 developer 角色与分析调整模块 | 全文档 |
+| 2026-08-26 | 文档命名统一：DATA_ANALYSIS_COMPLETE.md → data-analysis-complete.md、SECURITY-REVIEW.md → security-review.md，memory-bank 全部文件统一为小写 kebab-case | 全文档 |
 
 ---
 

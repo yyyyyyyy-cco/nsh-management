@@ -7,7 +7,7 @@
 
 ### 1.2 技术架构
 - 前端：Vue 3 + TypeScript + Vite + Element Plus + Pinia
-- 后端：Python 3.12 + FastAPI + SQLAlchemy + SQLite
+- 后端：Python 3.13 + FastAPI + SQLAlchemy + SQLite
 - 部署：Docker + Docker Compose + Nginx
 
 ### 1.3 开发原则
@@ -301,7 +301,8 @@
 │   ├── 出勤库模块
 │   │   ├── 排表模块
 │   │   └── 录屏审核模块
-│   └── 数据分析模块
+│   ├── 数据分析模块
+│   └── 分析调整模块（依赖排表+数据分析）
 └── 系统配置模块
 ```
 
@@ -321,7 +322,7 @@
 
 ### 5.3 安全验收
 - 密码使用bcrypt加密
-- JWT Token有效期7天
+- JWT Token有效期10小时
 - 登录限流5次失败后锁定5分钟
 - 参数化查询防止SQL注入
 

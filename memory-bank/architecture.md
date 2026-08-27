@@ -4,14 +4,15 @@
 
 ```
 nsh-management/
-├── .trae/
+├── .claude/
 │   └── rules/
-│       ├── code_rule.md          # 项目规则
-│       ├── file-length-rule.md   # 代码文件长度规则
-│       └── function_rule.md      # 模块开发文档规则
+│       ├── code_rule.md              # 项目规则
+│       ├── file-length-rule.md       # 代码文件长度规则
+│       ├── function_rule.md          # 模块开发文档规则
+│       └── git-commit-message.md     # Git 提交信息规范
 ├── memory-bank/
 │   ├── architecture.md           # 本文档 - 项目文档索引
-│   ├── DATA_ANALYSIS_COMPLETE.md # 数据分析模块完整方案
+│   ├── data-analysis-complete.md # 数据分析模块完整方案
 │   ├── database-design.md        # 数据库设计文档
 │   ├── design-document-v2.md     # 产品设计文档（当前主文档）
 │   ├── implementation-plan.md    # 实施方案文档
@@ -53,19 +54,24 @@ nsh-management/
 - **更新时机**：技术栈变更、依赖升级时更新
 
 ### 4. 项目规则文档
-- **路径**：`e:\code\@Cjy\nsh-management\.trae\rules\code_rule.md`
+- **路径**：`.claude/rules/code_rule.md`
 - **作用**：定义强制前置要求、文档更新规则
 - **更新时机**：项目规则调整时更新
 
 ### 5. 代码文件长度规则
-- **路径**：`e:\code\@Cjy\nsh-management\.trae\rules\file-length-rule.md`
+- **路径**：`.claude/rules/file-length-rule.md`
 - **作用**：定义文件行数限制、拆分触发条件、拆分策略
 - **更新时机**：编码规范调整时更新
 
 ### 6. 模块开发文档规则
-- **路径**：`e:\code\@Cjy\nsh-management\.trae\rules\function_rule.md`
+- **路径**：`.claude/rules/function_rule.md`
 - **作用**：定义模块开发文档的要求、模板、更新规则
 - **更新时机**：模块开发规范调整时更新
+
+### 6.1 Git 提交信息规范
+- **路径**：`.claude/rules/git-commit-message.md`
+- **作用**：定义 Git 提交信息格式（Conventional Commits + 中文）、类型、范围、正文要求
+- **更新时机**：提交规范调整时更新
 
 ### 7. 项目文档索引（本文档）
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\architecture.md`
@@ -98,9 +104,14 @@ nsh-management/
 - **更新时机**：部署配置（Dockerfile / nginx.conf / docker-compose.yml / .env 变量）变更时更新
 
 ### 13. 数据分析模块完整方案
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\DATA_ANALYSIS_COMPLETE.md`
+- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\data-analysis-complete.md`
 - **作用**：定义数据分析模块完整方案：CSV 结构、字段映射、16 项衍生指标、阵营对比、职业深度、小队分析、ECharts 图表规划与实施记录（当前代码已按此实现，为数据分析模块主参考文档）
 - **更新时机**：数据分析模块功能调整时更新
+
+### 14. 安全审查文档
+- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\security-review.md`
+- **作用**：项目安全审查记录，涵盖认证、权限、数据安全等方面的审查结论与改进项
+- **更新时机**：安全相关变更或审查时更新
 
 ---
 
@@ -134,7 +145,10 @@ nsh-management/
 | 2026-08-18 | 技术栈更新：新增 echarts 依赖、Docker Compose 部署架构完善 | tech-stack.md |
 | 2026-08-18 | 前后端模块文档更新：全部 P0/P1/P2 功能标记为已完成，进度 100% | backend/docs, frontend/docs |
 | 2026-08-18 | 进度文档更新：目录结构、模块状态、开发阶段 7 完成 | progress.md |
-| 2026-08-26 | 数据分析模块文档对齐现有代码（8 Tab / 后端 7 接口 / 16 项衍生指标，移除 HTML 报告导出描述）；新增 DATA_ANALYSIS_COMPLETE.md 文档索引（移入 memory-bank） | architecture.md, progress.md, database-design.md, design-document-v2.md, backend/docs, frontend/docs |
+| 2026-08-26 | 数据分析模块文档对齐现有代码（8 Tab / 后端 7 接口 / 16 项衍生指标，移除 HTML 报告导出描述）；新增 data-analysis-complete.md 文档索引（移入 memory-bank） | architecture.md, progress.md, database-design.md, design-document-v2.md, backend/docs, frontend/docs |
+| 2026-08-26 | 文档全面对齐：architecture.md 补充 security-review.md 索引；progress.md 修复 Alembic 迁移数 12→9、补全 services/api/utils 文件列表、新增分析调整/开发者 API 模块；design-document-v2.md 修正布局尺寸与角色描述、补充分析调整；tech-stack.md 修正 ECharts/FastAPI 版本、补全文件列表；backend/frontend docs 补全 developer 角色与分析调整模块 | 全部文档 |
+| 2026-08-26 | 文档命名统一：DATA_ANALYSIS_COMPLETE.md → data-analysis-complete.md、SECURITY-REVIEW.md → security-review.md，memory-bank 全部文件统一为小写 kebab-case；同步更新所有内部引用 | architecture.md, progress.md, deploy.sh, security-review.md |
+| 2026-08-26 | 全面审查修复：code_rule.md 4条失效路径更正（design-document.md→design-document-v2.md、.trae/→.claude/）；architecture.md 目录树 .trae→.claude 并补充 git-commit-message.md 索引；implementation-plan.md 修正 Python 3.12→3.13、JWT 7天→10小时、模块依赖树补充分析调整；backend/.env.example 补充 DEBUG 变量、移除无效 ALGORITHM/ACCESS_TOKEN_EXPIRE 配置 | code_rule.md, architecture.md, implementation-plan.md, backend/.env.example |
 
 ---
 

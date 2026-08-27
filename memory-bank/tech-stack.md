@@ -22,7 +22,7 @@
 | html2canvas | 1.x | 导出PNG | 将DOM转为Canvas导出图片 |
 | xlsx | 0.18.x | Excel解析 | 前端解析Excel文件 |
 | dayjs | 1.x | 日期处理 | 轻量级，API兼容moment |
-| echarts | 5.x | 图表库 | 数据分析可视化（总览/列表/排行/阵营对比/小队分析/职业深度/评分） |
+| echarts | 6.x | 图表库 | 数据分析可视化（总览/列表/排行/阵营对比/小队分析/职业深度/评分） |
 
 ### 前端项目结构
 ```
@@ -51,8 +51,8 @@ frontend/
 
 | 技术 | 版本 | 用途 | 选择理由 |
 |------|------|------|---------|
-| Python | 3.12+ | 运行环境 | 简单易学，生态丰富 |
-| FastAPI | 0.110+ | Web框架 | 现代高性能，自动API文档，类型提示支持 |
+| Python | 3.13 | 运行环境 | 简单易学，生态丰富 |
+| FastAPI | 0.115+ | Web框架 | 现代高性能，自动API文档，类型提示支持 |
 | SQLAlchemy | 2.x | ORM | 最流行Python ORM，功能强大，文档完善 |
 | SQLite | 3.x | 数据库 | 轻量级，无需额外服务，单文件存储 |
 | Pydantic | 2.x | 数据验证 | 类型安全，自动验证，与FastAPI深度集成 |
@@ -73,22 +73,26 @@ backend/
 │   │       ├── members.py
 │   │       ├── schedules.py
 │   │       ├── attendance.py
-│   │       ├── lineup.py
+│   │       ├── lineups.py
 │   │       ├── recordings.py
-│   │       ├── analysis.py
-│   │       └── config.py
+│   │       ├── match_data.py
+│   │       ├── squad_adjustments.py  # 分析调整
+│   │       ├── developer.py          # 开发者专属路由
+│   │       ├── config.py
+│   │       └── router.py             # 路由注册
 │   ├── core/             # 核心配置
 │   │   ├── config.py     # 应用配置
 │   │   ├── security.py   # 安全相关
 │   │   └── database.py   # 数据库连接
-│   ├── models/           # SQLAlchemy模型
+│   ├── models/           # SQLAlchemy模型（10张表）
 │   ├── schemas/          # Pydantic数据模式
 │   ├── services/         # 业务逻辑层
-│   ├── utils/            # 工具函数
+│   ├── utils/            # 工具函数（attendance_import/excel_import/constants）
 │   └── main.py           # 应用入口
 ├── data/                 # SQLite数据库文件目录
-├── uploads/              # 上传文件目录
-├── alembic/              # 数据库迁移
+├── scripts/              # 工具脚本（generate_import_template/selfcheck_indicators）
+├── templates/            # Excel模板
+├── alembic/              # 数据库迁移（9个版本）
 ├── alembic.ini
 ├── requirements.txt
 └── pyproject.toml
@@ -96,7 +100,7 @@ backend/
 
 ### requirements.txt
 ```
-fastapi==0.110.0
+fastapi>=0.115.0
 uvicorn[standard]==0.27.1
 sqlalchemy==2.0.36
 aiosqlite==0.20.0
@@ -104,10 +108,11 @@ pydantic==2.11.4
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
-python-multipart==0.0.9
+python-multipart>=0.0.18
+openpyxl==3.1.5
 alembic==1.13.1
 ```
-> 版本说明（2026-08-06 实际验证）：以上版本适配 Python 3.13。pydantic≥2.10、SQLAlchemy≥2.0.36 才有 Python 3.13 预编译包；bcrypt 固定 4.0.1 以兼容 passlib 1.7.4（≥4.1 会报错）。
+> 版本说明（2026-08 实际验证）：适配 Python 3.13。pydantic≥2.10、SQLAlchemy≥2.0.36 才有 Python 3.13 预编译包；bcrypt 固定 4.0.1 以兼容 passlib 1.7.4（≥4.1 会报错）；fastapi 升级到 0.115+；openpyxl 用于 Excel 导入导出；python-multipart 升级修复 CVE-2024-53981。
 
 ---
 
@@ -212,8 +217,8 @@ alembic==1.13.1
 ## 技术栈总结
 
 ```
-前端：Vue 3 + TypeScript + Vite + Element Plus + Pinia
-后端：Python 3.12 + FastAPI + SQLAlchemy + SQLite
+前端：Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia
+后端：Python 3.13 + FastAPI + SQLAlchemy + SQLite
 部署：Docker + Docker Compose + Nginx
 ```
 

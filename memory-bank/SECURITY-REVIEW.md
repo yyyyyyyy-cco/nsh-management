@@ -90,7 +90,7 @@
 |---|---|
 | 位置 | [deploy.sh](deploy.sh#L68) |
 | 描述 | ① 健康检查硬编码 `password=dev123456`（若 `.env` 已改密，检查会误报失败；若未改密，脚本即泄露默认凭据）；② 打包 exclude 列表未含 `_backup/` 目录，本地备份（含数据库备份 `nsh.db.bak`、内部文档）会随部署包上传服务器；③ 服务器 IP/用户名硬编码。 |
-| 已定方案 | 健康检查改为无凭据探活根路径（`curl http://127.0.0.1/`）；tar exclude 增加 `--exclude='_backup'`、`--exclude='DEPLOY.md'`、`--exclude='SECURITY-REVIEW.md'`，**删除 `--exclude='nginx.conf'`**（否则 B1 限流配置无法随部署包上传生效）；服务器 IP/用户名暂留脚本顶部（脚本已 gitignore）。已完成：服务器遗留 `_backup`/`DEPLOY.md`/`SECURITY-REVIEW.md` 已清理（2026-08-20，用户授权）。 |
+| 已定方案 | 健康检查改为无凭据探活根路径（`curl http://127.0.0.1/`）；tar exclude 增加 `--exclude='_backup'`、`--exclude='DEPLOY.md'`、`--exclude='security-review.md'`，**删除 `--exclude='nginx.conf'`**（否则 B1 限流配置无法随部署包上传生效）；服务器 IP/用户名暂留脚本顶部（脚本已 gitignore）。已完成：服务器遗留 `_backup`/`DEPLOY.md`/`security-review.md` 已清理（2026-08-20，用户授权）。 |
 
 ---
 

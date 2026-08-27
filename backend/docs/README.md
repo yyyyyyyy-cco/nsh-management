@@ -7,12 +7,13 @@
 
 ### 业务目标
 - 多帮会数据隔离（guild_id），每个帮会一个管理员账号 + 一个帮众共享账号
-- JWT 认证 + 角色权限控制（admin/member）
+- JWT 认证 + 角色权限控制（developer/admin/member）
 - 登录限流（5 次失败锁定 5 分钟）
-- 全部业务规则按 database-design.md v1.3 落表
+- 全部业务规则按 database-design.md v1.5 落表
 
 ### 用户场景
-- 管理员：登录、管理成员/赛程/出勤/排表、审核录屏、导入 CSV 分析、系统配置
+- 开发者：创建帮会、派发账号、删除帮会、全局管理
+- 管理员：登录、管理成员/赛程/出勤/排表、审核录屏、导入 CSV 分析、调整小队分配、系统配置
 - 帮众：查看出勤与排表总览、切换自己的出勤状态、提交录屏链接
 
 ## 开发计划
@@ -21,7 +22,7 @@
 - [x] 后端项目初始化、目录结构搭建（P0）
 - [x] 依赖安装（FastAPI、SQLAlchemy、Pydantic、JWT、Alembic 等）（P0）
 - [x] 数据库配置（异步连接、Session 管理）（P0）
-- [x] 数据模型定义（9 张表，见 database-design.md v1.5）（P0）
+- [x] 数据模型定义（10 张表，见 database-design.md v1.5）（P0）
 - [x] Pydantic Schema 定义（P0）
 - [x] 全局异常处理、CORS 配置（P0）
 - [x] 认证模块：登录/登出/获取用户信息 + 登录限流（含未知账号锁定）（P0）
@@ -31,6 +32,7 @@
 - [x] 排表 API（候选池、JSON 排表存取、导入历史排表、标题/组备注）（P2）
 - [x] 录屏审核 API（提交、审核、批量审核、全局进度）（P2）
 - [x] 数据分析 API（CSV 导入解析、6 榜排行、职业 17 项统计、16 项衍生指标、阵营对比、小队分析）（P2）
+- [x] 分析调整 API（小队分析内未排表成员→目标队伍临时分配，仅作用于分析视图）（P2）
 - [x] 系统配置 API（职业配置、账号管理、帮会管理、开发者角色）（P2）
 - [x] Docker 部署（Dockerfile、docker-compose、deploy.sh、entrypoint.sh）（P2）
 
@@ -49,7 +51,7 @@
 ### 已完成
 - ✅ 项目初始化、目录结构、依赖安装（venv，Python 3.13）
 - ✅ 数据库配置（SQLAlchemy 2.0.36 异步 + aiosqlite）
-- ✅ 9 张表模型 + 12 个 Alembic 迁移（data/nsh.db）
+- ✅ 10 张表模型 + 9 个 Alembic 迁移（data/nsh.db）
 - ✅ Pydantic Schema、全局异常处理、CORS
 - ✅ 认证模块（登录/登出/me + 5 次失败锁定 5 分钟 + 未知账号锁定 + 锁定倒计时 remaining_seconds）
 - ✅ 开发者角色（developer，不绑定帮会，可创建帮会/派发账号/删除帮会）
@@ -74,6 +76,7 @@
 - ✅ 16 项衍生指标计算（calculate_indicators：效率/生存/占比/技能四类）
 - ✅ 阵营对比接口（camp-compare：11 项指标差值/波动值）
 - ✅ 小队分析接口（squad-analysis：关联排表，仅我方阵营，未排表兜底）
+- ✅ 分析调整 API（squad_adjustments：GET/PUT，临时分配未排表成员到目标队伍，仅作用于分析视图）
 - ✅ 系统配置 API：职业配置（含 remark 说明字段）、账号管理、帮会管理（开发者）
 - ✅ 级联删除帮会（DELETE /config/guilds/{id}，仅开发者，删除全部关联数据）
 - ✅ 删除账号（DELETE /config/accounts/{id}，不能删自己/开发者）
@@ -110,3 +113,4 @@
 | 2026-08-18 | Docker 部署完成（Dockerfile/docker-compose/deploy.sh/nginx.conf） |
 | 2026-08-18 | 测试脚本清理（删除 7 个硬编码脚本，新增 generate_import_template） |
 | 2026-08-26 | 数据分析 API 增强（16 项衍生指标/阵营对比/小队分析接口）、移除 HTML 报告导出，文档对齐 |
+| 2026-08-26 | 新增分析调整 API（squad_adjustments），文档全面对齐（developer 角色、表数 10、迁移数 9、v1.5 引用） |

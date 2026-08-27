@@ -1,7 +1,7 @@
 # 帮会管理系统 - 数据库设计
 
-> 版本：v1.5
-> 更新日期：2026-08-18
+> 版本：v1.6
+> 更新日期：2026-08-26
 > 依据：design-document-v2.md（产品设计 v2）、tech-stack.md（技术栈）
 
 ## 1. 设计总览
@@ -26,20 +26,22 @@ guilds（帮会）
      ├── attendance_records（出勤记录）  schedule_id, member_id（可空）
      ├── lineups（排表）                schedule_id（1:1）
      ├── recordings（录屏）             schedule_id, member_id（可空）
-     └── match_data（比赛数据）          schedule_id
+     ├── match_data（比赛数据）          schedule_id
+     └── squad_adjustments（分析调整）    schedule_id（1:1）
 ```
 
 | # | 表名 | 用途 | 关联 |
 |---|------|------|------|
 | 1 | guilds | 帮会 | users 多对一 |
-| 2 | users | 登录账号（管理员/帮众） | guilds |
+| 2 | users | 登录账号（开发者/管理员/帮众） | guilds |
 | 3 | profession_configs | 职业目标人数配置 | guilds |
 | 4 | members | 常驻库成员 | guilds、attendance_records、recordings |
-| 5 | schedules | 联赛赛程 | guilds、出勤/排表/录屏/分析 |
-| 6 | attendance_records | 单场出勤记录（含客人） | schedules、members |
+| 5 | schedules | 联赛赛程 | guilds、出勤/排表/录屏/分析/分析调整 |
+| 6 | attendance_records | 单场出勤记录（含补人） | schedules、members |
 | 7 | lineups | 排表（JSON 存储） | schedules（1:1） |
 | 8 | recordings | 录屏提交与审核 | schedules、members |
 | 9 | match_data | 比赛数据（CSV 导入） | schedules |
+| 10 | squad_adjustments | 分析调整（小队分析内临时分配） | schedules（1:1） |
 
 ### 1.3 设计决策
 
@@ -128,7 +130,7 @@ guilds（帮会）
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
 
 索引：`guild_id`、`match_time`。
-业务规则：删除赛程时由 Service 级联删除 attendance_records、lineups、recordings、match_data。
+业务规则：删除赛程时由 Service 级联删除 attendance_records、lineups、recordings、match_data、squad_adjustments。
 
 ### 2.6 attendance_records — 出勤记录表
 
@@ -222,6 +224,20 @@ JSON 结构示例：
 索引：`schedule_id`。
 业务规则：CSV 导入 5MB 上限；一局一表，重新导入同局数据即覆盖该局全部记录（不保留历史）；列映射与解析见 §3.5。
 
+### 2.10 squad_adjustments — 分析调整表
+
+> 小队分析 Tab 内，管理员手动将"未排表成员"分配到指定队伍的临时数据。与正式排表（lineups）完全独立，修改仅作用于小队分析视图。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| schedule_id | INTEGER | NOT NULL, UNIQUE, FK → schedules.id | 所属赛程（1:1） |
+| data | TEXT (JSON) | NOT NULL, default `{}` | 分配方案 `{player_name: "category:team_index"}` |
+| updated_at | DATETIME | NOT NULL, default now, onupdate now | 最后更新时间 |
+
+索引：`schedule_id`（UNIQUE）。
+业务规则：每赛程最多一条记录；保存时覆盖式替换 `data` 字段；仅管理员可写，帮众可读。
+
 ---
 
 ## 3. 关键业务规则落表方案
@@ -239,7 +255,7 @@ JSON 结构示例：
 
 ### 3.2 级联删除
 
-删除赛程时按顺序删除：recordings → match_data → attendance_records → lineups → schedules（Service 层事务内完成）。
+删除赛程时按顺序删除：recordings → match_data → squad_adjustments → attendance_records → lineups → schedules（Service 层事务内完成）。
 
 ### 3.3 登录限流
 
@@ -279,3 +295,4 @@ JSON 结构示例：
 | 2026-08-18 | v1.5b：users 表 guild_id 允许 NULL（developer 角色不绑定帮会）、新增 plain_password 字段（明文密码，仅本地管理工具查看）、role 新增 developer 选项（Alembic 迁移 e5f6a7b8c9d0） |
 | 2026-08-18 | v1.5c：lineups 表新增 title_remark（标题备注）、groups_remark（各组备注 JSON）字段（Alembic 迁移 dbb752d924fe） |
 | 2026-08-26 | v1.6：修正 match_data 导入业务规则为按局覆盖（一局一表，重导覆盖该局数据），与实现一致 |
+| 2026-08-26 | v1.6：新增 squad_adjustments 表（分析调整，小队分析内临时分配，1:1 关联赛程，Alembic 迁移 i3j4k5l6m7n8）；表清单从 9 张更新为 10 张；级联删除规则补充 squad_adjustments |
