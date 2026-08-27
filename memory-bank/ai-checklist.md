@@ -18,6 +18,7 @@
 | 文档目录树 | `architecture.md` | 不复制，引用 architecture.md |
 | 文档索引 | `architecture.md` | 不复制，引用 architecture.md |
 | UI 规范 | `ui-style-guide.md` | 不复制，引用 ui-style-guide.md |
+| UI 优化方案 | `ui-polish-plan.md` | 不复制，引用 ui-polish-plan.md |
 | Git/分支规范 | `GIT-GUIDE.md` | 3 行摘要 + 链接 |
 | 安全要点 | `security-review.md` | 要点摘要 + 链接 |
 | 默认账号 | `README.md` | 引用 README.md |
@@ -154,6 +155,8 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 | 5 | .env.example 和 config.py 不同步 | 一边加了变量另一边没跟上 | 改 config.py 时同步检查 .env.example |
 | 6 | 更新记录漏写 | 改了内容忘了在 architecture.md/progress.md 记录 | 每次提交前检查两个更新记录 |
 | 7 | design-document-v2 的 §2（UI）复制了 ui-style-guide 的内容 | 两个文档主色不一致 | UI 细节只在 ui-style-guide.md 维护 |
+| 8 | ui-polish-plan.md 新增动画/变量，但未同步到 ui-style-guide.md §10 | 两个 UI 文档不一致 | 修改 ui-polish-plan.md 后检查 ui-style-guide.md §10 是否需要同步 |
+| 9 | UI 优化新增 composable/CSS 动画，未更新 progress.md 和 frontend/docs | 新文件/新功能漏记 | 新增任何 UI 相关代码文件后，检查 progress.md 目录树和 frontend/docs 功能清单 |
 
 ---
 

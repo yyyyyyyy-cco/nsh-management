@@ -21,6 +21,7 @@ nsh-management/
 │   ├── progress.md               # 项目进度文档
 │   ├── security-review.md        # 安全审查文档
 │   ├── tech-stack.md             # 技术栈文档
+│   ├── ui-polish-plan.md         # UI优化方案文档
 │   └── ui-style-guide.md         # UI风格参考文档
 ├── backend/
 │   └── docs/README.md            # 后端模块开发文档
@@ -47,6 +48,12 @@ nsh-management/
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ui-style-guide.md`
 - **作用**：定义「浅色雅金风（宣纸鎏金）」设计规范：色彩令牌、字体、组件规范、布局、动画、职业色映射；实现位置为 `frontend/src/styles/`（theme.css / element-plus.css / index.css）
 - **更新时机**：UI 风格调整、设计令牌变更时更新
+
+### 1.2 UI优化方案文档
+- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ui-polish-plan.md`
+- **作用**：记录 UI 优化方案（P0-P3 共 11 项优化清单：视觉层次/交互反馈/细节打磨/微动效）、CSS 新增动画族规范、卡片层级规范、文件变更清单、验收标准
+- **前置文档**：`ui-style-guide.md`（权威视觉规范，本文档仅补充优化增量）
+- **更新时机**：优化项完成或方案调整时更新
 
 ### 2. 数据库设计文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\database-design.md`
@@ -168,6 +175,7 @@ nsh-management/
 | 2026-08-26 | 目录树补全：architecture.md 和 progress.md 补充 CLAUDE.md、GIT-GUIDE.md、.claude/rules/ 入库条目；architecture.md 数据库设计描述修正 9 表→10 表、v1.5→v1.6；progress.md database-design 版本号 v1.5→v1.6 | architecture.md, progress.md |
 | 2026-08-26 | 新增 AI 操作检查清单（ai-checklist.md）：记录版本号散落、文件重命名联动、目录树同步、.env 对齐等易错模式与自检流程；CLAUDE.md 新增"操作前必读"提示；architecture.md/progress.md 同步更新索引与目录树 | ai-checklist.md, CLAUDE.md, architecture.md, progress.md |
 | 2026-08-26 | 文档瘦身与单一权威源：design-document-v2 删除内嵌 UI 规范（~200 行）改为引用 ui-style-guide；CLAUDE.md/ai-context.md 技术栈/Git/安全改为引用；ai-checklist 新增权威源规则表；修复 README 9 表→10、backend/docs v1.5→v1.6、UI 主色统一为 #C9A13B | 全部文档 |
+| 2026-08-26 | 新增 UI 优化方案文档（ui-polish-plan.md）：4 优先级 11 项优化清单（卡片层级/数字滚动/按钮微光/奖牌微光/弹窗金线/滚动条/槽位反馈/路由过渡等），含动画族规范、卡片层级规范、验收标准、文件变更清单；ui-style-guide.md 新增 §10 优化补充规范（动画族/卡片层级/交互反馈） | ui-polish-plan.md, ui-style-guide.md |
 
 ---
 

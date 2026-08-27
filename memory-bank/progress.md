@@ -69,6 +69,7 @@ nsh-management/
 │   ├── progress.md             # 本文档 - 代码结构与进度
 │   ├── security-review.md      # 安全审查文档
 │   ├── tech-stack.md           # 技术栈文档
+│   ├── ui-polish-plan.md       # UI优化方案文档
 │   └── ui-style-guide.md       # UI风格参考文档
 ├── .claude/                    # AI 编码规则（已入库）
 │   └── rules/
@@ -216,6 +217,7 @@ nsh-management/
 | 2026-08-26 | 目录树补全：补充 CLAUDE.md、GIT-GUIDE.md、.claude/rules/ 入库条目；database-design 版本号 v1.5→v1.6 | progress.md |
 | 2026-08-26 | 新增 AI 操作检查清单（ai-checklist.md），记录易错模式与自检流程；CLAUDE.md 新增"操作前必读"提示 | ai-checklist.md, CLAUDE.md |
 | 2026-08-26 | 文档瘦身与单一权威源：design-document-v2 删除内嵌 UI 规范改为引用；CLAUDE.md/ai-context 技术栈/Git/安全改为引用；修复 README 9 表、backend/docs v1.5、UI 主色矛盾 | 全部文档 |
+| 2026-08-26 | 新增 UI 优化方案文档（ui-polish-plan.md）：4 优先级 11 项优化清单、动画族规范、卡片层级规范、验收标准；ui-style-guide.md 新增 §10 优化补充规范 | ui-polish-plan.md, ui-style-guide.md |
 
 ---
 
