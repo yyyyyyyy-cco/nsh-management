@@ -70,7 +70,7 @@ docker-compose.override.yml
 # 内部文档和规则（不对外公开）
 rules/
 .qoder/
-.claude/
+.claude/docs/
 .trae/
 
 # 前端调试截图（开发过程中产生）
