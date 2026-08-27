@@ -227,3 +227,38 @@
 | `styles/index.css` | 入口：字体、页面背景纹理、`.page-enter` 动效、工具类 |
 | `layouts/MainLayout.vue` | 宣纸米白侧边栏、宣纸顶栏、用户头像 |
 | `views/LoginView.vue` | 水墨登录页 |
+| `composables/useCountUp.ts` | 数字滚动动画 composable（UI 优化新增） |
+
+---
+
+## 10. UI 优化补充规范
+
+> 详见独立文档：`ui-polish-plan.md`（UI 优化完整方案，含 11 项优化清单、验收标准、文件变更清单）
+
+### 10.1 动画族规范
+
+| 动画名 | 应用场景 | 视觉效果 |
+|--------|---------|---------|
+| `stat-pop` | 统计卡入场 | scale(0.95) + fade → scale(1) |
+| `card-slide` | 列表卡入场 | translateY(16px) + fade → translateY(0) |
+| `medal-shimmer` | 排行榜奖牌 | 金色/银色高光从左到右循环扫过 |
+| `slot-bounce` | 排表槽位放入 | scale(1.05) → scale(1)，金色边框闪烁 |
+| `save-flash` | 保存成功 | 金色光晕扩散 |
+
+### 10.2 卡片层级规范
+
+| 层级 | 应用场景 | 底色 | 阴影 |
+|------|---------|------|------|
+| 主内容卡 | 表格/列表/编辑器 | `--ink-bg-paper` | `--shadow-sm` |
+| 统计卡 | 数值展示 | 金色渐变底 | `--shadow-sm` |
+| 辅助卡 | 快捷操作/职业分布 | `--ink-bg-cream` | 无或极淡 |
+| 信息条 | 历史总览 | `--ink-bg-wash` | `--shadow-sm` |
+
+### 10.3 交互反馈增强规范
+
+| 元素 | 交互 | 效果 |
+|------|------|------|
+| 主按钮 | hover | 微光扫光 60% 宽，透明度 0.55 |
+| 弹窗标题 | 渲染 | 金线与标题等宽，两端渐隐 |
+| 侧边栏菜单 | hover | background 渐变过渡 |
+| 滚动条 | 全局 | thumb #d4c5a0，track #f5f0e6 |

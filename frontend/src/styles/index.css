@@ -68,6 +68,30 @@ a:hover {
   }
 }
 
+/* 统计卡入场：scale + fade */
+@keyframes stat-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 列表卡入场：slide-up + fade */
+@keyframes card-slide {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* 金色分割线 */
 .gold-divider {
   height: 1px;
@@ -105,5 +129,15 @@ a:hover {
   /* 页面进入动效在触屏上保持轻盈 */
   .page-enter {
     animation-duration: var(--dur-normal);
+  }
+}
+
+/* ===== 减弱动态效果：停用所有装饰动画 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .stat-card {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

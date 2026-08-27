@@ -102,7 +102,7 @@
                 :disabled="board.mode.value === 'input'"
                 @start="(evt: any) => board.onSlotDragStart(evt, team, si)"
                 @end="board.onDragEnd"
-                @change="(evt: any) => board.onSlotChange(evt, team, si)"
+                @change="(evt: any) => onSlotChangeWithBounce(evt, team, si)"
               >
                 <template #item="{ element }">
                   <div v-if="isEditing(team, si)" :data-key="element.key" class="slot-card slot-card--edit">
@@ -200,6 +200,26 @@ function onSlotClick(team: TeamBox, si: number) {
   if (board.mode.value !== 'input') return
   editingSlot.value = { team, si }
   inputName.value = ''
+}
+
+/** 槽位放入后触发弹跳动画 */
+function onSlotChangeWithBounce(evt: any, team: TeamBox, si: number) {
+  board.onSlotChange(evt, team, si)
+  if (evt.added) {
+    // 找到目标槽位的 DOM 元素，添加临时动画 class
+    const slotEls = document.querySelectorAll(`.team--${teamKey(team.category)} .slot`)
+    const slotEl = slotEls[si]
+    if (slotEl) {
+      const card = slotEl.querySelector('.slot-card')
+      if (card) {
+        card.classList.remove('slot-bounce')
+        // 强制 reflow 以重新触发动画
+        void (card as HTMLElement).offsetWidth
+        card.classList.add('slot-bounce')
+        card.addEventListener('animationend', () => card.classList.remove('slot-bounce'), { once: true })
+      }
+    }
+  }
 }
 
 function cancelInput() {
@@ -424,6 +444,13 @@ onMounted(() => board.load())
 .auto-save.saved {
   color: var(--jade);
   background: var(--el-color-success-light-9);
+  animation: save-flash 0.6s ease-out;
+}
+
+@keyframes save-flash {
+  0% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(46, 139, 87, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0); }
 }
 
 @keyframes auto-save-pulse {
@@ -769,6 +796,17 @@ onMounted(() => board.load())
 .slot-card.filled:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-md);
+}
+
+/* 槽位放入反馈：弹跳 + 金光闪烁 */
+.slot-card.slot-bounce {
+  animation: slot-bounce 0.35s var(--ease-out);
+}
+
+@keyframes slot-bounce {
+  0% { transform: scale(1); box-shadow: var(--shadow-sm); }
+  40% { transform: scale(1.06); box-shadow: 0 0 0 3px rgba(201, 161, 59, 0.35), var(--shadow-md); }
+  100% { transform: scale(1); box-shadow: var(--shadow-sm); }
 }
 
 .slot-name {

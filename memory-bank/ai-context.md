@@ -210,3 +210,11 @@ backend/app/
 - `config.py` 的 `SECRET_KEY` 默认值应改为未设置时报错退出
 - 生产 `.env` 应使用强随机密钥（`openssl rand -hex 32`）
 - `deploy.sh` 中 `StrictHostKeyChecking=no` 应移除
+
+### 8.3 UI 优化待办
+> **权威源**：`ui-polish-plan.md`（完整方案含验收标准、文件变更清单）
+
+- **P0 视觉层次**：卡片层级区分（辅助卡改用 `--ink-bg-cream`）、统计数字滚动动画（新增 `useCountUp.ts` composable）
+- **P1 交互反馈**：主按钮微光扫光加宽（60%/0.55）、侧边栏菜单 hover 渐变过渡、卡片入场动画差异化（stat-pop/card-slide）、排行榜奖牌微光（medal-shimmer）
+- **P2 视觉细节**：弹窗标题金线与标题等宽、滚动条金色调配色
+- **P3 微动效**：排表槽位放入弹跳（slot-bounce）、保存成功光晕（save-flash）、路由切换淡入淡出
