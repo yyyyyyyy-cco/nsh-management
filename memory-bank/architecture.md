@@ -167,6 +167,7 @@ nsh-management/
 | 2026-08-26 | 新增 AI 入门文档：根目录 `CLAUDE.md`（精简版，AI 自动读取）+ `memory-bank/ai-context.md`（完整扩展版），涵盖项目概述、技术栈、编码规范、Git 工作流、文档体系、安全要点 | CLAUDE.md, ai-context.md, architecture.md |
 | 2026-08-26 | 目录树补全：architecture.md 和 progress.md 补充 CLAUDE.md、GIT-GUIDE.md、.claude/rules/ 入库条目；architecture.md 数据库设计描述修正 9 表→10 表、v1.5→v1.6；progress.md database-design 版本号 v1.5→v1.6 | architecture.md, progress.md |
 | 2026-08-26 | 新增 AI 操作检查清单（ai-checklist.md）：记录版本号散落、文件重命名联动、目录树同步、.env 对齐等易错模式与自检流程；CLAUDE.md 新增"操作前必读"提示；architecture.md/progress.md 同步更新索引与目录树 | ai-checklist.md, CLAUDE.md, architecture.md, progress.md |
+| 2026-08-26 | 文档瘦身与单一权威源：design-document-v2 删除内嵌 UI 规范（~200 行）改为引用 ui-style-guide；CLAUDE.md/ai-context.md 技术栈/Git/安全改为引用；ai-checklist 新增权威源规则表；修复 README 9 表→10、backend/docs v1.5→v1.6、UI 主色统一为 #C9A13B | 全部文档 |
 
 ---
 

@@ -5,27 +5,42 @@
 
 ---
 
-## 一、文档联动规则（血泪教训）
+## 一、单一权威源规则（核心原则）
 
-文档之间存在大量交叉引用，改一处必须联动检查所有关联位置。
+每个主题有且仅有一个权威源，其余文件只引用不复制。
 
-### 1.1 版本号散落检查
+| 主题 | 权威源 | 其余文件应 |
+|------|--------|-----------|
+| 技术栈版本 | `tech-stack.md` + `requirements.txt` | 一句话摘要 + "详见 tech-stack.md" |
+| 角色与权限 | `design-document-v2.md` §3 | 一句话 + 链接 |
+| 功能模块列表 | `design-document-v2.md` §4 | 一句话 + 链接 |
+| 代码目录树 | `progress.md` | 不复制，引用 progress.md |
+| 文档目录树 | `architecture.md` | 不复制，引用 architecture.md |
+| 文档索引 | `architecture.md` | 不复制，引用 architecture.md |
+| UI 规范 | `ui-style-guide.md` | 不复制，引用 ui-style-guide.md |
+| Git/分支规范 | `GIT-GUIDE.md` | 3 行摘要 + 链接 |
+| 安全要点 | `security-review.md` | 要点摘要 + 链接 |
+| 默认账号 | `README.md` | 引用 README.md |
+| 启动命令 | `README.md` | 引用 README.md |
+| 文件行数规范 | `.claude/rules/file-length-rule.md` | 摘要 + 链接 |
 
-以下版本号在**多个文件**中被引用，修改时必须全部联动：
+**铁律**：改版本号时，只改权威源。如果其他文件引用了旧值，说明引用写法不够"引用化"，应改为链接。
 
-| 版本号 | 出现位置 | 检查方式 |
-|--------|---------|---------|
-| 数据库设计版本 | `database-design.md` 头部、`architecture.md` 描述（§2）、`progress.md` 目录树、`backend/docs/README.md` | `grep -r "v1\." memory-bank/` |
-| 表数量（10 张） | `database-design.md` 表清单、`architecture.md` 描述、`progress.md` 目录树 + 模块表、`backend/docs/README.md`、`CLAUDE.md` | `grep -r "9 张表\|9 表\|10 张表\|10 表" memory-bank/` |
-| Alembic 迁移数量 | `progress.md` 目录树 + 模块表、`backend/docs/README.md` | `grep -r "Alembic 迁移" memory-bank/` |
-| Python 版本 | `tech-stack.md`、`implementation-plan.md`、`README.md` | `grep -r "Python 3\." memory-bank/` |
-| ECharts 版本 | `tech-stack.md`、`frontend/docs/README.md`、`CLAUDE.md` | `grep -r "echarts\|ECharts" memory-bank/ --include="*.md"` |
-| FastAPI 版本 | `tech-stack.md`、`requirements.txt` | 对比两个文件 |
-| JWT 有效期 | `tech-stack.md`、`implementation-plan.md`、`config.py` | `grep -r "有效期\|EXPIRE" memory-bank/ backend/app/core/config.py` |
+---
 
-**教训**：2026-08-26 审查中，database-design 从 v1.5 升到 v1.6、表从 9 张改到 10 张，但只改了 `database-design.md` 自身和 `progress.md` 目录树，漏了 `architecture.md` 的描述文本。修到第三轮才全部对齐。
+## 二、文档联动规则（血泪教训）
 
-### 1.2 文件重命名联动
+### 2.1 版本号检查
+
+即使有单一权威源，以下位置仍可能直接写死版本号（应逐步改为引用）：
+
+| 版本号 | 权威源 | 可能残留的位置 | 检查方式 |
+|--------|--------|---------------|---------|
+| 数据库设计版本 | `database-design.md` 头部 | `architecture.md`、`progress.md`、`backend/docs` | `grep "v1\." memory-bank/` |
+| 表数量 | `database-design.md` | `architecture.md`、`progress.md`、`backend/docs`、`README.md` | `grep "10 表\|9 表" .` |
+| Python 版本 | `tech-stack.md` | `implementation-plan.md`、`README.md` | `grep "Python 3\." .` |
+
+**教训**：2026-08-26 连续三轮才修完版本号散落 — 改了权威源漏了引用方。
 
 重命名任何 `.md` 文件时，必须检查以下位置的引用：
 
@@ -43,7 +58,7 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 
 **教训**：2026-08-26 重命名 `DATA_ANALYSIS_COMPLETE.md` → `data-analysis-complete.md` 和 `SECURITY-REVIEW.md` → `security-review.md` 时，第一轮只更新了 `architecture.md` 和 `progress.md`，漏了 `deploy.sh` 的 exclude 列表和 `security-review.md` 的内部自引用。
 
-### 1.3 新增文件联动
+### 2.3 新增文件联动
 
 新增任何文件时，必须同步更新：
 
@@ -54,7 +69,7 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 
 **教训**：2026-08-26 新增 `CLAUDE.md` 和 `ai-context.md` 时，只更新了 `architecture.md` 和 `progress.md` 的更新记录和文档说明，漏了两者的目录树。下一轮才补上。
 
-### 1.4 目录树同步
+### 2.4 目录树同步
 
 项目有**两个独立的目录树**，互相不自动同步：
 
@@ -132,12 +147,13 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 
 | # | 模式 | 说明 | 防范 |
 |---|------|------|------|
-| 1 | 改了 A 文件的版本号，没改 B | 版本号在 3-5 个文件中重复出现 | 改之前先 grep 全量引用 |
-| 2 | 重命名文件，漏了 deploy.sh | deploy.sh 的 tar exclude 引用文件名 | 重命名后 grep 旧文件名 |
+| 1 | 改了权威源，引用方还写着旧值 | 其他文件直接复制了版本号而非引用 | 改权威源后 grep 旧值，残留处改为"详见 xxx.md" |
+| 2 | 重命名文件，漏了 deploy.sh | deploy.sh 的 tar exclude 引用文件名 | 重命名后 grep 旧文件名（含 .sh） |
 | 3 | 新增文件，漏了目录树 | architecture.md 和 progress.md 各有独立目录树 | 新增后两个目录树都检查 |
 | 4 | 改 .gitignore，漏了 git 缓存 | 旧 ignore 规则还在 git 索引中 | 改后 `git add` 验证，必要时 `-f` |
 | 5 | .env.example 和 config.py 不同步 | 一边加了变量另一边没跟上 | 改 config.py 时同步检查 .env.example |
 | 6 | 更新记录漏写 | 改了内容忘了在 architecture.md/progress.md 记录 | 每次提交前检查两个更新记录 |
+| 7 | design-document-v2 的 §2（UI）复制了 ui-style-guide 的内容 | 两个文档主色不一致 | UI 细节只在 ui-style-guide.md 维护 |
 
 ---
 

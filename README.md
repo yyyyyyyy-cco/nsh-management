@@ -27,7 +27,7 @@
 
 ## 技术栈
 
-**前端：** Vue 3 + TypeScript + Vite + Element Plus + ECharts + Pinia
+**前端：** Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia
 
 **后端：** Python 3.13 + FastAPI + SQLAlchemy + SQLite + Alembic
 
@@ -89,7 +89,7 @@ nsh-management/
 │   ├── app/
 │   │   ├── api/v1/             # API 路由
 │   │   ├── core/               # 配置、数据库、安全
-│   │   ├── models/             # SQLAlchemy 模型（9 表）
+│   │   ├── models/             # SQLAlchemy 模型（10 表）
 │   │   ├── schemas/            # Pydantic Schema
 │   │   ├── services/           # 业务逻辑
 │   │   └── utils/              # 工具函数

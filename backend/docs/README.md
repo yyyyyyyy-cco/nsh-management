@@ -9,7 +9,7 @@
 - 多帮会数据隔离（guild_id），每个帮会一个管理员账号 + 一个帮众共享账号
 - JWT 认证 + 角色权限控制（developer/admin/member）
 - 登录限流（5 次失败锁定 5 分钟）
-- 全部业务规则按 database-design.md v1.5 落表
+- 全部业务规则按 database-design.md v1.6 落表
 
 ### 用户场景
 - 开发者：创建帮会、派发账号、删除帮会、全局管理
@@ -22,7 +22,7 @@
 - [x] 后端项目初始化、目录结构搭建（P0）
 - [x] 依赖安装（FastAPI、SQLAlchemy、Pydantic、JWT、Alembic 等）（P0）
 - [x] 数据库配置（异步连接、Session 管理）（P0）
-- [x] 数据模型定义（10 张表，见 database-design.md v1.5）（P0）
+- [x] 数据模型定义（10 张表，见 database-design.md v1.6）（P0）
 - [x] Pydantic Schema 定义（P0）
 - [x] 全局异常处理、CORS 配置（P0）
 - [x] 认证模块：登录/登出/获取用户信息 + 登录限流（含未知账号锁定）（P0）
@@ -37,7 +37,7 @@
 - [x] Docker 部署（Dockerfile、docker-compose、deploy.sh、entrypoint.sh）（P2）
 
 ### 依赖关系
-- 依赖 database-design.md v1.5（表结构）
+- 依赖 database-design.md v1.6（表结构）
 - 依赖 tech-stack.md（技术选型、requirements.txt）
 - 认证模块是其他所有 API 的前置（依赖注入校验 Token）
 - 排表/录屏/分析依赖赛程模块的级联创建
@@ -113,4 +113,4 @@
 | 2026-08-18 | Docker 部署完成（Dockerfile/docker-compose/deploy.sh/nginx.conf） |
 | 2026-08-18 | 测试脚本清理（删除 7 个硬编码脚本，新增 generate_import_template） |
 | 2026-08-26 | 数据分析 API 增强（16 项衍生指标/阵营对比/小队分析接口）、移除 HTML 报告导出，文档对齐 |
-| 2026-08-26 | 新增分析调整 API（squad_adjustments），文档全面对齐（developer 角色、表数 10、迁移数 9、v1.5 引用） |
+| 2026-08-26 | 新增分析调整 API（squad_adjustments），文档全面对齐（developer 角色、表数 10、迁移数 9、v1.6 引用） |

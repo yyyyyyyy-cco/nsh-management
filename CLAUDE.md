@@ -8,21 +8,9 @@
 
 核心功能：常驻库、出勤库、联赛排表（拖拽 10 队 × 6 人）、录屏审核、数据分析（ECharts 8 Tab）、分析调整、系统配置、联赛日程。
 
-## 技术栈
+技术栈：Vue 3 + TS + Vite + Element Plus + ECharts 6 + Pinia / Python 3.13 + FastAPI + SQLAlchemy + SQLite / Docker Compose + Nginx（详见 `memory-bank/tech-stack.md`）
 
-| 层 | 技术 |
-|---|------|
-| 前端 | Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia |
-| 后端 | Python 3.13 + FastAPI + SQLAlchemy + SQLite + Alembic |
-| 部署 | Docker Compose + Nginx |
-
-## 三级角色
-
-| 角色 | 说明 |
-|------|------|
-| developer | 不绑定帮会，全局管理（创建帮会/派发账号/删除帮会） |
-| admin | 绑定帮会，帮会内全部功能权限 |
-| member | 绑定帮会，查看数据 + 提交录屏 |
+角色：developer（全局管理）、admin（帮会全部权限）、member（查看+提交录屏）（详见 `memory-bank/design-document-v2.md` §3）
 
 ## 关键约定
 
@@ -42,14 +30,13 @@
 - 超限时必须拆分，按功能模块组织
 
 ### Git 提交规范
-- 格式：`<type>(<scope>): <中文摘要>`
-- 类型：`feat` / `fix` / `docs` / `style` / `refactor` / `perf` / `test` / `chore` / `ci`
-- 摘要必须中文，50 字以内
-- 范围（scope）必填，根据变更路径推断
+- 格式：`<type>(<scope>): <中文摘要>`，摘要中文 50 字以内，scope 必填
+- 详见 `GIT-GUIDE.md`
 
 ### 文档更新规则
 - 更新代码后必须同步 `memory-bank/progress.md`
 - 更新文档后必须同步 `memory-bank/architecture.md`（文档索引）
+- 完整文档结构与目录树见 `memory-bank/architecture.md`（文档视角）和 `memory-bank/progress.md`（代码视角）
 
 ### 分支策略
 - `main` 始终可发布，不在 main 上直接开发
@@ -57,48 +44,23 @@
 - 合并使用 `--no-ff`
 - 双远程同步：`origin`（GitHub）+ `gitee`（Gitee）
 
-## 项目结构速览
+## 文档索引
 
-```
-nsh-management/
-├── backend/                    # FastAPI 后端
-│   └── app/
-│       ├── api/v1/             # 路由（auth/members/schedules/attendance/lineups/recording/match_data/squad_adjustments/config/developer）
-│       ├── core/               # 配置/数据库/安全
-│       ├── models/             # 10 张表 SQLAlchemy 模型
-│       ├── schemas/            # Pydantic Schema
-│       ├── services/           # 业务逻辑（9 个服务）
-│       └── utils/              # 工具函数
-├── frontend/                   # Vue 3 前端
-│   └── src/
-│       ├── api/                # Axios 封装（10 个模块）
-│       ├── components/         # 业务组件（6 个子目录）
-│       ├── views/              # 页面
-│       ├── stores/             # Pinia 状态
-│       ├── styles/             # 浅色雅金风主题（theme.css / element-plus.css / index.css）
-│       └── types/              # TypeScript 类型
-├── memory-bank/                # 项目文档（9 个 .md）
-├── .claude/rules/              # AI 编码规则
-└── docker-compose.yml          # Docker 部署编排
-```
-
-## 详细文档索引
-
-完整文档结构与说明见 `memory-bank/architecture.md`。
-本文档的完整扩展版见 `memory-bank/ai-context.md`（含数据模型、编码规范细节、安全要点、待优化项）。
+> 完整文档结构与说明见 `memory-bank/architecture.md`。
+> 完整扩展版（含数据模型、安全要点、待优化项）见 `memory-bank/ai-context.md`。
 
 | 文档 | 路径 | 一句话说明 |
 |------|------|-----------|
-| 产品设计 | `memory-bank/design-document-v2.md` | 功能定义、权限、页面结构、API 接口 |
-| 数据库设计 | `memory-bank/database-design.md` | 10 张表结构、字段约束、业务规则 |
+| 产品设计 | `memory-bank/design-document-v2.md` | 功能定义、权限、页面结构 |
+| 数据库设计 | `memory-bank/database-design.md` | 10 张表、字段约束、业务规则 |
 | 技术栈 | `memory-bank/tech-stack.md` | 依赖版本、项目结构、部署方案 |
-| UI 规范 | `memory-bank/ui-style-guide.md` | 浅色雅金风色彩/字体/组件/布局规范 |
-| 实施方案 | `memory-bank/implementation-plan.md` | 任务分解、模块依赖、阶段规划 |
-| 项目进度 | `memory-bank/progress.md` | 代码目录结构、模块状态、变更记录 |
-| 数据分析方案 | `memory-bank/data-analysis-complete.md` | CSV 结构、16 项衍生指标、ECharts 图表 |
-| 安全审查 | `memory-bank/security-review.md` | 安全审查结论与改进项 |
-| AI 操作检查清单 | `memory-bank/ai-checklist.md` | 犯过的错误、遗漏的联动点、修改后自检流程 |
+| UI 规范 | `memory-bank/ui-style-guide.md` | 浅色雅金风完整规范 |
+| 实施方案 | `memory-bank/implementation-plan.md` | 任务分解、模块依赖 |
+| 项目进度 | `memory-bank/progress.md` | 代码目录、模块状态、变更记录 |
+| 数据分析方案 | `memory-bank/data-analysis-complete.md` | CSV 结构、衍生指标、图表 |
+| 安全审查 | `memory-bank/security-review.md` | 安全审查结论 |
+| AI 检查清单 | `memory-bank/ai-checklist.md` | 错误记录、联动规则、自检流程 |
 | 部署文档 | `DEPLOY.md` | Docker Compose 部署全流程 |
-| Git 规范 | `GIT-GUIDE.md` | 分支/提交/发布/tag/双远程同步 |
-| 后端开发文档 | `backend/docs/README.md` | 后端模块需求、开发计划、进度 |
-| 前端开发文档 | `frontend/docs/README.md` | 前端模块需求、开发计划、进度 |
+| Git 规范 | `GIT-GUIDE.md` | 分支/提交/发布/双远程 |
+| 后端开发文档 | `backend/docs/README.md` | 后端需求、进度 |
+| 前端开发文档 | `frontend/docs/README.md` | 前端需求、进度 |

@@ -6,8 +6,10 @@
 构建一个帮会联赛管理系统，支持成员管理、出勤考核、联赛排表、录屏审核和比赛数据分析。
 
 ### 1.2 技术架构
-- 前端：Vue 3 + TypeScript + Vite + Element Plus + Pinia
-- 后端：Python 3.13 + FastAPI + SQLAlchemy + SQLite
+> **权威源**：`tech-stack.md`（完整版本号与依赖列表）
+
+- 前端：Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia
+- 后端：Python 3.13 + FastAPI + SQLAlchemy + SQLite + Alembic
 - 部署：Docker + Docker Compose + Nginx
 
 ### 1.3 开发原则

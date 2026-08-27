@@ -62,49 +62,21 @@ guilds（帮会）
 
 ---
 
-## 2. 技术栈详情
+## 2. 技术栈
 
-### 2.1 前端
+> **权威源**：`tech-stack.md`（含完整版本表、requirements.txt、项目结构、部署方案）
+>
+> 本节仅列出关键信息摘要，详细版本号和依赖列表请查阅权威源。
 
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| Vue | 3.x | UI 框架 |
-| TypeScript | 5.x | 类型系统 |
-| Vite | 5.x | 构建工具 |
-| Element Plus | 2.x | UI 组件库 |
-| Pinia | 2.x | 状态管理 |
-| Vue Router | 4.x | 路由管理 |
-| Axios | 1.x | HTTP 客户端 |
-| ECharts | 6.x | 图表可视化 |
-| vuedraggable | 4.x | 拖拽功能 |
-| html2canvas | 1.x | 导出 PNG |
-| dayjs | 1.x | 日期处理 |
-
-### 2.2 后端
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| Python | 3.13 | 运行环境 |
-| FastAPI | 0.115+ | Web 框架 |
-| SQLAlchemy | 2.0.36 | ORM |
-| SQLite | 3.x | 数据库 |
-| Pydantic | 2.11.4 | 数据验证 |
-| python-jose | 3.3.0 | JWT 认证 |
-| passlib + bcrypt | 1.7.4 / 4.0.1 | 密码加密 |
-| openpyxl | 3.1.5 | Excel 导入导出 |
-| Alembic | 1.13.1 | 数据库迁移 |
-| uvicorn | 0.27.1 | ASGI 服务器 |
-
-### 2.3 部署
-
-- Docker Compose 编排：前端容器（Nginx:80）+ 后端容器（FastAPI:8000）
-- SQLite 数据卷持久化（`./data:/app/data`）
-- Nginx 反向代理 `/api` → 后端，SPA 回退，HTTPS 支持
-- 健康检查探针：后端 `/api/v1/auth/me`
+- 前端：Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia + vuedraggable + html2canvas
+- 后端：Python 3.13 + FastAPI 0.115+ + SQLAlchemy 2.0.36 + SQLite + Pydantic 2.11.4 + Alembic 1.13.1
+- 部署：Docker Compose 编排（前端 Nginx:80 + 后端 FastAPI:8000），SQLite 数据卷持久化，Nginx 反向代理 + SPA 回退 + HTTPS
 
 ---
 
 ## 3. 编码规范
+
+> **权威源**：`.claude/rules/file-length-rule.md`（行数限制）、`ui-style-guide.md`（UI 规范）
 
 ### 3.1 文件行数限制
 
@@ -182,121 +154,47 @@ backend/app/
 
 ## 4. Git 工作流
 
-### 4.1 分支策略
+> **权威源**：`GIT-GUIDE.md`（完整分支策略、提交规范、版本发布、双远程同步）
 
-```
-main（始终可发布）
-├── feature/<功能名>    # 新功能开发
-└── hotfix/<描述>       # 紧急修复
-```
-
-- **不在 main 上直接开发**
-- 合并使用 `--no-ff`（保留合并记录）
-- 功能分支合并后可删除
-
-### 4.2 提交规范
-
-```
-<type>(<scope>): <中文摘要>
-
-[可选正文：中文，解释是什么和为什么]
-```
-
-**类型**：`feat` / `fix` / `docs` / `style` / `refactor` / `perf` / `test` / `chore` / `ci`
-
-**范围**（必填）：根据变更路径推断，如 `auth` / `api` / `ui` / `db` / `lineup` / `attendance` / `config` / `deploy`
-
-**示例**：
-```
-feat(lineup): 新增导入历史排表功能
-
-- 后端新增 GET/POST lineup/history + import 接口
-- 前端新增 ImportHistoryDialog 弹窗（选赛程→按组多选小队）
-- 导入仅覆盖选中小队，仅候选池成员排入
-```
-
-### 4.3 双远程同步
-
-- `origin` → GitHub（`https://github.com/yyyyyyyy-cco/nsh-management.git`）
-- `gitee` → Gitee（`https://gitee.com/Gypsophilaaa/nsh-management.git`）
-- 推送 main 和 tag 时必须同步到两个远程
+- 分支：`main`（始终可发布）+ `feature/<功能名>` + `hotfix/<描述>`
+- 提交：`<type>(<scope>): <中文摘要>`，scope 必填
+- 合并：`--no-ff`
+- 双远程：`origin`（GitHub）+ `gitee`（Gitee）同步推送
 
 ---
 
 ## 5. 文档体系
 
-### 5.1 文档目录
+> **权威源**：`architecture.md`（完整文档索引 + 目录树 + 更新记录）
 
-所有项目文档均在 `memory-bank/` 目录下，统一使用**小写 kebab-case** 命名：
+所有项目文档在 `memory-bank/` 目录下，统一小写 kebab-case 命名。
 
-| 文档 | 用途 | 更新时机 |
-|------|------|---------|
-| `architecture.md` | 文档索引（本文档的导航） | 每次更新其他文档后 |
-| `design-document-v2.md` | 产品设计（功能/权限/页面/API） | 需求变更时 |
-| `database-design.md` | 数据库设计（10 张表/字段/业务规则） | 表结构变更时 |
-| `tech-stack.md` | 技术栈（依赖/版本/项目结构/部署） | 技术选型变更时 |
-| `ui-style-guide.md` | UI 规范（色彩/字体/组件/布局） | 风格调整时 |
-| `implementation-plan.md` | 实施方案（任务分解/依赖/阶段） | 计划调整时 |
-| `progress.md` | 项目进度（代码结构/模块状态/变更记录） | **每次代码变更后** |
-| `data-analysis-complete.md` | 数据分析完整方案 | 数据分析模块调整时 |
-| `security-review.md` | 安全审查记录 | 安全相关变更时 |
-
-### 5.2 文档更新铁律
-
-1. **改代码 → 更新 `progress.md`**（代码目录结构 + 模块说明 + 更新记录）
-2. **改文档 → 更新 `architecture.md`**（文档索引 + 更新记录）
-3. **新增文档 → 在 `architecture.md` 添加索引条目**
-4. **命名规范 → memory-bank 下全部小写 kebab-case**
+**更新铁律**：
+1. 改代码 → 更新 `progress.md`
+2. 改文档 → 更新 `architecture.md`
+3. 新增文档 → 在 `architecture.md` 添加索引
 
 ---
 
 ## 6. 安全要点
 
-### 6.1 已实施的安全措施
-- JWT 认证 + 角色权限控制（developer/admin/member）
-- 登录限流：5 次失败锁定 5 分钟（含未知账号内存计数）
-- 密码策略：≥8 位 + 字母 + 数字
-- bcrypt 密码哈希
-- Excel 导入限制：5MB / .xlsx 格式 / 行数上限
-- Nginx 速率限制 + server_tokens off
-- DEBUG 模式控制异常详情输出
-- Token 版本控制（支持强制登出）
+> **权威源**：`security-review.md`（完整审查结论与改进项）
 
-### 6.2 已知接受风险
-- `users.plain_password` 明文存储（API 层角色限制，仅 developer 可见）
-- localStorage 存储 JWT Token
-- 共享帮众账号（不绑定个人身份）
-- 进程内存登录锁定（重启清零）
-- 无 CSP 头
+**已实施**：JWT + 角色权限、登录限流 5 次/5 分钟、bcrypt、Excel 5MB 限制、Nginx 速率限制、DEBUG 控制异常输出、Token 版本控制
 
-### 6.3 配置注意
-- `SECRET_KEY` 必须在生产环境修改（`config.py` 有默认值但应覆盖）
-- `DEBUG` 默认关闭（生产环境异常详情不入响应）
-- `.env` 文件不入库（`.gitignore` 已排除）
+**已知接受风险**：`users.plain_password` 明文存储（API 层限制）、localStorage Token、共享帮众账号、进程内存锁定
 
 ---
 
 ## 7. 开发环境启动
 
+> **详见**：`README.md` §快速开始
+
 ```bash
-# 后端
-cd backend
-python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\alembic upgrade head
-
-# 前端
-cd frontend
-npm install
-
-# 一键启动（项目根目录）
-start.bat
+# 后端：cd backend → python -m venv .venv → pip install → alembic upgrade head
+# 前端：cd frontend → npm install
+# 一键：start.bat（Windows，自动迁移+初始化+启动）
 ```
-
-启动后：
-- 前端：`http://localhost:5173`（Vite 开发服务器，代理 /api → 后端）
-- 后端：`http://127.0.0.1:8000`（FastAPI，API 文档 `/docs`）
-- 首次启动自动初始化默认账号（密码由环境变量或 start.bat 默认值决定）
 
 ---
 
