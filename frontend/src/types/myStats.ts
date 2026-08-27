@@ -46,6 +46,7 @@ export interface PlayerRecord {
   revive_rate: number
   fen_gu_rate: number
   rankings: RankingItem[]
+  rankings_camp: RankingItem[]
 }
 
 /** 个人概览统计 */

@@ -4,6 +4,13 @@
       <div class="table-header">
         <span class="table-title">各场明细</span>
         <span class="table-sub">共 {{ records.length }} 局（最近 10 场）</span>
+        <div class="header-right">
+          <span v-if="activeTab === 'ratio'" class="rank-hint">重伤次数越多排名越靠前</span>
+          <el-radio-group v-if="activeTab === 'ratio'" v-model="rankScope" size="small">
+            <el-radio-button value="all">全部排名</el-radio-button>
+            <el-radio-button value="camp">己方阵营排名</el-radio-button>
+          </el-radio-group>
+        </div>
       </div>
     </template>
     <el-tabs v-model="activeTab" class="detail-tabs">
@@ -18,7 +25,7 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="局" width="45" align="center">
+          <el-table-column label="局" width="45">
             <template #default="{ row }">{{ row.round_no }}</template>
           </el-table-column>
           <el-table-column label="时间" min-width="90" sortable sort-by="match_time">
@@ -32,12 +39,12 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="KDA" min-width="65" align="right" sortable sort-by="kda">
+          <el-table-column label="KDA" min-width="65" sortable sort-by="kda">
             <template #default="{ row }">
               <span class="num" :class="{ highlight: row.kda >= 5 }">{{ row.kda.toFixed(1) }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="击/助/死" min-width="95" align="center">
+          <el-table-column label="击/助/死" min-width="95">
             <template #default="{ row }">
               <span class="kda-split">
                 <em class="num kda-k">{{ row.kills }}</em>
@@ -48,10 +55,10 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="秒伤" min-width="65" align="right" sortable sort-by="dps">
+          <el-table-column label="秒伤" min-width="65" sortable sort-by="dps">
             <template #default="{ row }"><span class="num">{{ row.dps }}</span></template>
           </el-table-column>
-          <el-table-column label="每死输出" min-width="85" align="right" sortable sort-by="damage_per_death">
+          <el-table-column label="每死输出" min-width="85" sortable sort-by="damage_per_death">
             <template #default="{ row }"><span class="num">{{ fmtNum(row.damage_per_death) }}</span></template>
           </el-table-column>
         </el-table>
@@ -68,19 +75,19 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="局" width="45" align="center">
+          <el-table-column label="局" width="45">
             <template #default="{ row }">{{ row.round_no }}</template>
           </el-table-column>
-          <el-table-column label="对玩家伤害" min-width="100" align="right" sortable sort-by="player_damage">
+          <el-table-column label="对玩家伤害" min-width="100" sortable sort-by="player_damage">
             <template #default="{ row }"><span class="num">{{ fmtNum(row.player_damage) }}</span></template>
           </el-table-column>
-          <el-table-column label="对建筑伤害" min-width="100" align="right" sortable sort-by="building_damage">
+          <el-table-column label="对建筑伤害" min-width="100" sortable sort-by="building_damage">
             <template #default="{ row }"><span class="num">{{ fmtNum(row.building_damage) }}</span></template>
           </el-table-column>
-          <el-table-column label="治疗" min-width="90" align="right" sortable sort-by="healing">
+          <el-table-column label="治疗" min-width="90" sortable sort-by="healing">
             <template #default="{ row }"><span class="num">{{ fmtNum(row.healing) }}</span></template>
           </el-table-column>
-          <el-table-column label="承伤" min-width="90" align="right" sortable sort-by="damage_taken">
+          <el-table-column label="承伤" min-width="90" sortable sort-by="damage_taken">
             <template #default="{ row }"><span class="num">{{ fmtNum(row.damage_taken) }}</span></template>
           </el-table-column>
         </el-table>
@@ -97,59 +104,68 @@
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="局" width="45" align="center">
+          <el-table-column label="局" width="45">
             <template #default="{ row }">{{ row.round_no }}</template>
           </el-table-column>
-          <el-table-column label="击杀占比" min-width="80" align="right" sortable sort-by="kill_ratio">
+          <el-table-column label="击杀占比" min-width="80" sortable sort-by="kill_ratio">
             <template #default="{ row }"><span class="num">{{ pctStr(row.kill_ratio) }}</span></template>
           </el-table-column>
-          <el-table-column label="对玩家伤害占比" min-width="110" align="right" sortable sort-by="player_damage_ratio">
+          <el-table-column label="对玩家伤害占比" min-width="110" sortable sort-by="player_damage_ratio">
             <template #default="{ row }"><span class="num">{{ pctStr(row.player_damage_ratio) }}</span></template>
           </el-table-column>
-          <el-table-column label="对建筑伤害占比" min-width="110" align="right" sortable sort-by="building_ratio">
+          <el-table-column label="对建筑伤害占比" min-width="110" sortable sort-by="building_ratio">
             <template #default="{ row }"><span class="num">{{ pctStr(row.building_ratio) }}</span></template>
           </el-table-column>
-          <el-table-column label="击杀排名" min-width="90" align="center">
+          <el-table-column label="击杀排名" min-width="90">
             <template #default="{ row }">
-              <span v-if="row.rankings?.length" class="rank-cell">
-                <span class="rank-best" :class="rankClass(row.rankings[0])">
-                  #{{ row.rankings[0].rank }}<span class="rank-total">/{{ row.rankings[0].total }}</span>
+              <span v-if="getRankings(row)?.length" class="rank-cell">
+                <span class="rank-best" :class="rankClass(getRankings(row)[0])">
+                  #{{ getRankings(row)[0].rank }}<span class="rank-total">/{{ getRankings(row)[0].total }}</span>
                 </span>
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="对玩家伤害排名" min-width="110" align="center">
+          <el-table-column label="对玩家伤害排名" min-width="110">
             <template #default="{ row }">
-              <span v-if="row.rankings?.length" class="rank-cell">
-                <span class="rank-best" :class="rankClass(row.rankings[1])">
-                  #{{ row.rankings[1]?.rank }}<span class="rank-total">/{{ row.rankings[1]?.total }}</span>
+              <span v-if="getRankings(row)?.length" class="rank-cell">
+                <span class="rank-best" :class="rankClass(getRankings(row)[1])">
+                  #{{ getRankings(row)[1]?.rank }}<span class="rank-total">/{{ getRankings(row)[1]?.total }}</span>
                 </span>
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="对建筑伤害排名" min-width="110" align="center">
+          <el-table-column label="对建筑伤害排名" min-width="110">
             <template #default="{ row }">
-              <span v-if="row.rankings?.length" class="rank-cell">
-                <span class="rank-best" :class="rankClass(row.rankings[2])">
-                  #{{ row.rankings[2]?.rank }}<span class="rank-total">/{{ row.rankings[2]?.total }}</span>
+              <span v-if="getRankings(row)?.length" class="rank-cell">
+                <span class="rank-best" :class="rankClass(getRankings(row)[2])">
+                  #{{ getRankings(row)[2]?.rank }}<span class="rank-total">/{{ getRankings(row)[2]?.total }}</span>
                 </span>
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="治疗排名" min-width="90" align="center">
+          <el-table-column label="治疗排名" min-width="90">
             <template #default="{ row }">
-              <span v-if="row.rankings?.length" class="rank-cell">
-                <span class="rank-best" :class="rankClass(row.rankings[3])">
-                  #{{ row.rankings[3]?.rank }}<span class="rank-total">/{{ row.rankings[3]?.total }}</span>
+              <span v-if="getRankings(row)?.length" class="rank-cell">
+                <span class="rank-best" :class="rankClass(getRankings(row)[3])">
+                  #{{ getRankings(row)[3]?.rank }}<span class="rank-total">/{{ getRankings(row)[3]?.total }}</span>
                 </span>
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="承伤排名" min-width="90" align="center">
+          <el-table-column label="承伤排名" min-width="90">
             <template #default="{ row }">
-              <span v-if="row.rankings?.length" class="rank-cell">
-                <span class="rank-best" :class="rankClass(row.rankings[4])">
-                  #{{ row.rankings[4]?.rank }}<span class="rank-total">/{{ row.rankings[4]?.total }}</span>
+              <span v-if="getRankings(row)?.length" class="rank-cell">
+                <span class="rank-best" :class="rankClass(getRankings(row)[4])">
+                  #{{ getRankings(row)[4]?.rank }}<span class="rank-total">/{{ getRankings(row)[4]?.total }}</span>
+                </span>
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="重伤排名" min-width="90">
+            <template #default="{ row }">
+              <span v-if="getRankings(row)?.length" class="rank-cell">
+                <span class="rank-best" :class="rankClass(getRankings(row)[5])">
+                  #{{ getRankings(row)[5]?.rank }}<span class="rank-total">/{{ getRankings(row)[5]?.total }}</span>
                 </span>
               </span>
             </template>
@@ -170,6 +186,12 @@ import { SCHEDULE_RESULTS } from '@/utils/constants'
 defineProps<{ records: PlayerRecord[] }>()
 
 const activeTab = ref('basic')
+const rankScope = ref<'all' | 'camp'>('all')
+
+/** 根据 rankScope 取对应排名数组 */
+function getRankings(row: PlayerRecord): RankingItem[] {
+  return rankScope.value === 'camp' ? row.rankings_camp : row.rankings
+}
 
 const resultLabel = (value: string) => SCHEDULE_RESULTS.find((r) => r.value === value)?.label || value
 const resultType = (value: string) =>
@@ -193,6 +215,18 @@ function rankClass(r: RankingItem): string {
   gap: 10px;
 }
 
+.header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rank-hint {
+  font-size: 11px;
+  color: var(--ink-400);
+}
+
 .table-title {
   font-family: var(--font-serif);
   font-weight: 700;
@@ -213,6 +247,11 @@ function rankClass(r: RankingItem): string {
   background: var(--gold-gradient);
 }
 
+.detail-tabs :deep(.el-table th .cell),
+.detail-tabs :deep(.el-table td .cell) {
+  text-align: center;
+}
+
 .opponent-cell {
   display: flex;
   align-items: center;
@@ -229,6 +268,7 @@ function rankClass(r: RankingItem): string {
 .prof-cell {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 

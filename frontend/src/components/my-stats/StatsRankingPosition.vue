@@ -3,6 +3,10 @@
     <template #header>
       <div class="ranking-header">
         <span class="ranking-title">排行榜趋势</span>
+        <el-radio-group v-model="scope" size="small" class="scope-switch">
+          <el-radio-button value="all">全部</el-radio-button>
+          <el-radio-button value="camp">己方阵营</el-radio-button>
+        </el-radio-group>
       </div>
     </template>
     <el-tabs v-model="activeRank" class="rank-tabs">
@@ -22,19 +26,18 @@ import EChart from '@/components/match-data/EChart.vue'
 
 const props = defineProps<{ records: PlayerRecord[] }>()
 
+const scope = ref<'all' | 'camp'>('all')
+const activeRank = ref('击杀')
+
 const rankLabels = computed(() => {
   const first = props.records[0]
   return first?.rankings?.map((r) => r.label) || []
 })
 
-const activeRank = ref('')
-
-// 确保 activeRank 有值
-void computed(() => {
-  if (!activeRank.value && rankLabels.value.length) {
-    activeRank.value = rankLabels.value[0]
-  }
-})
+// 根据 scope 选择对应排名数据
+function getRankings(r: PlayerRecord) {
+  return scope.value === 'camp' ? r.rankings_camp : r.rankings
+}
 
 // X 轴：按时间正序
 const sorted = computed(() => [...props.records].reverse())
@@ -46,12 +49,12 @@ const rankColor = '#c9a13b'
 
 function buildOption(label: string) {
   const rankData = sorted.value.map((r) => {
-    const item = r.rankings?.find((rk) => rk.label === label)
+    const item = getRankings(r)?.find((rk) => rk.label === label)
     return item?.rank ?? null
   })
 
   const totalData = sorted.value.map((r) => {
-    const item = r.rankings?.find((rk) => rk.label === label)
+    const item = getRankings(r)?.find((rk) => rk.label === label)
     return item?.total ?? 0
   })
 
@@ -79,7 +82,6 @@ function buildOption(label: string) {
       inverse: true,
       min: 1,
       max: maxTotal,
-      name: '排名（越低越好）',
       nameTextStyle: CHART_THEME.axis.axisName,
       splitLine: CHART_THEME.axis.splitLine,
       axisLabel: {
@@ -118,18 +120,13 @@ function buildOption(label: string) {
 .ranking-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: space-between;
 }
 
 .ranking-title {
   font-family: var(--font-serif);
   font-weight: 700;
   letter-spacing: 1px;
-}
-
-.ranking-sub {
-  font-size: 12px;
-  color: var(--ink-400);
 }
 
 .rank-tabs :deep(.el-tabs__item) {

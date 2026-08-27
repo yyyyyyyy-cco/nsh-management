@@ -74,10 +74,14 @@ async def query_player_stats(session: AsyncSession, guild_id: int, player_name: 
         ct = round_camp_totals_map.get((md.schedule_id, md.round_no, md.camp), _zero_camp_totals(md.camp))
         indicators = calculate_indicators(md, ct)
 
-        # 计算该局真实排名
+        # 计算该局真实排名（全部 + 己方阵营）
         round_recs = round_records_map.get((md.schedule_id, md.round_no), [])
         total_players = len(round_recs)
-        rankings = _calc_rankings(md, round_recs, total_players)
+        rankings_all = _calc_rankings(md, round_recs, total_players)
+
+        camp_recs = [r for r in round_recs if r.camp == md.camp]
+        camp_total = len(camp_recs)
+        rankings_camp = _calc_rankings(md, camp_recs, camp_total)
 
         records.append({
             "schedule_id": md.schedule_id,
@@ -101,7 +105,8 @@ async def query_player_stats(session: AsyncSession, guild_id: int, player_name: 
             "revives": md.revives,
             "fen_gu": md.fen_gu,
             **indicators,
-            "rankings": rankings,
+            "rankings": rankings_all,
+            "rankings_camp": rankings_camp,
         })
 
     # 概览统计

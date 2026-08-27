@@ -59,6 +59,7 @@ class PlayerRecordOut(BaseModel):
     revive_rate: float
     fen_gu_rate: float
     rankings: list[RankingItem]
+    rankings_camp: list[RankingItem]
 
 
 class PlayerSummary(BaseModel):
