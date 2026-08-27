@@ -7,6 +7,7 @@ from app.models.member import Member
 from app.models.profession import ProfessionConfig
 from app.models.recording import Recording
 from app.models.schedule import Schedule
+from app.models.squad_adjustment import SquadAdjustment
 from app.models.user import User
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     "ProfessionConfig",
     "Recording",
     "Schedule",
+    "SquadAdjustment",
     "User",
 ]

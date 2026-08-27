@@ -13,23 +13,23 @@
     </div>
 
     <!-- 占比分析表（独立一行） -->
-    <div class="chart-card">
-      <div class="chart-card__title">占比分析</div>
-      <el-table :data="ratioRows" size="small" max-height="300">
-          <el-table-column prop="name" label="阵营" min-width="70" />
-          <el-table-column prop="kills" label="击杀" min-width="80" align="right">
+    <div class="chart-card ratio-card">
+      <div class="chart-card__title ratio-title">占比分析</div>
+      <el-table :data="ratioRows" size="small" max-height="300" class="ratio-table">
+          <el-table-column prop="name" label="阵营" min-width="70" align="center" />
+          <el-table-column prop="kills" label="击杀" min-width="80" align="center">
             <template #default="{ row }">{{ row.kills }}<em class="pct">{{ row.killsPct }}</em></template>
           </el-table-column>
-          <el-table-column prop="playerDmg" label="玩家伤害" min-width="95" align="right">
+          <el-table-column prop="playerDmg" label="玩家伤害" min-width="95" align="center">
             <template #default="{ row }">{{ row.playerDmg }}<em class="pct">{{ row.playerDmgPct }}</em></template>
           </el-table-column>
-          <el-table-column prop="buildingDmg" label="建筑伤害" min-width="95" align="right">
+          <el-table-column prop="buildingDmg" label="建筑伤害" min-width="95" align="center">
             <template #default="{ row }">{{ row.buildingDmg }}<em class="pct">{{ row.buildingDmgPct }}</em></template>
           </el-table-column>
-          <el-table-column prop="healing" label="治疗" min-width="80" align="right">
+          <el-table-column prop="healing" label="治疗" min-width="80" align="center">
             <template #default="{ row }">{{ row.healing }}<em class="pct">{{ row.healingPct }}</em></template>
           </el-table-column>
-          <el-table-column prop="taken" label="承伤" min-width="80" align="right">
+          <el-table-column prop="taken" label="承伤" min-width="80" align="center">
             <template #default="{ row }">{{ row.taken }}<em class="pct">{{ row.takenPct }}</em></template>
           </el-table-column>
         </el-table>
@@ -198,5 +198,16 @@ const ratioRows = computed(() => {
   font-size: 11px;
   color: var(--ink-400);
   margin-left: 4px;
+}
+
+.ratio-title {
+  text-align: center;
+}
+
+/* 表头 + 内容居中 */
+.ratio-table :deep(.el-table__header th .cell),
+.ratio-table :deep(.el-table__body td .cell) {
+  text-align: center;
+  justify-content: center;
 }
 </style>

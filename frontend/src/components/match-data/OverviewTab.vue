@@ -256,6 +256,24 @@ function campColor(i: number) {
   flex-shrink: 0;
 }
 
+.chart-card {
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  background: var(--ink-bg-paper);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 14px;
+}
+
+.chart-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-serif);
+  letter-spacing: 1px;
+  color: var(--ink-800);
+  margin-bottom: 10px;
+}
+
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
   .hero-grid {

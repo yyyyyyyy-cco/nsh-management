@@ -1,4 +1,4 @@
-"""比赛数据分析业务：CSV 导入、排行榜、职业统计、报告导出。"""
+"""比赛数据分析业务：CSV 导入、排行榜、职业统计、衍生指标、阵营对比、小队分析。"""
 import csv
 import io
 from datetime import datetime, timezone
@@ -7,7 +7,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.match_data import MatchData
-from app.models.schedule import Schedule
+from app.services.lineup_service import get_lineup
 from app.services.schedule_service import get_schedule
 
 # CSV 表头映射（中文列名 → 字段名）
@@ -29,6 +29,10 @@ CSV_COLUMN_MAP = {
 }
 
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+# 比赛时长固定 23 分钟，用于秒伤/技能使用率等指标
+MATCH_DURATION_SECONDS = 23 * 60
+MATCH_DURATION_MINUTES = 23
 
 
 class MatchDataError(Exception):
@@ -188,6 +192,106 @@ async def import_csv(
     }
 
 
+def calculate_indicators(record, camp_totals: dict) -> dict:
+    """计算单条记录的 16 项衍生指标。
+
+    效率指标：KDA / 秒伤 / 参与击杀均伤
+    生存指标：每死输出值 / 每死承伤 / 死亡治疗量 / 治疗转化率
+    占比指标（分母=整个阵营）：击杀 / 助攻 / 人伤 / 拆塔 / 承伤 / 死亡 / 治疗占比
+    技能指标：清泉/羽化使用率（revives）/ 焚骨使用率
+    """
+    kills = record.kills or 0
+    assists = record.assists or 0
+    deaths = record.deaths or 0
+    player_damage = record.player_damage or 0
+    building_damage = record.building_damage or 0  # 拆塔 = 对建筑伤害
+    damage_taken = record.damage_taken or 0
+    healing = record.healing or 0
+    revives = record.revives or 0
+    fen_gu = record.fen_gu or 0
+
+    total_damage = player_damage + building_damage
+    death_denom = max(deaths, 1)
+
+    kda = round((kills + assists) / death_denom, 2)
+    dps = round(total_damage / MATCH_DURATION_SECONDS)
+    kpa_damage = round(total_damage / max(kills + assists, 1))
+    damage_per_death = round(total_damage / death_denom)
+    taken_per_death = round(damage_taken / death_denom)
+    healing_per_death = round(healing / death_denom)
+    heal_conversion = round(healing_per_death / max(taken_per_death, 1), 2)
+
+    def ratio(part: int, total: int) -> float:
+        return round(part / total, 4) if total else 0.0
+
+    return {
+        "kda": kda,
+        "dps": dps,
+        "kpa_damage": kpa_damage,
+        "damage_per_death": damage_per_death,
+        "taken_per_death": taken_per_death,
+        "healing_per_death": healing_per_death,
+        "heal_conversion": heal_conversion,
+        "kill_ratio": ratio(kills, camp_totals["kills"]),
+        "assist_ratio": ratio(assists, camp_totals["assists"]),
+        "player_damage_ratio": ratio(player_damage, camp_totals["player_damage"]),
+        "building_ratio": ratio(building_damage, camp_totals["building_damage"]),
+        "taken_ratio": ratio(damage_taken, camp_totals["damage_taken"]),
+        "death_ratio": ratio(deaths, camp_totals["deaths"]),
+        "heal_ratio": ratio(healing, camp_totals["healing"]),
+        "revive_rate": round(revives / MATCH_DURATION_MINUTES, 4),
+        "fen_gu_rate": round(fen_gu / MATCH_DURATION_MINUTES, 4),
+    }
+
+
+def get_camp_totals(records: list) -> dict[str, dict]:
+    """按阵营汇总数据（占比指标的分母为整个阵营）。"""
+    totals: dict[str, dict] = {}
+    for r in records:
+        camp = r.camp
+        t = totals.setdefault(camp, {
+            "camp": camp, "player_count": 0, "kills": 0, "assists": 0,
+            "player_damage": 0, "building_damage": 0, "healing": 0,
+            "damage_taken": 0, "deaths": 0, "springs": 0, "revives": 0, "fen_gu": 0,
+        })
+        t["player_count"] += 1
+        t["kills"] += r.kills
+        t["assists"] += r.assists
+        t["player_damage"] += r.player_damage
+        t["building_damage"] += r.building_damage
+        t["healing"] += r.healing
+        t["damage_taken"] += r.damage_taken
+        t["deaths"] += r.deaths
+        t["springs"] += r.springs
+        t["revives"] += r.revives
+        t["fen_gu"] += r.fen_gu
+    return totals
+
+
+async def _query_records(
+    session: AsyncSession, schedule_id: int, round_no: int | None = None
+) -> list[MatchData]:
+    """按赛程（可选局）查询比赛数据。"""
+    stmt = select(MatchData).where(MatchData.schedule_id == schedule_id)
+    if round_no is not None:
+        stmt = stmt.where(MatchData.round_no == round_no)
+    stmt = stmt.order_by(MatchData.camp, MatchData.player_name)
+    return list((await session.execute(stmt)).scalars().all())
+
+
+def _record_base(r: MatchData) -> dict:
+    """记录基础字段（不含 resource，遵循“资源忽略不显示”约束）。"""
+    return {
+        "id": r.id, "schedule_id": r.schedule_id, "round_no": r.round_no,
+        "player_name": r.player_name, "profession": r.profession, "camp": r.camp,
+        "kills": r.kills, "springs": r.springs, "assists": r.assists,
+        "player_damage": r.player_damage, "armor_break_damage": r.armor_break_damage,
+        "building_damage": r.building_damage, "tower_break_damage": r.tower_break_damage,
+        "healing": r.healing, "damage_taken": r.damage_taken, "deaths": r.deaths,
+        "revives": r.revives, "fen_gu": r.fen_gu,
+    }
+
+
 async def list_match_data(
     session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None
 ) -> tuple[list[MatchData], list[dict], int, list[int], int]:
@@ -285,7 +389,7 @@ async def get_rankings(
 async def get_profession_stats(
     session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None, camp: str | None = None
 ) -> list[dict]:
-    """获取职业统计数据（可按局过滤）。"""
+    """获取职业深度统计：17 项指标（人数 + 16 项衍生指标均值），含分阵营对比（可按局/阵营过滤）。"""
     await get_schedule(session, guild_id, schedule_id)
 
     stmt = select(MatchData).where(MatchData.schedule_id == schedule_id)
@@ -295,170 +399,179 @@ async def get_profession_stats(
         stmt = stmt.where(MatchData.camp == camp)
 
     records = list((await session.execute(stmt)).scalars().all())
+    if not records:
+        return []
 
-    # 按职业分组统计
-    professions = {}
+    # 占比分母为整个阵营：基于本查询范围内的全部记录计算阵营汇总
+    camp_totals = get_camp_totals(records)
+
+    # 按职业分组
+    grouped: dict[str, list[MatchData]] = {}
     for r in records:
         prof = r.profession or "未知"
-        if prof not in professions:
-            professions[prof] = {
-                "profession": prof,
-                "count": 0,
-                "total_kills": 0,
-                "total_damage": 0,
-                "total_healing": 0,
-            }
-        p = professions[prof]
-        p["count"] += 1
-        p["total_kills"] += r.kills
-        p["total_damage"] += r.player_damage
-        p["total_healing"] += r.healing
+        grouped.setdefault(prof, []).append(r)
 
-    # 计算平均值
     result = []
-    for p in professions.values():
-        result.append({
-            "profession": p["profession"],
-            "count": p["count"],
-            "avg_kills": round(p["total_kills"] / p["count"], 1) if p["count"] > 0 else 0,
-            "avg_damage": round(p["total_damage"] / p["count"], 0) if p["count"] > 0 else 0,
-            "avg_healing": round(p["total_healing"] / p["count"], 0) if p["count"] > 0 else 0,
-        })
+    for prof, recs in grouped.items():
+        count = len(recs)
+        indicators = [calculate_indicators(r, camp_totals[r.camp]) for r in recs]
+
+        # 17 项指标中的 16 项：衍生指标均值（avg_ 前缀）
+        avg = {f"avg_{key}": round(sum(ind[key] for ind in indicators) / count, 4) for key in indicators[0]}
+
+        # 兼容旧消费方的基础均值
+        avg["avg_kills"] = round(sum(r.kills for r in recs) / count, 1)
+        avg["avg_damage"] = round(sum(r.player_damage for r in recs) / count, 0)
+        avg["avg_healing"] = round(sum(r.healing for r in recs) / count, 0)
+
+        # 分阵营均值（供 我方/敌方 对比图表）
+        camps = []
+        by_camp: dict[str, list[MatchData]] = {}
+        for r in recs:
+            by_camp.setdefault(r.camp, []).append(r)
+        for camp_name, camp_recs in by_camp.items():
+            n = len(camp_recs)
+            camp_inds = [calculate_indicators(r, camp_totals[r.camp]) for r in camp_recs]
+            camps.append({
+                "camp": camp_name,
+                "count": n,
+                "avg_kills": round(sum(r.kills for r in camp_recs) / n, 2),
+                "avg_player_damage": round(sum(r.player_damage for r in camp_recs) / n, 0),
+                "avg_building_damage": round(sum(r.building_damage for r in camp_recs) / n, 0),
+                "avg_healing": round(sum(r.healing for r in camp_recs) / n, 0),
+                "avg_damage_taken": round(sum(r.damage_taken for r in camp_recs) / n, 0),
+                "avg_kda": round(sum(ind["kda"] for ind in camp_inds) / n, 2),
+            })
+
+        # 职业差值/波动值（基于分阵营均值，按记录出现顺序取前两个阵营）
+        comparison = []
+        if len(camps) >= 2:
+            a, b = camps[0], camps[1]
+            for metric in ("avg_kills", "avg_player_damage", "avg_building_damage", "avg_healing", "avg_damage_taken", "avg_kda"):
+                v1, v2 = a[metric], b[metric]
+                diff = round(v1 - v2, 4)
+                base = min(v1, v2)
+                wave = round(abs(diff) / base * 100, 2) if base > 0 else 0.0
+                comparison.append({
+                    "metric": metric, "camp1": a["camp"], "camp2": b["camp"],
+                    "value1": v1, "value2": v2, "diff": diff, "wave": wave,
+                })
+
+        result.append({"profession": prof, "count": count, **avg, "camps": camps, "comparison": comparison})
 
     return sorted(result, key=lambda x: x["count"], reverse=True)
 
 
-async def generate_html_report(
+async def get_indicators(
     session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None
-) -> str:
-    """生成 HTML 分析报告（可按局生成）。"""
-    schedule = await get_schedule(session, guild_id, schedule_id)
-    records, camps, _, _, _ = await list_match_data(session, guild_id, schedule_id, round_no)
-    rankings = await get_rankings(session, guild_id, schedule_id, round_no, limit=10)
-    prof_stats = await get_profession_stats(session, guild_id, schedule_id, round_no)
+) -> dict:
+    """获取带 16 项衍生指标的数据列表（可按局过滤）。"""
+    await get_schedule(session, guild_id, schedule_id)
+    records = await _query_records(session, schedule_id, round_no)
+    camp_totals = get_camp_totals(records)
+    items = []
+    for r in records:
+        item = _record_base(r)
+        item.update(calculate_indicators(r, camp_totals[r.camp]))
+        items.append(item)
+    return {"items": items, "camps": list(camp_totals.values())}
 
-    round_label = f"第 {round_no} 局" if round_no is not None else "全部局"
 
-    # 生成 HTML
-    html = f"""<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>比赛数据分析报告（{round_label}） - {schedule.opponent}</title>
-    <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 20px; background: #f9fafb; }}
-        .container {{ max-width: 1200px; margin: 0 auto; }}
-        h1 {{ color: #1f2937; border-bottom: 2px solid #d4af37; padding-bottom: 10px; }}
-        h2 {{ color: #374151; margin-top: 30px; }}
-        .info-card {{ background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; }}
-        .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }}
-        .stat-card {{ background: #fff8e7; padding: 16px; border-radius: 8px; text-align: center; }}
-        .stat-value {{ font-size: 24px; font-weight: 700; color: #b8960e; }}
-        .stat-label {{ font-size: 12px; color: #6b7280; }}
-        table {{ width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }}
-        th {{ background: #f9fafb; padding: 12px; text-align: left; font-weight: 600; color: #374151; }}
-        td {{ padding: 12px; border-top: 1px solid #f3f4f6; }}
-        tr:hover {{ background: #f9fafb; }}
-        .camp-section {{ margin-bottom: 30px; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>比赛数据分析报告</h1>
-        <div class="info-card">
-            <p><strong>对手：</strong>{schedule.opponent}</p>
-            <p><strong>比赛时间：</strong>{schedule.match_time.strftime('%Y-%m-%d %H:%M') if schedule.match_time else '-'}</p>
-            <p><strong>局数：</strong>{schedule.rounds} 局（当前展示：{round_label}）</p>
-        </div>
+async def get_camp_comparison(
+    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None
+) -> dict:
+    """获取阵营对比：各阵营汇总 + 每项指标的我方/敌方差值/波动值。"""
+    await get_schedule(session, guild_id, schedule_id)
+    records = await _query_records(session, schedule_id, round_no)
+    camp_totals = get_camp_totals(records)
 
-        <h2>阵营统计</h2>
-        <div class="stats-grid">
-"""
+    metrics = [
+        ("player_count", "人数"), ("kills", "总击杀"), ("assists", "总助攻"),
+        ("player_damage", "玩家伤害"), ("building_damage", "建筑伤害"),
+        ("healing", "治疗"), ("damage_taken", "承伤"), ("deaths", "死亡"),
+        ("springs", "破泉"), ("revives", "化羽"), ("fen_gu", "焚骨"),
+    ]
+    names = list(camp_totals.keys())
+    comparison = {}
+    for key, label in metrics:
+        row = {name: camp_totals[name][key] for name in names}
+        if len(names) >= 2:
+            a, b = names[0], names[1]
+            diff = row[a] - row[b]
+            base = min(row[a], row[b])
+            row["差值"] = diff
+            row["波动值"] = round(abs(diff) / base * 100, 2) if base > 0 else 0.0
+        else:
+            row["差值"] = 0
+            row["波动值"] = 0.0
+        comparison[label] = row
+    return {"camps": camp_totals, "comparison": comparison}
 
-    for camp in camps:
-        html += f"""
-            <div class="stat-card">
-                <div class="stat-label">{camp['camp']}</div>
-                <div class="stat-value">{camp['player_count']} 人</div>
-                <div class="stat-label">击杀 {camp['total_kills']} | 伤害 {camp['total_damage']:,}</div>
-            </div>
-"""
 
-    html += """
-        </div>
+async def get_squad_analysis(
+    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None
+) -> dict:
+    """小队维度分析：仅分析我方阵营，按 player_name 关联排表（10 队 × 6 人），未匹配归入“未排表”。
 
-        <h2>排行榜</h2>
-"""
+    敌方阵营玩家不参与小队分析（排表只含我方成员，无法还原敌方队伍结构）。
+    """
+    await get_schedule(session, guild_id, schedule_id)
+    records = await _query_records(session, schedule_id, round_no)
+    lineup = await get_lineup(session, guild_id, schedule_id)
 
-    ranking_titles = {
-        "kills_ranking": "击杀榜",
-        "damage_ranking": "玩家伤害榜",
-        "building_ranking": "建筑伤害榜",
-        "healing_ranking": "治疗榜",
-        "taken_ranking": "承伤榜",
-        "fen_gu_ranking": "焚骨榜",
-    }
+    # 玩家名 → 所属小队（category, team_index）
+    name_to_squad: dict[str, tuple[str, int]] = {}
+    for team in lineup.data:
+        cat = team.get("category", "")
+        idx = team.get("team_index", 0)
+        for slot in team.get("slots", []):
+            name = (slot.get("member_name") or "").strip()
+            if name:
+                name_to_squad.setdefault(name, (cat, idx))
 
-    for key, title in ranking_titles.items():
-        html += f"""
-        <h3>{title}</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>排名</th>
-                    <th>玩家</th>
-                    <th>职业</th>
-                    <th>阵营</th>
-                    <th>数值</th>
-                </tr>
-            </thead>
-            <tbody>
-"""
-        for i, item in enumerate(rankings[key], 1):
-            html += f"""
-                <tr>
-                    <td>{i}</td>
-                    <td>{item['player_name']}</td>
-                    <td>{item['profession'] or '-'}</td>
-                    <td>{item['camp']}</td>
-                    <td>{item['value']:,}</td>
-                </tr>
-"""
-        html += """
-            </tbody>
-        </table>
-"""
+    # 我方阵营判定：排表只含我方成员，取命中排表人数最多的阵营作为我方
+    camp_hits: dict[str, int] = {}
+    for r in records:
+        if (r.player_name or "").strip() in name_to_squad:
+            camp_hits[r.camp] = camp_hits.get(r.camp, 0) + 1
+    our_camp = max(camp_hits, key=camp_hits.get) if camp_hits else (records[0].camp if records else None)
+    if our_camp is not None:
+        records = [r for r in records if r.camp == our_camp]
 
-    html += """
-        <h2>职业统计</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th>职业</th>
-                    <th>人数</th>
-                    <th>平均击杀</th>
-                    <th>平均伤害</th>
-                    <th>平均治疗</th>
-                </tr>
-            </thead>
-            <tbody>
-"""
-    for p in prof_stats:
-        html += f"""
-                <tr>
-                    <td>{p['profession']}</td>
-                    <td>{p['count']}</td>
-                    <td>{p['avg_kills']}</td>
-                    <td>{p['avg_damage']:,.0f}</td>
-                    <td>{p['avg_healing']:,.0f}</td>
-                </tr>
-"""
-    html += """
-            </tbody>
-        </table>
-    </div>
-</body>
-</html>
-"""
-    return html
+    camp_totals = get_camp_totals(records)
+    groups: dict[tuple[str, int] | None, list[MatchData]] = {}
+    for r in records:
+        key = name_to_squad.get((r.player_name or "").strip())
+        groups.setdefault(key, []).append(r)
+
+    squad_keys = [(t.get("category", ""), t.get("team_index", 0)) for t in lineup.data] + [None]
+    squads = []
+    for key in squad_keys:
+        recs = groups.get(key)
+        if not recs:
+            continue
+        if key is None:
+            category, team_index, squad_name = "-", -1, "未排表"
+        else:
+            category, team_index = key
+            squad_name = f"{category} 第{team_index + 1}队"
+
+        totals = {k: 0 for k in ("kills", "assists", "player_damage", "building_damage", "healing", "damage_taken", "deaths", "revives", "fen_gu")}
+        members = []
+        for r in recs:
+            ind = calculate_indicators(r, camp_totals[r.camp])
+            for k in totals:
+                totals[k] += getattr(r, k)
+            members.append({**_record_base(r), **ind})
+
+        n = len(recs)
+        indicator_keys = [
+            "kda", "dps", "kpa_damage", "damage_per_death", "taken_per_death",
+            "healing_per_death", "heal_conversion", "revive_rate", "fen_gu_rate",
+        ]
+        indicators = {k: round(sum(m[k] for m in members) / n, 2) for k in indicator_keys}
+        squads.append({
+            "squad_name": squad_name, "category": category, "team_index": team_index,
+            "members": members, "totals": {"player_count": n, **totals}, "indicators": indicators,
+        })
+    return {"squads": squads}

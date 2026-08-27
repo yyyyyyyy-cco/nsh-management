@@ -1,0 +1,111 @@
+# ===== Nginx 配置模板 =====
+# 使用说明：
+# 1. 复制此文件为 nginx.conf
+# 2. 将 YOUR_DOMAIN 替换为你的域名（如 example.com）
+# 3. 将证书路径按实际情况修改（Let's Encrypt 路径格式：/etc/nginx/ssl/live/域名/）
+# 4. 根据需要调整限流参数和上传大小限制
+
+# 拒绝非域名访问（IP 直接访问等）
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/ssl/live/YOUR_DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/live/YOUR_DOMAIN/privkey.pem;
+
+    return 444;
+}
+
+# 隐藏 nginx 版本号（信息泄露防护）
+server_tokens off;
+
+# 接口限流：通用 API 20r/s，登录接口 5r/min（1m 共享内存足够单机部署）
+limit_req_zone $binary_remote_addr zone=api:1m rate=20r/s;
+limit_req_zone $binary_remote_addr zone=login:1m rate=5r/m;
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name YOUR_DOMAIN www.YOUR_DOMAIN;
+
+    # Let's Encrypt 验证
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # 其余全部跳转 HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name YOUR_DOMAIN www.YOUR_DOMAIN;
+
+    ssl_certificate     /etc/nginx/ssl/live/YOUR_DOMAIN/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/live/YOUR_DOMAIN/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_ciphers         HIGH:!aNULL:!MD5;
+
+    # 安全响应头
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Excel 导入等文件上传（nginx 默认 1m 不够）
+    client_max_body_size 20m;
+
+    # 登录接口单独限流（防爆破，5 次/分钟/IP），精确匹配优先于通用 /api/
+    location = /api/v1/auth/login {
+        limit_req zone=login burst=3 nodelay;
+        limit_req_status 429;
+        error_page 429 = @rate_limited;
+        proxy_pass http://backend:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # 后端 API 反代
+    location /api/ {
+        limit_req zone=api burst=40 nodelay;
+        limit_req_status 429;
+        error_page 429 = @rate_limited;
+        proxy_pass http://backend:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # 429 统一 JSON 响应（前端可提取 message 提示用户）
+    location @rate_limited {
+        default_type application/json;
+        return 429 '{"code":429,"message":"请求过于频繁，请稍后重试","data":null}';
+    }
+
+    # SPA 路由回退
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

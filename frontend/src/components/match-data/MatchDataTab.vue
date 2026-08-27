@@ -35,7 +35,10 @@
       </el-select>
       <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
       <div class="spacer" />
-      <el-button v-if="items.length > 0" @click="onExportReport">导出报告</el-button>
+      <el-button text type="primary" @click="guideRef?.open()">
+        <el-icon><InfoFilled /></el-icon>
+        指标说明
+      </el-button>
     </div>
 
     <!-- 该局无任何数据（加载中保持空态并叠加遮罩，避免视图切换闪烁） -->
@@ -52,36 +55,9 @@
         <OverviewTab :items="filteredItems" :camps="camps" />
       </el-tab-pane>
 
-      <!-- 数据列表 -->
+      <!-- 数据列表（16 项衍生指标） -->
       <el-tab-pane label="数据列表" name="list">
-        <el-table :data="filteredItems" max-height="500" fit>
-          <el-table-column prop="player_name" label="ID" align="center" />
-          <el-table-column prop="profession" label="职业" align="center" />
-          <el-table-column prop="camp" label="阵营" align="center" />
-          <el-table-column prop="kills" label="击杀" align="center" sortable />
-          <el-table-column prop="assists" label="助攻" align="center" sortable />
-          <el-table-column prop="player_damage" label="对玩家伤害" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.player_damage) }}</template>
-          </el-table-column>
-          <el-table-column prop="armor_break_damage" label="人伤卸甲" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.armor_break_damage) }}</template>
-          </el-table-column>
-          <el-table-column prop="building_damage" label="对建筑伤害" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.building_damage) }}</template>
-          </el-table-column>
-          <el-table-column prop="tower_break_damage" label="破塔卸甲" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.tower_break_damage) }}</template>
-          </el-table-column>
-          <el-table-column prop="healing" label="治疗" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.healing) }}</template>
-          </el-table-column>
-          <el-table-column prop="damage_taken" label="承伤" align="center" sortable>
-            <template #default="{ row }">{{ formatNumber(row.damage_taken) }}</template>
-          </el-table-column>
-          <el-table-column prop="deaths" label="重伤" align="center" sortable />
-          <el-table-column prop="revives" label="复活/清泉" align="center" sortable />
-          <el-table-column prop="fen_gu" label="焚骨" align="center" sortable />
-        </el-table>
+        <IndicatorsTab :schedule-id="scheduleId" :round-no="roundNo" />
       </el-tab-pane>
 
       <!-- 排行榜（折线图 + 四榜） -->
@@ -89,9 +65,24 @@
         <RankingTab :items="filteredItems" :rankings="rankings" />
       </el-tab-pane>
 
+      <!-- 阵营对比 -->
+      <el-tab-pane label="阵营对比" name="camp-compare">
+        <CampCompareTab :schedule-id="scheduleId" :round-no="roundNo" />
+      </el-tab-pane>
+
+      <!-- 小队分析 -->
+      <el-tab-pane label="小队分析" name="squad">
+        <SquadAnalysisTab :schedule-id="scheduleId" :round-no="roundNo" />
+      </el-tab-pane>
+
       <!-- 职业分析 -->
       <el-tab-pane label="职业分析" name="profession">
         <ProfessionTab :items="filteredItems" />
+      </el-tab-pane>
+
+      <!-- 职业深度（17 项指标） -->
+      <el-tab-pane label="职业深度" name="profession-detail">
+        <ProfessionDetailTab :schedule-id="scheduleId" :round-no="roundNo" />
       </el-tab-pane>
 
       <!-- 综合评分 -->
@@ -100,17 +91,21 @@
       </el-tab-pane>
     </el-tabs>
 
+    <!-- 指标说明弹窗 -->
+    <MetricsGuideDialog ref="guideRef" />
+
     <!-- 隐藏的文件输入 -->
     <input ref="fileInput" type="file" accept=".csv" style="display: none" @change="onFileChange" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { InfoFilled, Search } from '@element-plus/icons-vue'
 
-import { getMatchData, getRankings, getReportUrl, importCsv } from '@/api/matchData'
+import { getMatchData, getRankings, importCsv } from '@/api/matchData'
 import type { CampStats, MatchData, RankingsResponse } from '@/types/matchData'
 import { useAuthStore } from '@/stores/auth'
 import { CAMP_COLORS } from './analysis'
@@ -118,9 +113,16 @@ import OverviewTab from './OverviewTab.vue'
 import RankingTab from './RankingTab.vue'
 import ProfessionTab from './ProfessionTab.vue'
 import ScoreTab from './ScoreTab.vue'
+import IndicatorsTab from './IndicatorsTab.vue'
+import CampCompareTab from './CampCompareTab.vue'
+import SquadAnalysisTab from './SquadAnalysisTab.vue'
+import ProfessionDetailTab from './ProfessionDetailTab.vue'
+import MetricsGuideDialog from './MetricsGuideDialog.vue'
 
 const props = defineProps<{ scheduleId: number }>()
 
+const route = useRoute()
+const router = useRouter()
 const auth = useAuthStore()
 const loading = ref(true) // 初始即加载态，避免空局先渲染空态再切遮罩的闪烁
 const importing = ref(false)
@@ -131,8 +133,10 @@ const importedRounds = ref<number[]>([]) // 已导入的局号列表
 const roundNo = ref(1) // 当前展示/导入目标局
 const selectedCamp = ref('')
 const nameFilter = ref('')
-const activeTab = ref('overview')
+// 注意：子 tab 用独立参数名 matchTab，避免覆盖外层 ScheduleDetailView 的 tab 参数（否则刷新后会掉回默认的出勤库）
+const activeTab = ref(String(route.query.matchTab || 'overview'))
 const fileInput = ref<HTMLInputElement | null>(null)
+const guideRef = ref<InstanceType<typeof MetricsGuideDialog> | null>(null)
 const rankings = ref<RankingsResponse>({
   kills_ranking: [],
   damage_ranking: [],
@@ -158,6 +162,11 @@ const filteredItems = computed(() => {
     list = list.filter((r) => r.player_name.includes(kw))
   }
   return list
+})
+
+/** activeTab 变化时同步到 URL query（独立参数名 matchTab） */
+watch(activeTab, (tab) => {
+  router.replace({ query: { ...route.query, matchTab: tab } })
 })
 
 onMounted(load)
@@ -189,6 +198,11 @@ async function loadRankings() {
     limit: 10,
   })
 }
+
+/** 阵营筛选变化时重载排行榜 */
+watch(selectedCamp, () => {
+  if (items.value.length > 0) loadRankings()
+})
 
 function onImport() {
   fileInput.value?.click()
@@ -222,11 +236,6 @@ async function onFileChange(event: Event) {
     importing.value = false
     input.value = '' // 重置 input
   }
-}
-
-function onExportReport() {
-  const url = getReportUrl(props.scheduleId, roundNo.value)
-  window.open(url, '_blank')
 }
 
 function formatNumber(value: number): string {

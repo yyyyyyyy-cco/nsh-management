@@ -1,13 +1,5 @@
 <template>
   <div class="profession-tab">
-    <!-- 筛选栏 -->
-    <div class="toolbar">
-      <el-select v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px">
-        <el-option v-for="c in camps" :key="c" :label="c" :value="c" />
-      </el-select>
-      <span class="toolbar__count">{{ filteredItems.length }} 人</span>
-    </div>
-
     <!-- 三个图表 -->
     <div class="chart-grid">
       <div class="chart-card">
@@ -26,7 +18,7 @@
 
     <!-- 明细表 -->
     <div class="chart-card">
-      <div class="chart-card__title">职业明细</div>
+      <div class="chart-card__title">职业明细（{{ props.items.length }} 人）</div>
       <el-table :data="profStats" size="small">
         <el-table-column prop="profession" label="职业" min-width="70">
           <template #default="{ row }">
@@ -65,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 
 import type { MatchData } from '@/types/matchData'
 import { aggregateProfessions, fmtNum, profColor, PROF_COLORS } from './analysis'
@@ -74,30 +66,7 @@ import { CHART_THEME } from './chartTheme'
 
 const props = defineProps<{ items: MatchData[] }>()
 
-// 窄屏（≤768px）下饼图图例改为底部水平排布，避免挤压图表
-const isMobile = ref(false)
-let mq: MediaQueryList | null = null
-
-function onMqChange(e: MediaQueryListEvent) {
-  isMobile.value = e.matches
-}
-
-onMounted(() => {
-  mq = window.matchMedia('(max-width: 768px)')
-  isMobile.value = mq.matches
-  mq.addEventListener('change', onMqChange)
-})
-
-onBeforeUnmount(() => {
-  mq?.removeEventListener('change', onMqChange)
-})
-
-const campFilter = ref('')
-const camps = computed(() => [...new Set(props.items.map((r) => r.camp))])
-const filteredItems = computed(() =>
-  campFilter.value ? props.items.filter((r) => r.camp === campFilter.value) : props.items,
-)
-const profStats = computed(() => aggregateProfessions(props.items, campFilter.value || undefined))
+const profStats = computed(() => aggregateProfessions(props.items))
 
 function hex(c: string): string {
   return c.length > 7 ? c.slice(0, 7) : c
@@ -110,14 +79,13 @@ function pieOption(field: 'count' | 'total_player_damage', showCount: boolean) {
       ...CHART_THEME.tooltip,
       formatter: showCount ? '{b}: {c}人 ({d}%)' : '{b}: {d}%',
     },
-    legend: isMobile.value
-      ? { orient: 'horizontal', bottom: 0, ...CHART_THEME.legend }
-      : { orient: 'vertical', right: 5, top: 'center', ...CHART_THEME.legend },
+    // 图例固定底部横向（窄容器下右侧竖排图例会与饼图重叠）
+    legend: { orient: 'horizontal', bottom: 0, type: 'scroll', ...CHART_THEME.legend },
     series: [
       {
         type: 'pie',
-        radius: ['45%', '75%'],
-        center: isMobile.value ? ['50%', '44%'] : ['40%', '50%'],
+        radius: ['38%', '66%'],
+        center: ['50%', '42%'],
         data: profStats.value
           .filter((p) => (field === 'count' ? true : p.total_player_damage > 0))
           .map((p) => ({
@@ -202,17 +170,6 @@ const barOption = computed(() => {
   gap: 12px;
 }
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.toolbar__count {
-  font-size: 13px;
-  color: var(--ink-500);
-}
-
 .chart-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -258,10 +215,6 @@ const barOption = computed(() => {
 
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
-  .toolbar {
-    flex-wrap: wrap;
-  }
-
   .chart-grid {
     grid-template-columns: 1fr;
   }
