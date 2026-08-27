@@ -10,7 +10,7 @@
 
     <ScheduleCalendar :schedules="schedules" @select-schedule="goDetail" @select-date="openCreate" @month-change="load" />
 
-    <el-card shadow="never" class="table-card">
+    <el-card v-if="auth.isAdmin" shadow="never" class="table-card">
       <template #header>
         <div class="table-header">
           <span>{{ viewMode === 'month' ? '本月赛程' : '全部赛程' }}</span>
@@ -47,7 +47,7 @@
         <el-table-column label="操作" min-width="130">
           <template #default="{ row }">
             <el-button link type="primary" @click="goDetail(row)">详情</el-button>
-            <el-button v-if="auth.isAdmin" link type="danger" @click="onDelete(row)">删除</el-button>
+            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>

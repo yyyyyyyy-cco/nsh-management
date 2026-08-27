@@ -14,9 +14,13 @@
           <el-icon><HomeFilled /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'member'" index="/league-overview" :title="collapsed ? '联赛总览' : undefined">
+        <el-menu-item v-if="auth.user?.role === 'member'" index="/league-overview" :title="collapsed ? '录屏上传' : undefined">
           <el-icon><VideoCamera /></el-icon>
-          <span>联赛总览</span>
+          <span>录屏上传</span>
+        </el-menu-item>
+        <el-menu-item v-if="auth.user?.role === 'member'" index="/schedules" :title="collapsed ? '联赛日程' : undefined">
+          <el-icon><Calendar /></el-icon>
+          <span>联赛日程</span>
         </el-menu-item>
         <el-menu-item v-if="auth.isAdmin && !auth.isDeveloper" index="/members" :title="collapsed ? '常驻库' : undefined">
           <el-icon><UserFilled /></el-icon>

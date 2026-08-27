@@ -44,7 +44,7 @@ const router = createRouter({
           path: 'league-overview',
           name: 'league-overview',
           component: () => import('@/views/schedules/LeagueOverviewView.vue'),
-          meta: { title: '联赛总览' },
+          meta: { title: '录屏上传' },
         },
         {
           path: 'config',
