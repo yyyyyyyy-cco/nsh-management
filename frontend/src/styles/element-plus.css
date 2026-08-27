@@ -116,6 +116,25 @@
 
 /* 斑马纹可选，这里不做 */
 
+/* 表格固定列：--el-table-bg-color 为透明，横向滚动时固定列会透出下层内容，
+   此处显式铺不透明背景（表头跟随渐变、行 hover 跟随高亮色） */
+.el-table__body-wrapper tr td.el-table-fixed-column--left,
+.el-table__body-wrapper tr td.el-table-fixed-column--right,
+.el-table__header-wrapper tr th.el-table-fixed-column--left,
+.el-table__header-wrapper tr th.el-table-fixed-column--right {
+  background-color: var(--el-bg-color);
+}
+
+.el-table__header-wrapper tr th.el-table-fixed-column--left,
+.el-table__header-wrapper tr th.el-table-fixed-column--right {
+  background-image: linear-gradient(180deg, #f7f2e7 0%, #f1eadd 100%);
+}
+
+.el-table__body-wrapper tr:hover > td.el-table-fixed-column--left,
+.el-table__body-wrapper tr:hover > td.el-table-fixed-column--right {
+  background-color: var(--el-table-row-hover-bg-color);
+}
+
 /* ===== 弹窗：宣纸面板 + 宋体标题 ===== */
 /* 弹窗在视口内垂直居中（桌面与移动端统一，避免内容偏高/超出视口） */
 .el-overlay-dialog {
@@ -132,6 +151,71 @@
   box-shadow: var(--shadow-lg);
   background: var(--ink-bg-paper);
   padding: 24px;
+}
+
+/* 小队详情/对比弹窗：固定高度压在视口内。
+   注意：必须在全局定义，组件内 .detail-dialog :deep(.el-dialog) 编译为后代选择器，
+   而 detail-dialog 与 el-dialog 是同一根元素且无父组件 data-v 属性，永远无法命中。 */
+.el-dialog.detail-dialog {
+  display: flex;
+  flex-direction: column;
+  /* 3vh 顶部边距 + 高度 96vh-48px，合计恒小于 100vh */
+  height: calc(100vh - 4vh - 48px);
+  margin: 3vh auto 0 !important;
+}
+
+.el-dialog.detail-dialog .el-dialog__header {
+  flex-shrink: 0;
+  padding-bottom: 12px;
+}
+
+.el-dialog.detail-dialog .el-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 14px 20px 18px;
+}
+
+.el-dialog.compare-dialog {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 8vh - 48px);
+  margin: 4vh auto 0 !important;
+}
+
+.el-dialog.compare-dialog .el-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+/* 图表查看弹窗（小队详情弹窗内点击图表名弹出）：图表占满 body */
+.el-dialog.chart-viewer-dialog {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 16vh - 48px);
+  margin: 8vh auto 0 !important;
+}
+
+.el-dialog.chart-viewer-dialog .el-dialog__header {
+  flex-shrink: 0;
+}
+
+.el-dialog.chart-viewer-dialog .el-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 20px 18px;
+}
+
+.el-dialog.chart-viewer-dialog .el-dialog__body .echart {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
 }
 
 .el-dialog__header {
@@ -401,6 +485,12 @@
   .el-dialog__body {
     overflow-y: auto;
     min-height: 0;
+  }
+
+  /* 小队详情/对比弹窗：近全宽（原组件内 scoped 规则对 el-dialog 根元素不生效，移入全局） */
+  .el-dialog.detail-dialog,
+  .el-dialog.compare-dialog {
+    width: calc(100vw - 20px) !important;
   }
 
   .el-dialog__header,

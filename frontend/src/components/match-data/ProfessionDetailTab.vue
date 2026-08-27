@@ -29,7 +29,7 @@
           <EChart :option="metricBarOption('avg_player_damage')" :height="340" />
         </div>
         <div class="chart-card">
-          <div class="chart-card__title">职业平均治疗（治疗职业：素问 / 鸿音 / 潮光）</div>
+          <div class="chart-card__title">职业平均治疗</div>
           <EChart :option="metricBarOption('avg_healing', { filterProf: isHealer, fmt: fmtNum })" :height="340" />
         </div>
       </div>

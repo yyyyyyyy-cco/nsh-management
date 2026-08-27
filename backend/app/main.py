@@ -15,6 +15,7 @@ from app.services.match_data_service import MatchDataError
 from app.services.member_service import MemberServiceError
 from app.services.recording_service import RecordingServiceError
 from app.services.schedule_service import ScheduleServiceError
+from app.services.squad_adjustment_service import SquadAdjustmentError
 from app.utils.excel_import import ExcelImportError
 
 app = FastAPI(title=settings.APP_NAME)
@@ -85,6 +86,11 @@ async def recording_error_handler(request: Request, exc: RecordingServiceError) 
 
 @app.exception_handler(MatchDataError)
 async def match_data_error_handler(request: Request, exc: MatchDataError) -> JSONResponse:
+    return error_response(exc.status_code, exc.message)
+
+
+@app.exception_handler(SquadAdjustmentError)
+async def squad_adjustment_error_handler(request: Request, exc: SquadAdjustmentError) -> JSONResponse:
     return error_response(exc.status_code, exc.message)
 
 

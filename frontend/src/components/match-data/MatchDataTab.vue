@@ -133,7 +133,8 @@ const importedRounds = ref<number[]>([]) // 已导入的局号列表
 const roundNo = ref(1) // 当前展示/导入目标局
 const selectedCamp = ref('')
 const nameFilter = ref('')
-const activeTab = ref((route.query.tab as string) || 'overview')
+// 注意：子 tab 用独立参数名 matchTab，避免覆盖外层 ScheduleDetailView 的 tab 参数（否则刷新后会掉回默认的出勤库）
+const activeTab = ref(String(route.query.matchTab || 'overview'))
 const fileInput = ref<HTMLInputElement | null>(null)
 const guideRef = ref<InstanceType<typeof MetricsGuideDialog> | null>(null)
 const rankings = ref<RankingsResponse>({
@@ -163,9 +164,9 @@ const filteredItems = computed(() => {
   return list
 })
 
-/** activeTab 变化时同步到 URL query */
+/** activeTab 变化时同步到 URL query（独立参数名 matchTab） */
 watch(activeTab, (tab) => {
-  router.replace({ query: { ...route.query, tab } })
+  router.replace({ query: { ...route.query, matchTab: tab } })
 })
 
 onMounted(load)

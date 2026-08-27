@@ -57,7 +57,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 
 import type { MatchData } from '@/types/matchData'
 import { aggregateProfessions, fmtNum, profColor, PROF_COLORS } from './analysis'
@@ -65,24 +65,6 @@ import EChart from './EChart.vue'
 import { CHART_THEME } from './chartTheme'
 
 const props = defineProps<{ items: MatchData[] }>()
-
-// 窄屏（≤768px）下饼图图例改为底部水平排布，避免挤压图表
-const isMobile = ref(false)
-let mq: MediaQueryList | null = null
-
-function onMqChange(e: MediaQueryListEvent) {
-  isMobile.value = e.matches
-}
-
-onMounted(() => {
-  mq = window.matchMedia('(max-width: 768px)')
-  isMobile.value = mq.matches
-  mq.addEventListener('change', onMqChange)
-})
-
-onBeforeUnmount(() => {
-  mq?.removeEventListener('change', onMqChange)
-})
 
 const profStats = computed(() => aggregateProfessions(props.items))
 
@@ -97,14 +79,13 @@ function pieOption(field: 'count' | 'total_player_damage', showCount: boolean) {
       ...CHART_THEME.tooltip,
       formatter: showCount ? '{b}: {c}人 ({d}%)' : '{b}: {d}%',
     },
-    legend: isMobile.value
-      ? { orient: 'horizontal', bottom: 0, ...CHART_THEME.legend }
-      : { orient: 'vertical', right: 5, top: 'center', ...CHART_THEME.legend },
+    // 图例固定底部横向（窄容器下右侧竖排图例会与饼图重叠）
+    legend: { orient: 'horizontal', bottom: 0, type: 'scroll', ...CHART_THEME.legend },
     series: [
       {
         type: 'pie',
-        radius: ['45%', '75%'],
-        center: isMobile.value ? ['50%', '44%'] : ['40%', '50%'],
+        radius: ['38%', '66%'],
+        center: ['50%', '42%'],
         data: profStats.value
           .filter((p) => (field === 'count' ? true : p.total_player_damage > 0))
           .map((p) => ({
