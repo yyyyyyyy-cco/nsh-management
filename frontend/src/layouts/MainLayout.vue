@@ -228,7 +228,7 @@ async function onCommand(command: string | number | object) {
   font-size: 13.5px;
   letter-spacing: 1px;
   position: relative;
-  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast);
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast), box-shadow var(--dur-fast);
 }
 
 .menu :deep(.el-menu-item .el-icon) {

@@ -45,9 +45,9 @@
   position: absolute;
   top: 0;
   left: -60%;
-  width: 40%;
+  width: 60%;
   height: 100%;
-  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.55), transparent);
   transform: skewX(-20deg);
   transition: left 0.5s ease;
 }
@@ -230,9 +230,9 @@
   position: absolute;
   left: 0;
   bottom: -1px;
-  width: 56px;
+  width: 100%;
   height: 2px;
-  background: var(--gold-gradient);
+  background: linear-gradient(90deg, var(--gold-400) 0%, var(--gold-300) 20%, var(--gold-200) 80%, transparent 100%);
   border-radius: 2px;
 }
 
@@ -451,23 +451,23 @@
   border-top-color: var(--gold-400);
 }
 
-/* ===== 滚动条：暖色 ===== */
+/* ===== 滚动条：金色调 ===== */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d8d0bd;
+  background: #d4c5a0;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #c4b99e;
+  background: #c4b28a;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #f5f0e6;
 }
 
 /* ===== 移动端（≤768px）Element Plus 组件适配 ===== */

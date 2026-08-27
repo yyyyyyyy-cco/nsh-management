@@ -38,6 +38,7 @@
         </div>
         <div class="stat-card__value">
           <span v-if="loading" class="stat-card__skeleton">-</span>
+          <span v-else-if="card.numeric" class="stat-card__number num">{{ card.display }}</span>
           <span v-else class="stat-card__number num">{{ card.value }}</span>
           <span class="stat-card__suffix">{{ card.suffix }}</span>
         </div>
@@ -93,8 +94,8 @@
           </div>
         </div>
 
-        <!-- 职业配置概览 -->
-        <div v-if="!auth.isDeveloper" class="card">
+        <!-- 职业配置概览（辅助卡片层级） -->
+        <div v-if="!auth.isDeveloper" class="card card--aux">
           <div class="card__header">
             <div class="card__header-left">
               <el-icon class="card__header-icon"><PieChart /></el-icon>
@@ -113,12 +114,12 @@
         <!-- 历史总览 -->
         <div class="overview-bar">
           <div class="overview-item">
-            <div class="overview-item__value num">{{ memberCount }}</div>
+            <div class="overview-item__value num">{{ animatedMemberCount }}</div>
             <div class="overview-item__label">帮众总数</div>
           </div>
           <div class="overview-item__sep" />
           <div class="overview-item">
-            <div class="overview-item__value num">{{ scheduleCount }}</div>
+            <div class="overview-item__value num">{{ animatedScheduleCount }}</div>
             <div class="overview-item__label">历史比赛</div>
           </div>
         </div>
@@ -166,8 +167,8 @@
           </div>
         </div>
 
-        <!-- 快捷操作 -->
-        <div class="card">
+        <!-- 快捷操作（辅助卡片层级） -->
+        <div class="card card--aux">
           <div class="card__header">
             <div class="card__header-left">
               <el-icon class="card__header-icon"><Lightning /></el-icon>
@@ -214,6 +215,7 @@ import { getProfessionStats, listMembers, getAttendanceRate, type AttendanceRate
 import { listSchedules } from '@/api/schedules'
 import type { ScheduleInfo } from '@/types/schedule'
 import { sortSchedulesByProximity } from '@/utils/scheduleSort'
+import { useCountUp } from '@/composables/useCountUp'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -225,6 +227,12 @@ const allSchedules = ref<ScheduleInfo[]>([])
 const recentSchedules = ref<ScheduleInfo[]>([])
 const topAttendance = ref<AttendanceRateItem[]>([])
 const professionStats = ref<{ name: string; count: number; color: string }[]>([])
+
+/** 数字滚动 refs */
+const animatedMemberCount = useCountUp(memberCount)
+const animatedScheduleCount = useCountUp(scheduleCount)
+const topRate = computed(() => topAttendance.value[0]?.attendance_rate)
+const animatedTopRate = useCountUp(topRate, { decimals: 0 })
 
 /** 今日比赛：从完整赛程中筛选（recentSchedules 仅保留 5 条，不能作为判断依据）。 */
 const todaySchedules = computed(() =>
@@ -265,12 +273,12 @@ const roleLabel = computed(() => {
 })
 
 const statCards = computed(() => {
-  const topRate = topAttendance.value[0]?.attendance_rate
+  const rate = topAttendance.value[0]?.attendance_rate
   return [
-    { key: 'members', label: '帮众总数', value: memberCount.value, suffix: '人', icon: UserFilled, theme: 'primary' },
-    { key: 'matches', label: '历史比赛', value: scheduleCount.value, suffix: '场', icon: Calendar, theme: 'gold' },
-    { key: 'top', label: '出勤之星', value: topAttendance.value[0]?.name || '-', suffix: '', icon: Trophy, theme: 'success' },
-    { key: 'rate', label: '最高出勤', value: topRate != null ? Math.round(topRate * 100) : '-', suffix: topRate != null ? '%' : '', icon: TrendCharts, theme: 'warning' },
+    { key: 'members', label: '帮众总数', value: memberCount.value, suffix: '人', icon: UserFilled, theme: 'primary', numeric: true, display: animatedMemberCount.value },
+    { key: 'matches', label: '历史比赛', value: scheduleCount.value, suffix: '场', icon: Calendar, theme: 'gold', numeric: true, display: animatedScheduleCount.value },
+    { key: 'top', label: '出勤之星', value: topAttendance.value[0]?.name || '-', suffix: '', icon: Trophy, theme: 'success', numeric: false, display: '' },
+    { key: 'rate', label: '最高出勤', value: rate != null ? Math.round(rate * 100) : '-', suffix: rate != null ? '%' : '', icon: TrendCharts, theme: 'warning', numeric: rate != null, display: rate != null ? Math.round(animatedTopRate.value * 100) : '-' },
   ]
 })
 
@@ -475,19 +483,8 @@ onMounted(async () => {
   border-radius: var(--radius-lg);
   padding: 18px 20px 16px;
   box-shadow: var(--shadow-sm);
-  animation: card-rise 0.4s var(--ease-out) both;
+  animation: stat-pop 0.4s var(--ease-out) both;
   transition: transform var(--dur-normal) var(--ease-out), box-shadow var(--dur-normal) var(--ease-out);
-}
-
-@keyframes card-rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .stat-card:hover {
@@ -612,6 +609,29 @@ onMounted(async () => {
   height: 2px;
   background: var(--gold-line);
   opacity: 0.6;
+}
+
+/* 辅助卡片层级：快捷操作/职业分布 — 更浅底色，更轻阴影 */
+.card--aux {
+  background: var(--ink-bg-cream);
+  box-shadow: none;
+  border-color: var(--edge-faint);
+}
+
+.card--aux::before {
+  opacity: 0.35;
+}
+
+/* 信息条层级：历史总览 — 内敛底色 */
+.overview-bar {
+  background: var(--ink-bg-wash);
+  border: 1px solid var(--edge-faint);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  box-shadow: none;
 }
 
 .card__header {
@@ -829,19 +849,52 @@ onMounted(async () => {
 .rank-item__number--1 {
   background: linear-gradient(135deg, #f6c94d, #d4a017);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(212, 160, 23, 0.4);
+  box-shadow: 0 2px 8px rgba(212, 160, 23, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.rank-item__number--1::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  animation: medal-shimmer 2.5s ease-in-out infinite;
 }
 
 .rank-item__number--2 {
   background: linear-gradient(135deg, #c9c9c9, #9a9a9a);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(154, 154, 154, 0.35);
+  box-shadow: 0 2px 6px rgba(154, 154, 154, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.rank-item__number--2::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: medal-shimmer 3s ease-in-out infinite;
+  animation-delay: 0.5s;
 }
 
 .rank-item__number--3 {
   background: linear-gradient(135deg, #e0a877, #b97f4b);
   color: #fff;
   box-shadow: 0 2px 6px rgba(185, 127, 75, 0.35);
+}
+
+@keyframes medal-shimmer {
+  0% { left: -100%; }
+  50% { left: 150%; }
+  100% { left: 150%; }
 }
 
 .rank-item__dot {
@@ -911,18 +964,6 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 600;
   color: var(--ink-600);
-}
-
-/* ===== 历史总览 ===== */
-.overview-bar {
-  background: var(--ink-bg-paper);
-  border: 1px solid var(--edge-soft);
-  border-radius: var(--radius-lg);
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  box-shadow: var(--shadow-sm);
 }
 
 .overview-item {
