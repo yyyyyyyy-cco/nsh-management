@@ -56,7 +56,7 @@ import dayjs from 'dayjs'
 
 import { listSchedules } from '@/api/schedules'
 import type { ScheduleInfo } from '@/types/schedule'
-import { SCHEDULE_RESULTS } from '@/utils/constants'
+import { resultLabel, resultType } from '@/utils/constants'
 import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 
 const router = useRouter()
@@ -87,9 +87,6 @@ const filterSubText = computed(() => {
   return '全部联赛场次'
 })
 
-const resultLabel = (value: string) => SCHEDULE_RESULTS.find((r) => r.value === value)?.label || value
-const resultType = (value: string) =>
-  value === 'win' ? 'success' : value === 'lose' ? 'danger' : value === 'draw' ? 'primary' : 'info'
 const formatDate = (value: string) => dayjs(value).format('YYYY-MM-DD')
 const formatClock = (value: string) => dayjs(value).format('HH:mm')
 

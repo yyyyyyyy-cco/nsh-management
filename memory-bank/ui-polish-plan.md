@@ -188,6 +188,22 @@
 
 ---
 
+## 2.5 P-R · 代码质量重构
+
+### 2.5.1 职业色映射统一
+- **现状**：`PROF_COLORS` 散落在 14 个文件中，每改一次色值需改 14 处
+- **方案**：抽取到 `utils/profession.ts`，全站一处维护；`match-data/analysis.ts` 已有导出，保持不变
+- **涉及文件**：新增 `utils/profession.ts`，修改 12 个组件文件删除本地定义
+- **验收标准**：`grep -r "const PROF_COLORS" frontend/src/` 仅命中 `profession.ts` 和 `analysis.ts`
+
+### 2.5.2 结果类型函数统一
+- **现状**：`resultType()`/`resultLabel()` 在 5 个文件中重复
+- **方案**：抽取到 `utils/constants.ts`，复用已有的 `SCHEDULE_RESULTS` 常量
+- **涉及文件**：修改 `constants.ts`（新增函数），修改 5 个页面文件删除本地定义
+- **验收标准**：`grep -r "function resultType\|function resultLabel\|const resultLabel\|const resultType" frontend/src/` 仅命中 `constants.ts`
+
+---
+
 ## 6. 移动端适配原则
 
 - 所有动画在 `@media (max-width: 768px)` 下保持，但时长缩短（`var(--dur-normal)` 即 0.22s）
@@ -201,3 +217,4 @@
 | 日期 | 更新内容 |
 |------|---------|
 | 2026-08-26 | 初始化 UI 优化方案文档（v1.0），4 优先级 11 项优化 |
+| 2026-08-26 | v1.1 新增 §2.5 代码质量重构：职业色映射统一（utils/profession.ts，14→1 文件）、结果类型函数统一（utils/constants.ts，5→1 文件） |

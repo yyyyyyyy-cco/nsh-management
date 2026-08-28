@@ -163,6 +163,7 @@ import FillerDialog from '@/components/attendance/FillerDialog.vue'
 import SubstituteImportDialog from '@/components/attendance/SubstituteImportDialog.vue'
 import LeaveImportDialog from '@/components/attendance/LeaveImportDialog.vue'
 import ImportMemberDialog from '@/components/attendance/ImportMemberDialog.vue'
+import { profColor } from '@/utils/profession'
 
 const props = defineProps<{ scheduleId: number }>()
 
@@ -210,17 +211,6 @@ const filteredItems = computed(() => {
     return !kw || r.member_name.toLowerCase().includes(kw)
   })
 })
-
-/** 职业色映射（依据 ui-style-guide）。 */
-const PROF_COLORS: Record<string, string> = {
-  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
-  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
-  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
-}
-
-function profColor(prof: string) {
-  return PROF_COLORS[prof] || '#c9a13b'
-}
 
 /** 切换出勤职业（主/副）。 */
 async function onProfessionChange(row: AttendanceRecord, profession: string) {

@@ -28,3 +28,13 @@ export const SCHEDULE_RESULTS = [
   { value: 'lose', label: '负' },
   { value: 'draw', label: '平' },
 ] as const
+
+/** 赛程结果标签文字 */
+export function resultLabel(value: string): string {
+  return SCHEDULE_RESULTS.find((r) => r.value === value)?.label || value
+}
+
+/** 赛程结果 Element Plus tag type */
+export function resultType(value: string): '' | 'success' | 'danger' | 'info' {
+  return value === 'win' ? 'success' : value === 'lose' ? 'danger' : 'info'
+}

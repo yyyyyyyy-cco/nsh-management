@@ -67,7 +67,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { deleteSchedule, listSchedules } from '@/api/schedules'
 import { useAuthStore } from '@/stores/auth'
 import type { ScheduleInfo } from '@/types/schedule'
-import { SCHEDULE_RESULTS } from '@/utils/constants'
+import { resultLabel, resultType } from '@/utils/constants'
 import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 import ScheduleCalendar from '@/components/schedules/ScheduleCalendar.vue'
 import ScheduleFormDialog from '@/components/schedules/ScheduleFormDialog.vue'
@@ -81,9 +81,6 @@ const formVisible = ref(false)
 const editingSchedule = ref<ScheduleInfo | null>(null)
 const defaultDate = ref('')
 
-const resultLabel = (value: string) => SCHEDULE_RESULTS.find((r) => r.value === value)?.label || value
-const resultType = (value: string) =>
-  value === 'win' ? 'success' : value === 'lose' ? 'danger' : value === 'draw' ? 'primary' : 'info'
 const formatDate = (value: string) => dayjs(value).format('MM-DD')
 const formatClock = (value: string) => dayjs(value).format('HH:mm')
 

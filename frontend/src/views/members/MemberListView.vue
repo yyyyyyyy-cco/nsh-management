@@ -117,6 +117,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { batchDeleteMembers, deleteMember, listMembers, type MemberStats, type MemberQuery } from '@/api/members'
 import type { MemberInfo } from '@/types/member'
 import { MEMBER_STATUSES, PROFESSIONS } from '@/utils/constants'
+import { PROF_COLORS } from '@/utils/profession'
 import AttendanceRatePanel from '@/components/members/AttendanceRatePanel.vue'
 import ProfessionShortage from '@/components/members/ProfessionShortage.vue'
 import MemberFormDialog from '@/components/members/MemberFormDialog.vue'
@@ -148,13 +149,6 @@ const editingMember = ref<MemberInfo | null>(null)
 
 /** 初始默认按 ID 正序（与后端白名单字段 name 对应）。 */
 const query = reactive<MemberQuery>({ page: 1, page_size: 20, sort_by: 'name', sort_order: 'asc' })
-
-/** 职业颜色（依据 ui-style-guide §9 职业色映射）。 */
-const PROF_COLORS: Record<string, string> = {
-  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
-  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
-  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
-}
 
 function profStyle(prof: string) {
   const bg = PROF_COLORS[prof] || '#e5e7eb'

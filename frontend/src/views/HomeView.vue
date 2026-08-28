@@ -83,7 +83,7 @@
                   <div class="schedule-item__opponent">vs {{ s.opponent }}</div>
                   <div class="schedule-item__meta">
                     <span>{{ formatTime(s.match_time) }}</span>
-                    <el-tag v-if="s.result" :type="resultTagType(s.result)" size="small" effect="light">
+                    <el-tag v-if="s.result" :type="resultType(s.result)" size="small" effect="light">
                       {{ resultLabel(s.result) }}
                     </el-tag>
                   </div>
@@ -150,16 +150,16 @@
                 <span class="rank-item__number num" :class="`rank-item__number--${i + 1}`">
                   {{ i + 1 }}
                 </span>
-                <span class="rank-item__dot" :style="{ background: getProfColor(m.main_profession) }" />
+                <span class="rank-item__dot" :style="{ background: profColor(m.main_profession) }" />
                 <span class="rank-item__name">{{ m.name }}</span>
                 <el-progress
                   :percentage="(m.attendance_rate ?? 0) * 100"
                   :stroke-width="6"
                   :show-text="false"
-                  :color="getProfColor(m.main_profession)"
+                  :color="profColor(m.main_profession)"
                   style="flex: 1"
                 />
-                <span class="rank-item__rate num" :style="{ color: getProfColor(m.main_profession) }">
+                <span class="rank-item__rate num" :style="{ color: profColor(m.main_profession) }">
                   {{ m.attendance_rate != null ? `${ratePercent(m.attendance_rate)}%` : '-' }}
                 </span>
               </div>
@@ -214,8 +214,10 @@ import { useAuthStore } from '@/stores/auth'
 import { getProfessionStats, listMembers, getAttendanceRate, type AttendanceRateItem } from '@/api/members'
 import { listSchedules } from '@/api/schedules'
 import type { ScheduleInfo } from '@/types/schedule'
+import { resultLabel, resultType } from '@/utils/constants'
 import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 import { useCountUp } from '@/composables/useCountUp'
+import { profColor } from '@/utils/profession'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -238,13 +240,6 @@ const animatedTopRate = useCountUp(topRate, { decimals: 0 })
 const todaySchedules = computed(() =>
   allSchedules.value.filter((s) => dayjs(s.match_time).isSame(dayjs(), 'day')),
 )
-
-/** 职业色映射（依据 ui-style-guide，全站一致）。 */
-const PROF_COLORS: Record<string, string> = {
-  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
-  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
-  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
-}
 
 /** 出勤率小数（0~1）转百分数整数。 */
 function ratePercent(rate: number | null | undefined): number | string {
@@ -295,10 +290,6 @@ const quickActions = computed(() => {
   ]
 })
 
-function getProfColor(prof: string) {
-  return PROF_COLORS[prof] || '#999'
-}
-
 function formatDay(t: string) {
   return dayjs(t).format('DD')
 }
@@ -311,13 +302,6 @@ function formatTime(t: string) {
   return dayjs(t).format('HH:mm')
 }
 
-function resultTagType(r: string) {
-  return r === 'win' ? 'success' : r === 'lose' ? 'danger' : 'info'
-}
-
-function resultLabel(r: string) {
-  return r === 'win' ? '胜利' : r === 'lose' ? '失败' : r === 'draw' ? '平局' : '待定'
-}
 
 /** 跳转今日第一场比赛详情（多条时前往第一条）。 */
 function goTodaySchedule() {
@@ -362,7 +346,7 @@ onMounted(async () => {
       tasks.push(
         getProfessionStats().then((r) => {
           professionStats.value = r
-            .map((s) => ({ name: s.profession, count: s.count, color: PROF_COLORS[s.profession] || '#999' }))
+            .map((s) => ({ name: s.profession, count: s.count, color: profColor(s.profession) }))
             .sort((a, b) => b.count - a.count)
         })
       )

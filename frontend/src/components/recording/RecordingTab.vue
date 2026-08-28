@@ -124,6 +124,7 @@ import {
 } from '@/api/recording'
 import type { Recording, RoundProgress } from '@/types/recording'
 import { useAuthStore } from '@/stores/auth'
+import { profColor } from '@/utils/profession'
 
 const props = defineProps<{ scheduleId: number }>()
 
@@ -168,17 +169,6 @@ const filteredItems = computed(() => {
 /** 点击局数切换筛选（再次点击取消）。 */
 function toggleRound(round: number) {
   roundFilter.value = roundFilter.value === round ? null : round
-}
-
-/** 职业色映射（依据 ui-style-guide）。 */
-const PROF_COLORS: Record<string, string> = {
-  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
-  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
-  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
-}
-
-function profColor(prof: string | null | undefined) {
-  return (prof && PROF_COLORS[prof]) || '#c9a13b'
 }
 
 /** 补全录屏链接协议（用户常只填域名/编号，缺协议浏览器无法直接打开）。 */

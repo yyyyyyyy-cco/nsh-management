@@ -28,6 +28,7 @@
 import { ref, watch } from 'vue'
 
 import type { CandidateItem } from '@/composables/lineupBoard'
+import { profColor } from '@/utils/profession'
 
 const props = defineProps<{ matches: CandidateItem[]; keyword: string }>()
 const emit = defineEmits<{ confirm: [item: CandidateItem] }>()
@@ -39,17 +40,6 @@ const selectedKey = ref<string | null>(null)
 watch(visible, (v) => {
   if (v) selectedKey.value = props.matches[0]?.key ?? null
 })
-
-/** 职业色映射（与全站一致）。 */
-const PROF_COLORS: Record<string, string> = {
-  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
-  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
-  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
-}
-
-function profColor(prof: string) {
-  return PROF_COLORS[prof] || '#c9a13b'
-}
 
 function onConfirm() {
   const item = props.matches.find((m) => m.key === selectedKey.value)

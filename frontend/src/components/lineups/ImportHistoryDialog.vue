@@ -79,6 +79,7 @@ import dayjs from 'dayjs'
 
 import { getLineupHistory, importLineup } from '@/api/lineups'
 import type { LineupHistoryItem } from '@/types/lineup'
+import { profColor } from '@/utils/profession'
 
 const props = defineProps<{ scheduleId: number }>()
 const emit = defineEmits<{ imported: [] }>()
@@ -97,17 +98,6 @@ const GROUPS = [
   { category: '防守1', label: '防守一', type: 'defense' },
   { category: '防守2', label: '防守二', type: 'defense' },
 ]
-
-/** 职业色映射（依据 ui-style-guide）。 */
-const PROF_COLORS: Record<string, string> = {
-  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
-  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
-  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
-}
-
-function profColor(prof: string | null | undefined) {
-  return (prof && PROF_COLORS[prof]) || '#c9a13b'
-}
 
 const current = computed(() => history.value.find((h) => h.schedule_id === selectedSchedule.value) ?? null)
 

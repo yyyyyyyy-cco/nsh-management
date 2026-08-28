@@ -181,7 +181,7 @@ import { ref } from 'vue'
 
 import type { PlayerRecord, RankingItem } from '@/types/myStats'
 import { profColor, fmtNum } from '@/components/match-data/analysis'
-import { SCHEDULE_RESULTS } from '@/utils/constants'
+import { resultLabel, resultType } from '@/utils/constants'
 
 defineProps<{ records: PlayerRecord[] }>()
 
@@ -193,9 +193,6 @@ function getRankings(row: PlayerRecord): RankingItem[] {
   return rankScope.value === 'camp' ? row.rankings_camp : row.rankings
 }
 
-const resultLabel = (value: string) => SCHEDULE_RESULTS.find((r) => r.value === value)?.label || value
-const resultType = (value: string) =>
-  value === 'win' ? 'success' : value === 'lose' ? 'danger' : value === 'draw' ? 'primary' : 'info'
 const formatDate = (value: string) => value.slice(0, 10)
 const pctStr = (v: number) => (v * 100).toFixed(1) + '%'
 

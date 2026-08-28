@@ -70,7 +70,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { deleteSchedule, getSchedule } from '@/api/schedules'
 import { useAuthStore } from '@/stores/auth'
 import type { ScheduleInfo } from '@/types/schedule'
-import { SCHEDULE_RESULTS } from '@/utils/constants'
+import { resultLabel, resultType } from '@/utils/constants'
 import AttendanceTab from '@/components/attendance/AttendanceTab.vue'
 import LineupTab from '@/components/lineups/LineupTab.vue'
 import RecordingTab from '@/components/recording/RecordingTab.vue'
@@ -90,9 +90,6 @@ const VALID_TABS = ['attendance', 'lineup', 'recording', 'analysis']
 const defaultTab = auth.user?.role === 'member' ? 'recording' : 'attendance'
 const activeTab = ref(VALID_TABS.includes(String(route.query.tab)) ? String(route.query.tab) : defaultTab)
 
-const resultLabel = (value: string) => SCHEDULE_RESULTS.find((r) => r.value === value)?.label || value
-const resultType = (value: string) =>
-  value === 'win' ? 'success' : value === 'lose' ? 'danger' : value === 'draw' ? 'primary' : 'info'
 const formatTime = (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm')
 
 onMounted(load)
