@@ -40,15 +40,6 @@
                 >
                   <span class="team-card__title">{{ t.category }} {{ t.team_index + 1 }} 队</span>
                 </el-checkbox>
-                <div class="team-card__slots">
-                  <span v-for="(s, i) in t.slots" :key="i" class="slot-preview">
-                    <span v-if="s.member_name" class="slot-chip">
-                      <i class="prof-dot" :style="{ background: profColor(s.profession) }" />
-                      {{ s.member_name }}
-                    </span>
-                    <span v-else class="slot-empty">—</span>
-                  </span>
-                </div>
               </label>
             </div>
           </div>
@@ -79,7 +70,6 @@ import dayjs from 'dayjs'
 
 import { getLineupHistory, importLineup } from '@/api/lineups'
 import type { LineupHistoryItem } from '@/types/lineup'
-import { profColor } from '@/utils/profession'
 
 const props = defineProps<{ scheduleId: number }>()
 const emit = defineEmits<{ imported: [] }>()
@@ -211,6 +201,8 @@ async function onConfirm() {
   border-radius: var(--radius-lg);
   overflow: hidden;
   background: var(--ink-bg-paper);
+  /* 禁止 flex 压缩：窄屏单列时内容超高的分组若被压缩，会因 overflow: hidden 裁掉小队标签 */
+  flex-shrink: 0;
 }
 
 .team-group--attack {
@@ -293,41 +285,6 @@ async function onConfirm() {
   font-size: 12px;
   font-weight: 700;
   color: var(--ink-700);
-}
-
-.team-card__slots {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-top: 6px;
-}
-
-.slot-preview {
-  font-size: 11px;
-  min-height: 18px;
-}
-
-.slot-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--ink-700);
-  font-weight: 600;
-  background: var(--ink-bg-paper);
-  border: 1px solid var(--edge-faint);
-  border-radius: var(--radius-xl);
-  padding: 0 8px;
-}
-
-.prof-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.slot-empty {
-  color: var(--ink-300);
 }
 
 .dialog-hint {
