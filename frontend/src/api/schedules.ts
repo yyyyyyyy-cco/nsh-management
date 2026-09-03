@@ -18,6 +18,13 @@ export function updateSchedule(id: number, data: SchedulePayload): Promise<Sched
   return http.put(`/schedules/${id}`, data)
 }
 
+export function updateScheduleProfessionConfig(
+  id: number,
+  configs: Record<string, number> | null,
+): Promise<ScheduleInfo> {
+  return http.put(`/schedules/${id}/profession-config`, { configs })
+}
+
 export function deleteSchedule(id: number): Promise<{ message: string }> {
   return http.delete(`/schedules/${id}`)
 }

@@ -107,11 +107,12 @@ async def import_excel(
 
 @router.get("/profession-stats", response_model=list[ProfessionStat])
 async def profession_stats(
+    formal_only: bool = Query(False, description="仅统计状态为正式的成员（缺少职业提示用）"),
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> list[ProfessionStat]:
     """职业分布统计（首页仪表盘用，聚合查询）。"""
-    return await member_service.profession_stats(session, current_user.guild_id)
+    return await member_service.profession_stats(session, current_user.guild_id, formal_only)
 
 
 @router.get("/attendance-rate", response_model=list[AttendanceRateItem])

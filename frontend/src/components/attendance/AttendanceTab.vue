@@ -22,19 +22,26 @@
       </div>
     </div>
 
-    <!-- 职业缺口分析（配置目标 vs 当前出勤） -->
-    <div v-if="professionGap.some((g) => g.target > 0)" class="gap-bar">
-      <span class="gap-bar__label">职业缺口</span>
-      <span
-        v-for="g in professionGap"
-        :key="g.profession"
-        class="gap-chip"
-        :class="{ need: g.gap > 0, full: g.gap <= 0 }"
-      >
-        {{ g.profession }}
-        <template v-if="g.gap > 0">缺{{ g.gap }}</template>
-        <template v-else>已满</template>
-      </span>
+    <!-- 职业缺口分析（配置目标 vs 当前出勤）；目标默认沿用系统配置，管理员可单场覆盖 -->
+    <div v-if="auth.isAdmin || hasGapTarget" class="gap-bar">
+      <template v-if="hasGapTarget">
+        <span class="gap-bar__label">职业缺口</span>
+        <span
+          v-for="g in professionGap"
+          :key="g.profession"
+          class="gap-chip"
+          :class="{ need: g.gap > 0, full: g.gap === 0, surplus: g.gap < 0 }"
+        >
+          {{ g.profession }}
+          <template v-if="g.gap > 0">缺{{ g.gap }}</template>
+          <template v-else-if="g.gap < 0">多{{ -g.gap }}</template>
+          <template v-else>已满</template>
+        </span>
+      </template>
+      <div v-if="auth.isAdmin" class="gap-bar__actions">
+        <el-tag v-if="customConfig" size="small" type="warning" effect="plain">已自定义</el-tag>
+        <button class="gap-chip need gap-chip--action" @click="profCfgVisible = true">修改职业配置</button>
+      </div>
     </div>
 
     <div v-if="auth.isAdmin" class="toolbar">
@@ -118,6 +125,13 @@
     <SubstituteImportDialog v-model="substituteVisible" :schedule-id="scheduleId" @success="load" />
     <LeaveImportDialog v-model="leaveImportVisible" :schedule-id="scheduleId" :records="items" @success="load" />
     <ImportMemberDialog v-model="memberImportVisible" :schedule-id="scheduleId" @success="load" />
+    <ProfessionConfigDialog
+      v-model:visible="profCfgVisible"
+      :schedule-id="scheduleId"
+      :initial="effectiveTargets"
+      :has-custom="!!customConfig"
+      @saved="onProfessionConfigSaved"
+    />
 
     <!-- 一键移除：候选池中未被排入排表的已出勤（正常）成员 -->
     <el-dialog v-model="removeVisible" title="移除未排入排表的人员" width="min(420px, 92vw)" append-to-body>
@@ -154,6 +168,7 @@ import {
   updateStatus,
 } from '@/api/attendance'
 import { getProfessionConfigs } from '@/api/config'
+import { getSchedule } from '@/api/schedules'
 import { getLineup, getLineupCandidates } from '@/api/lineups'
 import type { ProfessionConfig } from '@/types/config'
 import type { AttendanceRecord, AttendanceStats } from '@/types/attendance'
@@ -163,6 +178,7 @@ import FillerDialog from '@/components/attendance/FillerDialog.vue'
 import SubstituteImportDialog from '@/components/attendance/SubstituteImportDialog.vue'
 import LeaveImportDialog from '@/components/attendance/LeaveImportDialog.vue'
 import ImportMemberDialog from '@/components/attendance/ImportMemberDialog.vue'
+import ProfessionConfigDialog from '@/components/attendance/ProfessionConfigDialog.vue'
 import { profColor } from '@/utils/profession'
 
 const props = defineProps<{ scheduleId: number }>()
@@ -180,6 +196,8 @@ const keyword = ref('')
 const professionFilter = ref('')
 const typeFilter = ref('')
 const statusFilter = ref('')
+const customConfig = ref<Record<string, number> | null>(null) // 单场职业配置覆盖，null 沿用系统配置
+const profCfgVisible = ref(false)
 
 /** 类型筛选选项：正式 / 替补 / 补人。 */
 const TYPE_OPTIONS = [
@@ -220,6 +238,17 @@ async function onProfessionChange(row: AttendanceRecord, profession: string) {
   ElMessage.success(`已将「${row.member_name}」的职业设为 ${updated.profession}`)
 }
 
+/** 当前生效目标人数：单场覆盖优先，否则用系统配置。 */
+const effectiveTargets = computed<Record<string, number>>(() => {
+  if (customConfig.value) return customConfig.value
+  const map: Record<string, number> = {}
+  for (const c of professionConfigs.value) map[c.profession] = c.target_count || 0
+  return map
+})
+
+/** 是否存在目标人数大于 0 的职业（决定是否展示缺口 chips）。 */
+const hasGapTarget = computed(() => professionGap.value.some((g) => g.target > 0))
+
 /** 各职业缺口：目标人数 - 当前正常出勤人数（请假视为缺口）。 */
 const professionGap = computed(() => {
   const current: Record<string, number> = {}
@@ -227,21 +256,31 @@ const professionGap = computed(() => {
     if (r.status === 'normal') current[r.profession] = (current[r.profession] || 0) + 1
   }
   return PROF_ORDER.map((p) => {
-    const cfg = professionConfigs.value.find((c) => c.profession === p)
-    const target = cfg?.target_count || 0
+    const target = effectiveTargets.value[p] || 0
     return { profession: p, target, current: current[p] || 0, gap: target - (current[p] || 0) }
   })
 })
+
+/** 单场职业配置保存/恢复后更新本地覆盖值，立即重算缺口。 */
+function onProfessionConfigSaved(configs: Record<string, number> | null) {
+  customConfig.value = configs
+  profCfgVisible.value = false
+}
 
 onMounted(load)
 
 async function load() {
   loading.value = true
   try {
-    const [data, configs] = await Promise.all([getAttendance(props.scheduleId), getProfessionConfigs()])
+    const [data, configs, schedule] = await Promise.all([
+      getAttendance(props.scheduleId),
+      getProfessionConfigs(),
+      getSchedule(props.scheduleId),
+    ])
     items.value = data.items
     stats.value = data.stats
     professionConfigs.value = configs
+    customConfig.value = schedule.profession_config ?? null
   } finally {
     loading.value = false
   }
@@ -391,6 +430,13 @@ async function onConfirmRemove() {
   margin-right: 4px;
 }
 
+.gap-bar__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
 /* ===== 职业缺口条 ===== */
 .gap-bar {
   display: flex;
@@ -428,6 +474,24 @@ async function onConfirmRemove() {
 
 .gap-chip.full {
   color: var(--ink-300);
+}
+
+.gap-chip.surplus {
+  font-weight: 700;
+  color: var(--jade);
+  border-color: var(--jade);
+}
+
+/* 与缺口标签同款的药丸按钮（置于 chip 样式后以便 hover 覆盖） */
+.gap-chip--action {
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.gap-chip--action:hover {
+  background: var(--gold-100);
+  border-color: var(--gold-400);
 }
 
 .toolbar {

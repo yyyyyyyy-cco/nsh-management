@@ -7,7 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, require_admin
 from app.core.database import get_db
 from app.models.user import User
-from app.schemas.schedule import ScheduleCreate, ScheduleOut, ScheduleUpdate
+from app.schemas.schedule import (
+    ScheduleCreate,
+    ScheduleOut,
+    ScheduleProfessionConfigUpdate,
+    ScheduleUpdate,
+)
 from app.services import schedule_service
 
 router = APIRouter(prefix="/schedules", tags=["联赛日程"])
@@ -52,6 +57,20 @@ async def update_schedule(
     session: AsyncSession = Depends(get_db),
 ) -> ScheduleOut:
     schedule = await schedule_service.update_schedule(session, current_user.guild_id, schedule_id, body)
+    return ScheduleOut.model_validate(schedule)
+
+
+@router.put("/{schedule_id}/profession-config", response_model=ScheduleOut)
+async def update_profession_config(
+    schedule_id: int,
+    body: ScheduleProfessionConfigUpdate,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> ScheduleOut:
+    """设置/清除单场职业配置覆盖（configs 为 None 时恢复默认，沿用系统配置）。"""
+    schedule = await schedule_service.update_profession_config(
+        session, current_user.guild_id, schedule_id, body.configs
+    )
     return ScheduleOut.model_validate(schedule)
 
 

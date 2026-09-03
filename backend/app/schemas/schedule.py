@@ -28,6 +28,13 @@ class ScheduleOut(BaseModel):
     rounds: int
     result: str
     round_results: list | None
+    profession_config: dict[str, int] | None = None  # 单场职业配置覆盖，NULL 沿用系统配置
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ScheduleProfessionConfigUpdate(BaseModel):
+    """单场职业配置覆盖：configs 为 {职业: 目标人数}，None 表示恢复默认（沿用系统配置）。"""
+
+    configs: dict[str, int] | None = None

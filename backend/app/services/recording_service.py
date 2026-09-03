@@ -30,24 +30,38 @@ async def ensure_recordings(session: AsyncSession, schedule: Schedule, attendanc
         )
     ).scalars().all()
 
-    # 按 (member_name, round_number) 建立索引（补人 member_id 为 NULL，用姓名更可靠）
+    # 索引键与数据库唯一约束 (schedule_id, member_id, round_number) 对齐：
+    # 有 member_id 的按 member_id 匹配（成员改名后仍能命中旧记录，避免撞唯一约束），
+    # member_id 为空的按姓名兜底
     existing_map = {}
     for r in existing:
-        key = (r.member_name, r.round_number)
-        if key not in existing_map:
-            existing_map[key] = r
+        if r.member_id is not None:
+            key = (f"id:{r.member_id}", r.round_number)
+        else:
+            key = (f"name:{r.member_name}", r.round_number)
+        existing_map.setdefault(key, r)
 
-    # 为出勤库成员创建录屏占位记录（出勤成员按姓名去重，防止同名多条出勤导致重复占位）
-    seen_names = set()
+    # 同一成员只处理一次（按 member_id 去重，防止同名多条出勤导致重复占位）
+    seen_members = set()
     recordings = []
+    name_changed = False
     for record in attendance_records:
-        if record.member_name in seen_names:
+        if record.member_id is not None:
+            member_key = f"id:{record.member_id}"
+        else:
+            member_key = f"name:{record.member_name}"
+        if member_key in seen_members:
             continue
-        seen_names.add(record.member_name)
+        seen_members.add(member_key)
         for round_num in range(1, schedule.rounds + 1):
-            key = (record.member_name, round_num)
-            if key in existing_map:
-                recordings.append(existing_map[key])
+            key = (member_key, round_num)
+            found = existing_map.get(key)
+            if found is not None:
+                # 成员改名：跟随出勤库刷新姓名，而不是新建占位
+                if found.member_name != record.member_name:
+                    found.member_name = record.member_name
+                    name_changed = True
+                recordings.append(found)
             else:
                 # 创建新的占位记录，并写回索引防止重复创建
                 new_recording = Recording(
@@ -62,7 +76,7 @@ async def ensure_recordings(session: AsyncSession, schedule: Schedule, attendanc
                 existing_map[key] = new_recording
                 recordings.append(new_recording)
 
-    if any(r.id is None for r in recordings):
+    if any(r.id is None for r in recordings) or name_changed:
         await session.commit()
         # 刷新新创建的记录以获取 ID
         for r in recordings:

@@ -8,6 +8,7 @@ export interface ScheduleInfo {
   rounds: number
   result: 'win' | 'lose' | 'draw' | 'pending'
   round_results: string[] | null
+  profession_config?: Record<string, number> | null // 单场职业配置覆盖，空/未定义沿用系统配置
   created_at: string
 }
 

@@ -10,6 +10,7 @@ from app.models.match_data import MatchData
 from app.models.recording import Recording
 from app.models.schedule import Schedule
 from app.schemas.schedule import ScheduleCreate, ScheduleUpdate
+from app.utils.constants import PROFESSIONS
 
 SCHEDULE_RESULTS = ["win", "lose", "draw", "pending"]
 
@@ -69,6 +70,23 @@ async def update_schedule(session: AsyncSession, guild_id: int, schedule_id: int
             raise ScheduleServiceError("无效的局结果")
     for field, value in changes.items():
         setattr(schedule, field, value)
+    await session.commit()
+    await session.refresh(schedule)
+    return schedule
+
+
+async def update_profession_config(
+    session: AsyncSession, guild_id: int, schedule_id: int, configs: dict[str, int] | None
+) -> Schedule:
+    """设置/清除单场职业配置覆盖。configs 为 None 时恢复默认（沿用系统配置）。"""
+    schedule = await get_schedule(session, guild_id, schedule_id)
+    if configs is not None:
+        for profession, target in configs.items():
+            if profession not in PROFESSIONS:
+                raise ScheduleServiceError(f"无效的职业：{profession}")
+            if not isinstance(target, int) or not 0 <= target <= 60:
+                raise ScheduleServiceError(f"职业「{profession}」的目标人数无效（0-60）")
+    schedule.profession_config = configs
     await session.commit()
     await session.refresh(schedule)
     return schedule

@@ -284,6 +284,8 @@ async def import_lineup(
     candidates = await candidate_pool(session, guild_id, schedule_id)
     pool_mids = {c["member_id"] for c in candidates if c["member_id"] is not None}
     pool_names = {c["member_name"] for c in candidates if c["member_id"] is None}
+    # member_id → 出勤库最新姓名：成员改名后用新名替换历史排表里的旧名快照
+    mid_name = {c["member_id"]: c["member_name"] for c in candidates if c["member_id"] is not None}
 
     keys = set(team_keys)
     source_map = {(t["category"], t["team_index"]): t for t in source.data}
@@ -305,7 +307,7 @@ async def import_lineup(
             name = (src.get("member_name") or "").strip()
             if mid is not None and mid in pool_mids:
                 slots.append(
-                    {**slot, "member_id": mid, "member_name": name, "remark": src.get("remark") or ""}
+                    {**slot, "member_id": mid, "member_name": mid_name.get(mid, name), "remark": src.get("remark") or ""}
                 )
                 imported += 1
             elif mid is None and name and name in pool_names:

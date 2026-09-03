@@ -58,18 +58,32 @@ async def list_members(
     base = apply_filters(select(Member), guild_id, keyword, profession, status)
     total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
     # 正式/替补人数（跟随当前筛选条件，供列表页统计展示）
-    # 注意：必须引用子查询列 sub.c.status，若引用 ORM 列 Member.status 会令原始表加入 FROM 产生笛卡尔积
     sub = base.subquery()
-    status_rows = (
-        await session.execute(
-            select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status)
-        )
-    ).all()
-    status_counts = dict(status_rows)
-    stats = {
-        "formal_count": int(status_counts.get("formal", 0)),
-        "substitute_count": int(status_counts.get("substitute", 0)),
-    }
+    if profession:
+        # 职业筛选下的统计口径：主职业命中且本身为正式 → 正式；副职业命中或本身为替补 → 替补
+        formal_count = (
+            await session.execute(
+                select(func.count())
+                .select_from(sub)
+                .where(sub.c.main_profession == profession, sub.c.status == "formal")
+            )
+        ).scalar_one()
+        stats = {
+            "formal_count": int(formal_count),
+            "substitute_count": int(total) - int(formal_count),
+        }
+    else:
+        # 注意：必须引用子查询列 sub.c.status，若引用 ORM 列 Member.status 会令原始表加入 FROM 产生笛卡尔积
+        status_rows = (
+            await session.execute(
+                select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status)
+            )
+        ).all()
+        status_counts = dict(status_rows)
+        stats = {
+            "formal_count": int(status_counts.get("formal", 0)),
+            "substitute_count": int(status_counts.get("substitute", 0)),
+        }
     # 排序（白名单字段防注入）：指定字段时按 asc/desc，否则默认按创建时间倒序
     sortable = {
         "name": Member.name,
@@ -87,15 +101,16 @@ async def list_members(
     return list(items), total, stats
 
 
-async def profession_stats(session: AsyncSession, guild_id: int) -> list[dict]:
-    """职业分布统计（首页仪表盘聚合，避免全量拉取成员）。"""
-    rows = (
-        await session.execute(
-            select(Member.main_profession, func.count())
-            .where(Member.guild_id == guild_id)
-            .group_by(Member.main_profession)
-        )
-    ).all()
+async def profession_stats(session: AsyncSession, guild_id: int, formal_only: bool = False) -> list[dict]:
+    """职业分布统计（首页仪表盘聚合，避免全量拉取成员）。
+
+    formal_only 为 True 时仅统计状态为正式的成员（缺少职业提示用，
+    口径与列表页职业筛选下的「正式」一致：主职业命中且状态为正式）。
+    """
+    stmt = select(Member.main_profession, func.count()).where(Member.guild_id == guild_id)
+    if formal_only:
+        stmt = stmt.where(Member.status == "formal")
+    rows = (await session.execute(stmt.group_by(Member.main_profession))).all()
     return [{"profession": p, "count": c} for p, c in rows]
 
 

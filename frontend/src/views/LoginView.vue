@@ -29,6 +29,20 @@
         <el-button type="primary" class="submit" :loading="loading" :disabled="locked" @click="onSubmit">登 录</el-button>
       </el-form>
     </div>
+
+    <!-- 底部备案信息 -->
+    <footer class="beian">
+      <a href="https://beian.miit.gov.cn/" target="_blank" rel="noreferrer">浙ICP备2026068650号-1</a>
+      <a
+        href="https://beian.mps.gov.cn/#/query/webSearch?code=33019202003234"
+        target="_blank"
+        rel="noreferrer"
+        class="beian-ga"
+      >
+        <img :src="beianIcon" alt="公安备案图标" class="beian-icon" />
+        浙公网安备33019202003234号
+      </a>
+    </footer>
   </div>
 </template>
 
@@ -40,6 +54,7 @@ import { Lock, User } from '@element-plus/icons-vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 
 import { useAuthStore } from '@/stores/auth'
+import beianIcon from '@/assets/beian.png'
 
 const route = useRoute()
 const router = useRouter()
@@ -258,6 +273,41 @@ async function onSubmit() {
   font-size: 14px;
   letter-spacing: 8px;
   font-weight: 600;
+}
+
+/* ===== 底部备案信息 ===== */
+.beian {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  font-size: 12px;
+}
+
+.beian a {
+  color: var(--ink-400);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.beian a:hover {
+  color: var(--gold-600);
+}
+
+.beian-ga {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.beian-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
 }
 
 /* ===== 移动端适配 ===== */

@@ -8,7 +8,9 @@
       <span v-for="s in shortages" :key="s.profession" class="prof-shortage__chip">
         <i class="prof-shortage__dot" :style="{ background: profColor(s.profession) }" />
         <span class="prof-shortage__name">{{ s.profession }}</span>
-        <em class="prof-shortage__num num">缺 {{ s.missing }} 人</em>
+        <em class="prof-shortage__num num" :class="{ 'prof-shortage__num--surplus': s.missing < 0 }">
+          {{ s.missing > 0 ? `缺 ${s.missing} 人` : `多 ${-s.missing} 人` }}
+        </em>
       </span>
     </div>
   </div>
@@ -29,7 +31,7 @@ const props = defineProps<{ refreshKey?: number }>()
 const configs = ref<ProfessionConfig[]>([])
 const stats = ref<ProfessionStat[]>([])
 
-/** 缺少的职业：系统配置目标人数 > 常驻库主职业实际人数。 */
+/** 职业配置差异：系统配置目标人数 - 当前职业正式成员数（口径与列表页职业筛选一致），负数表示超出目标。 */
 const shortages = computed(() => {
   const actual = new Map(stats.value.map((s) => [s.profession, s.count]))
   return configs.value
@@ -38,12 +40,12 @@ const shortages = computed(() => {
       profession: c.profession,
       missing: c.target_count - (actual.get(c.profession) ?? 0),
     }))
-    .filter((s) => s.missing > 0)
+    .filter((s) => s.missing !== 0)
 })
 
 async function load() {
   try {
-    const [c, p] = await Promise.all([getProfessionConfigs(), getProfessionStats()])
+    const [c, p] = await Promise.all([getProfessionConfigs(), getProfessionStats({ formal_only: true })])
     configs.value = c
     stats.value = p
   } catch {
@@ -106,5 +108,9 @@ watch(() => props.refreshKey, load, { immediate: true })
   font-style: normal;
   font-weight: 700;
   color: var(--gold-600);
+}
+
+.prof-shortage__num--surplus {
+  color: var(--jade);
 }
 </style>
