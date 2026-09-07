@@ -20,7 +20,7 @@ const router = createRouter({
           path: '',
           name: 'home',
           component: () => import('@/views/HomeView.vue'),
-          meta: { title: '首页' },
+          meta: { title: '首页', adminOnly: true },
         },
         {
           path: 'members',
@@ -79,7 +79,8 @@ router.beforeEach(async (to) => {
     }
   }
   if (to.meta.adminOnly && !auth.isAdmin) {
-    return { name: 'home' }
+    // 帮众访问管理员页面：跳转帮众默认页（回退到 home 会因 home 也是 adminOnly 而死循环）
+    return { name: auth.user?.role === 'member' ? 'league-overview' : 'config' }
   }
   if (to.name === 'login' && auth.isLoggedIn) {
     if (auth.isDeveloper) return { name: 'config' }

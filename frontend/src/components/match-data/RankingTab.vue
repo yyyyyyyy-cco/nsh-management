@@ -3,7 +3,7 @@
     <!-- KDA 分布折线图 -->
     <div class="chart-card">
       <div class="chart-card__header">
-        <span class="chart-card__title">KDA 分布（击杀榜 Top 20）</span>
+        <span class="chart-card__title">KDA 分布（KDA 榜 Top 20）</span>
       </div>
       <EChart :option="kdaOption" :height="260" />
     </div>

@@ -108,8 +108,8 @@
           </el-table>
           <h4 class="group-title">总分</h4>
           <p class="note"><code>总分 = 输出×W₁ + 建筑×W₂ + 治疗×W₃ + 生存×W₄ + 特殊×W₅</code></p>
-          <h4 class="group-title">前端 KDA（散点图/雷达图专用）</h4>
-          <p class="note">治疗职业（治疗量 > 伤害量）：助攻 ×0.8 折算、死亡 ×1.2 加重。</p>
+          <h4 class="group-title">KDA 加权规则（前后端统一）</h4>
+          <p class="note">辅助型（治疗职业：治疗量 > 伤害量；或坦克职业铁衣）：助攻 ×0.8 折算、死亡 ×1.2 加重（仅影响 KDA）。</p>
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -148,7 +148,7 @@ const rawFields = [
 ]
 
 const efficiencyFields = [
-  { name: 'KDA', formula: '(击杀 + 助攻) ÷ max(重伤, 1)', note: '保留 2 位小数' },
+  { name: 'KDA', formula: '(击杀 + 助攻) ÷ max(重伤, 1)', note: '保留 2 位小数；辅助型按下方加权规则折算' },
   { name: '秒伤 (dps)', formula: '(玩家伤害 + 建筑伤害) ÷ 1380 秒', note: '取整' },
   { name: '参与击杀均伤', formula: '总伤害 ÷ max(击杀+助攻, 1)', note: '取整' },
 ]
@@ -188,10 +188,10 @@ const roleTypes = [
 ]
 
 const scoreDims = [
-  { name: '输出', formula: '击杀得分×0.35 + 助攻得分×0.15 + 伤害得分×0.50' },
-  { name: '建筑', formula: '(建筑伤害+破塔卸甲) ÷ 全场最大值 × 100' },
+  { name: '输出', formula: '击杀得分×0.35 + 助攻得分×0.15 + 伤害得分×0.50（玄机/碎梦：击杀×0.65 + 助攻×0.15 + 伤害×0.20）' },
+  { name: '建筑', formula: '(建筑伤害 + 破塔卸甲×0.7) ÷ 全场最大值 × 100' },
   { name: '治疗', formula: 'healing ÷ 全场最大healing × 100' },
-  { name: '生存', formula: '承伤得分×0.40 + (1-死亡/max死亡)×100×0.60' },
+  { name: '生存', formula: '承伤得分×0.40 + (1-死亡/max死亡)×100×0.60（铁衣死亡×2 加重、玄机/碎梦死亡×0.8 减轻，下限 0）' },
   { name: '特殊', formula: '(清泉羽化得分 + 焚骨得分) ÷ 2' },
 ]
 

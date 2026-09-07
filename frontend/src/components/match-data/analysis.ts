@@ -23,13 +23,13 @@ export function fmtNum(n: number): string {
 
 /**
  * KDA = (击杀 + 助攻) / 死亡（重伤）。
- * 治疗为主（治疗量 > 伤害量，即治疗占比 > 50%）的玩家视为治疗职业，
- * 其助攻按 ×0.8 折算、死亡按 ×1.2 加重。
+ * 辅助型玩家（治疗职业：治疗量 > 伤害量；或坦克职业铁衣）
+ * 的助攻按 ×0.8 折算、死亡按 ×1.2 加重。
  */
 export function calcKDA(p: MatchData): number {
-  const isHealer = p.healing > p.player_damage
-  const assists = isHealer ? p.assists * 0.8 : p.assists
-  const deaths = isHealer ? p.deaths * 1.2 : p.deaths
+  const isSupport = p.healing > p.player_damage || p.profession === '铁衣'
+  const assists = isSupport ? p.assists * 0.8 : p.assists
+  const deaths = isSupport ? p.deaths * 1.2 : p.deaths
   return (p.kills + assists) / Math.max(deaths, 1)
 }
 
@@ -92,6 +92,25 @@ export const OUTPUT_WEIGHTS = {
   damage: 0.50,   // 伤害权重
 }
 
+/** 刺客型职业（玄机/碎梦）：击杀权重更高、伤害权重降低 */
+export const ASSASSIN_OUTPUT_WEIGHTS = {
+  kills: 0.65,    // 击杀权重
+  assists: 0.15,  // 助攻权重（与默认一致）
+  damage: 0.20,   // 伤害权重
+}
+
+/** 破塔卸甲在建筑分中的折算系数 */
+export const TOWER_BREAK_WEIGHT = 0.7
+
+/** 铁衣在生存维度中的死亡加重系数（存活率 = 1 - 死亡×系数/全队最高死亡） */
+export const TANK_DEATH_PENALTY = 2
+
+/** 刺客型职业（玄机/碎梦）在生存维度中的死亡减轻系数 */
+export const ASSASSIN_DEATH_RELIEF = 0.8
+
+/** 适用刺客型输出权重的职业 */
+const ASSASSIN_PROFESSIONS = new Set(['玄机', '碎梦'])
+
 /** 生存维度权重 */
 export const SURVIVAL_WEIGHTS = {
   taken: 0.40,    // 承伤权重
@@ -116,10 +135,10 @@ export interface PlayerScore {
  * 综合评分（基于实际数据分析优化版）
  * 
  * 特点：
- * 1. 平均值归一化：100分=平均水平
- * 2. 职业差异化：4类职业不同权重
- * 3. 输出维度：击杀×0.25 + 助攻×0.25 + 伤害×0.50
- * 4. 生存维度：承伤×0.60 + 存活率×0.40
+ * 1. 最大值归一化：单项最高者得 100 分
+ * 2. 职业差异化：4 类职业不同权重
+ * 3. 输出维度：击杀×0.35 + 助攻×0.15 + 伤害×0.50
+ * 4. 生存维度：承伤×0.40 + 存活率×0.60
  */
 export function computeScores(items: MatchData[]): PlayerScore[] {
   if (!items.length) return []
@@ -152,24 +171,28 @@ export function computeScores(items: MatchData[]): PlayerScore[] {
     const killsScore = (p.kills / maxKills) * 100
     const assistsScore = (p.assists / maxAssists) * 100
     const damageScore = ((p.player_damage + p.armor_break_damage) / maxDamage) * 100
-    const output = killsScore * OUTPUT_WEIGHTS.kills + 
-                   assistsScore * OUTPUT_WEIGHTS.assists + 
-                   damageScore * OUTPUT_WEIGHTS.damage
+    const outWeights = ASSASSIN_PROFESSIONS.has(p.profession || '') ? ASSASSIN_OUTPUT_WEIGHTS : OUTPUT_WEIGHTS
+    const output = killsScore * outWeights.kills + 
+                   assistsScore * outWeights.assists + 
+                   damageScore * outWeights.damage
     
-    // 计算建筑维度（最大值归一化）
-    const maxBuilding = Math.max(...items.map(r => r.building_damage + r.tower_break_damage), 1)
-    const building = ((p.building_damage + p.tower_break_damage) / maxBuilding) * 100
+    // 计算建筑维度（最大值归一化，破塔卸甲按 ×0.7 折算）
+    const buildingValue = (r: MatchData) => r.building_damage + r.tower_break_damage * TOWER_BREAK_WEIGHT
+    const maxBuilding = Math.max(...items.map(buildingValue), 1)
+    const building = (buildingValue(p) / maxBuilding) * 100
     
     // 计算治疗维度（最大值归一化）
     const maxHealing = Math.max(...items.map(r => r.healing), 1)
     const healing = (p.healing / maxHealing) * 100
     
-    // 计算生存维度（最大值归一化，加权）
+    // 计算生存维度（最大值归一化，加权；铁衣死亡×2 加重、玄机/碎梦死亡×0.8 减轻）
     const maxTaken = Math.max(...items.map(r => r.damage_taken), 1)
     const maxDeaths = Math.max(...items.map(r => r.deaths), 1)
     
     const takenScore = (p.damage_taken / maxTaken) * 100
-    const survivalRateScore = (1 - p.deaths / maxDeaths) * 100
+    const isAssassin = ASSASSIN_PROFESSIONS.has(p.profession || '')
+    const deathPenalty = p.profession === '铁衣' ? TANK_DEATH_PENALTY : isAssassin ? ASSASSIN_DEATH_RELIEF : 1
+    const survivalRateScore = Math.max(0, (1 - p.deaths * deathPenalty / maxDeaths) * 100)
     const survival = takenScore * SURVIVAL_WEIGHTS.taken + 
                      survivalRateScore * SURVIVAL_WEIGHTS.survival
     

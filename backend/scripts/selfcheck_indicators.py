@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.schemas.match_data import IndicatorOut, ProfessionStats, SquadOut
 from app.services.match_data_service import (
+    MATCH_DURATION_MINUTES,
     MATCH_DURATION_SECONDS,
     calculate_indicators,
     get_camp_totals,
@@ -19,7 +20,7 @@ from app.services.match_data_service import (
 # 文档示例玩家：击败/清泉=21（16 击败 + 5 清泉）、助攻 82、重伤 12、
 # 人伤 3189843、拆塔 3289538、治疗 0、承伤 4196936、复活 0、焚骨 0
 p = SimpleNamespace(
-    kills=21, assists=82, deaths=12, player_damage=3189843, building_damage=3289538,
+    profession="玄机", kills=21, assists=82, deaths=12, player_damage=3189843, building_damage=3289538,
     damage_taken=4196936, healing=0, revives=0, fen_gu=0,
 )
 # 阵营汇总（占比分母，文档示例值）
@@ -42,14 +43,29 @@ assert ind["revive_rate"] == 0 and ind["fen_gu_rate"] == 0
 
 # 边界：死亡为 0 时用 max(死亡,1)
 p0 = SimpleNamespace(
-    kills=5, assists=10, deaths=0, player_damage=100, building_damage=50,
+    profession="素问", kills=5, assists=10, deaths=0, player_damage=100, building_damage=50,
     damage_taken=30, healing=20, revives=1, fen_gu=2,
 )
 ind0 = calculate_indicators(p0, camp_totals)
 assert ind0["kda"] == 15.0, f"kda0={ind0['kda']}"
 assert ind0["damage_per_death"] == 150, f"damage_per_death0={ind0['damage_per_death']}"
-assert ind0["revive_rate"] == round(1 / MATCH_DURATION_SECONDS, 4)
-assert ind0["fen_gu_rate"] == round(2 / MATCH_DURATION_SECONDS, 4)
+assert ind0["revive_rate"] == round(1 / MATCH_DURATION_MINUTES, 4)
+assert ind0["fen_gu_rate"] == round(2 / MATCH_DURATION_MINUTES, 4)
+
+# 辅助型加权：铁衣与治疗职业同样适用（助攻 ×0.8、死亡 ×1.2，仅影响 KDA）
+pt = SimpleNamespace(
+    profession="铁衣", kills=10, assists=20, deaths=10, player_damage=1000, building_damage=500,
+    damage_taken=800, healing=10, revives=0, fen_gu=0,
+)
+indt = calculate_indicators(pt, camp_totals)
+assert indt["kda"] == 2.17, f"kda_tank={indt['kda']}"          # (10+20*0.8)/(10*1.2) = 26/12
+assert indt["damage_per_death"] == 150, f"damage_per_death_tank={indt['damage_per_death']}"  # 其他指标用原始死亡数
+ph = SimpleNamespace(
+    profession="神相", kills=10, assists=20, deaths=10, player_damage=500, building_damage=100,
+    damage_taken=800, healing=900, revives=0, fen_gu=0,
+)
+indh = calculate_indicators(ph, camp_totals)
+assert indh["kda"] == 2.17, f"kda_healer={indh['kda']}"        # 治疗量 > 人伤 → 同样加权
 
 # 阵营汇总
 rows = [
@@ -69,8 +85,10 @@ squad_out = SquadOut(**{
     "squad_name": "进攻1 第1队", "category": "进攻1", "team_index": 0,
     "members": [{
         "player_name": "玩家1", "profession": "玄机", "camp": "横戈",
-        "kills": 21, "assists": 82, "player_damage": 3189843, "building_damage": 3289538,
+        "kills": 21, "springs": 5, "assists": 82, "player_damage": 3189843, "building_damage": 3289538,
         "healing": 0, "damage_taken": 4196936, "deaths": 12, "revives": 0, "fen_gu": 0,
+        "kill_ratio": 1.0, "assist_ratio": 1.0, "player_damage_ratio": 1.0, "building_ratio": 1.0,
+        "taken_ratio": 1.0, "death_ratio": 1.0, "heal_ratio": 1.0,
         "kda": 8.58, "dps": 4695, "kpa_damage": 62907, "damage_per_death": 539948,
         "taken_per_death": 349745, "healing_per_death": 0, "heal_conversion": 0,
         "revive_rate": 0, "fen_gu_rate": 0,

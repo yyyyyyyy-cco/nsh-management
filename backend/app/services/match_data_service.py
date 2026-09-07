@@ -213,7 +213,12 @@ def calculate_indicators(record, camp_totals: dict) -> dict:
     total_damage = player_damage + building_damage
     death_denom = max(deaths, 1)
 
-    kda = round((kills + assists) / death_denom, 2)
+    # 辅助型玩家（治疗职业：治疗量 > 玩家伤害；或坦克职业铁衣）
+    # KDA 中助攻按 ×0.8 折算、死亡按 ×1.2 加重（仅影响 KDA，其他指标用原始值）
+    is_support = healing > player_damage or record.profession == "铁衣"
+    kda_assists = assists * 0.8 if is_support else assists
+    kda_deaths = deaths * 1.2 if is_support else deaths
+    kda = round((kills + kda_assists) / max(kda_deaths, 1), 2)
     dps = round(total_damage / MATCH_DURATION_SECONDS)
     kpa_damage = round(total_damage / max(kills + assists, 1))
     damage_per_death = round(total_damage / death_denom)
