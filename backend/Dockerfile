@@ -13,7 +13,7 @@ COPY . .
 # 创建非 root 用户，安装 gosu 用于降权（使用阿里云 Debian 镜像源加速）
 RUN useradd -r -s /usr/sbin/nologin appuser && \
     sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && apt-get install -y --no-install-recommends gosu && \
+    apt-get update && apt-get install -y --no-install-recommends gosu fonts-wqy-microhei && \
     rm -rf /var/lib/apt/lists/* && \
     chmod +x /app/entrypoint.sh
 

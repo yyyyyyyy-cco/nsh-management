@@ -32,6 +32,8 @@
         <div class="toolbar-actions">
           <el-button type="primary" :icon="Plus" @click="openForm()">添加成员</el-button>
           <el-button :icon="Upload" @click="importVisible = true">Excel 导入</el-button>
+          <el-button :icon="Download" :loading="exporting" @click="onExport('xlsx')">导出 Excel</el-button>
+          <el-button :icon="Download" :loading="exporting" @click="onExport('png')">导出图片</el-button>
           <el-button
             type="danger"
             plain
@@ -111,10 +113,10 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Plus, Search, Upload, Delete } from '@element-plus/icons-vue'
+import { Plus, Search, Upload, Download, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import { batchDeleteMembers, deleteMember, listMembers, type MemberStats, type MemberQuery } from '@/api/members'
+import { batchDeleteMembers, deleteMember, exportMembers, exportMembersImage, listMembers, type MemberStats, type MemberQuery } from '@/api/members'
 import type { MemberInfo } from '@/types/member'
 import { MEMBER_STATUSES, PROFESSIONS } from '@/utils/constants'
 import { PROF_COLORS } from '@/utils/profession'
@@ -188,6 +190,33 @@ async function load() {
 function handleSearch() {
   query.page = 1
   load()
+}
+
+/** 一键导出：沿用当前筛选与排序（不含分页），浏览器直接下载 xlsx / png。 */
+const exporting = ref(false)
+async function onExport(format: 'xlsx' | 'png') {
+  exporting.value = true
+  try {
+    const params = {
+      keyword: query.keyword,
+      profession: query.profession,
+      status: query.status,
+      sort_by: query.sort_by,
+      sort_order: query.sort_order,
+    }
+    const blob = format === 'xlsx' ? await exportMembers(params) : await exportMembersImage(params)
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const tag = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    link.href = url
+    link.download = `常驻库_${tag}.${format}`
+    link.click()
+    URL.revokeObjectURL(url)
+  } catch {
+    ElMessage.error('导出失败，请稍后重试')
+  } finally {
+    exporting.value = false
+  }
 }
 
 function onSelectionChange(rows: MemberInfo[]) {

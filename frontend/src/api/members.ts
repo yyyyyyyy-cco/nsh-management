@@ -73,6 +73,16 @@ export function importMembers(file: File): Promise<ImportResult> {
   return http.post('/members/import', form, { headers: { 'Content-Type': 'multipart/form-data' } })
 }
 
+/** 一键导出成员 Excel（与列表同款筛选/排序，不分页），返回二进制流。 */
+export async function exportMembers(params: MemberQuery): Promise<Blob> {
+  return http.get('/members/export', { params, responseType: 'blob' })
+}
+
+/** 一键导出成员长图 PNG（按主职业分区），返回二进制流。 */
+export async function exportMembersImage(params: MemberQuery): Promise<Blob> {
+  return http.get('/members/export-image', { params, responseType: 'blob' })
+}
+
 export function getAttendanceRate(): Promise<AttendanceRateItem[]> {
   return http.get('/members/attendance-rate')
 }

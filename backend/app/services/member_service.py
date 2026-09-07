@@ -101,6 +101,32 @@ async def list_members(
     return list(items), total, stats
 
 
+async def export_members(
+    session: AsyncSession,
+    guild_id: int,
+    keyword: str | None = None,
+    profession: str | None = None,
+    status: str | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "asc",
+) -> list[Member]:
+    """导出用：按列表同款筛选与排序拉取全量成员（不分页）。"""
+    base = apply_filters(select(Member), guild_id, keyword, profession, status)
+    sortable = {
+        "name": Member.name,
+        "main_profession": Member.main_profession,
+        "status": Member.status,
+        "created_at": Member.created_at,
+    }
+    if sort_by and sort_by in sortable:
+        col = sortable[sort_by]
+        order_expr = col.desc() if sort_order == "desc" else col.asc()
+    else:
+        order_expr = Member.created_at.desc()
+    rows = (await session.execute(base.order_by(order_expr))).scalars().all()
+    return list(rows)
+
+
 async def profession_stats(session: AsyncSession, guild_id: int, formal_only: bool = False) -> list[dict]:
     """职业分布统计（首页仪表盘聚合，避免全量拉取成员）。
 

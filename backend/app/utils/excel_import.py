@@ -45,26 +45,39 @@ def _parse_status(value) -> str:
 
 
 async def import_members(session: AsyncSession, guild_id: int, content: bytes) -> dict:
-    """解析 Excel 成员数据并入库，返回 {imported, skipped, errors}。"""
+    """解析 Excel 成员数据并入库，返回 {imported, skipped, errors}。兼容单 Sheet 与
+    导出生成的多 Sheet（按职业分表）文件：遍历所有表头合法的 Sheet。重名一律跳过。"""
     try:
         workbook = load_workbook(BytesIO(content), read_only=True, data_only=True)
-        sheet = workbook.active
     except Exception:
         raise ExcelImportError("Excel 文件解析失败，请检查格式")
 
     # read_only 惰性迭代：边读边计数，超行数上限立即中止，避免恶意文件耗尽内存
     header: list[str] | None = None
     data_rows: list[tuple] = []
-    for index, row in enumerate(sheet.iter_rows(values_only=True)):
-        if index == 0:
-            header = [_header_index(cell) for cell in row]
-            if "name" not in header or "main_profession" not in header:
-                raise ExcelImportError("表头需包含「姓名」和「职业/主职业」列")
-            continue
-        if len(data_rows) >= MAX_IMPORT_ROWS:
-            raise ExcelImportError(f"成员数据超过 {MAX_IMPORT_ROWS} 行上限，请分批导入")
-        data_rows.append(row)
 
+    def parse_sheet(sheet) -> bool:
+        """解析单个 Sheet，表头合法返回 True；数据行累计受上限保护。"""
+        nonlocal header
+        sheet_header = None
+        for index, row in enumerate(sheet.iter_rows(values_only=True)):
+            if index == 0:
+                sheet_header = [_header_index(cell) for cell in row]
+                if "name" not in sheet_header or "main_profession" not in sheet_header:
+                    return False
+                if header is None:
+                    header = sheet_header
+                continue
+            if len(data_rows) >= MAX_IMPORT_ROWS:
+                raise ExcelImportError(f"成员数据超过 {MAX_IMPORT_ROWS} 行上限，请分批导入")
+            data_rows.append(row)
+        return True
+
+    for sheet in workbook.worksheets:
+        parse_sheet(sheet)
+
+    if header is None:
+        raise ExcelImportError("表头需包含「姓名」和「职业/主职业」列")
     if not data_rows:
         raise ExcelImportError("Excel 至少需要表头行和一条数据")
 
