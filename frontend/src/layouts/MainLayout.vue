@@ -38,6 +38,10 @@
           <el-icon><Setting /></el-icon>
           <span>系统配置</span>
         </el-menu-item>
+        <el-menu-item v-if="auth.user?.role === 'developer'" index="/logs" :title="collapsed ? '系统日志' : undefined">
+          <el-icon><Document /></el-icon>
+          <span>系统日志</span>
+        </el-menu-item>
       </el-menu>
       <div class="sidebar-footer" v-show="!collapsed">NSH League System</div>
     </aside>
@@ -76,7 +80,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowDown, Calendar, Expand, Fold, HomeFilled, Menu, Setting, TrendCharts, UserFilled, VideoCamera } from '@element-plus/icons-vue'
+import { ArrowDown, Calendar, Document, Expand, Fold, HomeFilled, Menu, Setting, TrendCharts, UserFilled, VideoCamera } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 
 import { useAuthStore } from '@/stores/auth'

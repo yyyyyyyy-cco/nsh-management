@@ -53,6 +53,12 @@ const router = createRouter({
           meta: { title: '系统配置', adminOnly: true },
         },
         {
+          path: 'logs',
+          name: 'logs',
+          component: () => import('@/views/logs/LogView.vue'),
+          meta: { title: '系统日志', developerOnly: true },
+        },
+        {
           path: 'my-stats',
           name: 'my-stats',
           component: () => import('@/views/member/MyStatsView.vue'),
@@ -82,13 +88,17 @@ router.beforeEach(async (to) => {
     // 帮众访问管理员页面：跳转帮众默认页（回退到 home 会因 home 也是 adminOnly 而死循环）
     return { name: auth.user?.role === 'member' ? 'league-overview' : 'config' }
   }
+  if (to.meta.developerOnly && !auth.isDeveloper) {
+    // 仅开发者页面：管理员/帮众按角色回退
+    return { name: auth.user?.role === 'member' ? 'league-overview' : 'home' }
+  }
   if (to.name === 'login' && auth.isLoggedIn) {
     if (auth.isDeveloper) return { name: 'config' }
     if (auth.user?.role === 'member') return { name: 'league-overview' }
     return { name: 'home' }
   }
-  // 开发者仅允许访问 首页、系统配置、登录页
-  if (auth.isDeveloper && to.name !== 'home' && to.name !== 'config' && !to.meta.public) {
+  // 开发者仅允许访问 首页、系统配置、系统日志、登录页
+  if (auth.isDeveloper && to.name !== 'home' && to.name !== 'config' && to.name !== 'logs' && !to.meta.public) {
     return { name: 'config' }
   }
 })

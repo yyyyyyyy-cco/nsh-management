@@ -1,7 +1,7 @@
 """比赛数据分析 Pydantic Schema。"""
-from datetime import datetime
-
 from pydantic import BaseModel, Field
+
+from app.schemas.common import UtcDatetime
 
 
 class MatchDataOut(BaseModel):
@@ -25,7 +25,7 @@ class MatchDataOut(BaseModel):
     deaths: int
     revives: int
     fen_gu: int
-    created_at: datetime
+    created_at: UtcDatetime
 
     model_config = {"from_attributes": True}
 

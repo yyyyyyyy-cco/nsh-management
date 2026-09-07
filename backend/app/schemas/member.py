@@ -1,7 +1,7 @@
 """常驻库成员请求/响应模型。"""
-from datetime import datetime
-
 from pydantic import BaseModel, Field
+
+from app.schemas.common import UtcDatetime
 
 
 class MemberBase(BaseModel):
@@ -27,7 +27,7 @@ class MemberUpdate(BaseModel):
 class MemberOut(MemberBase):
     id: int
     guild_id: int
-    created_at: datetime
+    created_at: UtcDatetime
 
     model_config = {"from_attributes": True}
 

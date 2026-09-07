@@ -1,8 +1,9 @@
 """系统配置 Pydantic Schema。"""
 import re
-from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
+
+from app.schemas.common import UtcDatetime
 
 
 def _validate_password_complexity(value: str) -> str:
@@ -56,7 +57,7 @@ class AccountOut(BaseModel):
     plain_password: str | None = None
     role: str
     status: str
-    created_at: datetime
+    created_at: UtcDatetime
 
     model_config = {"from_attributes": True}
 
@@ -95,7 +96,7 @@ class GuildOut(BaseModel):
     id: int
     name: str
     icon_char: str | None = None
-    created_at: datetime
+    created_at: UtcDatetime
 
     model_config = {"from_attributes": True}
 

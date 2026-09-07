@@ -25,7 +25,8 @@ Thumbs.db
 
 # ===== 日志文件 =====
 *.log
-logs/
+/logs/
+backend/logs/
 
 # ===== 环境变量 =====
 .env
@@ -94,5 +95,3 @@ desktop.ini
 deploy.sh
 frontend/nginx.conf
 
-# 本地备份（日常使用文件的备份副本）
-_backup/

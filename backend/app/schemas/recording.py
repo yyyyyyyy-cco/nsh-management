@@ -1,7 +1,7 @@
 """录屏模块 Pydantic Schema。"""
-from datetime import datetime
-
 from pydantic import BaseModel, Field
+
+from app.schemas.common import UtcDatetime
 
 
 class RecordingOut(BaseModel):
@@ -15,8 +15,8 @@ class RecordingOut(BaseModel):
     url: str | None
     status: str
     review_remark: str | None
-    reviewed_at: datetime | None
-    created_at: datetime
+    reviewed_at: UtcDatetime | None
+    created_at: UtcDatetime
 
     model_config = {"from_attributes": True}
 

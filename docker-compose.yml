@@ -5,6 +5,7 @@ services:
     env_file: .env
     volumes:
       - nsh-data:/app/data
+      - nsh-logs:/app/logs
     networks:
       - nsh-net
     # 安全加固
@@ -47,6 +48,7 @@ services:
 
 volumes:
   nsh-data:
+  nsh-logs:
 
 networks:
   nsh-net:

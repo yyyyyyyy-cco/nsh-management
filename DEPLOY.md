@@ -1,203 +1,152 @@
 # 部署文档
 
-本系统采用 **Docker Compose** 方式部署：Nginx 托管前端静态资源并反向代理后端 API，FastAPI 单进程运行，数据存储于 SQLite 文件（Docker 卷持久化）。
+> 本文档描述生产服务器的实际部署架构与运维流程（2026-09-07 按服务器实况核对更新）。
+> 文中服务器地址、用户名、域名等一律使用**占位符**；真实值仅保存在本地 `deploy.sh`
+> 与服务器配置中（`deploy.sh` 已被 `.gitignore` 排除，本文件会随仓库提交，严禁写入敏感信息）。
 
-## 部署架构
+## 一、生产环境概况
+
+| 项目 | 值 |
+|------|-----|
+| 服务器 | `<SERVER_IP>`（Ubuntu 22.04，SSH 密钥登录，用户 `<USER>`） |
+| 项目目录 | `~/nsh-management`（非 git 仓库，靠本地 `deploy.sh` 打包更新） |
+| 域名 | `<YOUR_DOMAIN>` / `www.<YOUR_DOMAIN>`（HTTPS，Let's Encrypt 证书） |
+| 同机共存 | 全局反向代理 `nginx-proxy` 容器及另一独立站点服务（互不影响，均不归本项目管理） |
+
+## 二、部署架构
 
 ```
-浏览器 ──HTTP 80──> Nginx (frontend 容器)
-                     ├── /            → 前端静态资源 (dist, SPA 回退)
-                     └── /api/*       → 反向代理 → FastAPI (backend 容器 :8000)
-                                                      └── SQLite (/app/data/nsh.db, 卷 nsh-data)
+浏览器 ── 80/443 ──> nginx-proxy 容器（全局入口，TLS 终止，配置只读挂载于宿主机）
+                        │  proxy_pass https://nsh-management-frontend-1:443
+                        ▼
+             nsh-management-frontend-1（Nginx，宿主机端口 8080/8443 → 容器 80/443）
+                        ├── /          → 前端静态资源（SPA 回退）
+                        ├── /api/*     → proxy_pass http://backend:8000
+                        │     （限流：api 20r/s burst 40；login 5r/m burst 3）
+                        └── client_max_body_size 20m（Excel 导入上限）
+                        ▼
+             nsh-management-backend-1（FastAPI :8000，内网，gosu appuser 降权运行）
+                        ├── 卷 nsh-data  → /app/data/nsh.db（SQLite）
+                        └── 卷 nsh-logs  → /app/logs（文件日志，10MB×5 轮转）
 ```
 
-- 前端：Vue 3 生产构建产物，由 Nginx 托管
-- 后端：FastAPI + uvicorn（**单 worker**，避免 SQLite 写锁竞争）
-- 数据库：SQLite 文件，挂载于 Docker 命名卷 `nsh-data`
-- 后端容器不暴露端口到宿主机，仅 Nginx 通过 Compose 内部网络访问
+- `nginx-proxy` 为同机多个站点共用的反向代理，frontend 容器接入外部网络 `proxy-net`
+  供其回源；frontend 自身监听宿主机 `8080/8443`（**不是** 80/443）。
+- 数据库迁移在**容器每次启动时自动执行**（Dockerfile CMD 含 `alembic upgrade head`），
+  当前 head：`k5l6m7n8o9p0`（含 operation_logs 审计日志表）。
+- 后端以 `appuser`（非 root）运行，`entrypoint.sh` 负责修复 `/app/data`、`/app/logs`
+  目录属主后降权。
 
-## 前置要求
+## 三、日常更新流程（一键）
 
-| 项目 | 要求 |
-|------|------|
-| 服务器 | Linux（Ubuntu 20.04+ / CentOS 7+ / Debian 11+ 等） |
-| Docker | 20.10+（含 Compose v2 插件） |
-| 网络 | 放行 TCP 80 端口（IP 直连方案，无域名） |
-
-> 服务器无需安装 Python / Node，构建在容器内完成。
-
-## 部署步骤
-
-### 1. 上传项目代码
-
-将项目上传至服务器（可用 `git clone`、scp、宝塔上传等），排除本地目录：
+在**本地项目根目录**执行：
 
 ```bash
-# 本机上传示例（rsync 排除开发目录）
-rsync -av --exclude 'node_modules' --exclude '.venv' --exclude 'data' \
-  --exclude '.git' --exclude 'memory-bank' ./ user@server:/opt/nsh-management/
+./deploy.sh
 ```
 
-### 2. 安装 Docker
+流程：本地 tar 打包（约 2.4M）→ scp 上传 → 服务器解压 → `docker compose up -d --build`
+→ 健康检查。数据双卷不受影响，迁移自动执行。
+
+### deploy.sh 打包排除清单（⚠️ 严禁移除）
+
+| 排除项 | 原因 |
+|--------|------|
+| `docker-compose.yml` | 服务器版本与本地的**端口/网络配置不同**（8080/8443 + proxy-net），覆盖即宕机 |
+| `frontend/nginx.conf`(.example) / `frontend/Dockerfile` / `backend/Dockerfile` / `backend/entrypoint.sh` / `backend/alembic.ini` | 构建输入与服务器配置可能漂移，只保留服务器版本 |
+| `data/`、`*.db`、`backend/logs/`、`.env`、`_backup/` 等 | 本地数据/密钥/日志严禁上服务器 |
+
+> 教训记录（2026-09-07）：曾新增 `--exclude='logs'`（未锚定路径）导致
+> `frontend/src/views/logs/` 整个目录被排除，前端构建失败。排除规则必须带路径锚定，
+> 如 `--exclude='backend/logs'`。
+
+### 服务器配置类文件的变更规则
+
+以下文件**只能直接在服务器上改**（先 `cp xxx xxx.bak-日期` 备份），本地同名文件仅作参考：
+
+- `docker-compose.yml`（端口、网络、卷）
+- `backend/Dockerfile`、`backend/entrypoint.sh`
+- `frontend/nginx.conf`、`frontend/Dockerfile`
+- `.env`
+
+**重要**：改动 `entrypoint.sh` / `Dockerfile` 后必须 `docker compose up -d --build backend`
+重建镜像才生效（容器内 entrypoint 来自镜像，`up -d` 不重建时旧版仍在）。
+
+## 四、日志系统
+
+| 层 | 位置 | 说明 |
+|----|------|------|
+| 文件日志 | 卷 `nsh-logs` → `/app/logs/app.log` | 统一格式，含 uvicorn access/error；RotatingFileHandler 10MB×5 自动轮转；**UTC 时间戳** |
+| 审计日志 | SQLite 表 `operation_logs`（库内） | 所有写操作（POST/PUT/DELETE/PATCH）+ 5xx 错误自动落库；登录成功/失败手动埋点；detail 已脱敏（password/token 等不落库） |
+| 页面查看 | 站点侧边栏「系统日志」（仅开发者账号） | 概览统计（今日操作/错误、近 7 天错误分布，北京时间口径）+ 筛选分页 + 清理 |
+| 保留策略 | 审计日志默认保留 **90 天**，启动时自动清理过期记录；页面亦可手动清理（操作本身会被审计） |
+
+运维排查路径：页面看审计 → `docker compose logs -f backend` 看实时控制台 →
+`/app/logs/app.log` 看历史文件日志。
+
+## 五、备份与恢复
 
 ```bash
-curl -fsSL https://get.docker.com | sh
-systemctl enable --now docker
-docker compose version   # 确认 Compose v2 可用
-```
+# 备份（数据库卷必须；日志卷可省）
+docker run --rm -v nsh-management_nsh-data:/data -v $PWD:/backup alpine \
+  cp /data/nsh.db /backup/nsh-$(date +%F).db
 
-### 3. 配置环境变量
-
-```bash
-cd /opt/nsh-management
-cp .env.example .env
-vi .env
-```
-
-`.env` 必须修改的变量：
-
-| 变量 | 说明 | 示例 |
-|------|------|------|
-| `SECRET_KEY` | JWT 签名密钥，**生产必须替换为强随机值** | `openssl rand -hex 32` 生成 |
-| `DEVELOPER_PASSWORD` | 开发者账号密码（仅首次建库生效） | 自定义强密码 |
-| `ADMIN_PASSWORD` | 管理员账号密码（仅首次建库生效） | 自定义强密码 |
-| `MEMBER_PASSWORD` | 帮众账号密码（仅首次建库生效） | 自定义强密码 |
-
-### 4. 构建并启动
-
-```bash
-docker compose up -d --build
-```
-
-首次启动会自动完成：建表（alembic 迁移）→ 创建 developer/admin/member 账号 → 启动后端，Nginx 等待后端健康检查通过后对外服务。
-
-### 5. 验证
-
-```bash
-curl -I http://服务器IP/              # 前端页面 200
-curl http://服务器IP/api/v1/auth/me  # API 反代正常（未带 token 应返回 401 JSON）
-docker compose ps                    # 两容器均为 Up (healthy)
-```
-
-浏览器访问 `http://服务器IP`，使用 `.env` 中设置的账号密码登录。
-
----
-
-## 常用运维
-
-### 查看日志
-
-```bash
-docker compose logs -f backend     # 后端日志
-docker compose logs -f frontend    # Nginx 日志
-```
-
-### 升级版本
-
-```bash
-# 拉取新代码后
-docker compose up -d --build       # 镜像重建 + 容器滚动更新，数据卷不丢
-```
-
-### 数据备份与恢复
-
-SQLite 数据文件位于卷 `nsh-data`，宿主机路径：
-
-```bash
-docker volume inspect nsh-data     # 查看 Mountpoint
-```
-
-**备份**（推荐定时任务，服务运行中直接复制即可，SQLite 保证一致性）：
-
-```bash
-# 每周备份示例（crontab）
-0 3 * * 1 cp "$(docker volume inspect nsh-data --format '{{.Mountpoint}}')/nsh.db" /backup/nsh-$(date +\%F).db
-```
-
-**恢复**：停服后覆盖数据库文件再启动：
-
-```bash
+# 恢复（停服后覆盖，再启动）
 docker compose stop backend
-cp /backup/nsh-2026-08-17.db "$(docker volume inspect nsh-data --format '{{.Mountpoint}}')/nsh.db"
+docker run --rm -v nsh-management_nsh-data:/data -v $PWD:/backup alpine \
+  sh -c "cp /backup/nsh-YYYY-MM-DD.db /data/nsh.db"
 docker compose start backend
 ```
 
-### 迁移开发数据（可选）
+> 卷的实际名称带 compose 项目前缀：`nsh-management_nsh-data` / `nsh-management_nsh-logs`
+>（`docker volume ls | grep nsh` 可查）。切勿 `docker compose down -v`。
 
-若需将本地开发库带到生产：
+## 六、环境变量（服务器 `~/nsh-management/.env`）
 
-```bash
-# 先停服
-docker compose stop backend
-# 覆盖卷内数据库
-cp local-nsh.db "$(docker volume inspect nsh-data --format '{{.Mountpoint}}')/nsh.db"
-docker compose start backend
-```
+| 键 | 用途 |
+|----|------|
+| `SECRET_KEY` | JWT 签名密钥（强随机） |
+| `DEVELOPER_PASSWORD` / `ADMIN_PASSWORD` / `MEMBER_PASSWORD` | 三角色密码（仅首次建库生效） |
 
-> 全新部署建议直接使用 `init_db` 初始化，避免带入测试数据。
+敏感内容，严禁写入任何入库文件；修改 `SECRET_KEY` 会使所有登录态失效。
 
----
+## 七、常见问题
 
-## 配置说明
+### Q1：宿主机 `curl 127.0.0.1:8080` 返回 000 / 无响应？
 
-### 环境变量（.env）
+属正常现象（安全组/防火墙策略），不要以此判断服务故障。**以域名入口为准**：
+`curl -sk -o /dev/null -w '%{http_code}' -H 'Host: <YOUR_DOMAIN>' https://127.0.0.1/`
+应返回 200。
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `SECRET_KEY` | 无（必填） | JWT 签名密钥，生产必须设置 |
-| `DEVELOPER_PASSWORD` | 无（必填） | 开发者账号密码，首次建库使用 |
-| `ADMIN_PASSWORD` | 无（必填） | 管理员账号密码，首次建库使用 |
-| `MEMBER_PASSWORD` | 无（必填） | 帮众账号密码，首次建库使用 |
-| `DATABASE_URL` | `sqlite+aiosqlite:////app/data/nsh.db` | 数据库连接串，一般无需修改 |
-| `LOGIN_MAX_FAILURES` / `LOGIN_LOCK_MINUTES` | `5` / `5` | 登录限流策略 |
+### Q2：backend 容器反复重启（Restarting）？
 
-### Nginx 关键配置（frontend/nginx.conf）
+`docker logs --tail 30 nsh-management-backend-1` 查原因。历史案例：
+`PermissionError: '/app/logs/app.log'` —— 卷 root 属主且镜像内 entrypoint.sh 是旧版
+（无 `chown /app/logs`）。修复：确认服务器 `backend/entrypoint.sh` 为新版后
+`docker compose up -d --build backend` 重建镜像。
 
-| 配置 | 值 | 说明 |
-|------|-----|------|
-| 监听端口 | `80` | 如需改端口改 `docker-compose.yml` 的 `ports` 映射 |
-| `client_max_body_size` | `20m` | Excel 导入文件大小上限 |
-| `/api/` 反代 | `http://backend:8000` | Compose 内部服务名 |
-| SPA 回退 | `try_files ... /index.html` | 支持前端路由刷新 |
+### Q3：部署后页面 500 / 接口报"表不存在"？
 
-### Docker 镜像构建
+迁移未执行。检查 `docker compose exec backend alembic current` 是否为 head；
+CMD 启动即迁移，通常重启容器即可。
 
-- 后端：`python:3.11-slim`，启动命令 `alembic upgrade head && python -m app.init_db && uvicorn ... --workers 1`
-- 前端：`node:18-alpine` 构建 → `nginx:alpine` 托管
+### Q4：部署后数据丢失？
 
----
+数据在卷中不会因 `up -d --build` 丢失。若丢失，检查是否误用了**本地** compose 覆盖
+服务器（会导致容器重建到错误配置），按第五节备份恢复。
 
-## 常见问题
+### Q5：SSH 连不上（超时）？
 
-### Q1：访问 80 端口不通
+检查云厂商安全组 22 端口源 IP 白名单；443 能通而 22 超时即为白名单问题。
 
-1. 检查云服务器安全组 / 防火墙是否放行 80 端口（阿里云/腾讯云控制台入方向规则）
-2. `docker compose ps` 确认容器状态
-3. `curl http://127.0.0.1/` 在服务器本机验证
+## 八、与本地开发环境的差异对照
 
-### Q2：后端健康检查失败，前端一直无法访问
-
-```bash
-docker compose logs backend    # 查看迁移/初始化报错
-```
-
-常见原因：`.env` 缺少 `DEVELOPER_PASSWORD` 等必填变量（`init_db` 会直接退出）。
-
-### Q3：登录提示「网络错误」
-
-确认 Nginx 反代正常：`curl http://服务器IP/api/v1/auth/me` 应返回 401 JSON 而非 404/502。502 表示后端未就绪，等待健康检查通过或查后端日志。
-
-### Q4：升级后数据还在吗？
-
-数据存于命名卷 `nsh-data`，`docker compose up -d --build` 不删除卷，数据保留。切勿在未备份时执行 `docker compose down -v`（会删除卷）。
-
----
-
-## 与开发环境的关系
-
-| 项目 | 开发环境 | 生产环境 |
-|------|---------|---------|
-| 前端 | Vite dev server :5173（proxy /api） | Nginx 托管构建产物 :80 |
-| 后端 | uvicorn --reload :8000 | uvicorn 单 worker :8000（容器内） |
-| 数据库 | `backend/data/nsh.db` | 卷 `nsh-data` 内 nsh.db |
-| 配置 | 代码默认值 / 环境变量 | `.env` 文件 |
+| 项目 | 本地开发 | 生产服务器 |
+|------|---------|-----------|
+| 入口 | Vite dev server :5173（proxy /api） | nginx-proxy :443（域名 + TLS）→ frontend :8080/8443 |
+| 后端 | `uvicorn --reload :8000` | 容器内单 worker :8000（gosu appuser） |
+| 数据库 | `backend/data/nsh.db` | 卷 `nsh-data` |
+| 文件日志 | `backend/logs/app.log` | 卷 `nsh-logs` |
+| 配置 | `core/config.py` 默认值 + 本地 `.env` | 服务器 `.env` |
+| compose | 端口 80/443，仅 nsh-net | 端口 8080/8443，nsh-net + proxy-net（external） |
+| 更新方式 | — | 本地 `./deploy.sh` 一键 |

@@ -4,6 +4,7 @@ from app.models.guild import Guild
 from app.models.lineup import Lineup
 from app.models.match_data import MatchData
 from app.models.member import Member
+from app.models.operation_log import OperationLog
 from app.models.profession import ProfessionConfig
 from app.models.recording import Recording
 from app.models.schedule import Schedule
@@ -16,6 +17,7 @@ __all__ = [
     "Lineup",
     "MatchData",
     "Member",
+    "OperationLog",
     "ProfessionConfig",
     "Recording",
     "Schedule",

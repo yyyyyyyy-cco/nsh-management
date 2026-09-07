@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.schemas.common import UtcDatetime
+
 
 class LineupSlot(BaseModel):
     slot_index: int = Field(..., ge=0, le=5)
@@ -24,7 +26,7 @@ class LineupOut(BaseModel):
     data: list[LineupTeam]
     title_remark: str = ""
     groups_remark: dict = {}
-    updated_at: datetime
+    updated_at: UtcDatetime
 
     model_config = {"from_attributes": True}
 

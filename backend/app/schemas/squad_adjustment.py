@@ -1,7 +1,7 @@
 """分析调整副本请求/响应模型。"""
-from datetime import datetime
-
 from pydantic import BaseModel, Field
+
+from app.schemas.common import UtcDatetime
 
 
 class SquadAdjustmentUpdate(BaseModel):
@@ -11,6 +11,6 @@ class SquadAdjustmentUpdate(BaseModel):
 class SquadAdjustmentOut(BaseModel):
     schedule_id: int
     data: dict[str, str]
-    updated_at: datetime
+    updated_at: UtcDatetime
 
     model_config = {"from_attributes": True}

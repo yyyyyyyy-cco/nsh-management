@@ -1,20 +1,50 @@
 """认证接口：登录、登出、当前用户。"""
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core.config import settings
 from app.models.guild import Guild
 from app.models.user import User
 from app.schemas.auth import LoginRequest, LoginResponse, UserOut
-from app.services.auth_service import authenticate
+from app.services import log_service
+from app.services.auth_service import AuthError, authenticate
 
 router = APIRouter(prefix="/auth", tags=["认证"])
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(body: LoginRequest, session: AsyncSession = Depends(get_db)) -> LoginResponse:
-    token, user = await authenticate(session, body.username, body.password)
+async def login(
+    request: Request, body: LoginRequest, session: AsyncSession = Depends(get_db)
+) -> LoginResponse:
+    ip = request.client.host if request.client else None
+    try:
+        token, user = await authenticate(session, body.username, body.password)
+    except AuthError as exc:
+        # 登录失败埋点：中间件豁免 /auth/login，此处手动记录含失败原因
+        await log_service.record_log(
+            module="auth",
+            action="login_failed",
+            level="warning",
+            username=body.username,
+            method="POST",
+            path=f"{settings.API_PREFIX}/auth/login",
+            status_code=exc.status_code,
+            detail=exc.message,
+            ip=ip,
+        )
+        raise
+    await log_service.record_log(
+        module="auth",
+        action="login",
+        level="info",
+        user=user,
+        method="POST",
+        path=f"{settings.API_PREFIX}/auth/login",
+        status_code=200,
+        ip=ip,
+    )
     return LoginResponse(access_token=token, user=UserOut.model_validate(user))
 
 

@@ -5,6 +5,12 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
+LOG_DIR = BASE_DIR / "logs"
+try:
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+except OSError:
+    # 文件系统只读时退化为仅控制台输出
+    LOG_DIR = None
 
 
 class Settings:
@@ -28,6 +34,9 @@ class Settings:
     # 登录限流
     LOGIN_MAX_FAILURES: int = 5
     LOGIN_LOCK_MINUTES: int = 5
+
+    # 日志
+    LOG_RETENTION_DAYS: int = int(os.getenv("LOG_RETENTION_DAYS", "90"))
 
 
 settings = Settings()
