@@ -3,6 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 缓存控制 meta：微信内置浏览器（X5/XWeb）会读取 HTML 内 meta 缓存头，
+         与 nginx 响应头双保险，防止部署后微信端命中旧版 index.html -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>轻衫都会用的帮会联赛管理系统</title>
   </head>
   <body>

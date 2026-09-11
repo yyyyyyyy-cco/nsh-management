@@ -38,8 +38,9 @@
   见 `backend/app/core/database.py` 连接事件），读写不互斥；**备份方式需注意 WAL 文件**（见第五节）。
 - 后端以 `appuser`（非 root）运行，`entrypoint.sh` 负责修复 `/app/data`、`/app/logs`
   目录属主后降权。
-- 前端静态资源已启用 gzip 传输 + `/assets/` 一年强缓存（immutable）+ `index.html` no-cache
-  （`frontend/nginx.conf`，2026-09-11 生效）。
+- 前端静态资源已启用 gzip 传输 + `/assets/` 一年强缓存（immutable）+ `index.html` no-store
+  （`frontend/nginx.conf`，2026-09-11 生效；no-store 为 2026-09-11 下午针对微信端
+  缓存旧 HTML 问题强化，index.html 同时内嵌 meta 缓存标签，见 `frontend/index.html`）。
 
 ## 三、日常更新流程（一键）
 
@@ -76,6 +77,10 @@
 > 2026-09-11 同步记录：`frontend/nginx.conf`（gzip + `/assets/` immutable 缓存 + `index.html`
 > no-cache）与 `frontend/Dockerfile`（`build:only` 跳过 vue-tsc 类型检查）已通过
 > 备份（`*.bak-20260911`）+ scp 覆盖的方式手动同步至与本地一致。
+> 2026-09-11 下午追加：`index.html` 缓存头由 no-cache 强化为 **no-store + Pragma**（微信
+> 内置浏览器 X5/XWeb 在仅 no-cache 时仍可能使用磁盘缓存，导致部署后微信端打开旧页面），
+> 本地 `frontend/nginx.conf` 与 `frontend/nginx.conf.example` 均已更新，**服务器侧需再次
+> 手动同步 nginx.conf 并重建 frontend 镜像**（`index.html` 内嵌 meta 缓存标签随构建产物进入镜像）。
 > 后续若再修改这两个文件，仍需重复"服务器侧手动同步"流程（`deploy.sh` 排除清单不变）。
 
 **重要**：改动 `entrypoint.sh` / `Dockerfile` / `nginx.conf` 后必须

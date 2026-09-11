@@ -89,9 +89,14 @@ server {
         try_files $uri =404;
     }
 
-    # 入口 HTML 不缓存（发版后立即生效；沿用 server 级安全头继承）
+    # 入口 HTML 不缓存：微信 X5/XWeb 内核在仅 no-cache 时可能直接使用磁盘缓存
+    # （旧 HTML 引用旧 assets 文件名 → 部署后微信端首次打开仍是旧页面，需手动刷新才更新），
+    # 因此必须 no-store + Pragma 双保险（expires 指令会额外生成冲突的 Cache-Control，
+    # 这里统一用 add_header 精确控制，不再用 expires）
     location = /index.html {
-        expires -1;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
     }
 
     # 登录接口单独限流（防爆破，5 次/分钟/IP），精确匹配优先于通用 /api/
