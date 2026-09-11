@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 
 from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attendance import AttendanceRecord
@@ -21,67 +22,81 @@ class RecordingServiceError(Exception):
         self.status_code = status_code
 
 
-async def ensure_recordings(session: AsyncSession, schedule: Schedule, attendance_records: list[AttendanceRecord]) -> list[Recording]:
-    """确保录屏占位记录存在，如果不存在则创建。"""
-    # 查询已有录屏记录
+def _recording_key(r: Recording) -> tuple:
+    """索引键与数据库唯一约束 (schedule_id, member_id, round_number) 对齐：
+    有 member_id 的按 member_id 匹配（成员改名后仍能命中旧记录，避免撞唯一约束），
+    member_id 为空的按姓名兜底。"""
+    if r.member_id is not None:
+        return (f"id:{r.member_id}", r.round_number)
+    return (f"name:{r.member_name}", r.round_number)
+
+
+async def _load_recording_map(session: AsyncSession, schedule_id: int) -> dict[tuple, Recording]:
     existing = (
         await session.execute(
-            select(Recording).where(Recording.schedule_id == schedule.id)
+            select(Recording).where(Recording.schedule_id == schedule_id)
         )
     ).scalars().all()
-
-    # 索引键与数据库唯一约束 (schedule_id, member_id, round_number) 对齐：
-    # 有 member_id 的按 member_id 匹配（成员改名后仍能命中旧记录，避免撞唯一约束），
-    # member_id 为空的按姓名兜底
-    existing_map = {}
+    existing_map: dict[tuple, Recording] = {}
     for r in existing:
-        if r.member_id is not None:
-            key = (f"id:{r.member_id}", r.round_number)
-        else:
-            key = (f"name:{r.member_name}", r.round_number)
-        existing_map.setdefault(key, r)
+        existing_map.setdefault(_recording_key(r), r)
+    return existing_map
+
+
+async def ensure_recordings(session: AsyncSession, schedule: Schedule, attendance_records: list[AttendanceRecord]) -> list[Recording]:
+    """确保录屏占位记录存在。
+
+    缺失占位用单条 INSERT OR IGNORE 批量插入（并发下撞唯一约束时静默跳过，避免 500），
+    随后重新查询取回全部记录（含 id）。
+    """
+    existing_map = await _load_recording_map(session, schedule.id)
 
     # 同一成员只处理一次（按 member_id 去重，防止同名多条出勤导致重复占位）
     seen_members = set()
-    recordings = []
-    name_changed = False
+    planned: list[tuple[tuple, AttendanceRecord]] = []
+    to_insert = []
     for record in attendance_records:
-        if record.member_id is not None:
-            member_key = f"id:{record.member_id}"
-        else:
-            member_key = f"name:{record.member_name}"
+        member_key = f"id:{record.member_id}" if record.member_id is not None else f"name:{record.member_name}"
         if member_key in seen_members:
             continue
         seen_members.add(member_key)
         for round_num in range(1, schedule.rounds + 1):
             key = (member_key, round_num)
-            found = existing_map.get(key)
-            if found is not None:
-                # 成员改名：跟随出勤库刷新姓名，而不是新建占位
-                if found.member_name != record.member_name:
-                    found.member_name = record.member_name
-                    name_changed = True
-                recordings.append(found)
-            else:
-                # 创建新的占位记录，并写回索引防止重复创建
-                new_recording = Recording(
-                    schedule_id=schedule.id,
-                    member_id=record.member_id,
-                    member_name=record.member_name,
-                    round_number=round_num,
-                    url=None,
-                    status="pending",
+            planned.append((key, record))
+            if key not in existing_map:
+                to_insert.append(
+                    {
+                        "schedule_id": schedule.id,
+                        "member_id": record.member_id,
+                        "member_name": record.member_name,
+                        "round_number": round_num,
+                        "url": None,
+                        "status": "pending",
+                    }
                 )
-                session.add(new_recording)
-                existing_map[key] = new_recording
-                recordings.append(new_recording)
 
-    if any(r.id is None for r in recordings) or name_changed:
+    if to_insert:
+        await session.execute(
+            sqlite_insert(Recording).values(to_insert).on_conflict_do_nothing()
+        )
         await session.commit()
-        # 刷新新创建的记录以获取 ID
-        for r in recordings:
-            if r.id is None:
-                await session.refresh(r)
+        # 重新查询：取回本请求前已存在的记录与刚插入的记录（含数据库生成的 id）
+        existing_map = await _load_recording_map(session, schedule.id)
+
+    name_changed = False
+    recordings = []
+    for key, record in planned:
+        found = existing_map.get(key)
+        if found is None:
+            continue
+        # 成员改名：跟随出勤库刷新姓名，而不是新建占位
+        if found.member_name != record.member_name:
+            found.member_name = record.member_name
+            name_changed = True
+        recordings.append(found)
+
+    if name_changed:
+        await session.commit()
 
     return recordings
 
@@ -152,6 +167,26 @@ async def submit_recording(
     recording.status = "pending"  # 重新提交回到待审核
     recording.review_remark = None
     recording.reviewed_at = None
+    await session.commit()
+    await session.refresh(recording)
+    return recording
+
+
+async def submit_note(
+    session: AsyncSession, guild_id: int, schedule_id: int, recording_id: int, note: str
+) -> Recording:
+    """提交备注（帮众可操作；自由内容，不改变审核状态）。"""
+    await get_schedule(session, guild_id, schedule_id)
+
+    recording = await session.get(Recording, recording_id)
+    if recording is None or recording.schedule_id != schedule_id:
+        raise RecordingServiceError("录屏记录不存在", 404)
+
+    note = note.strip()
+    if not note:
+        raise RecordingServiceError("备注内容不能为空")
+
+    recording.note = note
     await session.commit()
     await session.refresh(recording)
     return recording

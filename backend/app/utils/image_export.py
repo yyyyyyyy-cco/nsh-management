@@ -22,6 +22,10 @@ SECTION_GAP = 14
 HEADER_H = 78
 FOOTER_H = 34
 
+# 单张长图成员上限：画布高度随人数线性增长，800 人约 26MB 位图，
+# 超过后内存与编码耗时不可控（5000 人约 165MB），提示分批导出
+MAX_IMAGE_MEMBERS = 800
+
 # 配色（呼应宣纸鎏金主题）
 BG = (250, 247, 240)
 GOLD = (166, 124, 26)
@@ -52,7 +56,10 @@ def _load_font(size: int) -> ImageFont.FreeTypeFont:
 
 
 def draw_members_png(members: list[Member], guild_name: str | None = None) -> bytes:
-    """按主职业分区绘制成员长图，返回 PNG 字节流。"""
+    """按主职业分区绘制成员长图，返回 PNG 字节流。超过人数上限抛 ValueError。"""
+    if len(members) > MAX_IMAGE_MEMBERS:
+        raise ValueError(f"成员数超过 {MAX_IMAGE_MEMBERS} 人长图上限，请按职业筛选后分批导出")
+
     title_font = _load_font(26)
     sub_font = _load_font(13)
     section_font = _load_font(18)

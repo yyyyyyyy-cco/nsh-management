@@ -32,6 +32,10 @@ async def get_profession_configs(
 ) -> list[ProfessionConfigOut]:
     """获取职业配置列表。"""
     configs = await config_service.get_profession_configs(session, current_user.guild_id)
+    # 缺失职业为未落库的默认配置（GET 不写库）：补 id 展示占位，首次批量保存时才会真正插入
+    for c in configs:
+        if c.id is None:
+            c.id = 0
     return [ProfessionConfigOut.model_validate(c) for c in configs]
 
 

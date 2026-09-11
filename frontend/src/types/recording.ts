@@ -9,6 +9,8 @@ export interface Recording {
   profession?: string | null
   round_number: number
   url: string | null
+  /** 帮众备注（展示层对帮众脱敏，仅管理员可见） */
+  note: string | null
   status: 'pending' | 'approved' | 'rejected'
   review_remark: string | null
   reviewed_at: string | null

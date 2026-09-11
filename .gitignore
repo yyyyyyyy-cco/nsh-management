@@ -95,3 +95,6 @@ desktop.ini
 deploy.sh
 frontend/nginx.conf
 
+# ===== finesse 设计构建记录（本地记忆，每次构建重写，不提交） =====
+.finesse/
+

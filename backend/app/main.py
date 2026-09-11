@@ -41,7 +41,8 @@ AUDIT_EXCLUDED_PATHS = {"/api/v1/auth/login", "/api/v1/developer/logs"}
 class AuditLogMiddleware(BaseHTTPMiddleware):
     """写操作审计中间件：拦截 POST/PUT/DELETE/PATCH，响应后落库一条审计日志。
 
-    用户身份从 Authorization 解析（独立 session 查库）；日志写库失败静默。
+    用户身份优先复用请求认证依赖挂载的 request.state.user（省一次 JWT 解码 + 查库）；
+    依赖未执行到（如 401/404）时回退到 Authorization 解析。
     """
 
     async def dispatch(self, request: Request, call_next):
@@ -76,6 +77,10 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
 
     @staticmethod
     async def _resolve_user(request: Request) -> User | None:
+        # 请求认证依赖已解析用户时直接复用；回退路径用于依赖未执行到的情况
+        cached = getattr(request.state, "user", None)
+        if cached is not None:
+            return cached
         auth_header = request.headers.get("authorization", "")
         token = auth_header[7:] if auth_header.lower().startswith("bearer ") else ""
         payload = decode_access_token(token) if token else None
@@ -130,8 +135,18 @@ app.include_router(api_router, prefix=settings.API_PREFIX)
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    """启动时后台清理超过保留期的审计日志。"""
-    asyncio.create_task(log_service.clear_old_logs())
+    """启动时后台清理超过保留期的审计日志，此后每 24 小时执行一次。"""
+    app.state.log_cleanup_task = asyncio.create_task(_log_cleanup_loop())
+
+
+async def _log_cleanup_loop() -> None:
+    """审计日志保留清理循环：启动即清一次，之后每日一次（长驻进程日志不再只增不减）。"""
+    while True:
+        try:
+            await log_service.clear_old_logs()
+        except Exception:  # noqa: BLE001
+            logger.exception("审计日志定期清理失败")
+        await asyncio.sleep(24 * 3600)
 
 
 def error_response(status_code: int, message: str) -> JSONResponse:

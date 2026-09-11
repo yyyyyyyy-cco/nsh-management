@@ -168,10 +168,10 @@ import {
   updateStatus,
 } from '@/api/attendance'
 import { getProfessionConfigs } from '@/api/config'
-import { getSchedule } from '@/api/schedules'
 import { getLineup, getLineupCandidates } from '@/api/lineups'
 import type { ProfessionConfig } from '@/types/config'
 import type { AttendanceRecord, AttendanceStats } from '@/types/attendance'
+import type { ScheduleInfo } from '@/types/schedule'
 import { PROF_ORDER } from '@/composables/lineupBoard'
 import { useAuthStore } from '@/stores/auth'
 import FillerDialog from '@/components/attendance/FillerDialog.vue'
@@ -181,7 +181,7 @@ import ImportMemberDialog from '@/components/attendance/ImportMemberDialog.vue'
 import ProfessionConfigDialog from '@/components/attendance/ProfessionConfigDialog.vue'
 import { profColor } from '@/utils/profession'
 
-const props = defineProps<{ scheduleId: number }>()
+const props = defineProps<{ scheduleId: number; schedule: ScheduleInfo }>()
 
 const auth = useAuthStore()
 const loading = ref(false)
@@ -272,15 +272,15 @@ onMounted(load)
 async function load() {
   loading.value = true
   try {
-    const [data, configs, schedule] = await Promise.all([
+    // 赛程详情由父级传入（避免与父级重复请求 getSchedule）
+    const [data, configs] = await Promise.all([
       getAttendance(props.scheduleId),
       getProfessionConfigs(),
-      getSchedule(props.scheduleId),
     ])
     items.value = data.items
     stats.value = data.stats
     professionConfigs.value = configs
-    customConfig.value = schedule.profession_config ?? null
+    customConfig.value = props.schedule.profession_config ?? null
   } finally {
     loading.value = false
   }

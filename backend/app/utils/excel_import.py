@@ -1,4 +1,5 @@
 """Excel 成员导入解析：自动识别表头，重名跳过，返回导入结果。"""
+import asyncio
 from io import BytesIO
 
 from openpyxl import load_workbook
@@ -44,9 +45,12 @@ def _parse_status(value) -> str:
     return "formal"
 
 
-async def import_members(session: AsyncSession, guild_id: int, content: bytes) -> dict:
-    """解析 Excel 成员数据并入库，返回 {imported, skipped, errors}。兼容单 Sheet 与
-    导出生成的多 Sheet（按职业分表）文件：遍历所有表头合法的 Sheet。重名一律跳过。"""
+def _parse_workbook(content: bytes) -> tuple[list[str], list[tuple]]:
+    """同步解析 Excel 工作簿（openpyxl 为 CPU 密集操作，由调用方放入线程池执行）。
+
+    兼容单 Sheet 与导出生成的多 Sheet（按职业分表）文件：遍历所有表头合法的 Sheet。
+    返回 (表头, 数据行)；格式问题抛 ExcelImportError。
+    """
     try:
         workbook = load_workbook(BytesIO(content), read_only=True, data_only=True)
     except Exception:
@@ -73,13 +77,25 @@ async def import_members(session: AsyncSession, guild_id: int, content: bytes) -
             data_rows.append(row)
         return True
 
-    for sheet in workbook.worksheets:
-        parse_sheet(sheet)
+    try:
+        for sheet in workbook.worksheets:
+            parse_sheet(sheet)
+    finally:
+        workbook.close()
 
     if header is None:
         raise ExcelImportError("表头需包含「姓名」和「职业/主职业」列")
     if not data_rows:
         raise ExcelImportError("Excel 至少需要表头行和一条数据")
+    return header, data_rows
+
+
+async def import_members(session: AsyncSession, guild_id: int, content: bytes) -> dict:
+    """解析 Excel 成员数据并入库，返回 {imported, skipped, errors}。重名一律跳过。
+
+    解析（openpyxl）在线程池执行，避免阻塞事件循环；入库逻辑在主线程 session 中执行。
+    """
+    header, data_rows = await asyncio.to_thread(_parse_workbook, content)
 
     existing = set(
         (await session.execute(select(Member.name).where(Member.guild_id == guild_id))).scalars()

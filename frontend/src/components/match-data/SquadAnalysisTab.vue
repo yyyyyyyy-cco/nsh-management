@@ -492,13 +492,18 @@ const squadGroups = computed(() => {
   return [...map.entries()].map(([category, items]) => ({ category, items }))
 })
 
+// 请求序号：快速切局时丢弃过期响应，避免旧局数据覆盖新局
+let loadSeq = 0
+
 async function load() {
+  const seq = ++loadSeq
   loading.value = true
   try {
     const [data, adjResp] = await Promise.all([
       getSquadAnalysis(props.scheduleId, props.roundNo),
       getSquadAdjustments(props.scheduleId).catch(() => ({ data: {} as Record<string, string> })),
     ])
+    if (seq !== loadSeq) return
     squads.value = data.squads
     adjustments.value = adjResp.data ?? {}
     // 初始化 checkbox 状态
@@ -510,7 +515,7 @@ async function load() {
       detailSquad.value = ''
     }
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
 

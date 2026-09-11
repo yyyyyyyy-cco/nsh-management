@@ -133,16 +133,17 @@ async def _purge_deleted_members(session: AsyncSession, lineup: Lineup, schedule
 
 
 async def get_lineup(session: AsyncSession, guild_id: int, schedule_id: int) -> Lineup:
-    """获取排表；无数据时落库标准空结构（保证 1:1 存在且结构稳定）。"""
+    """获取排表。
+
+    无数据时返回内存中的标准空结构（GET 不写库，避免读请求占用写锁与并发唯一约束竞态），
+    首次保存（save_lineup / import_lineup）时才真正插入。
+    """
     await get_schedule(session, guild_id, schedule_id)
     lineup = (
         await session.execute(select(Lineup).where(Lineup.schedule_id == schedule_id))
     ).scalar_one_or_none()
     if lineup is None:
-        lineup = Lineup(schedule_id=schedule_id, data=[])
-        session.add(lineup)
-        await session.commit()
-        await session.refresh(lineup)
+        return Lineup(schedule_id=schedule_id, data=empty_lineup_data(), title_remark="", groups_remark={})
     if not lineup.data:
         lineup.data = empty_lineup_data()
         await session.commit()
@@ -205,6 +206,8 @@ async def save_lineup(
     lineup.data = data
     lineup.title_remark = (title_remark or "").strip()
     lineup.groups_remark = groups_remark or {}
+    # 无记录时 get_lineup 返回内存对象：首次保存时插入（已持久化对象 add 为幂等操作）
+    session.add(lineup)
     await session.commit()
     await session.refresh(lineup)
     return lineup
@@ -240,7 +243,10 @@ async def candidate_pool(session: AsyncSession, guild_id: int, schedule_id: int)
 async def list_lineup_history(
     session: AsyncSession, guild_id: int, schedule_id: int
 ) -> list[dict]:
-    """列出本帮会其他有排表数据的赛程（供一键导入，按比赛时间倒序）。"""
+    """列出本帮会其他有排表数据的赛程（供一键导入，按比赛时间倒序，最多 50 条）。
+
+    每条含完整 60 槽位 JSON，限制条数避免赛程积累后响应体积失控。
+    """
     await get_schedule(session, guild_id, schedule_id)
     rows = (
         await session.execute(
@@ -248,6 +254,7 @@ async def list_lineup_history(
             .join(Lineup, Lineup.schedule_id == Schedule.id)
             .where(Schedule.guild_id == guild_id, Schedule.id != schedule_id)
             .order_by(Schedule.match_time.desc())
+            .limit(50)
         )
     ).all()
     return [
@@ -320,6 +327,8 @@ async def import_lineup(
         new_data.append({**team, "slots": slots})
 
     current.data = new_data
+    # 无记录时 get_lineup 返回内存对象：首次保存时插入（已持久化对象 add 为幂等操作）
+    session.add(current)
     await session.commit()
     await session.refresh(current)
     return current, imported

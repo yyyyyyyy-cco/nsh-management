@@ -2,6 +2,8 @@
 
 调整仅作用于小队分析视图，不修改正式排表。
 """
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +25,9 @@ async def get_squad_adjustment(
     adj = await squad_adjustment_service.get_squad_adjustment(
         session, current_user.guild_id, schedule_id
     )
+    # 未落库的空副本（GET 不写库）：补展示占位时间，首次保存时才会真正插入
+    if adj.updated_at is None:
+        adj.updated_at = datetime.now(timezone.utc)
     return SquadAdjustmentOut.model_validate(adj)
 
 

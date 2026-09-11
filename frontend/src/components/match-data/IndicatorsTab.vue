@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Search } from '@element-plus/icons-vue'
 
@@ -123,6 +123,18 @@ const camps = ref<CampTotals[]>([])
 const campFilter = ref('')
 const profFilter = ref('')
 const nameFilter = ref('')
+/** 防抖后的搜索词：避免每敲一个字符触发全量过滤与表格重排 */
+const appliedNameFilter = ref('')
+let nameFilterTimer: ReturnType<typeof setTimeout> | null = null
+watch(nameFilter, (v) => {
+  if (nameFilterTimer) clearTimeout(nameFilterTimer)
+  nameFilterTimer = setTimeout(() => {
+    appliedNameFilter.value = v
+  }, 250)
+})
+onBeforeUnmount(() => {
+  if (nameFilterTimer) clearTimeout(nameFilterTimer)
+})
 const subTab = ref((route.query.sub as string) || 'basic')
 
 watch(subTab, (v) => { router.replace({ query: { ...route.query, sub: v } }) })
@@ -133,19 +145,24 @@ const filteredItems = computed(() => {
   let list = items.value
   if (campFilter.value) list = list.filter((r) => r.camp === campFilter.value)
   if (profFilter.value) list = list.filter((r) => (r.profession || '未知') === profFilter.value)
-  const kw = nameFilter.value.trim()
+  const kw = appliedNameFilter.value.trim()
   if (kw) list = list.filter((r) => r.player_name.includes(kw))
   return list
 })
 
+// 请求序号：快速切局时丢弃过期响应，避免旧局数据覆盖新局
+let loadSeq = 0
+
 async function load() {
+  const seq = ++loadSeq
   loading.value = true
   try {
     const data = await getIndicators(props.scheduleId, props.roundNo)
+    if (seq !== loadSeq) return
     items.value = data.items
     camps.value = data.camps
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
 

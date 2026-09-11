@@ -1,5 +1,5 @@
 """依赖注入：当前用户、管理员权限校验。"""
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,6 +11,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
     session: AsyncSession = Depends(get_db),
 ) -> User:
@@ -30,6 +31,8 @@ async def get_current_user(
     # 令牌版本校验：登出/改密后旧 Token 立即失效（旧版 Token 无 ver 声明同样拒绝）
     if payload.get("ver") != user.token_version:
         raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
+    # 供审计中间件复用（避免响应后二次解码 JWT + 二次查库）
+    request.state.user = user
     return user
 
 

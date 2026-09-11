@@ -13,6 +13,7 @@ class RecordingOut(BaseModel):
     profession: str | None = None  # 职业快照（取自出勤库，便于按职业排序）
     round_number: int
     url: str | None
+    note: str | None = None  # 帮众备注（前端展示层对帮众脱敏，仅管理员可见）
     status: str
     review_remark: str | None
     reviewed_at: UtcDatetime | None
@@ -26,6 +27,14 @@ class RecordingSubmit(BaseModel):
     url: str = Field(
         ..., min_length=1, max_length=512, pattern=r"^https?://",
         description="录屏链接（须以 http:// 或 https:// 开头）",
+    )
+
+
+class RecordingNoteSubmit(BaseModel):
+    """提交备注（自由内容，仅管理员可见，不影响审核状态）。"""
+    note: str = Field(
+        ..., min_length=1, max_length=500,
+        description="备注内容（可填写任何内容）",
     )
 
 

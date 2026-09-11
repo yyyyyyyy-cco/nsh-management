@@ -68,7 +68,6 @@
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Picture } from '@element-plus/icons-vue'
-import html2canvas from 'html2canvas'
 
 import { getLineup } from '@/api/lineups'
 import { useAuthStore } from '@/stores/auth'
@@ -136,6 +135,8 @@ async function onExportOverview() {
   if (!el) return
   exporting.value = true
   try {
+    // html2canvas 体积较大（~470KB）：点击导出时才动态加载，不进首屏 chunk
+    const { default: html2canvas } = await import('html2canvas')
     const canvas = await html2canvas(el, {
       backgroundColor: '#ffffff',
       scale: 2,

@@ -5,6 +5,7 @@
         <el-icon class="info-icon"><VideoCamera /></el-icon>
         <span>录屏上传</span>
         <span class="info-sub">{{ filterSubText }}（按距今天由近到远），点击进入录屏上传</span>
+        <span class="info-sub-mobile">点击场次进入录屏上传</span>
       </div>
       <el-radio-group v-model="timeFilter" size="small" class="toolbar-filter">
         <el-radio-button value="month">本月</el-radio-button>
@@ -13,7 +14,35 @@
       </el-radio-group>
     </div>
 
-    <el-card shadow="never" class="table-card">
+    <!-- 移动端（≤768px）：场次卡片列表，整卡可点进入录屏上传 -->
+    <div v-if="isMobile" v-loading="loading" class="match-list">
+      <el-empty
+        v-if="!loading && !filteredSchedules.length"
+        description="当前筛选下暂无场次"
+        :image-size="72"
+      />
+      <button
+        v-for="row in filteredSchedules"
+        :key="row.id"
+        type="button"
+        class="match-card"
+        @click="goRecording(row)"
+      >
+        <span class="mc-body">
+          <span class="mc-top">
+            <span class="time-date num">{{ formatDate(row.match_time) }}</span>
+            <span class="time-clock num">{{ formatClock(row.match_time) }}</span>
+            <span class="rounds">{{ row.rounds }}局</span>
+            <el-tag class="mc-result" :type="resultType(row.result)" effect="light">{{ resultLabel(row.result) }}</el-tag>
+          </span>
+          <span class="opponent">vs {{ row.opponent }}</span>
+        </span>
+        <el-icon class="mc-chevron"><ArrowRight /></el-icon>
+      </button>
+    </div>
+
+    <!-- 桌面端：表格形态保持不变 -->
+    <el-card v-else shadow="never" class="table-card">
       <el-table v-loading="loading" :data="filteredSchedules" size="small" @row-click="goRecording">
         <el-table-column label="时间" min-width="150">
           <template #default="{ row }">
@@ -49,9 +78,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { VideoCamera } from '@element-plus/icons-vue'
+import { ArrowRight, VideoCamera } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
 import { listSchedules } from '@/api/schedules'
@@ -62,6 +91,13 @@ import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 const router = useRouter()
 const loading = ref(false)
 const schedules = ref<ScheduleInfo[]>([])
+
+// 移动端（≤768px，与 MainLayout 抽屉断点一致）渲染卡片列表，桌面端渲染表格
+const mq = window.matchMedia('(max-width: 768px)')
+const isMobile = ref(mq.matches)
+const onMqChange = (e: MediaQueryListEvent) => {
+  isMobile.value = e.matches
+}
 
 /** 时间筛选：本月 / 上个月 / 全部（默认本月）。 */
 const timeFilter = ref<'month' | 'lastMonth' | 'all'>('month')
@@ -90,7 +126,12 @@ const filterSubText = computed(() => {
 const formatDate = (value: string) => dayjs(value).format('YYYY-MM-DD')
 const formatClock = (value: string) => dayjs(value).format('HH:mm')
 
-onMounted(load)
+onMounted(() => {
+  mq.addEventListener('change', onMqChange)
+  load()
+})
+
+onUnmounted(() => mq.removeEventListener('change', onMqChange))
 
 async function load() {
   loading.value = true
@@ -109,6 +150,7 @@ function goRecording(schedule: ScheduleInfo) {
 </script>
 
 <style scoped>
+/* finesse · register=product · shell=card-list(≤768px) + table(桌面) */
 .toolbar {
   display: flex;
   align-items: center;
@@ -143,6 +185,10 @@ function goRecording(schedule: ScheduleInfo) {
   letter-spacing: 0;
 }
 
+.info-sub-mobile {
+  display: none; /* 仅在 ≤768px 显示 */
+}
+
 .time-cell {
   display: flex;
   align-items: baseline;
@@ -168,11 +214,87 @@ function goRecording(schedule: ScheduleInfo) {
   color: var(--ink-500);
 }
 
-/* ===== 移动端适配 ===== */
+/* ===== 移动端卡片列表（isMobile 时渲染） ===== */
+.match-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 140px; /* 空态/加载遮罩的占位高度 */
+}
+
+.match-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-lg);
+  background: var(--ink-bg-paper);
+  box-shadow: var(--shadow-sm);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.match-card:active {
+  background: var(--gold-100);
+  transform: scale(0.985);
+}
+
+.match-card:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+}
+
+.mc-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.mc-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mc-top .time-date {
+  font-size: 15px;
+}
+
+.mc-top .time-clock,
+.mc-top .rounds {
+  font-size: 12.5px;
+}
+
+.mc-result {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.mc-body .opponent {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.mc-chevron {
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--ink-300);
+}
+
+/* ===== 移动端适配（≤768px） ===== */
 @media (max-width: 768px) {
   .toolbar {
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
   }
 
   .toolbar-info {
@@ -180,7 +302,36 @@ function goRecording(schedule: ScheduleInfo) {
   }
 
   .info-sub {
-    display: none; /* 窄屏隐藏长副标题，避免溢出 */
+    display: none; /* 窄屏隐藏长副标题，改用短提示 */
+  }
+
+  .info-sub-mobile {
+    display: inline;
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--ink-400);
+    letter-spacing: 0;
+  }
+
+  /* 时间筛选：整条等宽三段，加大点按面积 */
+  .toolbar-filter {
+    display: flex;
+    width: 100%;
+  }
+
+  .toolbar-filter :deep(.el-radio-button) {
+    flex: 1;
+  }
+
+  .toolbar-filter :deep(.el-radio-button__inner) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 44px;
+    padding: 0;
+    font-size: 14px;
   }
 }
 </style>

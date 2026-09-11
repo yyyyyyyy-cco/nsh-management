@@ -48,45 +48,46 @@
     <!-- 有数据但被筛选过滤为空 -->
     <el-empty v-else-if="filteredItems.length === 0" v-loading="loading" description="无符合当前筛选条件的数据" />
 
-    <!-- 标签页切换（切局/加载时整体遮罩） -->
+    <!-- 标签页切换（切局/加载时整体遮罩）；lazy：子 Tab 首次激活时才挂载并发请求，
+         不再进入页面即并发 8 个子 Tab 的加载请求与聚合计算 -->
     <el-tabs v-else v-loading="loading" v-model="activeTab">
       <!-- 数据总览 -->
-      <el-tab-pane label="数据总览" name="overview">
+      <el-tab-pane lazy label="数据总览" name="overview">
         <OverviewTab :items="filteredItems" :camps="camps" />
       </el-tab-pane>
 
       <!-- 数据列表（16 项衍生指标） -->
-      <el-tab-pane label="数据列表" name="list">
+      <el-tab-pane lazy label="数据列表" name="list">
         <IndicatorsTab :schedule-id="scheduleId" :round-no="roundNo" />
       </el-tab-pane>
 
       <!-- 排行榜（折线图 + 四榜） -->
-      <el-tab-pane label="排行榜" name="ranking">
+      <el-tab-pane lazy label="排行榜" name="ranking">
         <RankingTab :items="filteredItems" :rankings="rankings" />
       </el-tab-pane>
 
       <!-- 阵营对比 -->
-      <el-tab-pane label="阵营对比" name="camp-compare">
+      <el-tab-pane lazy label="阵营对比" name="camp-compare">
         <CampCompareTab :schedule-id="scheduleId" :round-no="roundNo" />
       </el-tab-pane>
 
       <!-- 小队分析 -->
-      <el-tab-pane label="小队分析" name="squad">
+      <el-tab-pane lazy label="小队分析" name="squad">
         <SquadAnalysisTab :schedule-id="scheduleId" :round-no="roundNo" />
       </el-tab-pane>
 
       <!-- 职业分析 -->
-      <el-tab-pane label="职业分析" name="profession">
+      <el-tab-pane lazy label="职业分析" name="profession">
         <ProfessionTab :items="filteredItems" />
       </el-tab-pane>
 
       <!-- 职业深度（17 项指标） -->
-      <el-tab-pane label="职业深度" name="profession-detail">
+      <el-tab-pane lazy label="职业深度" name="profession-detail">
         <ProfessionDetailTab :schedule-id="scheduleId" :round-no="roundNo" />
       </el-tab-pane>
 
       <!-- 综合评分 -->
-      <el-tab-pane label="综合评分" name="score">
+      <el-tab-pane lazy label="综合评分" name="score">
         <ScoreTab :items="filteredItems" />
       </el-tab-pane>
     </el-tabs>
@@ -100,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled, Search } from '@element-plus/icons-vue'
@@ -133,6 +134,18 @@ const importedRounds = ref<number[]>([]) // 已导入的局号列表
 const roundNo = ref(1) // 当前展示/导入目标局
 const selectedCamp = ref('')
 const nameFilter = ref('')
+/** 防抖后的搜索词：过滤与图表重算延迟 250ms，避免每敲一个字符触发全量重算 + ECharts 重绘 */
+const appliedNameFilter = ref('')
+let nameFilterTimer: ReturnType<typeof setTimeout> | null = null
+watch(nameFilter, (v) => {
+  if (nameFilterTimer) clearTimeout(nameFilterTimer)
+  nameFilterTimer = setTimeout(() => {
+    appliedNameFilter.value = v
+  }, 250)
+})
+onBeforeUnmount(() => {
+  if (nameFilterTimer) clearTimeout(nameFilterTimer)
+})
 // 注意：子 tab 用独立参数名 matchTab，避免覆盖外层 ScheduleDetailView 的 tab 参数（否则刷新后会掉回默认的出勤库）
 const activeTab = ref(String(route.query.matchTab || 'overview'))
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -157,7 +170,7 @@ const filteredItems = computed(() => {
   if (selectedCamp.value) {
     list = list.filter((r) => r.camp === selectedCamp.value)
   }
-  const kw = nameFilter.value.trim()
+  const kw = appliedNameFilter.value.trim()
   if (kw) {
     list = list.filter((r) => r.player_name.includes(kw))
   }
@@ -171,10 +184,16 @@ watch(activeTab, (tab) => {
 
 onMounted(load)
 
+// 请求序号：切局/切筛选快速连续触发时，丢弃过期响应，避免旧数据覆盖新数据
+let loadSeq = 0
+let rankingSeq = 0
+
 async function load() {
+  const seq = ++loadSeq
   loading.value = true
   try {
     const data = await getMatchData(props.scheduleId, roundNo.value)
+    if (seq !== loadSeq) return
     items.value = data.items
     camps.value = data.camps
     importedRounds.value = data.imported_rounds
@@ -182,7 +201,7 @@ async function load() {
     if (roundNo.value > rounds.value) roundNo.value = rounds.value
     await loadRankings()
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
 
@@ -192,11 +211,14 @@ function onRoundChange() {
 }
 
 async function loadRankings() {
-  rankings.value = await getRankings(props.scheduleId, {
+  const seq = ++rankingSeq
+  const data = await getRankings(props.scheduleId, {
     roundNo: roundNo.value,
     camp: selectedCamp.value || undefined,
     limit: 10,
   })
+  if (seq !== rankingSeq) return
+  rankings.value = data
 }
 
 /** 阵营筛选变化时重载排行榜 */
@@ -247,6 +269,7 @@ function formatNumber(value: number): string {
 </script>
 
 <style scoped>
+/* finesse · register=product · shell=member-detail: analysis round-switcher touch */
 .round-bar {
   display: flex;
   align-items: center;
@@ -368,6 +391,14 @@ function formatNumber(value: number): string {
   .toolbar .el-button {
     flex: 1 1 calc(50% - 4px);
     margin-left: 0 !important;
+  }
+
+  /* 局切换：加大点按面积 */
+  .round-bar :deep(.el-radio-button__inner) {
+    display: flex;
+    align-items: center;
+    height: 44px;
+    padding: 0 16px;
   }
 }
 </style>

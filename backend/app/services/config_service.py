@@ -1,4 +1,6 @@
 """系统配置业务：职业配置、账号管理、帮会管理。"""
+import asyncio
+
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,40 +29,36 @@ class ConfigServiceError(Exception):
 # ========== 职业配置 ==========
 
 async def get_profession_configs(session: AsyncSession, guild_id: int | None) -> list[ProfessionConfig]:
-    """获取帮会的职业配置列表。开发者账号无帮会时返回空列表。"""
+    """获取帮会的职业配置列表。开发者账号无帮会时返回空列表。
+
+    缺失的职业在内存中补齐默认值（GET 不写库，避免读请求占用写锁；首次保存时落库）。
+    """
     if guild_id is None:
         return []
 
     configs = list(
         (
             await session.execute(
-                select(ProfessionConfig)
-                .where(ProfessionConfig.guild_id == guild_id)
-                .order_by(ProfessionConfig.profession)
+                select(ProfessionConfig).where(ProfessionConfig.guild_id == guild_id)
             )
         )
         .scalars()
         .all()
     )
 
-    # 如果缺少某些职业的配置，自动创建默认配置
+    # 缺少某些职业的配置，内存补齐默认配置（不落库）
     existing_professions = {c.profession for c in configs}
     for profession in PROFESSIONS:
         if profession not in existing_professions:
-            config = ProfessionConfig(
-                guild_id=guild_id,
-                profession=profession,
-                target_count=0,
+            configs.append(
+                ProfessionConfig(
+                    guild_id=guild_id,
+                    profession=profession,
+                    target_count=0,
+                )
             )
-            session.add(config)
-            configs.append(config)
 
-    if any(c.id is None for c in configs):
-        await session.commit()
-        for c in configs:
-            if c.id is None:
-                await session.refresh(c)
-
+    configs.sort(key=lambda c: c.profession)
     return configs
 
 
@@ -102,9 +100,21 @@ async def update_profession_config(
 async def batch_update_profession_configs(
     session: AsyncSession, guild_id: int | None, configs_data: list[dict]
 ) -> int:
-    """批量更新职业配置。"""
+    """批量更新职业配置（一次载入、内存 diff、单次 commit）。"""
     if guild_id is None:
         raise ConfigServiceError("开发者账号无法修改职业配置，请先创建帮会")
+
+    existing = {
+        c.profession: c
+        for c in (
+            await session.execute(
+                select(ProfessionConfig).where(ProfessionConfig.guild_id == guild_id)
+            )
+        )
+        .scalars()
+        .all()
+    }
+
     count = 0
     for item in configs_data:
         profession = item.get("profession")
@@ -114,9 +124,22 @@ async def batch_update_profession_configs(
         if profession not in PROFESSIONS:
             continue
 
-        await update_profession_config(session, guild_id, profession, target_count, remark)
+        config = existing.get(profession)
+        if config is None:
+            config = ProfessionConfig(
+                guild_id=guild_id,
+                profession=profession,
+                target_count=target_count,
+                remark=remark,
+            )
+            session.add(config)
+            existing[profession] = config
+        else:
+            config.target_count = target_count
+            config.remark = remark
         count += 1
 
+    await session.commit()
     return count
 
 
@@ -149,7 +172,8 @@ async def create_account(
     user = User(
         guild_id=target_guild_id,
         username=username,
-        password_hash=hash_password(password),
+        # bcrypt 哈希为 CPU 密集操作（约 170ms/次），放线程池避免阻塞事件循环
+        password_hash=await asyncio.to_thread(hash_password, password),
         plain_password=password,
         role=role,
         status="active",
@@ -182,7 +206,8 @@ async def update_account(
         user.username = username
 
     if password is not None:
-        user.password_hash = hash_password(password)
+        # bcrypt 哈希为 CPU 密集操作，放线程池避免阻塞事件循环
+        user.password_hash = await asyncio.to_thread(hash_password, password)
         user.plain_password = password
         # 改密后吊销该账号所有已签发 Token（旧 Token 立即失效）
         user.token_version += 1
@@ -238,11 +263,17 @@ async def create_guild(
     session.add(guild)
     await session.flush()
 
+    # bcrypt 哈希为 CPU 密集操作：两个初始密码哈希并行放线程池，避免阻塞事件循环
+    admin_hash, member_hash = await asyncio.gather(
+        asyncio.to_thread(hash_password, admin_password),
+        asyncio.to_thread(hash_password, member_password),
+    )
+
     # 创建管理员账号（初始密码由创建者指定）
     admin_user = User(
         guild_id=guild.id,
         username=f"{name}_admin",
-        password_hash=hash_password(admin_password),
+        password_hash=admin_hash,
         plain_password=admin_password,
         role="admin",
         status="active",
@@ -253,7 +284,7 @@ async def create_guild(
     member_user = User(
         guild_id=guild.id,
         username=f"{name}_member",
-        password_hash=hash_password(member_password),
+        password_hash=member_hash,
         plain_password=member_password,
         role="member",
         status="active",

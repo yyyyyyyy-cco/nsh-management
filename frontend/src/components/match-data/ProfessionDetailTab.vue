@@ -192,20 +192,25 @@ const allProfs = computed(() => profStats.value.map((p) => p.profession))
 
 watch(metricSubTab, (v) => { router.replace({ query: { ...route.query, metricSub: v } }) })
 
+// 请求序号：快速切局/切阵营时丢弃过期响应，避免旧数据覆盖新数据
+let loadSeq = 0
+
 async function load() {
+  const seq = ++loadSeq
   loading.value = true
   try {
     const data = await getProfessionStats(props.scheduleId, {
       roundNo: props.roundNo,
       camp: campFilter.value || undefined,
     })
+    if (seq !== loadSeq) return
     profStats.value = data.items
     // 首次加载时记录所有阵营选项（后续筛选不再更新，保证可切换回全部）
     if (campOptions.value.length === 0) {
       campOptions.value = [...new Set(data.items.flatMap((p) => p.camps.map((c) => c.camp)))]
     }
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
 

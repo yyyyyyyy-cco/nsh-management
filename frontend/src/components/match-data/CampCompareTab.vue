@@ -97,12 +97,18 @@ function fmtValue(v: number, label: string): string {
   return (v ?? 0).toLocaleString()
 }
 
+// 请求序号：快速切局时丢弃过期响应，避免旧局数据覆盖新局
+let loadSeq = 0
+
 async function load() {
+  const seq = ++loadSeq
   loading.value = true
   try {
-    data.value = await getCampCompare(props.scheduleId, props.roundNo)
+    const resp = await getCampCompare(props.scheduleId, props.roundNo)
+    if (seq !== loadSeq) return
+    data.value = resp
   } finally {
-    loading.value = false
+    if (seq === loadSeq) loading.value = false
   }
 }
 

@@ -3,7 +3,8 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
+# 构建镜像只做打包（跳过 vue-tsc 类型检查，节省 30-90s）；类型检查请在本地/CI 执行 npm run build
+RUN npm run build:only
 
 FROM nginx:alpine
 RUN addgroup -g 1001 -S appgroup && adduser -u 1001 -S appuser -G appgroup

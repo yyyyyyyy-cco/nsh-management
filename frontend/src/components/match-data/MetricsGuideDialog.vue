@@ -86,28 +86,25 @@
 
         <!-- 综合评分 -->
         <el-tab-pane label="综合评分" name="score">
-          <p class="section-desc">纯前端计算，基于全队最大值归一化到 0~100 分，按职业类型差异化加权。</p>
-          <h4 class="group-title">职业类型判定</h4>
-          <el-table :data="roleTypes" size="small" border stripe>
-            <el-table-column prop="name" label="类型" min-width="80" />
-            <el-table-column prop="condition" label="判定条件" min-width="350" />
+          <p class="section-desc">贡献倍数法（纯前端计算）：评分 = Σ 权重×(个人指标 ÷ 本轮同职业分路均值)×100 − 15×重伤倍数。100 分 = 达到本轮同职业(分路)平均贡献水平，扣除重伤惩罚后的期望基准为 85 分。</p>
+          <h4 class="group-title">职业分路判定</h4>
+          <el-table :data="archRules" size="small" border stripe>
+            <el-table-column prop="name" label="职业" min-width="80" />
+            <el-table-column prop="condition" label="判定条件" min-width="380" />
           </el-table>
-          <h4 class="group-title">五维评分</h4>
-          <el-table :data="scoreDims" size="small" border stripe>
-            <el-table-column prop="name" label="维度" min-width="80" />
-            <el-table-column prop="formula" label="计算公式" min-width="350" />
+          <h4 class="group-title">权重推导规则（rs = 该职业指标均值 ÷ 全体均值，基于 1440 条历史数据）</h4>
+          <el-table :data="weightRules" size="small" border stripe>
+            <el-table-column prop="name" label="层级" min-width="70" />
+            <el-table-column prop="condition" label="条件" min-width="130" />
+            <el-table-column prop="note" label="说明" min-width="280" />
           </el-table>
-          <h4 class="group-title">各职业权重</h4>
-          <el-table :data="scoreWeights" size="small" border stripe>
-            <el-table-column prop="type" label="职业类型" min-width="80" />
-            <el-table-column prop="output" label="输出" min-width="55" align="center" />
-            <el-table-column prop="building" label="建筑" min-width="55" align="center" />
-            <el-table-column prop="healing" label="治疗" min-width="55" align="center" />
-            <el-table-column prop="survival" label="生存" min-width="55" align="center" />
-            <el-table-column prop="special" label="特殊" min-width="55" align="center" />
+          <h4 class="group-title">各职业(分路)权重（正向和 = 1.0，— 表示不计分）</h4>
+          <el-table :data="scoreWeightRows" size="small" border stripe>
+            <el-table-column prop="prof" label="职业(分路)" min-width="90" />
+            <el-table-column v-for="m in scoreMetrics" :key="m" :prop="m" :label="m" min-width="52" align="center" />
           </el-table>
-          <h4 class="group-title">总分</h4>
-          <p class="note"><code>总分 = 输出×W₁ + 建筑×W₂ + 治疗×W₃ + 生存×W₄ + 特殊×W₅</code></p>
+          <h4 class="group-title">重伤负向与边界处理</h4>
+          <p class="note">重伤每高出同职业均值 1 倍扣 15 分；本轮内某指标全组为 0（无数据）时，该项权重按比例摊给其余指标，保证基准恒为 100。未知职业兜底：击杀/人伤各半。</p>
           <h4 class="group-title">KDA 加权规则（前后端统一）</h4>
           <p class="note">辅助型（治疗职业：治疗量 > 伤害量；或坦克职业铁衣）：助攻 ×0.8 折算、死亡 ×1.2 加重（仅影响 KDA）。</p>
         </el-tab-pane>
@@ -119,6 +116,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import { PROFESSION_WEIGHTS, SCORE_METRICS } from './analysis'
+
 const visible = ref(false)
 const tab = ref('raw')
 
@@ -128,6 +127,26 @@ function open() {
 }
 
 defineExpose({ open })
+
+const scoreMetrics = SCORE_METRICS
+
+const archRules = [
+  { name: '潮光', condition: '建筑折算（建筑伤害+破塔卸甲×0.7）≥ 人伤折算（玩家伤害+人伤卸甲）→ 拆塔路；否则输出路' },
+  { name: '鸿音', condition: '治疗量 > 建筑折算 → 治疗路；否则拆塔路' },
+  { name: '其他职业', condition: '职业即分路，无需判定' },
+]
+
+const weightRules = [
+  { name: '核心', condition: 'rs ≥ 1.5', note: '占 85% 份额，按 rs 占比分配；复活/焚骨稀缺指标权重 cap 0.30' },
+  { name: '次要', condition: '1.0 ≤ rs < 1.5', note: '合计 15% 份额均分' },
+  { name: '边际', condition: '0.5 ≤ rs < 1 且职业内非零占比 ≥ 50%', note: '每项 0.05，且贡献倍数封顶 2.0（防止小均值指标倍数爆炸）' },
+  { name: '归一化', condition: '—', note: '正向权重和归一化到 1.0' },
+]
+
+const scoreWeightRows = Object.entries(PROFESSION_WEIGHTS).map(([prof, w]) => ({
+  prof,
+  ...Object.fromEntries(SCORE_METRICS.map((m) => [m, w[m] > 0 ? String(w[m]) : '—'])),
+}))
 
 const rawFields = [
   { name: 'player_name', csv: '玩家名字', desc: '玩家 ID' },
@@ -178,28 +197,6 @@ const skillFields = [
 const campFields = [
   { name: '差值', formula: '我方值 - 敌方值' },
   { name: '波动值', formula: '|差值| ÷ min(我方值, 敌方值) × 100%' },
-]
-
-const roleTypes = [
-  { name: '治疗', condition: '治疗量 ÷ 全队平均治疗量 ≥ 1' },
-  { name: '进攻', condition: '(建筑伤害+破塔卸甲) ÷ 全队平均建筑伤害 ≥ 1' },
-  { name: '防守', condition: '(玩家伤害+人伤卸甲) ÷ 全队平均玩家伤害 ≥ 1' },
-  { name: '承伤', condition: '以上均不满足（默认）' },
-]
-
-const scoreDims = [
-  { name: '输出', formula: '击杀得分×0.35 + 助攻得分×0.15 + 伤害得分×0.50（玄机/碎梦：击杀×0.65 + 助攻×0.15 + 伤害×0.20）' },
-  { name: '建筑', formula: '(建筑伤害 + 破塔卸甲×0.7) ÷ 全场最大值 × 100' },
-  { name: '治疗', formula: 'healing ÷ 全场最大healing × 100' },
-  { name: '生存', formula: '承伤得分×0.40 + (1-死亡/max死亡)×100×0.60（铁衣死亡×2 加重、玄机/碎梦死亡×0.8 减轻，下限 0）' },
-  { name: '特殊', formula: '(清泉羽化得分 + 焚骨得分) ÷ 2' },
-]
-
-const scoreWeights = [
-  { type: '治疗', output: 0, building: 0, healing: '0.50', survival: '0.30', special: '0.20' },
-  { type: '承伤', output: '0.05', building: '0.05', healing: '0.05', survival: '0.75', special: '0.10' },
-  { type: '进攻', output: '0.10', building: '0.60', healing: 0, survival: '0.25', special: '0.05' },
-  { type: '防守', output: '0.75', building: '0.05', healing: 0, survival: '0.10', special: '0.10' },
 ]
 </script>
 

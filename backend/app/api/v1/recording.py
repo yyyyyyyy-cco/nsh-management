@@ -8,6 +8,7 @@ from app.models.user import User
 from app.schemas.recording import (
     BatchApproveRequest,
     RecordingListResponse,
+    RecordingNoteSubmit,
     RecordingOut,
     RecordingReview,
     RecordingSubmit,
@@ -43,6 +44,20 @@ async def submit_recording(
 ) -> RecordingOut:
     recording = await recording_service.submit_recording(
         session, current_user.guild_id, schedule_id, recording_id, body.url
+    )
+    return RecordingOut.model_validate(recording)
+
+
+@router.put("/{recording_id}/note", response_model=RecordingOut)
+async def submit_recording_note(
+    schedule_id: int,
+    recording_id: int,
+    body: RecordingNoteSubmit,
+    current_user: User = Depends(get_current_user),  # 帮众可提交
+    session: AsyncSession = Depends(get_db),
+) -> RecordingOut:
+    recording = await recording_service.submit_note(
+        session, current_user.guild_id, schedule_id, recording_id, body.note
     )
     return RecordingOut.model_validate(recording)
 

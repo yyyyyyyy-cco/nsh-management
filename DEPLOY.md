@@ -1,6 +1,6 @@
 # 部署文档
 
-> 本文档描述生产服务器的实际部署架构与运维流程（2026-09-07 按服务器实况核对更新）。
+> 本文档描述生产服务器的实际部署架构与运维流程（2026-09-11 按服务器实况核对更新）。
 > 文中服务器地址、用户名、域名等一律使用**占位符**；真实值仅保存在本地 `deploy.sh`
 > 与服务器配置中（`deploy.sh` 已被 `.gitignore` 排除，本文件会随仓库提交，严禁写入敏感信息）。
 
@@ -33,9 +33,13 @@
 - `nginx-proxy` 为同机多个站点共用的反向代理，frontend 容器接入外部网络 `proxy-net`
   供其回源；frontend 自身监听宿主机 `8080/8443`（**不是** 80/443）。
 - 数据库迁移在**容器每次启动时自动执行**（Dockerfile CMD 含 `alembic upgrade head`），
-  当前 head：`k5l6m7n8o9p0`（含 operation_logs 审计日志表）。
+  当前 head：`m7n8o9p0q1r2`（复合索引；此前为 `k5l6m7n8o9p0` operation_logs 审计日志表）。
+- SQLite 以 **WAL 模式**运行（`journal_mode=WAL` + `synchronous=NORMAL` + `busy_timeout=30s`，
+  见 `backend/app/core/database.py` 连接事件），读写不互斥；**备份方式需注意 WAL 文件**（见第五节）。
 - 后端以 `appuser`（非 root）运行，`entrypoint.sh` 负责修复 `/app/data`、`/app/logs`
   目录属主后降权。
+- 前端静态资源已启用 gzip 传输 + `/assets/` 一年强缓存（immutable）+ `index.html` no-cache
+  （`frontend/nginx.conf`，2026-09-11 生效）。
 
 ## 三、日常更新流程（一键）
 
@@ -69,8 +73,14 @@
 - `frontend/nginx.conf`、`frontend/Dockerfile`
 - `.env`
 
-**重要**：改动 `entrypoint.sh` / `Dockerfile` 后必须 `docker compose up -d --build backend`
-重建镜像才生效（容器内 entrypoint 来自镜像，`up -d` 不重建时旧版仍在）。
+> 2026-09-11 同步记录：`frontend/nginx.conf`（gzip + `/assets/` immutable 缓存 + `index.html`
+> no-cache）与 `frontend/Dockerfile`（`build:only` 跳过 vue-tsc 类型检查）已通过
+> 备份（`*.bak-20260911`）+ scp 覆盖的方式手动同步至与本地一致。
+> 后续若再修改这两个文件，仍需重复"服务器侧手动同步"流程（`deploy.sh` 排除清单不变）。
+
+**重要**：改动 `entrypoint.sh` / `Dockerfile` / `nginx.conf` 后必须
+`docker compose up -d --build` 重建对应镜像才生效（nginx.conf 随 frontend 镜像 COPY 进容器，
+`up -d` 不重建时旧版仍在）。
 
 ## 四、日志系统
 
@@ -86,15 +96,29 @@
 
 ## 五、备份与恢复
 
-```bash
-# 备份（数据库卷必须；日志卷可省）
-docker run --rm -v nsh-management_nsh-data:/data -v $PWD:/backup alpine \
-  cp /data/nsh.db /backup/nsh-$(date +%F).db
+> ⚠️ 数据库已切换 **WAL 模式**：运行中直接 `cp nsh.db` 可能不含尚未合并的 `-wal`
+> 文件内容，导致备份缺最新写入。请使用下方方式一（在线安全）或方式二（停服拷贝）。
 
-# 恢复（停服后覆盖，再启动）
+```bash
+# 方式一（推荐，在线安全）：SQLite backup API 生成一致性快照后拷出
+docker compose exec -T backend python -c "
+import sqlite3
+src = sqlite3.connect('/app/data/nsh.db')
+dst = sqlite3.connect('/app/data/nsh-backup.db')
+src.backup(dst); dst.close(); src.close()"
+docker run --rm -v nsh-management_nsh-data:/data -v $PWD:/backup alpine \
+  sh -c "cp /data/nsh-backup.db /backup/nsh-$(date +%F).db && rm /data/nsh-backup.db"
+
+# 方式二（停服拷贝）：WAL 模式下需一并复制 -wal/-shm 文件
 docker compose stop backend
 docker run --rm -v nsh-management_nsh-data:/data -v $PWD:/backup alpine \
-  sh -c "cp /backup/nsh-YYYY-MM-DD.db /data/nsh.db"
+  sh -c "cp /data/nsh.db* /backup/"
+docker compose start backend
+
+# 恢复（停服后覆盖，再启动；WAL 模式下同时清理旧 -wal/-shm 避免不一致）
+docker compose stop backend
+docker run --rm -v nsh-management_nsh-data:/data -v $PWD:/backup alpine \
+  sh -c "rm -f /data/nsh.db-wal /data/nsh.db-shm && cp /backup/nsh-YYYY-MM-DD.db /data/nsh.db"
 docker compose start backend
 ```
 

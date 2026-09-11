@@ -41,16 +41,18 @@
 
     <el-card shadow="never" class="tabs-card">
       <el-tabs v-model="activeTab" @tab-change="onTabChange">
-        <el-tab-pane v-if="!isMember" label="出勤库" name="attendance">
-          <AttendanceTab v-if="schedule" :schedule-id="schedule.id" />
+        <!-- lazy：tab-pane 首次激活时才渲染挂载（避免进入页面同时挂载 4 个主 Tab
+             并发发请求；首次激活由子组件 onMounted 加载，后续切回由 onTabChange reload 刷新） -->
+        <el-tab-pane v-if="!isMember" lazy label="出勤库" name="attendance">
+          <AttendanceTab v-if="schedule" :schedule-id="schedule.id" :schedule="schedule" />
         </el-tab-pane>
-        <el-tab-pane v-if="!isMember" label="排表" name="lineup">
+        <el-tab-pane v-if="!isMember" lazy label="排表" name="lineup">
           <LineupTab ref="lineupTabRef" v-if="schedule" :schedule-id="schedule.id" />
         </el-tab-pane>
-        <el-tab-pane label="录屏审核" name="recording">
+        <el-tab-pane lazy label="录屏审核" name="recording">
           <RecordingTab ref="recordingTabRef" v-if="schedule" :schedule-id="schedule.id" />
         </el-tab-pane>
-        <el-tab-pane label="数据分析" name="analysis">
+        <el-tab-pane lazy label="数据分析" name="analysis">
           <MatchDataTab v-if="schedule" :schedule-id="schedule.id" />
         </el-tab-pane>
       </el-tabs>
@@ -138,6 +140,7 @@ async function onDelete() {
 </script>
 
 <style scoped>
+/* finesse · register=product · shell=member-detail: row-list(≤768px) + table(桌面) */
 .card-header {
   display: flex;
   align-items: center;
@@ -195,6 +198,18 @@ async function onDelete() {
   .card-header > div:last-child .el-button {
     flex: 1;
     margin-left: 0;
+    min-height: 44px;
+  }
+
+  /* 卡片内边距收紧，释放手机端内容宽度 */
+  .info-card :deep(.el-card__header),
+  .tabs-card :deep(.el-card__header) {
+    padding: 12px 14px;
+  }
+
+  .info-card :deep(.el-card__body),
+  .tabs-card :deep(.el-card__body) {
+    padding: 14px;
   }
 }
 </style>

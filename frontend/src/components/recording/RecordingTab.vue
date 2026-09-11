@@ -40,9 +40,91 @@
       </template>
     </div>
 
-    <!-- 录屏列表 -->
-    <el-table v-loading="loading" :data="filteredItems" :default-sort="{ prop: 'member_name', order: 'ascending' }" @selection-change="onSelectionChange">
-      <el-table-column v-if="auth.isAdmin" type="selection" width="44" />
+    <!-- 移动端（≤768px）：行列表，提交/审核动作 44px 触控 -->
+    <div v-if="isMobile" v-loading="loading" class="rec-list">
+      <el-empty v-if="!loading && filteredItems.length === 0" description="暂无录屏记录" :image-size="72" />
+      <div v-for="row in pagedItems" :key="row.id" class="rec-row">
+        <div class="rec-row__main">
+          <el-checkbox
+            v-if="auth.isAdmin"
+            class="rec-row__check"
+            :model-value="selectedIds.includes(row.id)"
+            @change="toggleSelect(row.id)"
+          />
+          <span class="rec-row__name">{{ row.member_name }}</span>
+          <!-- 帮众：ID 旁的提交状态胶囊 -->
+          <template v-if="!auth.isAdmin">
+            <span v-if="row.url" class="rec-row__state">已提交</span>
+            <span v-if="row.note" class="rec-row__state">已备注</span>
+          </template>
+          <el-tag class="rec-row__status" :type="statusType(row.status)" effect="light" size="small">
+            {{ statusLabel(row.status) }}
+          </el-tag>
+        </div>
+        <div class="rec-row__meta">
+          <span class="prof-cell">
+            <i class="prof-dot" :style="{ background: profColor(row.profession) }" />
+            {{ row.profession || '-' }}
+          </span>
+          <span class="rec-row__round">第{{ row.round_number }}局</span>
+        </div>
+
+        <div v-if="row.review_remark" class="rec-row__remark">审核备注：{{ row.review_remark }}</div>
+
+        <!-- 行内编辑：录屏链接 -->
+        <div v-if="editingId === row.id" class="rec-row__edit">
+          <el-input v-model="editingUrl" placeholder="请输入录屏链接" size="small" />
+          <div class="rec-row__edit-btns">
+            <el-button type="primary" @click="onSubmit(row)">保存</el-button>
+            <el-button @click="editingId = null">取消</el-button>
+          </div>
+        </div>
+
+        <!-- 行内编辑：备注（仅管理员可见，提交后不回显） -->
+        <div v-else-if="editingNoteId === row.id" class="rec-row__edit">
+          <el-input
+            v-model="editingNote"
+            type="textarea"
+            :autosize="{ minRows: 2, maxRows: 5 }"
+            placeholder="备注（仅管理员可见，可填写任何内容）"
+          />
+          <div class="rec-row__edit-btns">
+            <el-button type="primary" @click="onSubmitNote(row)">保存备注</el-button>
+            <el-button @click="editingNoteId = null">取消</el-button>
+          </div>
+        </div>
+
+        <!-- 帮众：提交/修改链接 + 备注（状态胶囊见 ID 旁） -->
+        <div v-else-if="!auth.isAdmin" class="rec-row__actions">
+          <el-button class="rec-act rec-act--link" @click="startEdit(row)">
+            {{ row.url ? '修改链接' : '提交链接' }}
+          </el-button>
+          <el-button class="rec-act rec-act--note" @click="startNoteEdit(row)">
+            {{ row.note ? '修改备注' : '备注' }}
+          </el-button>
+        </div>
+
+        <!-- 管理员：备注 + 链接 + 复制 + 审核 -->
+        <div v-else class="rec-row__admin">
+          <div v-if="row.note" class="rec-row__remark">备注：{{ row.note }}</div>
+          <div class="rec-row__linkline">
+            <template v-if="row.url">
+              <a :href="normalizeUrl(row.url)" target="_blank" rel="noopener" class="url-link rec-row__url">{{ row.url }}</a>
+              <el-button link type="primary" size="small" :icon="CopyDocument" title="复制链接" @click="onCopyUrl(row.url)" />
+            </template>
+            <span v-else class="empty-url">未提交</span>
+          </div>
+          <div v-if="row.url" class="rec-row__actions">
+            <el-button v-if="row.status !== 'approved'" class="rec-act" type="success" plain @click="onApprove(row)">通过</el-button>
+            <el-button v-if="row.status !== 'rejected'" class="rec-act" type="danger" plain @click="onReject(row)">驳回</el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 桌面端：表格形态保持不变；row-key + reserve-selection 支持跨页保留勾选 -->
+    <el-table v-else v-loading="loading" :data="pagedItems" :row-key="rowKey" :default-sort="{ prop: 'member_name', order: 'ascending' }" @selection-change="onSelectionChange">
+      <el-table-column v-if="auth.isAdmin" type="selection" width="44" reserve-selection />
       <el-table-column prop="member_name" label="ID" min-width="100" sortable />
       <el-table-column prop="profession" label="职业" min-width="80" sortable>
         <template #default="{ row }">
@@ -84,6 +166,38 @@
           </div>
         </template>
       </el-table-column>
+      <el-table-column label="备注" min-width="150">
+        <template #default="{ row }">
+          <!-- 管理员：可见备注内容 -->
+          <template v-if="auth.isAdmin">
+            <span v-if="row.note">{{ row.note }}</span>
+            <span v-else class="empty-remark">-</span>
+          </template>
+          <!-- 帮众：仅可见状态与编辑入口，不回显内容 -->
+          <template v-else>
+            <div v-if="editingNoteId === row.id" class="note-edit">
+              <el-input
+                v-model="editingNote"
+                type="textarea"
+                :autosize="{ minRows: 2, maxRows: 5 }"
+                placeholder="备注（仅管理员可见）"
+                size="small"
+              />
+              <div class="note-edit__btns">
+                <el-button type="primary" size="small" @click="onSubmitNote(row)">保存</el-button>
+                <el-button size="small" @click="editingNoteId = null">取消</el-button>
+              </div>
+            </div>
+            <div v-else-if="row.note" class="note-display">
+              <span class="submitted-hint">已备注</span>
+              <el-button link type="primary" size="small" @click="startNoteEdit(row)">修改</el-button>
+            </div>
+            <div v-else>
+              <el-button type="primary" link size="small" @click="startNoteEdit(row)">添加备注</el-button>
+            </div>
+          </template>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" min-width="90" align="center">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" effect="light" size="small">
@@ -107,11 +221,23 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 分页：录屏行为「成员 × 局数」量级（数十至数百行），分页渲染避免全量 DOM 与控件开销 -->
+    <div v-if="filteredItems.length > 0" class="pager">
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="filteredItems.length"
+        :page-sizes="[20, 50, 100]"
+        layout="total, sizes, prev, pager, next"
+        background
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CopyDocument, Search } from '@element-plus/icons-vue'
 
@@ -121,6 +247,7 @@ import {
   getRecordings,
   rejectRecording,
   submitRecording,
+  submitRecordingNote,
 } from '@/api/recording'
 import type { Recording, RoundProgress } from '@/types/recording'
 import { useAuthStore } from '@/stores/auth'
@@ -138,6 +265,15 @@ const nameFilter = ref('')
 const roundFilter = ref<number | null>(null)
 const editingId = ref<number | null>(null)
 const editingUrl = ref('')
+const editingNoteId = ref<number | null>(null)
+const editingNote = ref('')
+
+// 移动端（≤768px，与 MainLayout 抽屉断点一致）渲染行列表，桌面端渲染表格
+const mq = window.matchMedia('(max-width: 768px)')
+const isMobile = ref(mq.matches)
+const onMqChange = (e: MediaQueryListEvent) => {
+  isMobile.value = e.matches
+}
 
 /** 进度条鎏金渐变（el-progress color 函数必须返回字符串，不可返回对象）。 */
 const gradient = (percentage: number) =>
@@ -166,6 +302,20 @@ const filteredItems = computed(() => {
   return list
 })
 
+// ===== 分页（录屏行数可达数百，分页渲染控制 DOM 规模）=====
+const page = ref(1)
+const pageSize = ref(50)
+const pagedItems = computed(() => {
+  const start = (page.value - 1) * pageSize.value
+  return filteredItems.value.slice(start, start + pageSize.value)
+})
+/** 表格行 key（配合 reserve-selection 跨页保留勾选）。 */
+const rowKey = (row: Recording) => row.id
+// 筛选条件或页大小变化时回到第一页（避免停留在越界页码显示空白）
+watch([nameFilter, roundFilter, statusFilter, pageSize], () => {
+  page.value = 1
+})
+
 /** 点击局数切换筛选（再次点击取消）。 */
 function toggleRound(round: number) {
   roundFilter.value = roundFilter.value === round ? null : round
@@ -186,7 +336,12 @@ async function onCopyUrl(url: string) {
   }
 }
 
-onMounted(load)
+onMounted(() => {
+  mq.addEventListener('change', onMqChange)
+  load()
+})
+
+onUnmounted(() => mq.removeEventListener('change', onMqChange))
 
 /** Tab 重新激活时刷新（出勤库变动后同步成员与进度）。 */
 function reload() {
@@ -212,10 +367,37 @@ function onSelectionChange(rows: Recording[]) {
   selectedIds.value = rows.map((r) => r.id)
 }
 
+/** 移动端卡片勾选（与表格 selection 共用 selectedIds）。 */
+function toggleSelect(id: number) {
+  selectedIds.value = selectedIds.value.includes(id)
+    ? selectedIds.value.filter((i) => i !== id)
+    : [...selectedIds.value, id]
+}
+
 function startEdit(row: Recording) {
+  editingNoteId.value = null
   editingId.value = row.id
   // 帮众提交/修改时不回显原链接，避免泄露明文
   editingUrl.value = ''
+}
+
+/** 备注编辑（帮众）；提交后内容不可见，同样不回显。 */
+function startNoteEdit(row: Recording) {
+  editingId.value = null
+  editingNoteId.value = row.id
+  editingNote.value = ''
+}
+
+/** 提交备注（自由内容，仅管理员可见，不改变审核状态）。 */
+async function onSubmitNote(row: Recording) {
+  if (!editingNote.value.trim()) {
+    ElMessage.warning('请输入备注内容')
+    return
+  }
+  await submitRecordingNote(props.scheduleId, row.id, editingNote.value.trim())
+  ElMessage.success('备注已提交')
+  editingNoteId.value = null
+  load()
 }
 
 async function onSubmit(row: Recording) {
@@ -279,6 +461,7 @@ function statusLabel(status: string) {
 </script>
 
 <style scoped>
+/* finesse · register=product · shell=member-detail: rec row-list(≤768px) + table(桌面) */
 .progress-bar {
   display: flex;
   gap: 20px;
@@ -322,7 +505,7 @@ function statusLabel(status: string) {
   border-radius: var(--radius-xl);
   padding: 4px 14px;
   cursor: pointer;
-  transition: all var(--dur-fast);
+  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
   white-space: nowrap;
 }
 
@@ -366,6 +549,13 @@ function statusLabel(status: string) {
   gap: 12px;
   margin-bottom: 12px;
   align-items: center;
+}
+
+/* 分页条：底部右对齐 */
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
 }
 
 .url-edit {
@@ -427,6 +617,194 @@ function statusLabel(status: string) {
   flex-shrink: 0;
 }
 
+/* ===== 移动端行列表（isMobile 时渲染） ===== */
+.rec-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 140px; /* 空态/加载遮罩的占位高度 */
+  touch-action: manipulation;
+}
+
+.rec-row {
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.rec-row:last-child {
+  border-bottom: none;
+}
+
+.rec-row__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.rec-row__check {
+  flex-shrink: 0;
+  padding: 10px 6px 10px 0;
+}
+
+.rec-row__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+/* 次要信息行：职业 · 局数 */
+.rec-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--ink-500);
+}
+
+.rec-row__meta .prof-cell {
+  flex-shrink: 0;
+}
+
+.rec-row__round {
+  flex-shrink: 0;
+  font-size: 12.5px;
+  color: var(--ink-500);
+}
+
+.rec-row__meta .rec-row__round::before {
+  content: '·';
+  margin-right: 6px;
+  color: var(--ink-300);
+}
+
+.rec-row__status {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.rec-row__remark {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-500);
+  overflow-wrap: anywhere;
+}
+
+.rec-row__edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rec-row__edit-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.rec-row__edit-btns .el-button {
+  flex: 1;
+  min-height: 44px;
+  margin-left: 0;
+}
+
+.rec-row__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* 提交状态胶囊：已提交/已备注（手机端行内强提示） */
+.rec-row__state {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--gold-700);
+  background: var(--gold-100);
+  border: 1px solid var(--gold-200);
+  border-radius: var(--radius-xl);
+  padding: 3px 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.rec-row__actions .el-button.rec-act {
+  flex: 1;
+  min-height: 44px;
+  margin-left: 0;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+/* 提交链接：鎏金描边（规避 primary+plain 与主题渐变叠加的浑浊观感） */
+.rec-row__actions .el-button.rec-act--link {
+  background: var(--gold-50);
+  border: 1px solid var(--gold-300);
+  color: var(--gold-700);
+}
+
+.rec-row__actions .el-button.rec-act--link:active {
+  background: var(--gold-100);
+  border-color: var(--gold-400);
+}
+
+/* 备注：墨色描边（次要动作） */
+.rec-row__actions .el-button.rec-act--note {
+  background: var(--ink-bg-paper);
+  border: 1px solid var(--edge-strong);
+  color: var(--ink-700);
+}
+
+.rec-row__actions .el-button.rec-act--note:active {
+  background: var(--ink-bg-wash);
+  border-color: var(--gold-300);
+  color: var(--gold-700);
+}
+
+/* 桌面端备注编辑（表格单元格内） */
+.note-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.note-edit__btns {
+  display: flex;
+  gap: 6px;
+}
+
+.note-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rec-row__admin {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.rec-row__linkline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rec-row__url {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+}
+
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
   .progress-bar {
@@ -435,10 +813,18 @@ function statusLabel(status: string) {
     padding: 12px 14px;
   }
 
+  .round-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 18px;
+  }
+
   .progress-item {
     flex: 1 1 calc(50% - 8px);
     min-width: 0;
     padding: 4px 6px;
+    min-height: 44px;
   }
 
   .progress-item :deep(.el-progress) {

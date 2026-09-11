@@ -4,7 +4,35 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import * as echarts from 'echarts'
+// ECharts 按需引入：仅注册项目用到的图表类型/组件/渲染器（全量引入约 1.1MB，按需约 1/3）
+import * as echarts from 'echarts/core'
+import { BarChart, HeatmapChart, LineChart, PieChart, RadarChart, ScatterChart } from 'echarts/charts'
+import {
+  GridComponent,
+  LegendComponent,
+  MarkLineComponent,
+  RadarComponent,
+  TooltipComponent,
+  VisualMapComponent,
+} from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import type { EChartsOption, EChartsType } from 'echarts'
+
+echarts.use([
+  LineChart,
+  BarChart,
+  PieChart,
+  RadarChart,
+  ScatterChart,
+  HeatmapChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  RadarComponent,
+  VisualMapComponent,
+  MarkLineComponent,
+  CanvasRenderer,
+])
 
 const props = withDefaults(defineProps<{ option: Record<string, unknown>; height?: number | string }>(), {
   height: 300,
@@ -17,7 +45,7 @@ const elStyle = computed(() => {
 })
 
 const el = ref<HTMLDivElement | null>(null)
-let chart: echarts.ECharts | null = null
+let chart: EChartsType | null = null
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
@@ -44,7 +72,7 @@ onMounted(() => {
 watch(
   () => props.option,
   (opt) => {
-    if (chart && opt) chart.setOption(opt as echarts.EChartsOption, { notMerge: true })
+    if (chart && opt) chart.setOption(opt as EChartsOption, { notMerge: true })
   },
   { deep: true },
 )

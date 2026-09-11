@@ -146,7 +146,7 @@ backend/app/
 
 - SQLite 单文件存储（`backend/data/nsh.db`）
 - SQLAlchemy 异步模式（`aiosqlite` 驱动）
-- Alembic 管理迁移（`backend/alembic/versions/`，当前 9 个版本）
+- Alembic 管理迁移（`backend/alembic/versions/`，当前 13 个版本）
 - 多帮会隔离：核心表通过 `guild_id` 字段隔离数据
 - JSON 字段：排表（60 槽位）、局数结果、比赛数据扩展列、分析调整
 

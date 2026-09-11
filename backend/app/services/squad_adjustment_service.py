@@ -23,7 +23,11 @@ class SquadAdjustmentError(Exception):
 async def get_squad_adjustment(
     session: AsyncSession, guild_id: int, schedule_id: int,
 ) -> SquadAdjustment:
-    """获取调整副本；无记录时落库空副本，保证结构稳定。"""
+    """获取调整副本。
+
+    无记录时返回内存空副本（GET 不写库，避免读请求占用写锁与并发唯一约束竞态），
+    首次保存时才真正插入。
+    """
     await get_schedule(session, guild_id, schedule_id)
     adj = (
         await session.execute(
@@ -31,10 +35,7 @@ async def get_squad_adjustment(
         )
     ).scalar_one_or_none()
     if adj is None:
-        adj = SquadAdjustment(schedule_id=schedule_id, data={})
-        session.add(adj)
-        await session.commit()
-        await session.refresh(adj)
+        return SquadAdjustment(schedule_id=schedule_id, data={})
     return adj
 
 
@@ -53,6 +54,8 @@ async def save_squad_adjustment(
             raise SquadAdjustmentError(f"目标队伍格式不合法: {key}")
         cleaned[name] = key
     adj.data = cleaned
+    # 无记录时 get_squad_adjustment 返回内存对象：首次保存时插入（已持久化对象 add 为幂等操作）
+    session.add(adj)
     await session.commit()
     await session.refresh(adj)
     return adj

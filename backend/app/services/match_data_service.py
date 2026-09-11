@@ -1,4 +1,5 @@
 """比赛数据分析业务：CSV 导入、排行榜、职业统计、衍生指标、阵营对比、小队分析。"""
+import asyncio
 import csv
 import io
 from datetime import datetime, timezone
@@ -148,8 +149,8 @@ async def import_csv(
     if round_no < 1 or round_no > schedule.rounds:
         raise MatchDataError(f"局号无效：该赛程共 {schedule.rounds} 局，局号应为 1~{schedule.rounds}")
 
-    # 解析 CSV
-    data_list = parse_csv(content)
+    # 解析 CSV（纯计算放线程池，避免大文件解析阻塞事件循环）
+    data_list = await asyncio.to_thread(parse_csv, content)
 
     # 覆盖语义：先删除该局已有数据，保证一局只有一张表
     await session.execute(
@@ -357,37 +358,35 @@ async def list_match_data(
 async def get_rankings(
     session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None, camp: str | None = None, limit: int = 20
 ) -> dict:
-    """获取排行榜数据（可按局过滤）。"""
+    """获取排行榜数据（可按局过滤）。
+
+    排序与截断下推 SQL（每维度只取前 limit 行），避免全量加载后内存排序 6 次。
+    """
     await get_schedule(session, guild_id, schedule_id)
 
-    stmt = select(MatchData).where(MatchData.schedule_id == schedule_id)
-    if round_no is not None:
-        stmt = stmt.where(MatchData.round_no == round_no)
-    if camp:
-        stmt = stmt.where(MatchData.camp == camp)
-
-    records = list((await session.execute(stmt)).scalars().all())
-
-    # 按不同维度排序
-    def get_ranking(field: str) -> list[dict]:
-        sorted_records = sorted(records, key=lambda r: getattr(r, field), reverse=True)[:limit]
+    async def _ranking(field: str) -> list[dict]:
+        column = getattr(MatchData, field)
+        stmt = select(
+            MatchData.player_name, MatchData.profession, MatchData.camp, column
+        ).where(MatchData.schedule_id == schedule_id)
+        if round_no is not None:
+            stmt = stmt.where(MatchData.round_no == round_no)
+        if camp:
+            stmt = stmt.where(MatchData.camp == camp)
+        stmt = stmt.order_by(column.desc()).limit(limit)
+        rows = (await session.execute(stmt)).all()
         return [
-            {
-                "player_name": r.player_name,
-                "profession": r.profession,
-                "camp": r.camp,
-                "value": getattr(r, field),
-            }
-            for r in sorted_records
+            {"player_name": name, "profession": profession, "camp": row_camp, "value": value}
+            for name, profession, row_camp, value in rows
         ]
 
     return {
-        "kills_ranking": get_ranking("kills"),
-        "damage_ranking": get_ranking("player_damage"),
-        "building_ranking": get_ranking("building_damage"),
-        "healing_ranking": get_ranking("healing"),
-        "taken_ranking": get_ranking("damage_taken"),
-        "fen_gu_ranking": get_ranking("fen_gu"),
+        "kills_ranking": await _ranking("kills"),
+        "damage_ranking": await _ranking("player_damage"),
+        "building_ranking": await _ranking("building_damage"),
+        "healing_ranking": await _ranking("healing"),
+        "taken_ranking": await _ranking("damage_taken"),
+        "fen_gu_ranking": await _ranking("fen_gu"),
     }
 
 

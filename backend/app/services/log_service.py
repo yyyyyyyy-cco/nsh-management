@@ -168,18 +168,19 @@ async def get_log_stats(session: AsyncSession) -> dict:
     ).scalar_one()
 
     week_start = today_start - timedelta(days=6)
+    # 近 7 天错误分布：SQL 侧按北京时间日期分组（date(created_at, '+8 hours')），避免拉全量错误行到内存
+    day_expr = func.date(OperationLog.created_at, "+8 hours")
     rows = (
         await session.execute(
-            select(OperationLog.created_at)
+            select(day_expr.label("day"), func.count())
             .where(OperationLog.created_at >= week_start, OperationLog.level == "error")
+            .group_by(day_expr)
         )
-    ).scalars().all()
+    ).all()
     weekly = {day: 0 for day in [(today_start_bj - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(6, -1, -1)]}
-    for created_at in rows:
-        # UTC 存储值加 8 小时映射回北京日期
-        day = (created_at + timedelta(hours=8)).strftime("%Y-%m-%d")
+    for day, count in rows:
         if day in weekly:
-            weekly[day] += 1
+            weekly[day] = count
 
     return {
         "today_requests": today_requests,

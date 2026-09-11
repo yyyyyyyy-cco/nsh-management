@@ -12,6 +12,11 @@ export async function submitRecording(scheduleId: number, recordingId: number, u
   return http.put(`/schedules/${scheduleId}/recordings/${recordingId}/submit`, { url })
 }
 
+/** 提交备注（自由内容，仅管理员可见，不影响审核状态） */
+export async function submitRecordingNote(scheduleId: number, recordingId: number, note: string): Promise<Recording> {
+  return http.put(`/schedules/${scheduleId}/recordings/${recordingId}/note`, { note })
+}
+
 /** 审核通过 */
 export async function approveRecording(scheduleId: number, recordingId: number, remark?: string): Promise<Recording> {
   return http.put(`/schedules/${scheduleId}/recordings/${recordingId}/approve`, { remark })

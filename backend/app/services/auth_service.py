@@ -1,4 +1,5 @@
 """认证业务：密码校验、登录限流、令牌签发。"""
+import asyncio
 import math
 from datetime import datetime, timedelta, timezone
 
@@ -66,7 +67,8 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> t
             remaining_seconds=seconds_left,
         )
 
-    if not verify_password(password, user.password_hash):
+    # bcrypt 校验为 CPU 密集（约 170ms/次），放线程池执行避免阻塞事件循环（单 worker 下全站卡顿）
+    if not await asyncio.to_thread(verify_password, password, user.password_hash):
         user.failed_attempts += 1
         if user.failed_attempts >= settings.LOGIN_MAX_FAILURES:
             user.locked_until = now + timedelta(minutes=settings.LOGIN_LOCK_MINUTES)

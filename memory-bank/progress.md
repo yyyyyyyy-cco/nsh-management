@@ -14,7 +14,7 @@ nsh-management/
 │   │   ├── utils/             # 工具函数（attendance_import/excel_import/constants）
 │   │   ├── init_db.py         # 初始化默认帮会与账号（开发者/admin/member）
 │   │   └── main.py            # 应用入口（CORS/异常处理/AuthError锁定秒数）
-│   ├── alembic/               # 数据库迁移（9 个版本）
+│   ├── alembic/               # 数据库迁移（13 个版本）
 │   ├── data/                  # SQLite 数据库（nsh.db）
 │   ├── docs/README.md         # 后端模块开发文档
 │   ├── scripts/               # 工具脚本
@@ -113,7 +113,7 @@ nsh-management/
 | 模块 | 路径 | 作用 | 状态 |
 |------|------|------|------|
 | 基础框架 | app/core | 配置（JWT 10h）、异步数据库、JWT/密码 | ✅ 已完成 |
-| 数据模型 | app/models | 10 张表 SQLAlchemy 模型 + 9 个 Alembic 迁移 | ✅ 已完成 |
+| 数据模型 | app/models | 10 张表 SQLAlchemy 模型 + 13 个 Alembic 迁移 | ✅ 已完成 |
 | 认证模块 | app/api/v1/auth.py | 登录/登出/me + 登录限流（含未知账号锁定） | ✅ 已完成 |
 | 常驻库 API | app/api/v1/members.py | CRUD/筛选/批量删/Excel导入/出勤率/职业统计 | ✅ 已完成 |
 | 联赛日程 API | app/api/v1/schedules.py | CRUD/时间范围/级联创建删除 | ✅ 已完成 |
@@ -218,6 +218,13 @@ nsh-management/
 | 2026-08-26 | 新增 AI 操作检查清单（ai-checklist.md），记录易错模式与自检流程；CLAUDE.md 新增"操作前必读"提示 | ai-checklist.md, CLAUDE.md |
 | 2026-08-26 | 文档瘦身与单一权威源：design-document-v2 删除内嵌 UI 规范改为引用；CLAUDE.md/ai-context 技术栈/Git/安全改为引用；修复 README 9 表、backend/docs v1.5、UI 主色矛盾 | 全部文档 |
 | 2026-08-26 | 新增 UI 优化方案文档（ui-polish-plan.md）：4 优先级 11 项优化清单、动画族规范、卡片层级规范、验收标准；ui-style-guide.md 新增 §10 优化补充规范 | ui-polish-plan.md, ui-style-guide.md |
+| 2026-09-11 | 联赛总览（录屏上传）页移动端专项优化：≤768px 表格改为整卡可点的场次卡片列表（日期/时间/局数/结果 + 对手名 + 箭头，按下变浅金），筛选改为等宽 44px 三段时间筛选条，窄屏短提示「点击场次进入录屏上传」，空态用 el-empty；桌面端表格与全局样式不变；vue-tsc 类型检查与生产构建通过 | 联赛总览、移动端 |
+| 2026-09-11 | 赛程详情页移动端优化（帮众：录屏审核 + 数据分析）：≤768px 录屏表格改为行列表（ID/职业/局数/状态 + 提交/修改/通过/驳回 44px 按钮 + 行内全宽编辑 + 备注行，管理员支持移动端勾选批量审核），页面按钮/局筛选/局切换加大触控区，卡片内边距收紧；桌面端不变；vue-tsc 类型检查与生产构建通过 | 赛程详情、录屏、数据分析 |
+| 2026-09-11 | 录屏备注功能 + 行内按钮重做：recordings 表新增 note 列（Alembic 迁移 l6m7n8o9p0q1）；后端新增 PUT /recordings/{id}/note（自由内容、不影响审核状态、空值校验）；前端移动端行列表按钮去 primary+plain（主题渐变叠加显浑浊）改鎏金/墨色描边，「提交链接/修改链接」与「备注/修改备注」并列，备注行内编辑全宽 textarea；桌面端新增「备注」列；帮众对备注与链接一样仅见状态（已备注/修改），提交后不回显内容，管理员可见全文；vue-tsc 类型检查与生产构建通过，迁移已应用到开发库 | 录屏、赛程详情、数据库 |
+| 2026-09-11 | 移动端录屏行列表提交反馈强化：恢复「已提交/已备注」金色状态胶囊（描边 pill，置于对应按钮前），操作行支持 flex-wrap（窄屏自动折行不溢出）；构建通过 | 录屏、移动端 |
+| 2026-09-11 | 移动端录屏行列表信息层级调整：「已提交/已备注」胶囊移至 ID 旁，职业·局数下沉到次行（主行：ID + 胶囊 + 审核标签，375/320px 均不挤压名字，次行「职业 · 局数」小字）；构建通过 | 录屏、移动端 |
+| 2026-09-11 | 性能优化专项（后端+前端+构建部署三层面审查后全部修复）：①SQLite 开 WAL/synchronous=NORMAL/busy_timeout=30s；②审计中间件复用 request.state.user（省 JWT 解码+查库）、日志清理改 24h 定时循环；③bcrypt/openpyxl/PIL/CSV 解析全部移入 asyncio.to_thread（长图导出加 800 人上限）；④GET 不再写库（排表/调整副本/职业配置内存返回、录屏占位 INSERT OR IGNORE）；⑤个人战绩 N+1→3 查询、排行榜/日志统计下推 SQL；⑥复合索引迁移 m7n8o9p0q1r2 已应用；⑦前端 el-tab-pane 全部 lazy、搜索防抖 250ms、请求序号防竞态、录屏分页、computeScores/aggregateCamps WeakMap 缓存、fetchMe 5s 去重、html2canvas 动态导入；⑧Element Plus JS 按需（unplugin-vue-components，样式保留全量保证主题覆盖顺序）、ECharts 按需注册（1.1MB→634KB 独立 chunk）、manualChunks 拆分；⑨nginx gzip + /assets/ immutable 缓存 + index.html no-cache，Docker 构建跳过 vue-tsc（build:only）。首屏 JS 降至 273KB（gzip 103KB）；冒烟自检、vue-tsc 与生产构建通过 | 性能、数据库、构建部署 |
+| 2026-09-11 | 发版后旧版本页面自动更新机制（main.ts 两重防御）：①vite:preloadError——部署后旧页面懒加载新文件名 chunk 失败时自动刷新一次恢复（sessionStorage 防循环，挂载成功清除标记），仍失败提示 Ctrl+F5 强刷；②发版自动检测——打开 3 秒后/切回窗口/每 10 分钟对比服务器最新构建入口（fetch no-store），发现新版本自动刷新（正在输入时不打断、同标签页只自动刷一次，已是最新版时清除标记）；实测线上部署瞬间旧页面请求已下线的 MemberListView/ConfigView chunk 返回 404（后端全程 200 无异常），刷新即恢复；vue-tsc 与生产构建通过 | 前端、部署体验 |
 
 ---
 

@@ -92,7 +92,7 @@ backend/
 ├── data/                 # SQLite数据库文件目录
 ├── scripts/              # 工具脚本（generate_import_template/selfcheck_indicators）
 ├── templates/            # Excel模板
-├── alembic/              # 数据库迁移（9个版本）
+├── alembic/              # 数据库迁移（13个版本）
 ├── alembic.ini
 ├── requirements.txt
 └── pyproject.toml

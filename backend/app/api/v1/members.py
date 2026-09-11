@@ -1,8 +1,9 @@
 """常驻库接口：成员 CRUD、搜索筛选、批量删除、Excel 导入/导出、出勤率统计。"""
+import asyncio
 from datetime import datetime, timezone
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, File, Query, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +24,7 @@ from app.schemas.member import (
 from app.services import member_service
 from app.utils.excel_export import build_members_xlsx
 from app.utils.excel_import import MAX_FILE_SIZE, ExcelImportError, import_members
-from app.utils.image_export import draw_members_png
+from app.utils.image_export import MAX_IMAGE_MEMBERS, draw_members_png
 
 router = APIRouter(prefix="/members", tags=["常驻库"])
 
@@ -126,7 +127,8 @@ async def export_members(
     members = await member_service.export_members(
         session, current_user.guild_id, keyword, profession, status, sort_by, sort_order
     )
-    content = build_members_xlsx(members)
+    # openpyxl 写表为 CPU 密集操作，放线程池避免阻塞事件循环
+    content = await asyncio.to_thread(build_members_xlsx, members)
     date_tag = datetime.now(timezone.utc).astimezone().strftime("%Y%m%d")
     # ASCII fallback + RFC 5987 编码中文文件名
     filename = f"members_{date_tag}.xlsx"
@@ -150,8 +152,15 @@ async def export_image(
     members = await member_service.export_members(
         session, current_user.guild_id, keyword, profession, status
     )
+    # 长图内存占用随人数线性增长，超过上限提示分批导出（先于绘制拦截，避免内存峰值）
+    if len(members) > MAX_IMAGE_MEMBERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"成员数超过 {MAX_IMAGE_MEMBERS} 人长图上限，请按职业筛选后分批导出",
+        )
     guild = await session.get(Guild, current_user.guild_id) if current_user.guild_id else None
-    content = draw_members_png(members, guild.name if guild else None)
+    # PIL 绘制与 PNG 编码为 CPU 密集操作，放线程池避免阻塞事件循环
+    content = await asyncio.to_thread(draw_members_png, members, guild.name if guild else None)
     date_tag = datetime.now(timezone.utc).astimezone().strftime("%Y%m%d")
     quoted = quote(f"常驻库_{date_tag}.png")
     return Response(

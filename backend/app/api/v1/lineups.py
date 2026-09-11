@@ -1,4 +1,6 @@
 """排表接口：读取排表（帮众可看）、保存排表（管理员）、候选池（管理员）。"""
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +30,11 @@ async def get_lineup(
         lineup.title_remark = ""
     if lineup.groups_remark is None:
         lineup.groups_remark = {}
+    # 未落库的空排表（GET 不写库）：补展示占位值，首次保存时才会真正插入
+    if lineup.id is None:
+        lineup.id = 0
+    if lineup.updated_at is None:
+        lineup.updated_at = datetime.now(timezone.utc)
     return LineupOut.model_validate(lineup)
 
 

@@ -1,7 +1,7 @@
 """个人战绩查询业务：按游戏 ID 聚合历史比赛数据。"""
 from collections import Counter
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.match_data import MatchData
@@ -25,46 +25,68 @@ async def query_player_stats(session: AsyncSession, guild_id: int, player_name: 
     返回：
     - records: 每局明细（含衍生指标 + 赛程元信息 + 该局排名）
     - summary: 概览统计
+
+    查询次数固定为 3 次：
+    1. 定位最近 10 场有该玩家数据的赛程（DISTINCT + 排序 + LIMIT，不再拉全量历史到内存截取）
+    2. 一次拉取该玩家在这 10 场的全部记录（联查赛程元信息）
+    3. 一次拉取这 10 场的全量记录（用于阵营汇总与排名，避免按赛程逐场 N+1）
     """
-    # 联查 match_data + schedules，按 guild_id 隔离
-    stmt = (
-        select(MatchData, Schedule)
-        .join(Schedule, MatchData.schedule_id == Schedule.id)
-        .where(Schedule.guild_id == guild_id, MatchData.player_name == player_name)
-        .order_by(Schedule.match_time.desc(), MatchData.round_no.asc())
+    # 1. 最近 10 场有该玩家数据的赛程（按比赛时间倒序）
+    recent_schedule_ids = list(
+        (
+            await session.execute(
+                select(MatchData.schedule_id)
+                .join(Schedule, MatchData.schedule_id == Schedule.id)
+                .where(Schedule.guild_id == guild_id, MatchData.player_name == player_name)
+                .group_by(MatchData.schedule_id)
+                .order_by(func.max(Schedule.match_time).desc())
+                .limit(10)
+            )
+        )
+        .scalars()
+        .all()
     )
-    rows = (await session.execute(stmt)).all()
-    if not rows:
+    if not recent_schedule_ids:
         return {
             "records": [],
             "summary": _empty_summary(player_name),
         }
 
-    # 限制最近 10 场比赛（按赛程去重）
-    all_schedule_ids = list(dict.fromkeys(r.MatchData.schedule_id for r in rows))
-    recent_schedule_ids = set(all_schedule_ids[:10])
-    rows = [r for r in rows if r.MatchData.schedule_id in recent_schedule_ids]
-    schedule_ids = list(recent_schedule_ids)
+    # 2. 该玩家在最近 10 场的全部记录（含赛程元信息）
+    rows = (
+        await session.execute(
+            select(MatchData, Schedule)
+            .join(Schedule, MatchData.schedule_id == Schedule.id)
+            .where(
+                MatchData.schedule_id.in_(recent_schedule_ids),
+                MatchData.player_name == player_name,
+            )
+            .order_by(Schedule.match_time.desc(), MatchData.round_no.asc())
+        )
+    ).all()
 
-    # 按 schedule_id 加载全量记录，用于计算阵营汇总 + 排名
+    # 3. 这 10 场的全量记录：按局分组，计算阵营汇总 + 排名（一次查询替代逐场查询）
+    all_records = list(
+        (
+            await session.execute(
+                select(MatchData).where(MatchData.schedule_id.in_(recent_schedule_ids))
+            )
+        )
+        .scalars()
+        .all()
+    )
+    schedule_ids = recent_schedule_ids
+
     round_records_map: dict[tuple[int, int], list[MatchData]] = {}  # (schedule_id, round_no) -> records
     round_camp_totals_map: dict[tuple[int, int, str], dict] = {}  # (schedule_id, round_no, camp) -> totals
-
-    for sid in schedule_ids:
-        all_records = list(
-            (await session.execute(
-                select(MatchData).where(MatchData.schedule_id == sid)
-            )).scalars().all()
-        )
-        # 按局分组，每局独立计算阵营汇总（占比分母为同局同阵营）
-        by_round: dict[int, list[MatchData]] = {}
-        for r in all_records:
-            by_round.setdefault(r.round_no, []).append(r)
-            round_records_map.setdefault((sid, r.round_no), []).append(r)
-        for rn, recs in by_round.items():
-            totals = get_camp_totals(recs)
-            for camp_name, ct in totals.items():
-                round_camp_totals_map[(sid, rn, camp_name)] = ct
+    by_round: dict[tuple[int, int], list[MatchData]] = {}
+    for r in all_records:
+        by_round.setdefault((r.schedule_id, r.round_no), []).append(r)
+        round_records_map.setdefault((r.schedule_id, r.round_no), []).append(r)
+    for (sid, rn), recs in by_round.items():
+        totals = get_camp_totals(recs)
+        for camp_name, ct in totals.items():
+            round_camp_totals_map[(sid, rn, camp_name)] = ct
 
     # 逐局计算衍生指标 + 排名
     records = []
