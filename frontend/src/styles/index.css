@@ -1,6 +1,7 @@
 /* 全局样式入口：浅色雅金风（宣纸鎏金） */
 @import './theme.css';
 @import './element-plus.css';
+@import './skeleton.css';
 
 * {
   margin: 0;
@@ -50,21 +51,37 @@ a:hover {
 
 /* ===== 通用工具类 ===== */
 
-/* 页面进入动效：淡入 + 上移
-   注意：fill-mode 用 backwards 而非 both，动画结束后不残留 transform，
-   否则 transform 包含块会让 fixed 定位（弹窗/浮球/遮罩）以页面容器为基准 */
-.page-enter {
-  animation: page-rise var(--dur-slow) var(--ease-out) backwards;
+/* ===== 路由切换过渡（product 状态过渡家族，只动 opacity/transform） =====
+   leave：90ms 纯淡出；enter：180ms 淡入 + 8px 上浮。
+   注意：enter 期间 transform 会产生包含块，fixed 元素以页面容器为基准——
+   与既有 page-enter 行为一致（动画结束即移除 transform）。 */
+.page-switch-leave-active {
+  transition: opacity 90ms ease-in;
 }
 
-@keyframes page-rise {
+.page-switch-leave-to {
+  opacity: 0;
+}
+
+.page-switch-enter-active {
+  transition:
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
+}
+
+.page-switch-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+/* 骨架 → 内容接管：数据就位后内容淡入（形状与骨架对齐，无位移） */
+.soft-appear {
+  animation: soft-appear 180ms var(--ease-out);
+}
+
+@keyframes soft-appear {
   from {
     opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 
@@ -126,18 +143,26 @@ a:hover {
     font-size: 16px !important;
   }
 
-  /* 页面进入动效在触屏上保持轻盈 */
-  .page-enter {
-    animation-duration: var(--dur-normal);
+  /* 路由切换过渡在触屏上收紧时长 */
+  .page-switch-leave-active {
+    transition-duration: 70ms;
+  }
+
+  .page-switch-enter-active {
+    transition-duration: 140ms;
   }
 }
 
-/* ===== 减弱动态效果：停用所有装饰动画 ===== */
+/* ===== 减弱动态效果：停用所有装饰动画（全局回退，含路由过渡与骨架微光） ===== */
 @media (prefers-reduced-motion: reduce) {
-  .page-enter,
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .stat-card {
     animation: none !important;
-    opacity: 1 !important;
-    transform: none !important;
   }
 }

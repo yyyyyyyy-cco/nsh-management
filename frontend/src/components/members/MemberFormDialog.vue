@@ -112,4 +112,22 @@ async function onSubmit() {
   border-radius: 50%;
   flex-shrink: 0;
 }
+
+/* ===== 移动端：表单排版美化（标签左对齐加粗、间距收紧） ===== */
+@media (max-width: 768px) {
+  :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+
+  :deep(.el-form-item:last-child) {
+    margin-bottom: 0;
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-700);
+    margin-bottom: 6px;
+  }
+}
 </style>

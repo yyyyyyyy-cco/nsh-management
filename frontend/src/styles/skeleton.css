@@ -1,0 +1,66 @@
+/* finesse · register=product · A=inherit-宣纸鎏金 · B=inherit · C=app-shell(unchanged)
+ * D=CSS-transition(state-transition 家族) · E=inherit · SOUL=4 SPECTACLE=2 DENSITY=7
+ *
+ * 骨架原语：与最终内容同形状的加载占位（宣纸鎏金主题）。
+ * 微光用伪元素 transform 扫过（仅 transform，60fps）；减弱动效时为静态块（终端态）。
+ */
+
+.sk {
+  position: relative;
+  overflow: hidden;
+  display: inline-block;
+  vertical-align: middle;
+  background: var(--ink-bg-wash);
+  border-radius: 6px;
+}
+
+.sk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(217, 182, 74, 0.14), transparent);
+  animation: sk-sweep 1.4s var(--ease-out) infinite;
+}
+
+@keyframes sk-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* ===== 形状类 ===== */
+.sk-line {
+  height: 12px;
+  width: 100%;
+}
+
+.sk-block {
+  display: block;
+  width: 100%;
+}
+
+.sk-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+/* 统计卡数值占位（与 30px 数值行同高） */
+.sk-kpi {
+  width: 68px;
+  height: 24px;
+}
+
+.sk-kpi-sm {
+  width: 40px;
+  height: 16px;
+}
+
+/* ===== 终端态：减弱动效时取消微光，保留静态骨架块 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .sk::after {
+    animation: none;
+    opacity: 0;
+  }
+}

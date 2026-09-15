@@ -617,3 +617,28 @@
     padding: 6px 8px;
   }
 }
+
+/* ===== 弹窗打开时锁定 body 滚动，防止移动端背景穿透滚动 ===== */
+body:has(.el-overlay) {
+  overflow: hidden;
+}
+
+/* ===== 标签页内容切换：淡入（仅 opacity，避免 transform 包含块副作用，
+   影响 Tab 内 fixed 元素如窄屏候选池浮球） ===== */
+.el-tab-pane.is-active {
+  animation: tab-appear 180ms var(--ease-out);
+}
+
+@keyframes tab-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ===== v-loading 遮罩改为宣纸浅色 =====
+   深色遮罩（--el-mask-color 深色 45%）与浅色宣纸主题冲突；
+   此处仅覆盖 loading 遮罩，侧边栏抽屉遮罩等仍使用 --el-mask-color 深色不受影响。
+   注意：首屏/表格加载已改为骨架（skeleton.css），此遮罩仅服务「已有数据上重载」场景。 */
+.el-loading-mask {
+  background-color: rgba(255, 253, 248, 0.72);
+}

@@ -1,5 +1,5 @@
 <template>
-  <div class="league-overview page-enter">
+  <div class="league-overview">
     <div class="toolbar">
       <div class="toolbar-info">
         <el-icon class="info-icon"><VideoCamera /></el-icon>
@@ -15,9 +15,10 @@
     </div>
 
     <!-- 移动端（≤768px）：场次卡片列表，整卡可点进入录屏上传 -->
-    <div v-if="isMobile" v-loading="loading" class="match-list">
+    <div v-if="isMobile" class="match-list">
+      <SkeletonTable v-if="showSkeleton && !filteredSchedules.length" variant="rows" :rows="5" />
       <el-empty
-        v-if="!loading && !filteredSchedules.length"
+        v-else-if="!loading && !filteredSchedules.length"
         description="当前筛选下暂无场次"
         :image-size="72"
       />
@@ -42,8 +43,9 @@
     </div>
 
     <!-- 桌面端：表格形态保持不变 -->
+    <SkeletonTable v-else-if="showSkeleton && !filteredSchedules.length" variant="table" :rows="5" />
     <el-card v-else shadow="never" class="table-card">
-      <el-table v-loading="loading" :data="filteredSchedules" size="small" @row-click="goRecording">
+      <el-table :data="filteredSchedules" size="small" @row-click="goRecording">
         <el-table-column label="时间" min-width="150">
           <template #default="{ row }">
             <span class="time-cell">
@@ -87,9 +89,12 @@ import { listSchedules } from '@/api/schedules'
 import type { ScheduleInfo } from '@/types/schedule'
 import { resultLabel, resultType } from '@/utils/constants'
 import { sortSchedulesByProximity } from '@/utils/scheduleSort'
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import SkeletonTable from '@/components/common/SkeletonTable.vue'
 
 const router = useRouter()
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const schedules = ref<ScheduleInfo[]>([])
 
 // 移动端（≤768px，与 MainLayout 抽屉断点一致）渲染卡片列表，桌面端渲染表格

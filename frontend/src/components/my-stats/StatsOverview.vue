@@ -95,10 +95,7 @@ const cards = computed(() => [
   font-family: var(--font-num);
   font-size: 22px;
   font-weight: 700;
-  background: var(--gold-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--gold-700);
 }
 
 .stat-card__suffix {

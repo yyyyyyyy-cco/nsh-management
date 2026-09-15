@@ -77,7 +77,26 @@
         <el-button @click="onReset">重置</el-button>
       </div>
 
-      <el-table :data="logs" v-loading="loading" border @row-click="showDetail">
+      <!-- 移动端（≤768px）：日志行列表，点击展开详情 -->
+      <div v-if="isMobile" class="log-rows">
+        <SkeletonTable v-if="showSkeleton && !logs.length" variant="rows" :rows="5" />
+        <el-empty v-else-if="!loading && !logs.length" description="暂无日志记录" :image-size="72" />
+        <div v-for="row in logs" :key="row.id" class="log-row" @click="showDetail(row)">
+          <div class="log-row__main">
+            <span class="log-row__name">{{ row.username || '匿名' }}</span>
+            <el-tag :type="levelTagType(row.level)" effect="light" size="small">{{ levelLabel(row.level) }}</el-tag>
+            <span class="log-row__module">{{ moduleLabels[row.module] ?? row.module }}</span>
+            <span class="log-row__action log-row__action--tag">{{ actionLabels[row.action] ?? row.action }}</span>
+          </div>
+          <div class="log-row__meta">
+            <span class="log-row__time num">{{ formatTime(row.created_at) }}</span>
+            <span class="log-row__path">{{ row.method }} {{ row.path }}</span>
+          </div>
+        </div>
+      </div>
+
+      <SkeletonTable v-else-if="showSkeleton && !logs.length" variant="table" :rows="5" />
+      <el-table v-else :data="logs" border @row-click="showDetail">
         <el-table-column label="时间" min-width="150">
           <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
         </el-table-column>
@@ -175,7 +194,7 @@
 
 <script setup lang="ts">
 /** 系统日志页（仅开发者）：审计日志查询、概览统计与清理。 */
-import { onMounted, reactive, ref, watch } from 'vue'
+import { onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import dayjs from 'dayjs'
 
 import { clearLogs, getLogs, getLogStats } from '@/api/logs'
@@ -184,10 +203,14 @@ import type { Guild } from '@/types/config'
 import type { LogStats, OperationLog } from '@/types/log'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import SkeletonTable from '@/components/common/SkeletonTable.vue'
+
 const stats = ref<LogStats | null>(null)
 const logs = ref<OperationLog[]>([])
 const total = ref(0)
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const page = ref(1)
 const pageSize = ref(20)
 const guilds = ref<Guild[]>([])
@@ -205,6 +228,11 @@ const detailRow = ref<OperationLog | null>(null)
 const clearDialogVisible = ref(false)
 const clearDays = ref(90)
 const clearing = ref(false)
+
+// 移动端（≤768px）响应式切换
+const mq = window.matchMedia('(max-width: 768px)')
+const isMobile = ref(mq.matches)
+const onMqChange = (e: MediaQueryListEvent) => { isMobile.value = e.matches }
 
 const moduleLabels: Record<string, string> = {
   members: '常驻库',
@@ -347,9 +375,14 @@ async function onClear() {
 watch([page, pageSize], load)
 
 onMounted(async () => {
+  mq.addEventListener('change', onMqChange)
   load()
   loadStats()
   guilds.value = await getGuilds()
+})
+
+onUnmounted(() => {
+  mq.removeEventListener('change', onMqChange)
 })
 </script>
 
@@ -551,5 +584,79 @@ onMounted(async () => {
   .stat-card {
     flex: none;
   }
+}
+
+/* ===== 移动端日志行列表（isMobile 时渲染，替换表格） ===== */
+.log-rows {
+  display: flex;
+  flex-direction: column;
+  touch-action: manipulation;
+}
+
+.log-row {
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--edge-faint);
+  cursor: pointer;
+}
+
+.log-row:last-child {
+  border-bottom: none;
+}
+
+.log-row:active {
+  background: var(--gold-50);
+  margin: 0 -2px;
+  padding: 10px 0;
+}
+
+.log-row__main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.log-row__name {
+  font-weight: 600;
+  color: var(--ink-900);
+  font-size: 14px;
+}
+
+.log-row__module {
+  font-size: 11px;
+  color: var(--ink-400);
+  margin-left: auto;
+}
+
+.log-row__action--tag {
+  font-size: 11px;
+  color: var(--gold-700);
+  background: var(--gold-100);
+  border-radius: var(--radius-xl);
+  padding: 0 6px;
+  line-height: 18px;
+}
+
+.log-row__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.log-row__time {
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+.log-row__path {
+  font-size: 12px;
+  color: var(--ink-500);
+  font-family: monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 </style>

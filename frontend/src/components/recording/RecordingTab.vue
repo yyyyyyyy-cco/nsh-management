@@ -41,9 +41,10 @@
     </div>
 
     <!-- 移动端（≤768px）：行列表，提交/审核动作 44px 触控 -->
-    <div v-if="isMobile" v-loading="loading" class="rec-list">
-      <el-empty v-if="!loading && filteredItems.length === 0" description="暂无录屏记录" :image-size="72" />
-      <div v-for="row in pagedItems" :key="row.id" class="rec-row">
+    <div v-if="isMobile" class="rec-list">
+      <SkeletonTable v-if="showSkeleton && filteredItems.length === 0" variant="rows" :rows="5" />
+      <el-empty v-else-if="!loading && filteredItems.length === 0" description="暂无录屏记录" :image-size="72" />
+      <div v-for="row in pagedItems" :key="row.id" class="rec-row" :class="{ 'rec-row--admin': auth.isAdmin }">
         <div class="rec-row__main">
           <el-checkbox
             v-if="auth.isAdmin"
@@ -123,7 +124,8 @@
     </div>
 
     <!-- 桌面端：表格形态保持不变；row-key + reserve-selection 支持跨页保留勾选 -->
-    <el-table v-else v-loading="loading" :data="pagedItems" :row-key="rowKey" :default-sort="{ prop: 'member_name', order: 'ascending' }" @selection-change="onSelectionChange">
+    <SkeletonTable v-else-if="showSkeleton && filteredItems.length === 0" variant="table" :rows="5" />
+      <el-table v-else :data="pagedItems" :row-key="rowKey" :default-sort="{ prop: 'member_name', order: 'ascending' }" @selection-change="onSelectionChange">
       <el-table-column v-if="auth.isAdmin" type="selection" width="44" reserve-selection />
       <el-table-column prop="member_name" label="ID" min-width="100" sortable />
       <el-table-column prop="profession" label="职业" min-width="80" sortable>
@@ -240,6 +242,8 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { CopyDocument, Search } from '@element-plus/icons-vue'
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import SkeletonTable from '@/components/common/SkeletonTable.vue'
 
 import {
   approveRecording,
@@ -257,6 +261,7 @@ const props = defineProps<{ scheduleId: number }>()
 
 const auth = useAuthStore()
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const items = ref<Recording[]>([])
 const progress = ref<RoundProgress[]>([])
 const selectedIds = ref<number[]>([])
@@ -799,6 +804,13 @@ function statusLabel(status: string) {
   min-width: 0;
 }
 
+/* 管理员行（勾选区存在）：职业/链接/备注行缩进约 2 字符宽，与 ID 对齐 */
+.rec-row--admin .rec-row__meta,
+.rec-row--admin .rec-row__linkline,
+.rec-row--admin .rec-row__remark {
+  padding-left: 28px;
+}
+
 .rec-row__url {
   flex: 1;
   min-width: 0;
@@ -807,24 +819,26 @@ function statusLabel(status: string) {
 
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
+  /* 进度条：纵向堆叠为整行列表（每局一行），紧凑高度 */
   .progress-bar {
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
     padding: 12px 14px;
   }
 
   .round-chip {
+    align-self: flex-start;
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
-    padding: 0 18px;
+    min-height: 36px;
+    padding: 0 16px;
   }
 
   .progress-item {
-    flex: 1 1 calc(50% - 8px);
-    min-width: 0;
+    width: 100%;
+    min-height: 40px;
     padding: 4px 6px;
-    min-height: 44px;
   }
 
   .progress-item :deep(.el-progress) {
@@ -852,9 +866,4 @@ function statusLabel(status: string) {
   }
 }
 
-@media (max-width: 480px) {
-  .progress-item {
-    flex-basis: 100%;
-  }
-}
 </style>

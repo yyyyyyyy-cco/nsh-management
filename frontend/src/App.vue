@@ -1,7 +1,7 @@
 <template>
   <el-config-provider :locale="zhCn">
     <router-view v-slot="{ Component }">
-      <Transition name="route-fade" mode="out-in">
+      <Transition name="route-fade">
         <component :is="Component" />
       </Transition>
     </router-view>
@@ -17,7 +17,7 @@ import zhCn from 'element-plus/es/locale/lang/zh-cn'
 /* 路由切换淡入淡出过渡 */
 .route-fade-enter-active,
 .route-fade-leave-active {
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-normal) var(--ease-out);
 }
 
 .route-fade-enter-from,

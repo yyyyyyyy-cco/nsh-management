@@ -206,6 +206,7 @@ function rankClass(r: RankingItem): string {
 </script>
 
 <style scoped>
+/* finesse · register=product · shell=my-stats: wrap-header(≤768px) + scroll-tabs(≤768px) + compact(≤768px) */
 .table-header {
   display: flex;
   align-items: center;
@@ -315,5 +316,41 @@ function rankClass(r: RankingItem): string {
   font-size: 10px;
   color: var(--ink-400);
   font-weight: 400;
+}
+
+/* ===== 移动端适配 ===== */
+@media (max-width: 768px) {
+  .table-header {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .header-right {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .rank-hint {
+    width: 100%;
+    font-size: 11px;
+  }
+
+  .detail-tabs :deep(.el-tabs__item) {
+    font-size: 12px;
+    padding: 0 8px;
+  }
+
+  .detail-tabs :deep(.el-tabs__nav-wrap) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .detail-tabs :deep(.el-tabs__nav) {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    min-width: 100%;
+  }
 }
 </style>

@@ -1262,12 +1262,32 @@ const compareDiffRows = computed(() => {
 
 /* ===== 移动端 ===== */
 @media (max-width: 768px) {
+  /* 图表卡内边距收紧，为窄屏图表释放宽度 */
+  .chart-card {
+    padding: 12px;
+  }
+
   .chart-row {
     grid-template-columns: 1fr;
   }
 
   .chart-list {
     grid-template-columns: 1fr;
+  }
+
+  /* 小队卡片：窄屏纵向堆叠，指标自动换行 */
+  .squad-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .squad-card__header {
+    min-width: 0;
+  }
+
+  .squad-card__metrics {
+    gap: 4px 10px;
   }
 
   /* 弹窗宽度覆盖已迁移至 element-plus.css 全局 media query */

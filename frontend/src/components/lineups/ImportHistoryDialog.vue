@@ -1,6 +1,6 @@
 <template>
   <el-dialog v-model="visible" title="导入历史排表" width="760px" append-to-body :close-on-click-modal="false">
-    <div v-if="loading" v-loading="loading" class="dialog-loading" />
+    <SkeletonTable v-if="showSkeleton && !history.length" variant="table" :rows="5" />
     <el-empty v-else-if="!history.length" description="暂无其他赛程的排表数据" :image-size="80" />
 
     <template v-else>
@@ -67,6 +67,8 @@
 import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import SkeletonTable from '@/components/common/SkeletonTable.vue'
 
 import { getLineupHistory, importLineup } from '@/api/lineups'
 import type { LineupHistoryItem } from '@/types/lineup'
@@ -76,6 +78,7 @@ const emit = defineEmits<{ imported: [] }>()
 const visible = defineModel<boolean>({ required: true })
 
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const saving = ref(false)
 const history = ref<LineupHistoryItem[]>([])
 const selectedSchedule = ref<number | null>(null)
@@ -160,9 +163,7 @@ async function onConfirm() {
 </script>
 
 <style scoped>
-.dialog-loading {
-  min-height: 120px;
-}
+/* .dialog-loading 已迁移为 SkeletonTable 骨架，旧样式清理 */
 
 .dialog-tip {
   color: var(--ink-500);

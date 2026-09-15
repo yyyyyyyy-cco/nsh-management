@@ -38,10 +38,18 @@ const props = withDefaults(defineProps<{ option: Record<string, unknown>; height
   height: 300,
 })
 
-/** 高度支持数字（px）或字符串（如 "100%"），配合 flex 容器自适应。 */
+// 移动端（≤768px，与 MainLayout 抽屉断点一致）：数值高度收敛到 280px 以内，避免窄屏图表过高
+const mq = window.matchMedia('(max-width: 768px)')
+const isMobile = ref(mq.matches)
+const onMqChange = (e: MediaQueryListEvent) => {
+  isMobile.value = e.matches
+}
+
+/** 高度支持数字（px）或字符串（如 "100%"），配合 flex 容器自适应；窄屏数值高度收敛。 */
 const elStyle = computed(() => {
   const h = props.height
-  return { height: typeof h === 'number' ? `${h}px` : h }
+  if (typeof h === 'string') return { height: h }
+  return { height: `${isMobile.value ? Math.min(h, 280) : h}px` }
 })
 
 const el = ref<HTMLDivElement | null>(null)
@@ -49,6 +57,7 @@ let chart: EChartsType | null = null
 let resizeObserver: ResizeObserver | null = null
 
 onMounted(() => {
+  mq.addEventListener('change', onMqChange)
   if (!el.value) return
   const container = el.value
   /**
@@ -78,6 +87,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  mq.removeEventListener('change', onMqChange)
   resizeObserver?.disconnect()
   chart?.dispose()
   chart = null

@@ -1,5 +1,5 @@
 <template>
-  <div class="my-stats page-enter">
+  <div class="my-stats">
     <div class="toolbar">
       <div class="toolbar-info">
         <el-icon class="info-icon"><TrendCharts /></el-icon>
@@ -11,23 +11,28 @@
     <PlayerSearch :loading="loading" @search="onSearch" />
 
     <!-- 查询中 -->
-    <div v-if="loading" v-loading="true" style="height: 200px" />
+    <div v-if="showSkeleton" class="stats-skeleton">
+      <div class="sk sk-block" style="height:88px;margin-bottom:16px;border-radius:var(--radius-lg)" />
+      <div class="sk sk-block" style="height:300px;margin-bottom:16px;border-radius:var(--radius-lg)" />
+      <div class="sk sk-block" style="height:220px;margin-bottom:16px;border-radius:var(--radius-lg)" />
+      <div class="sk sk-block" style="height:280px;border-radius:var(--radius-lg)" />
+    </div>
 
     <!-- 空状态 -->
     <el-empty v-else-if="queried && records.length === 0" description="未找到该 ID 的比赛数据，请确认 ID 是否正确" />
 
     <!-- 结果 -->
-    <template v-else-if="records.length > 0">
+    <div v-else-if="records.length > 0" class="soft-appear">
       <StatsOverview v-if="summary" :summary="summary" class="section" />
       <StatsTrendChart :records="records" class="section" />
       <StatsRankingPosition :records="records" class="section" />
       <StatsMatchTable :records="records" class="section" />
-    </template>
+    </div>
 
     <!-- 初始状态 -->
     <el-empty v-else description="输入你的游戏 ID，查看个人历史战绩">
       <template #image>
-        <div class="empty-icon">&#x1F3C6;</div>
+        <el-icon :size="48" class="empty-icon"><Trophy /></el-icon>
       </template>
     </el-empty>
   </div>
@@ -35,7 +40,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { TrendCharts } from '@element-plus/icons-vue'
+import { TrendCharts, Trophy } from '@element-plus/icons-vue'
 
 import { getMyStats } from '@/api/myStats'
 import type { PlayerRecord, PlayerSummary } from '@/types/myStats'
@@ -45,7 +50,10 @@ import StatsTrendChart from '@/components/my-stats/StatsTrendChart.vue'
 import StatsMatchTable from '@/components/my-stats/StatsMatchTable.vue'
 import StatsRankingPosition from '@/components/my-stats/StatsRankingPosition.vue'
 
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const queried = ref(false)
 const records = ref<PlayerRecord[]>([])
 const summary = ref<PlayerSummary | null>(null)
@@ -103,8 +111,8 @@ async function onSearch(name: string) {
 }
 
 .empty-icon {
-  font-size: 48px;
-  line-height: 1;
+  color: var(--gold-400);
+  opacity: 0.5;
 }
 
 @media (max-width: 768px) {

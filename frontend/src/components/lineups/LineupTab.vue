@@ -5,7 +5,7 @@
 
     <!-- 排表总览（管理员与帮众均可见） -->
     <div ref="overviewRef" class="overview-wrap">
-      <el-card v-loading="loading" shadow="never" class="overview">
+      <el-card shadow="never" class="overview">
         <template #header>
           <div class="overview-header">
             <span class="overview-title">排表总览</span>
@@ -16,7 +16,8 @@
           </div>
         </template>
       <div v-if="titleRemark" class="title-remark-bar">{{ titleRemark }}</div>
-      <el-empty v-if="!loading && !totalPlaced" description="排表中暂无成员" />
+      <SkeletonTable v-if="showSkeleton && !totalPlaced" variant="table" :rows="4" />
+      <el-empty v-else-if="!loading && !totalPlaced" description="排表中暂无成员" />
       <template v-else>
         <!-- 四组卡片 -->
         <div class="overview-grid">
@@ -75,12 +76,14 @@ import type { LineupTeam } from '@/types/lineup'
 import { PROF_ORDER } from '@/composables/lineupBoard'
 import LineupEditor from './LineupEditor.vue'
 import { profColor } from '@/utils/profession'
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 
 const props = defineProps<{ scheduleId: number }>()
 
 const auth = useAuthStore()
 const isAdmin = computed(() => auth.isAdmin)
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const teams = ref<LineupTeam[]>([])
 const editorRef = ref<InstanceType<typeof LineupEditor>>()
 const exporting = ref(false)

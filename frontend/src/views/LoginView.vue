@@ -244,6 +244,7 @@ async function onSubmit() {
   letter-spacing: 4px;
   line-height: 1.6;
   margin-bottom: 16px;
+  overflow-wrap: anywhere;
 }
 
 .brand-line {

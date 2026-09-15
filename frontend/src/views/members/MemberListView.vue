@@ -1,14 +1,23 @@
 <template>
-  <div class="member-list page-enter">
+  <div class="member-list">
     <el-tabs v-model="activeTab" class="member-tabs" @tab-change="onTabChange">
       <el-tab-pane label="成员列表" name="list">
         <el-card shadow="never" class="page-card">
       <div class="stats-bar">
-        <span class="stats-item">正式 <b class="num">{{ stats.formal_count }}</b> 人</span>
-        <span class="stats-sep" />
-        <span class="stats-item">替补 <b class="num">{{ stats.substitute_count }}</b> 人</span>
-        <span class="stats-sep" />
-        <span class="stats-item">当前筛选共 <b class="num">{{ total }}</b> 人</span>
+        <template v-if="showSkeleton">
+          <span class="stats-item">正式 <span class="sk sk-line sk-kpi-sm" style="vertical-align:middle" /></span>
+          <span class="stats-sep" />
+          <span class="stats-item">替补 <span class="sk sk-line sk-kpi-sm" style="vertical-align:middle" /></span>
+          <span class="stats-sep" />
+          <span class="stats-item">当前筛选共 <span class="sk sk-line sk-kpi-sm" style="vertical-align:middle" /></span>
+        </template>
+        <template v-else>
+          <span class="stats-item">正式 <b class="num">{{ stats.formal_count }}</b> 人</span>
+          <span class="stats-sep" />
+          <span class="stats-item">替补 <b class="num">{{ stats.substitute_count }}</b> 人</span>
+          <span class="stats-sep" />
+          <span class="stats-item">当前筛选共 <b class="num">{{ total }}</b> 人</span>
+        </template>
       </div>
       <ProfessionShortage :refresh-key="shortageRefreshKey" />
       <div class="toolbar">
@@ -47,8 +56,39 @@
         </div>
       </div>
 
-      <el-table
-        v-loading="loading"
+      <!-- 移动端（≤768px）：成员行列表，职业标签 + 紧凑编辑/删除 -->
+      <div v-if="isMobile" class="member-rows">
+        <SkeletonTable v-if="showSkeleton && !items.length" variant="rows" :rows="5" />
+        <el-empty v-else-if="!loading && !items.length" description="暂无成员数据" :image-size="72" />
+        <div v-for="row in items" :key="row.id" class="member-row">
+          <div class="mr-main">
+            <el-checkbox
+              class="mr-check"
+              :model-value="selectedIds.includes(row.id)"
+              @change="toggleSelect(row.id)"
+            />
+            <span class="mr-name">{{ row.name }}</span>
+            <el-tag class="mr-status" :type="row.status === 'formal' ? 'primary' : 'info'" effect="light" size="small">
+              {{ row.status === 'formal' ? '正式' : '替补' }}
+            </el-tag>
+          </div>
+          <div v-if="row.remark" class="mr-remark">备注：{{ row.remark }}</div>
+          <div class="mr-actions">
+            <span class="mr-profs">
+              <span class="prof-tag" :style="profStyle(row.main_profession)">{{ row.main_profession }}</span>
+              <span v-if="row.sub_profession" class="prof-tag prof-tag--sub" :style="profStyle(row.sub_profession)">
+                {{ row.sub_profession }}
+              </span>
+            </span>
+            <el-button class="mr-act mr-act--edit" @click="openForm(row)">编辑</el-button>
+            <el-button class="mr-act" type="danger" plain @click="onDelete(row)">删除</el-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 桌面端：表格形态保持不变 -->
+      <SkeletonTable v-else-if="showSkeleton && !items.length" variant="table" :rows="5" />
+      <el-table v-else
         :data="items"
         :default-sort="{ prop: 'name', order: 'ascending' }"
         @selection-change="onSelectionChange"
@@ -111,7 +151,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Plus, Search, Upload, Download, Delete } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -124,8 +164,11 @@ import AttendanceRatePanel from '@/components/members/AttendanceRatePanel.vue'
 import ProfessionShortage from '@/components/members/ProfessionShortage.vue'
 import MemberFormDialog from '@/components/members/MemberFormDialog.vue'
 import MemberImportDialog from '@/components/members/MemberImportDialog.vue'
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import SkeletonTable from '@/components/common/SkeletonTable.vue'
 
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const activeTab = ref('list')
 const shortageRefreshKey = ref(0) // 成员数据变更（添加/导入/删除）后递增，驱动缺少职业组件刷新
 const route = useRoute()
@@ -145,6 +188,14 @@ const items = ref<MemberInfo[]>([])
 const total = ref(0)
 const stats = ref<MemberStats>({ formal_count: 0, substitute_count: 0 })
 const selectedIds = ref<number[]>([])
+
+// 移动端（≤768px，与 MainLayout 抽屉断点一致）渲染行列表，桌面端渲染表格
+const mq = window.matchMedia('(max-width: 768px)')
+const isMobile = ref(mq.matches)
+const onMqChange = (e: MediaQueryListEvent) => {
+  isMobile.value = e.matches
+  selectedIds.value = [] // 形态切换时清空勾选，避免残留「看不见的已勾选」
+}
 const formVisible = ref(false)
 const importVisible = ref(false)
 const editingMember = ref<MemberInfo | null>(null)
@@ -172,10 +223,17 @@ function onSortChange({ prop, order }: { prop: string; order: 'ascending' | 'des
   load()
 }
 
-onMounted(load)
+onMounted(() => {
+  mq.addEventListener('change', onMqChange)
+  load()
+})
+
+onUnmounted(() => mq.removeEventListener('change', onMqChange))
 
 async function load() {
   loading.value = true
+  // 刷新后清空勾选：桌面表格随数据更新失去选中，移动端勾选同步清空保持一致
+  selectedIds.value = []
   try {
     const page = await listMembers(query)
     items.value = page.items
@@ -221,6 +279,13 @@ async function onExport(format: 'xlsx' | 'png') {
 
 function onSelectionChange(rows: MemberInfo[]) {
   selectedIds.value = rows.map((row) => row.id)
+}
+
+/** 移动端行内勾选：与桌面表格共用 selectedIds，支撑批量删除。 */
+function toggleSelect(id: number) {
+  const idx = selectedIds.value.indexOf(id)
+  if (idx >= 0) selectedIds.value.splice(idx, 1)
+  else selectedIds.value.push(id)
 }
 
 function openForm(member: MemberInfo | null = null) {
@@ -381,22 +446,139 @@ async function onBatchDelete() {
   color: var(--gold-700);
 }
 
+/* finesse · register=product · shell=member-list: row-list(≤768px) + toolbar grid(≤768px) 主操作满宽 + 2×2 + 44px 触控 */
+
+/* ===== 移动端行列表（isMobile 时渲染，替换表格） ===== */
+.member-rows {
+  display: flex;
+  flex-direction: column;
+  min-height: 140px; /* 空态/加载遮罩的占位高度 */
+  touch-action: manipulation;
+}
+
+.member-row {
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.member-row:last-child {
+  border-bottom: none;
+}
+
+.mr-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mr-check {
+  flex-shrink: 0;
+  padding: 10px 6px 10px 0;
+}
+
+.mr-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.mr-status {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.mr-remark {
+  margin-top: 6px;
+  margin-left: 28px; /* 与职业标签组同左缩进（约 2 个字符宽） */
+  font-size: 12px;
+  color: var(--ink-500);
+  overflow-wrap: anywhere;
+}
+
+/* 职业标签组：动作行最左，右移约 2 个字符宽，与编辑/删除同行 */
+.mr-profs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 28px;
+  margin-right: auto;
+  flex-shrink: 0;
+}
+
+.mr-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 紧凑动作按钮：32px 高、内容宽度，右对齐 */
+.mr-actions .el-button.mr-act {
+  height: 32px;
+  margin-left: 0;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 编辑：鎏金描边（与录屏行内动作同一形态，规避 primary+plain 浑浊） */
+.mr-actions .el-button.mr-act--edit {
+  background: var(--gold-50);
+  border: 1px solid var(--gold-300);
+  color: var(--gold-700);
+}
+
+.mr-actions .el-button.mr-act--edit:active {
+  background: var(--gold-100);
+  border-color: var(--gold-400);
+}
+
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
+  /* 卡片内边距收紧（对齐赛程详情/联赛总览），为行列表释放横向空间 */
+  .page-card :deep(.el-card__body) {
+    padding: 14px;
+  }
+
   .toolbar-filters {
     flex: 1 1 100%;
   }
 
+  /* 操作区：主操作（添加成员）满宽一行，其余按钮两列均分 */
   .toolbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
     flex: 1 1 100%;
     border-left: none;
     padding-left: 0;
-    justify-content: space-between;
   }
 
+  /* 44px 触控高度；收窄左右内边距保证 320px 下「导出 Excel」单行不溢出 */
   .toolbar-actions .el-button {
-    flex: 1;
+    width: 100%;
+    height: 44px;
     margin-left: 0 !important;
+    padding: 0 10px;
+  }
+
+  .toolbar-actions .el-button:first-child {
+    grid-column: 1 / -1;
+  }
+
+  /* 选中数量徽标窄屏收紧，避免撑破网格单元 */
+  .batch-count {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    margin-left: 3px;
+    font-size: 10px;
   }
 
   .keyword,
@@ -407,19 +589,6 @@ async function onBatchDelete() {
 
   .pagination {
     justify-content: center;
-  }
-}
-
-@media (max-width: 480px) {
-  .toolbar-actions {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .toolbar-actions .el-button {
-    flex: 1 1 100%;
-    margin-left: 0 !important;
-    min-width: 0;
   }
 }
 </style>

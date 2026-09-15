@@ -1,5 +1,5 @@
 <template>
-  <div class="schedule-list page-enter">
+  <div class="schedule-list">
     <div class="toolbar">
       <div class="toolbar-info">
         <el-icon class="info-icon"><Calendar /></el-icon>
@@ -20,7 +20,29 @@
           </el-radio-group>
         </div>
       </template>
-      <el-table v-loading="loading" :data="schedules" size="small">
+
+      <!-- 移动端（≤768px）：赛程行列表（参照联赛总览卡片的信息层级），详情/删除紧凑按钮 -->
+      <div v-if="isMobile" class="match-list">
+        <SkeletonTable v-if="showSkeleton && !schedules.length" variant="rows" :rows="5" />
+        <el-empty v-else-if="!loading && !schedules.length" description="当前筛选下暂无赛程" :image-size="72" />
+        <div v-for="row in schedules" :key="row.id" class="match-card">
+          <div class="mc-top">
+            <span class="time-date num">{{ formatDate(row.match_time) }}</span>
+            <span class="time-clock num">{{ formatClock(row.match_time) }}</span>
+            <span class="rounds">{{ row.rounds }}局</span>
+            <el-tag class="mc-result" :type="resultType(row.result)" effect="light">{{ resultLabel(row.result) }}</el-tag>
+          </div>
+          <div class="opponent">vs {{ row.opponent }}</div>
+          <div class="mc-actions">
+            <el-button class="mc-act mc-act--detail" @click="goDetail(row)">详情</el-button>
+            <el-button class="mc-act" type="danger" plain @click="onDelete(row)">删除</el-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 桌面端：表格形态保持不变 -->
+      <SkeletonTable v-else-if="showSkeleton && !schedules.length" variant="table" :rows="5" />
+      <el-table v-else :data="schedules" size="small">
         <el-table-column label="时间" min-width="150">
           <template #default="{ row }">
             <span class="time-cell">
@@ -58,7 +80,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { Calendar, Plus } from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
@@ -71,20 +93,35 @@ import { resultLabel, resultType } from '@/utils/constants'
 import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 import ScheduleCalendar from '@/components/schedules/ScheduleCalendar.vue'
 import ScheduleFormDialog from '@/components/schedules/ScheduleFormDialog.vue'
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import SkeletonTable from '@/components/common/SkeletonTable.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const schedules = ref<ScheduleInfo[]>([])
 const viewMode = ref<'month' | 'all'>('month')
 const formVisible = ref(false)
 const editingSchedule = ref<ScheduleInfo | null>(null)
 const defaultDate = ref('')
 
+// 移动端（≤768px，与 MainLayout 抽屉断点一致）渲染行列表，桌面端渲染表格
+const mq = window.matchMedia('(max-width: 768px)')
+const isMobile = ref(mq.matches)
+const onMqChange = (e: MediaQueryListEvent) => {
+  isMobile.value = e.matches
+}
+
 const formatDate = (value: string) => dayjs(value).format('MM-DD')
 const formatClock = (value: string) => dayjs(value).format('HH:mm')
 
-onMounted(() => load(dayjs().format('YYYY-MM')))
+onMounted(() => {
+  mq.addEventListener('change', onMqChange)
+  load(dayjs().format('YYYY-MM'))
+})
+
+onUnmounted(() => mq.removeEventListener('change', onMqChange))
 
 async function load(month: string) {
   loading.value = true
@@ -133,6 +170,7 @@ async function onDelete(row: ScheduleInfo) {
 </script>
 
 <style scoped>
+/* finesse · register=product · shell=card-list(≤768px) + table(桌面) */
 .toolbar {
   display: flex;
   align-items: center;
@@ -203,8 +241,87 @@ async function onDelete(row: ScheduleInfo) {
   color: var(--ink-500);
 }
 
+/* ===== 移动端行列表（isMobile 时渲染，替换表格） ===== */
+.match-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 140px; /* 空态/加载遮罩的占位高度 */
+  touch-action: manipulation;
+}
+
+.match-card {
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.match-card:last-child {
+  border-bottom: none;
+}
+
+.mc-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mc-top .time-date {
+  font-size: 15px;
+}
+
+.mc-top .time-clock,
+.mc-top .rounds {
+  font-size: 12.5px;
+}
+
+.mc-result {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.match-card .opponent {
+  margin-top: 5px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.mc-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 紧凑动作按钮：32px 高、内容宽度，右对齐（与常驻库行列表同款） */
+.mc-actions .el-button.mc-act {
+  height: 32px;
+  margin-left: 0;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* 详情：鎏金描边 */
+.mc-actions .el-button.mc-act--detail {
+  background: var(--gold-50);
+  border: 1px solid var(--gold-300);
+  color: var(--gold-700);
+}
+
+.mc-actions .el-button.mc-act--detail:active {
+  background: var(--gold-100);
+  border-color: var(--gold-400);
+}
+
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
+  /* 卡片内边距收紧（对齐常驻库/赛程详情），为行列表释放横向空间 */
+  .table-card :deep(.el-card__body) {
+    padding: 14px;
+  }
+
   .toolbar {
     flex-wrap: wrap;
     gap: 10px;

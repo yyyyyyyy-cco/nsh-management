@@ -382,23 +382,36 @@ function formatNumber(value: number): string {
     gap: 8px;
   }
 
-  .toolbar .el-select,
-  .toolbar .el-input {
+  /* 导入 / 阵营筛选：两两均分一行（指标说明除外） */
+  .toolbar .el-button:not(.is-text),
+  .toolbar .el-select {
     flex: 1 1 calc(50% - 4px);
     width: auto !important;
-  }
-
-  .toolbar .el-button {
-    flex: 1 1 calc(50% - 4px);
     margin-left: 0 !important;
   }
 
-  /* 局切换：加大点按面积 */
+  /* 按ID搜索占满剩余宽度，指标说明贴右 */
+  .toolbar .el-input {
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 0;
+  }
+
+  .toolbar .spacer {
+    display: none;
+  }
+
+  .toolbar .el-button.is-text {
+    flex-shrink: 0;
+    padding: 0 4px;
+  }
+
+  /* 局切换：紧凑高度 32px（与全站移动端按钮标准一致） */
   .round-bar :deep(.el-radio-button__inner) {
     display: flex;
     align-items: center;
-    height: 44px;
-    padding: 0 16px;
+    height: 32px;
+    padding: 0 12px;
   }
 }
 </style>

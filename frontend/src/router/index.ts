@@ -107,4 +107,20 @@ router.afterEach((to) => {
   document.title = to.meta.title ? `${String(to.meta.title)} - 轻衫都会用的帮会联赛管理系统` : '轻衫都会用的帮会联赛管理系统'
 })
 
+/** 预取路由懒加载分包：菜单 hover 时预热，冷启动切换更跟手。
+ *  静默失败；重复调用自动去重。 */
+const prefetched = new Set<string>()
+export function prefetchRoute(to: string | { name: string }): void {
+  const key = typeof to === 'string' ? to : to.name
+  if (!key || prefetched.has(key)) return
+  prefetched.add(key)
+
+  const resolved = router.resolve(to)
+  const record = resolved.matched[resolved.matched.length - 1]
+  const comp = record?.components?.default
+  if (typeof comp === 'function') {
+    void (comp as () => Promise<unknown>)().catch(() => prefetched.delete(key))
+  }
+}
+
 export default router

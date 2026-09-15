@@ -10,35 +10,35 @@
       </div>
       <div class="logo-sub" v-show="!collapsed">逆水寒 · 帮会联赛管理</div>
       <el-menu :default-active="activeMenu" router class="menu" :collapse="collapsed" :collapse-transition="false" @select="onMenuSelect">
-        <el-menu-item v-if="auth.user?.role === 'admin'" index="/" :title="collapsed ? '首页' : undefined">
+        <el-menu-item v-if="auth.user?.role === 'admin'" index="/" :title="collapsed ? '首页' : undefined" @mouseenter="prefetchRoute('/')">
           <el-icon><HomeFilled /></el-icon>
           <span>首页</span>
         </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'member'" index="/league-overview" :title="collapsed ? '录屏上传' : undefined">
+        <el-menu-item v-if="auth.user?.role === 'member'" index="/league-overview" :title="collapsed ? '录屏上传' : undefined" @mouseenter="prefetchRoute('/league-overview')">
           <el-icon><VideoCamera /></el-icon>
           <span>录屏上传</span>
         </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'member'" index="/my-stats" :title="collapsed ? '个人战绩' : undefined">
+        <el-menu-item v-if="auth.user?.role === 'member'" index="/my-stats" :title="collapsed ? '个人战绩' : undefined" @mouseenter="prefetchRoute('/my-stats')">
           <el-icon><TrendCharts /></el-icon>
           <span>个人战绩</span>
         </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'member'" index="/schedules" :title="collapsed ? '联赛日程' : undefined">
+        <el-menu-item v-if="auth.user?.role === 'member'" index="/schedules" :title="collapsed ? '联赛日程' : undefined" @mouseenter="prefetchRoute('/schedules')">
           <el-icon><Calendar /></el-icon>
           <span>联赛日程</span>
         </el-menu-item>
-        <el-menu-item v-if="auth.isAdmin && !auth.isDeveloper" index="/members" :title="collapsed ? '常驻库' : undefined">
+        <el-menu-item v-if="auth.isAdmin && !auth.isDeveloper" index="/members" :title="collapsed ? '常驻库' : undefined" @mouseenter="prefetchRoute('/members')">
           <el-icon><UserFilled /></el-icon>
           <span>常驻库</span>
         </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'admin'" index="/schedules" :title="collapsed ? '联赛日程' : undefined">
+        <el-menu-item v-if="auth.user?.role === 'admin'" index="/schedules" :title="collapsed ? '联赛日程' : undefined" @mouseenter="prefetchRoute('/schedules')">
           <el-icon><Calendar /></el-icon>
           <span>联赛日程</span>
         </el-menu-item>
-        <el-menu-item v-if="auth.isAdmin" index="/config" :title="collapsed ? '系统配置' : undefined">
+        <el-menu-item v-if="auth.isAdmin" index="/config" :title="collapsed ? '系统配置' : undefined" @mouseenter="prefetchRoute('/config')">
           <el-icon><Setting /></el-icon>
           <span>系统配置</span>
         </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'developer'" index="/logs" :title="collapsed ? '系统日志' : undefined">
+        <el-menu-item v-if="auth.user?.role === 'developer'" index="/logs" :title="collapsed ? '系统日志' : undefined" @mouseenter="prefetchRoute('/logs')">
           <el-icon><Document /></el-icon>
           <span>系统日志</span>
         </el-menu-item>
@@ -46,6 +46,10 @@
       <div class="sidebar-footer" v-show="!collapsed">NSH League System</div>
     </aside>
     <div class="main">
+      <!-- 路由懒加载分包期鎏金进度线（导航 >150ms 才出现） -->
+      <transition name="progress-fade">
+        <div v-if="routeLoading" class="route-progress"><span class="route-progress__bar" /></div>
+      </transition>
       <header class="header">
         <div class="header-left">
           <button type="button" class="collapse-btn" :title="isMobile ? '打开导航菜单' : collapsed ? '展开侧边栏' : '收起侧边栏'" @click="onToggleSidebar">
@@ -71,7 +75,11 @@
         </el-dropdown>
       </header>
       <main class="content">
-        <router-view />
+        <router-view v-slot="{ Component, route }">
+          <transition name="page-switch" mode="out-in">
+            <component :is="Component" :key="route.path" />
+          </transition>
+        </router-view>
       </main>
     </div>
   </div>
@@ -84,6 +92,7 @@ import { ArrowDown, Calendar, Document, Expand, Fold, HomeFilled, Menu, Setting,
 import { ElMessageBox } from 'element-plus'
 
 import { useAuthStore } from '@/stores/auth'
+import { prefetchRoute } from '@/router'
 
 const route = useRoute()
 const router = useRouter()
@@ -98,6 +107,13 @@ const isMobile = ref(false)
 const drawerOpen = ref(false)
 let mq: MediaQueryList | null = null
 
+// 路由懒加载分包：鎏金进度线
+const routeLoading = ref(false)
+let progressTimer: number | undefined
+let removeBeforeEach: (() => void) | null = null
+let removeAfterEach: (() => void) | null = null
+let removeOnError: (() => void) | null = null
+
 function onMqChange(e: MediaQueryListEvent) {
   isMobile.value = e.matches
   if (!e.matches) drawerOpen.value = false // 回到 PC 宽度时关闭抽屉
@@ -108,10 +124,33 @@ onMounted(() => {
   mq = window.matchMedia('(max-width: 768px)')
   isMobile.value = mq.matches
   mq.addEventListener('change', onMqChange)
+
+  // 路由进度：懒加载分包加载期 >150ms 显示鎏金线
+  removeBeforeEach = router.beforeEach(() => {
+    if (progressTimer !== undefined) window.clearTimeout(progressTimer)
+    progressTimer = window.setTimeout(() => { routeLoading.value = true }, 150)
+  })
+  removeAfterEach = router.afterEach(() => {
+    if (progressTimer !== undefined) {
+      window.clearTimeout(progressTimer)
+      progressTimer = undefined
+    }
+    routeLoading.value = false
+  })
+  removeOnError = router.onError(() => {
+    if (progressTimer !== undefined) {
+      window.clearTimeout(progressTimer)
+      progressTimer = undefined
+    }
+    routeLoading.value = false
+  })
 })
 
 onBeforeUnmount(() => {
   mq?.removeEventListener('change', onMqChange)
+  removeBeforeEach?.()
+  removeAfterEach?.()
+  removeOnError?.()
 })
 
 /** 移动端点按钮打开抽屉，PC 端切换折叠。 */
@@ -363,6 +402,10 @@ async function onCommand(command: string | number | object) {
   .content {
     padding: 14px 12px;
   }
+
+  .route-progress {
+    top: 56px;
+  }
 }
 
 /* ===== 主区域 ===== */
@@ -371,13 +414,53 @@ async function onCommand(command: string | number | object) {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  position: relative;
+}
+
+/* ===== 路由懒加载：鎏金进度线（>150ms 才出现，防闪烁） ===== */
+.route-progress {
+  position: absolute;
+  top: 62px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  overflow: hidden;
+  z-index: 3000;
+  pointer-events: none;
+}
+
+.route-progress__bar {
+  display: block;
+  width: 30%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(201, 161, 59, 0.4) 30%, var(--gold-500) 50%, rgba(201, 161, 59, 0.4) 70%, transparent);
+  transform: translateX(-100%);
+  animation: route-progress-sweep 1.1s ease-in-out infinite;
+}
+
+@keyframes route-progress-sweep {
+  to {
+    transform: translateX(433%);
+  }
+}
+
+.progress-fade-enter-active {
+  transition: opacity 150ms var(--ease-out);
+}
+
+.progress-fade-leave-active {
+  transition: opacity 200ms var(--ease-out);
+}
+
+.progress-fade-enter-from,
+.progress-fade-leave-to {
+  opacity: 0;
 }
 
 .header {
   height: 62px;
   flex-shrink: 0;
-  background: rgba(253, 250, 244, 0.9);
-  backdrop-filter: blur(8px);
+  background: var(--ink-bg-cream);
   border-bottom: 1px solid var(--edge-soft);
   display: flex;
   align-items: center;
@@ -413,6 +496,7 @@ async function onCommand(command: string | number | object) {
   font-weight: 700;
   color: var(--ink-900);
   letter-spacing: 1px;
+  overflow-wrap: anywhere;
 }
 
 .page-title__bar {

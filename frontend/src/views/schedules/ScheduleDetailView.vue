@@ -1,5 +1,5 @@
 <template>
-  <div v-loading="loading" class="schedule-detail page-enter">
+  <div class="schedule-detail">
     <el-card shadow="never" class="info-card">
       <template #header>
         <div class="card-header">
@@ -15,7 +15,14 @@
           </div>
         </div>
       </template>
-      <el-descriptions v-if="schedule" :column="2" border>
+      <!-- 信息卡骨架 -->
+      <div v-if="showSkeleton && !schedule" class="sk-desc">
+        <div v-for="i in 4" :key="i" class="sk-desc__row">
+          <span class="sk sk-line" style="width:80px" />
+          <span class="sk sk-line" style="width:1fr;flex:1" />
+        </div>
+      </div>
+      <el-descriptions v-else-if="schedule" :column="2" border>
         <el-descriptions-item label="对手">{{ schedule.opponent }}</el-descriptions-item>
         <el-descriptions-item label="比赛时间">{{ formatTime(schedule.match_time) }}</el-descriptions-item>
         <el-descriptions-item label="局数">{{ schedule.rounds }}局</el-descriptions-item>
@@ -78,12 +85,14 @@ import LineupTab from '@/components/lineups/LineupTab.vue'
 import RecordingTab from '@/components/recording/RecordingTab.vue'
 import MatchDataTab from '@/components/match-data/MatchDataTab.vue'
 import ScheduleFormDialog from '@/components/schedules/ScheduleFormDialog.vue'
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const isMember = computed(() => auth.user?.role === 'member')
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const schedule = ref<ScheduleInfo | null>(null)
 const formVisible = ref(false)
 
@@ -141,6 +150,12 @@ async function onDelete() {
 
 <style scoped>
 /* finesse · register=product · shell=member-detail: row-list(≤768px) + table(桌面) */
+
+/* ===== 信息卡骨架：2×2 描述格占位 ===== */
+.sk-desc { display: flex; flex-direction: column; gap: 12px; padding: 4px 0; }
+.sk-desc__row { display: flex; align-items: center; gap: 16px; }
+.sk-desc__row .sk { height: 14px; }
+
 .card-header {
   display: flex;
   align-items: center;
@@ -191,14 +206,17 @@ async function onDelete() {
   .card-header > div:last-child {
     display: flex;
     flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 6px;
     width: 100%;
   }
 
+  /* 页头按钮紧凑化（32px、内容宽度右对齐），与列表行操作按钮同款 */
   .card-header > div:last-child .el-button {
-    flex: 1;
+    height: 32px;
     margin-left: 0;
-    min-height: 44px;
+    padding: 0 14px;
+    font-size: 13px;
   }
 
   /* 卡片内边距收紧，释放手机端内容宽度 */
@@ -210,6 +228,53 @@ async function onDelete() {
   .info-card :deep(.el-card__body),
   .tabs-card :deep(.el-card__body) {
     padding: 14px;
+  }
+
+  /* 将带 border 的描述列表从表格布局转为网格布局，
+     让每组 label + content 保持同行排列，避免窄屏两列挤压。 */
+  .info-card :deep(.el-descriptions__body table),
+  .info-card :deep(.el-descriptions__table) {
+    display: block;
+  }
+
+  .info-card :deep(tbody) {
+    display: block;
+  }
+
+  .info-card :deep(tr) {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--edge-faint);
+    padding: 6px 0;
+  }
+
+  .info-card :deep(tr:last-child) {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .info-card :deep(.el-descriptions__cell) {
+    border: none !important;
+    padding: 2px 6px;
+    background: transparent !important;
+    font-size: 13px;
+    word-break: break-word;
+  }
+
+  .info-card :deep(.el-descriptions__label.is-bordered-label) {
+    color: var(--ink-400);
+    font-weight: 500;
+    font-size: 12px;
+    white-space: nowrap;
+    min-width: 3em;
+  }
+
+  /* 每局结果标签换行 */
+  .round-tag {
+    margin-right: 0;
+    margin-bottom: 4px;
+    display: inline-block;
   }
 }
 </style>

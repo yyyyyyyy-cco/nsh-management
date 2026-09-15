@@ -448,6 +448,11 @@ const paretoOption = computed(() => {
 
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
+  /* 图表卡内边距收紧，为窄屏图表释放宽度 */
+  .chart-card {
+    padding: 12px;
+  }
+
   .chart-card__header {
     flex-wrap: wrap;
     gap: 6px;

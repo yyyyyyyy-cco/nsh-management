@@ -464,6 +464,11 @@ function fmtCmpValue(row: { metric: string }, v: number): string {
 }
 
 @media (max-width: 768px) {
+  /* 图表卡内边距收紧，为窄屏图表释放宽度 */
+  .chart-card {
+    padding: 12px;
+  }
+
   .chart-row {
     grid-template-columns: 1fr;
   }

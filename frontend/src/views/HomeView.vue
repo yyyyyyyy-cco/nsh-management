@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard page-enter">
+  <div class="dashboard">
     <!-- 欢迎区 -->
     <div class="welcome-section">
       <div class="welcome-left">
@@ -37,7 +37,7 @@
           <el-icon class="stat-card__icon"><component :is="card.icon" /></el-icon>
         </div>
         <div class="stat-card__value">
-          <span v-if="loading" class="stat-card__skeleton">-</span>
+          <span v-if="loading" class="sk sk-kpi" />
           <span v-else-if="card.numeric" class="stat-card__number num">{{ card.display }}</span>
           <span v-else class="stat-card__number num">{{ card.value }}</span>
           <span class="stat-card__suffix">{{ card.suffix }}</span>
@@ -61,9 +61,10 @@
             </el-button>
           </div>
           <div class="card__body recent-body">
-            <template v-if="recentSchedules.length === 0">
+            <SkeletonTable v-if="showSkeleton && recentSchedules.length === 0" variant="rows" :rows="3" />
+            <template v-else-if="recentSchedules.length === 0">
               <div class="empty-state">
-                <div class="empty-state__icon">&#x1F4C5;</div>
+                <div class="empty-state__icon"><el-icon :size="36"><Calendar /></el-icon></div>
                 <div class="empty-state__text">暂无比赛安排</div>
                 <el-button type="primary" size="small" @click="router.push('/schedules')">创建比赛</el-button>
               </div>
@@ -103,23 +104,34 @@
             </div>
           </div>
           <div class="card__body profession-grid">
-            <div v-for="p in professionStats" :key="p.name" class="profession-item">
-              <div class="profession-item__dot" :style="{ background: p.color }" />
-              <span class="profession-item__name">{{ p.name }}</span>
-              <span class="profession-item__count num">{{ p.count }}人</span>
-            </div>
+            <template v-if="showSkeleton && professionStats.length === 0">
+              <div v-for="i in 6" :key="i" class="profession-item">
+                <span class="sk" style="width:10px;height:10px;border-radius:50%" />
+                <span class="sk sk-line" style="width:52px" />
+                <span class="sk sk-line sk-kpi-sm" />
+              </div>
+            </template>
+            <template v-else>
+              <div v-for="p in professionStats" :key="p.name" class="profession-item">
+                <div class="profession-item__dot" :style="{ background: p.color }" />
+                <span class="profession-item__name">{{ p.name }}</span>
+                <span class="profession-item__count num">{{ p.count }}人</span>
+              </div>
+            </template>
           </div>
         </div>
 
         <!-- 历史总览 -->
         <div class="overview-bar">
           <div class="overview-item">
-            <div class="overview-item__value num">{{ animatedMemberCount }}</div>
+            <span v-if="showSkeleton" class="sk sk-line sk-kpi-sm" />
+            <div v-else class="overview-item__value num">{{ animatedMemberCount }}</div>
             <div class="overview-item__label">帮众总数</div>
           </div>
           <div class="overview-item__sep" />
           <div class="overview-item">
-            <div class="overview-item__value num">{{ animatedScheduleCount }}</div>
+            <span v-if="showSkeleton" class="sk sk-line sk-kpi-sm" />
+            <div v-else class="overview-item__value num">{{ animatedScheduleCount }}</div>
             <div class="overview-item__label">历史比赛</div>
           </div>
         </div>
@@ -139,9 +151,10 @@
             </el-button>
           </div>
           <div class="card__body rank-list">
-            <template v-if="topAttendance.length === 0">
+            <SkeletonTable v-if="showSkeleton && topAttendance.length === 0" variant="rows" :rows="5" />
+            <template v-else-if="topAttendance.length === 0">
               <div class="empty-state">
-                <div class="empty-state__icon">&#x1F465;</div>
+                <div class="empty-state__icon"><el-icon :size="36"><UserFilled /></el-icon></div>
                 <div class="empty-state__text">暂无出勤数据</div>
               </div>
             </template>
@@ -217,12 +230,15 @@ import type { ScheduleInfo } from '@/types/schedule'
 import { resultLabel, resultType } from '@/utils/constants'
 import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 import { useCountUp } from '@/composables/useCountUp'
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import SkeletonTable from '@/components/common/SkeletonTable.vue'
 import { profColor } from '@/utils/profession'
 
 const router = useRouter()
 const auth = useAuthStore()
 
 const loading = ref(true)
+const showSkeleton = useSkeletonLoading(loading)
 const memberCount = ref(0)
 const scheduleCount = ref(0)
 const allSchedules = ref<ScheduleInfo[]>([])
@@ -379,6 +395,7 @@ onMounted(async () => {
   font-weight: 700;
   letter-spacing: 1px;
   margin: 0 0 4px 0;
+  overflow-wrap: anywhere;
 }
 
 .welcome-date {
@@ -532,10 +549,7 @@ onMounted(async () => {
   font-weight: 400;
 }
 
-.stat-card__skeleton {
-  font-size: 28px;
-  color: var(--edge-strong);
-}
+/* 统计卡骨架改用 sk-kpi（skeleton.css），旧样式删除 */
 
 .stat-card--success .stat-card__number {
   background: linear-gradient(135deg, #4da87b 0%, #2e8b57 60%, #3d9d6d 100%);
@@ -746,7 +760,10 @@ onMounted(async () => {
 }
 
 .empty-state__icon {
-  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-400);
   opacity: 0.5;
 }
 
@@ -997,8 +1014,14 @@ onMounted(async () => {
   }
 
   .stat-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
+
+  .stat-card {
+    padding: 14px 14px 12px;
+  }
+
   .stat-card__number {
     font-size: 24px;
   }

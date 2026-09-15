@@ -11,7 +11,30 @@
             </div>
           </template>
           <p class="tip">配置各职业的目标人数，用于出勤库的职业缺口分析。</p>
-          <el-table :data="professionConfigs" border>
+
+          <!-- 移动端（≤768px）：职业配置行列表（目标人数 + 说明） -->
+          <div v-if="isMobile" class="cfg-rows">
+            <div v-for="row in professionConfigs" :key="row.profession" class="cfg-row">
+              <div class="cfg-row__main">
+                <span class="prof-cell">
+                  <i class="prof-dot" :style="{ background: profColor(row.profession) }" />
+                  {{ row.profession }}
+                </span>
+                <el-input-number v-model="row.target_count" :min="0" :max="999" size="small" class="cfg-num" />
+              </div>
+              <el-input
+                v-model="row.remark"
+                placeholder="说明（可选）"
+                size="small"
+                maxlength="255"
+                clearable
+                class="cfg-remark"
+              />
+            </div>
+          </div>
+
+          <!-- 桌面端：表格形态保持不变 -->
+          <el-table v-else :data="professionConfigs" border>
             <el-table-column prop="profession" label="职业" min-width="100">
               <template #default="{ row }">
                 <span class="prof-cell">
@@ -99,7 +122,40 @@
           </template>
           <el-collapse-transition>
             <div v-show="!isGroupCollapsed(group.guildId)">
-              <el-table :data="group.accounts" border>
+              <!-- 移动端（≤768px）：账号行列表 -->
+              <div v-if="isMobile" class="acct-rows">
+                <div v-for="row in group.accounts" :key="row.id" class="acct-row">
+                  <div class="acct-row__main">
+                    <span class="acct-row__name">{{ row.username }}</span>
+                    <el-tag :type="roleTagType(row.role)" effect="light" size="small">{{ roleLabel(row.role) }}</el-tag>
+                    <el-tag :type="row.status === 'active' ? 'success' : 'warning'" effect="light" size="small">
+                      {{ row.status === 'active' ? '启用' : '禁用' }}
+                    </el-tag>
+                  </div>
+                  <div class="acct-row__actions">
+                    <el-button link type="primary" size="small" @click="showAccountDialog(row)">编辑</el-button>
+                    <el-button
+                      v-if="row.role !== 'developer' && row.id !== currentUserId"
+                      link
+                      :type="row.status === 'active' ? 'warning' : 'success'"
+                      size="small"
+                      @click="onToggleStatus(row)"
+                    >
+                      {{ row.status === 'active' ? '禁用' : '启用' }}
+                    </el-button>
+                    <el-button
+                      v-if="row.role !== 'developer' && row.id !== currentUserId"
+                      link
+                      type="danger"
+                      size="small"
+                      @click="onDeleteAccount(row)"
+                    >
+                      删除
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+              <el-table v-else :data="group.accounts" border>
                 <el-table-column prop="username" label="登录名" min-width="130" />
                 <el-table-column label="密码" min-width="100">
                   <template #default="{ row }">
@@ -217,7 +273,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import type { FormInstance, FormItemRule, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowDown } from '@element-plus/icons-vue'
@@ -247,6 +303,13 @@ const saving = ref(false)
 
 // 职业配置
 const professionConfigs = ref<ProfessionConfig[]>([])
+
+// 移动端（≤768px，与 MainLayout 抽屉断点一致）渲染行列表，桌面端渲染表格
+const mq = window.matchMedia('(max-width: 768px)')
+const isMobile = ref(mq.matches)
+const onMqChange = (e: MediaQueryListEvent) => {
+  isMobile.value = e.matches
+}
 
 // 帮会管理
 const guilds = ref<Guild[]>([])
@@ -333,7 +396,12 @@ const accountGroups = computed(() => {
   return [...map.values()]
 })
 
-onMounted(load)
+onMounted(() => {
+  mq.addEventListener('change', onMqChange)
+  load()
+})
+
+onUnmounted(() => mq.removeEventListener('change', onMqChange))
 
 async function load() {
   const tasks: Promise<void>[] = [loadAccounts()]
@@ -576,7 +644,7 @@ function formatTime(value: string): string {
 }
 
 .tip {
-  color: #6b7280;
+  color: var(--ink-400);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -589,7 +657,7 @@ function formatTime(value: string): string {
 }
 
 .dialog-tip {
-  color: #9ca3af;
+  color: var(--ink-400);
   font-size: 12px;
   margin: 0;
   padding-left: 80px;
@@ -617,6 +685,79 @@ function formatTime(value: string): string {
 
 .no-password {
   color: var(--ink-200);
+}
+
+/* ===== 移动端行列表（isMobile 时渲染，替换表格） ===== */
+.cfg-rows {
+  display: flex;
+  flex-direction: column;
+  touch-action: manipulation;
+}
+
+.cfg-row {
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.cfg-row:last-child {
+  border-bottom: none;
+}
+
+.cfg-row__main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cfg-row__main .prof-cell {
+  font-weight: 600;
+  color: var(--ink-800);
+}
+
+/* ===== 移动端账号行列表（isMobile 时渲染，替换表格） ===== */
+.acct-rows {
+  display: flex;
+  flex-direction: column;
+  touch-action: manipulation;
+}
+
+.acct-row {
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.acct-row:last-child {
+  border-bottom: none;
+}
+
+.acct-row__main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.acct-row__name {
+  font-weight: 600;
+  color: var(--ink-900);
+  font-size: 14px;
+}
+
+.acct-row__actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.cfg-num {
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.cfg-remark {
+  margin-top: 8px;
 }
 
 /* ===== 移动端适配 ===== */
