@@ -8,6 +8,7 @@ export interface AttendanceRecord {
   profession: string
   status: 'normal' | 'leave'
   is_filler: boolean
+  remark: string | null
   member_status: 'formal' | 'substitute' | null
   professions?: string[]
 }

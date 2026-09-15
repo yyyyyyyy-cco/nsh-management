@@ -59,6 +59,7 @@
               <div class="pool-item" :data-key="element.key" @click="onPoolItemClick(element)">
                 <span class="prof-dot" :style="{ background: profColor(element.profession) }" />
                 <span class="name">{{ element.member_name }}</span>
+                <span v-if="element.attendance_remark" class="remark" :title="element.attendance_remark">{{ element.attendance_remark }}</span>
                 <el-tag v-if="element.member_status === 'filler'" size="small" type="warning" effect="light">补</el-tag>
                 <el-tag v-else-if="element.member_status === 'substitute'" size="small" type="info" effect="plain">替</el-tag>
               </div>
@@ -652,9 +653,22 @@ onMounted(() => board.load())
 }
 
 .pool-item .name {
+  flex-shrink: 0;
+  white-space: nowrap;
   font-weight: 500;
   color: var(--ink-900);
   font-size: 13px;
+}
+
+/* 常驻库备注：仅候选池显示，单行省略（hover 见完整内容） */
+.pool-item .remark {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-400);
+  font-size: 11px;
 }
 
 .pool-item .meta {
@@ -878,12 +892,36 @@ onMounted(() => board.load())
     margin-right: 0;
   }
 
+  /* 进度条自适应剩余宽度（原固定 120px 窄屏过短） */
   .stat-bar {
-    width: 120px;
+    flex: 1;
+    width: auto;
+    min-width: 0;
   }
 
+  .stat-sub {
+    flex-shrink: 0;
+  }
+
+  /* 第二行：标题备注 + 保存状态在左，模式切换靠右 */
   .auto-save {
+    order: 1;
+  }
+
+  .mode-switch {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .spacer {
+    display: none;
+  }
+
+  /* 第三行：导入/保存按钮整行均分 */
+  .toolbar > .el-button {
     order: 3;
+    flex: 1 1 calc(50% - 4px);
+    margin-left: 0 !important;
   }
 
   /* 编辑区纵向堆叠：候选池在上，队伍区在下 */
@@ -980,11 +1018,6 @@ onMounted(() => board.load())
 }
 
 @media (max-width: 480px) {
-  .toolbar .el-button {
-    flex: 1;
-    margin-left: 0 !important;
-  }
-
   .slot-card {
     padding: 10px 8px;
   }

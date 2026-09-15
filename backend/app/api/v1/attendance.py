@@ -13,6 +13,7 @@ from app.schemas.attendance import (
     FillerCreate,
     ImportSubstitutesRequest,
     ProfessionUpdate,
+    RemarkUpdate,
     StatusUpdate,
     SubstituteCandidateOut,
 )
@@ -129,6 +130,21 @@ async def update_profession(
     """更新出勤职业（主/副职业之一，管理员）。"""
     record = await attendance_service.update_record_profession(
         session, current_user.guild_id, schedule_id, record_id, body.profession
+    )
+    return AttendanceRecordOut.model_validate(record)
+
+
+@router.put("/{record_id}/remark", response_model=AttendanceRecordOut)
+async def update_remark(
+    schedule_id: int,
+    record_id: int,
+    body: RemarkUpdate,
+    current_user: User = Depends(require_admin),  # 仅管理员可修改出勤备注
+    session: AsyncSession = Depends(get_db),
+) -> AttendanceRecordOut:
+    """更新出勤备注（留空清除）。导入时带出常驻库备注，此处可单独修改。"""
+    record = await attendance_service.update_record_remark(
+        session, current_user.guild_id, schedule_id, record_id, body.remark
     )
     return AttendanceRecordOut.model_validate(record)
 

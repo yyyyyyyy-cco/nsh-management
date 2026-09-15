@@ -51,6 +51,7 @@ class LineupCandidateOut(BaseModel):
     member_name: str
     profession: str
     member_status: str  # formal / substitute / filler
+    attendance_remark: str | None = None  # 出勤库备注（导入时从常驻库带入，可修改；补人无）
 
 
 class LineupHistoryOut(BaseModel):

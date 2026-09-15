@@ -41,6 +41,14 @@ export function updateProfession(
   return http.put(`/schedules/${scheduleId}/attendance/${recordId}/profession`, { profession })
 }
 
+export function updateRemark(
+  scheduleId: number,
+  recordId: number,
+  remark: string,
+): Promise<AttendanceRecord> {
+  return http.put(`/schedules/${scheduleId}/attendance/${recordId}/remark`, { remark })
+}
+
 export function batchStatus(
   scheduleId: number,
   ids: number[],

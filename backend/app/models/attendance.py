@@ -18,6 +18,7 @@ class AttendanceRecord(Base):
     profession: Mapped[str] = mapped_column(String(16), nullable=False)
     status: Mapped[str] = mapped_column(String(16), default="normal", nullable=False)  # normal / leave
     is_filler: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)  # 补人（非帮会成员）
+    remark: Mapped[str | None] = mapped_column(String(255), nullable=True)  # 备注（导入时带出常驻库备注，出勤库内可改）
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )

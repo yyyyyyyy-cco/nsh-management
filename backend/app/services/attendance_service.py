@@ -94,6 +94,23 @@ async def update_record_profession(
     return record
 
 
+async def update_record_remark(
+    session: AsyncSession, guild_id: int, schedule_id: int, record_id: int, remark: str
+) -> AttendanceRecord:
+    """更新出勤记录备注（管理员；留空清除）。导入时带出常驻库备注，此处可单独修改。"""
+    await get_schedule(session, guild_id, schedule_id)
+    record = await session.get(AttendanceRecord, record_id)
+    if record is None or record.schedule_id != schedule_id:
+        raise AttendanceServiceError("出勤记录不存在", 404)
+    normalized = (remark or "").strip()
+    if len(normalized) > 255:
+        raise AttendanceServiceError("备注长度不能超过 255 字")
+    record.remark = normalized or None
+    await session.commit()
+    await session.refresh(record)
+    return record
+
+
 async def add_filler(session: AsyncSession, guild_id: int, schedule_id: int, name: str, profession: str) -> AttendanceRecord:
     """添加补人：仅当前场次，不录入常驻库。"""
     await get_schedule(session, guild_id, schedule_id)

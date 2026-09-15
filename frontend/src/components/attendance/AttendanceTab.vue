@@ -80,7 +80,51 @@
       </el-select>
     </div>
 
-    <el-table v-loading="loading" :data="filteredItems" @selection-change="onSelectionChange">
+    <!-- 移动端（≤768px）：出勤行列表，职业选择/状态开关/移除免横滑 -->
+    <div v-if="isMobile" class="att-rows">
+      <SkeletonTable v-if="showSkeleton && !filteredItems.length" variant="rows" :rows="5" />
+      <el-empty v-else-if="!loading && !filteredItems.length" description="暂无出勤记录" :image-size="72" />
+      <div v-for="row in filteredItems" :key="row.id" class="att-row">
+        <div class="ar-main">
+          <el-checkbox
+            v-if="auth.isAdmin"
+            class="ar-check"
+            :model-value="selectedIds.includes(row.id)"
+            @change="toggleSelect(row.id)"
+          />
+          <span class="ar-name">{{ row.member_name }}</span>
+          <el-tag v-if="row.is_filler" type="warning" effect="light" size="small">补人</el-tag>
+          <el-tag v-else-if="row.member_status === 'substitute'" type="info" effect="plain" size="small">替补</el-tag>
+          <el-tag v-else type="primary" effect="plain" size="small">正式</el-tag>
+          <el-switch
+            class="ar-switch"
+            :model-value="row.status === 'normal'"
+            inline-prompt
+            active-text="正常"
+            inactive-text="请假"
+            @change="(value: boolean) => onToggle(row, value)"
+          />
+        </div>
+        <div class="ar-meta" :class="{ 'ar-meta--indent': auth.isAdmin }">
+          <el-select
+            v-if="auth.isAdmin && (row.professions?.length || 0) > 1"
+            :model-value="row.profession"
+            class="ar-prof-select"
+            @change="(value: string) => onProfessionChange(row, value)"
+          >
+            <el-option v-for="p in row.professions" :key="p" :label="p" :value="p" />
+          </el-select>
+          <span v-else class="prof-name" :style="{ color: profColor(row.profession) }">{{ row.profession }}</span>
+          <el-icon v-if="auth.isAdmin" class="ar-remark-edit" title="编辑备注" @click="onEditRemark(row)"><EditPen /></el-icon>
+          <el-button v-if="auth.isAdmin" class="ar-act" type="danger" plain @click="onDelete(row)">移除</el-button>
+        </div>
+        <div v-if="auth.isAdmin && row.remark" class="ar-remark">备注：{{ row.remark }}</div>
+      </div>
+    </div>
+
+    <!-- 桌面端：表格形态保持不变 -->
+    <SkeletonTable v-else-if="showSkeleton && !filteredItems.length" variant="table" :rows="5" />
+      <el-table v-else :data="filteredItems" @selection-change="onSelectionChange">
       <el-table-column v-if="auth.isAdmin" type="selection" width="44" />
       <el-table-column prop="member_name" label="ID" min-width="110" />
       <el-table-column prop="profession" label="职业" min-width="110">
@@ -112,6 +156,14 @@
             inactive-text="请假"
             @change="(value: boolean) => onToggle(row, value)"
           />
+        </template>
+      </el-table-column>
+      <el-table-column v-if="auth.isAdmin" label="备注" min-width="140">
+        <template #default="{ row }">
+          <span class="remark-cell">
+            <span class="remark-text" :class="{ 'remark-text--empty': !row.remark }">{{ row.remark || '-' }}</span>
+            <el-icon class="remark-edit" title="编辑备注" @click="onEditRemark(row)"><EditPen /></el-icon>
+          </span>
         </template>
       </el-table-column>
       <el-table-column v-if="auth.isAdmin" label="操作" min-width="80">
@@ -155,9 +207,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, EditPen } from '@element-plus/icons-vue'
 
 import {
   batchStatus,
@@ -165,6 +217,7 @@ import {
   getAttendance,
   importFormal,
   updateProfession,
+  updateRemark,
   updateStatus,
 } from '@/api/attendance'
 import { getProfessionConfigs } from '@/api/config'
@@ -180,11 +233,14 @@ import LeaveImportDialog from '@/components/attendance/LeaveImportDialog.vue'
 import ImportMemberDialog from '@/components/attendance/ImportMemberDialog.vue'
 import ProfessionConfigDialog from '@/components/attendance/ProfessionConfigDialog.vue'
 import { profColor } from '@/utils/profession'
+import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import SkeletonTable from '@/components/common/SkeletonTable.vue'
 
 const props = defineProps<{ scheduleId: number; schedule: ScheduleInfo }>()
 
 const auth = useAuthStore()
 const loading = ref(false)
+const showSkeleton = useSkeletonLoading(loading)
 const items = ref<AttendanceRecord[]>([])
 const stats = ref<AttendanceStats>({ total: 0, normal_count: 0, leave_count: 0, gap: 60 })
 const selectedIds = ref<number[]>([])
@@ -198,6 +254,14 @@ const typeFilter = ref('')
 const statusFilter = ref('')
 const customConfig = ref<Record<string, number> | null>(null) // 单场职业配置覆盖，null 沿用系统配置
 const profCfgVisible = ref(false)
+
+// 移动端（≤768px，与 MainLayout 抽屉断点一致）渲染行列表，桌面端渲染表格
+const mq = window.matchMedia('(max-width: 768px)')
+const isMobile = ref(mq.matches)
+const onMqChange = (e: MediaQueryListEvent) => {
+  isMobile.value = e.matches
+  selectedIds.value = [] // 形态切换时清空勾选，避免残留「看不见的已勾选」
+}
 
 /** 类型筛选选项：正式 / 替补 / 补人。 */
 const TYPE_OPTIONS = [
@@ -238,6 +302,22 @@ async function onProfessionChange(row: AttendanceRecord, profession: string) {
   ElMessage.success(`已将「${row.member_name}」的职业设为 ${updated.profession}`)
 }
 
+/** 编辑出勤备注（管理员）：弹窗输入，留空清除；备注会带入排表候选池展示。 */
+async function onEditRemark(row: AttendanceRecord) {
+  try {
+    const { value } = await ElMessageBox.prompt('备注会带入排表候选池展示（可留空清除）', '编辑备注', {
+      inputValue: row.remark || '',
+      inputPlaceholder: '输入备注内容',
+      inputValidator: (v: string) => (v || '').length <= 255 || '备注不超过 255 字',
+    })
+    const updated = await updateRemark(props.scheduleId, row.id, value.trim())
+    row.remark = updated.remark
+    ElMessage.success('备注已保存')
+  } catch {
+    /* 取消编辑或请求失败（错误提示由 http 拦截器统一处理） */
+  }
+}
+
 /** 当前生效目标人数：单场覆盖优先，否则用系统配置。 */
 const effectiveTargets = computed<Record<string, number>>(() => {
   if (customConfig.value) return customConfig.value
@@ -267,10 +347,17 @@ function onProfessionConfigSaved(configs: Record<string, number> | null) {
   profCfgVisible.value = false
 }
 
-onMounted(load)
+onMounted(() => {
+  mq.addEventListener('change', onMqChange)
+  load()
+})
+
+onUnmounted(() => mq.removeEventListener('change', onMqChange))
 
 async function load() {
   loading.value = true
+  // 刷新后清空勾选：桌面表格随数据更新失去选中，移动端勾选同步清空保持一致
+  selectedIds.value = []
   try {
     // 赛程详情由父级传入（避免与父级重复请求 getSchedule）
     const [data, configs] = await Promise.all([
@@ -288,6 +375,13 @@ async function load() {
 
 function onSelectionChange(rows: AttendanceRecord[]) {
   selectedIds.value = rows.map((row) => row.id)
+}
+
+/** 移动端行内勾选：与桌面表格共用 selectedIds，支撑批量请假/正常。 */
+function toggleSelect(id: number) {
+  const idx = selectedIds.value.indexOf(id)
+  if (idx >= 0) selectedIds.value.splice(idx, 1)
+  else selectedIds.value.push(id)
 }
 
 async function onImportFormal() {
@@ -363,6 +457,7 @@ async function onConfirmRemove() {
 </script>
 
 <style scoped>
+/* finesse · register=product · shell=member-detail: row-list(≤768px) + switch(≤768px) + gap-actions(≤480px) */
 .stats-bar {
   display: flex;
   align-items: center;
@@ -580,6 +675,133 @@ async function onConfirmRemove() {
   font-size: 12px;
 }
 
+/* ===== 备注列（桌面表格）：文本 + 编辑入口 ===== */
+.remark-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.remark-cell .remark-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remark-text--empty {
+  color: var(--ink-300);
+}
+
+.remark-edit {
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--ink-300);
+  cursor: pointer;
+}
+
+.remark-edit:hover {
+  color: var(--gold-600);
+}
+
+/* ===== 移动端行列表（isMobile 时渲染，替换表格） ===== */
+.att-rows {
+  display: flex;
+  flex-direction: column;
+  min-height: 140px; /* 空态/加载遮罩的占位高度 */
+  touch-action: manipulation;
+}
+
+.att-row {
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.att-row:last-child {
+  border-bottom: none;
+}
+
+.ar-main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ar-check {
+  flex-shrink: 0;
+  padding: 10px 6px 10px 0;
+}
+
+.ar-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.ar-main .el-tag {
+  flex-shrink: 0;
+}
+
+.ar-switch {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.ar-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* 管理员行（勾选区存在）职业与上方 ID 对齐（约 2 个字符宽） */
+.ar-meta--indent {
+  padding-left: 28px;
+}
+
+.ar-prof-select {
+  width: 110px;
+  flex-shrink: 0;
+}
+
+/* 备注编辑入口（动作行内，管理员）：占据剩余空间把移除按钮推向右侧 */
+.ar-remark-edit {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 6px 4px;
+  font-size: 20px;
+  color: var(--ink-400);
+  cursor: pointer;
+}
+
+.ar-remark-edit:active {
+  color: var(--gold-600);
+}
+
+/* 出勤备注行（仅管理员可见，与职业/ID 左对齐） */
+.ar-remark {
+  margin-top: 6px;
+  padding-left: 28px;
+  font-size: 12px;
+  color: var(--ink-500);
+  overflow-wrap: anywhere;
+}
+
+/* 紧凑移除按钮：32px、右对齐（与常驻库/日程行列表同款） */
+.ar-meta .el-button.ar-act {
+  height: 32px;
+  margin-left: 0;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
   .stats-bar {
@@ -630,6 +852,17 @@ async function onConfirmRemove() {
   .spacer {
     display: none;
   }
+
+  /* 状态开关隐藏外置文字，仅靠开关颜色/滑块标识状态，节省列宽 */
+  .attendance-tab :deep(.el-switch__label--left),
+  .attendance-tab :deep(.el-switch__label--right) {
+    display: none;
+  }
+
+  /* inline-prompt 内部文字缩小，避免窄屏溢出 */
+  .attendance-tab :deep(.el-switch__inner) {
+    font-size: 11px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -649,6 +882,17 @@ async function onConfirmRemove() {
 
   .stats-bar .label {
     font-size: 11px;
+  }
+
+  .stats-bar {
+    padding: 10px 12px;
+    gap: 8px 12px;
+  }
+
+  /* 职业缺口操作区域在极窄屏撑满换行 */
+  .gap-bar__actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 }
 </style>

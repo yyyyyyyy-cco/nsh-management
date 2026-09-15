@@ -28,6 +28,7 @@ export interface LineupCandidate {
   member_name: string
   profession: string
   member_status: 'formal' | 'substitute' | 'filler'
+  attendance_remark: string | null
 }
 
 /** 历史排表条目（含完整排表数据，供导入预览）。 */

@@ -223,6 +223,7 @@ async def candidate_pool(session: AsyncSession, guild_id: int, schedule_id: int)
                 AttendanceRecord.member_name,
                 AttendanceRecord.profession,
                 Member.status,
+                AttendanceRecord.remark,  # 出勤库备注（导入时从常驻库带入，可在出勤库修改）
             )
             .outerjoin(Member, Member.id == AttendanceRecord.member_id)
             .where(AttendanceRecord.schedule_id == schedule_id, AttendanceRecord.status == "normal")
@@ -235,8 +236,9 @@ async def candidate_pool(session: AsyncSession, guild_id: int, schedule_id: int)
             "member_name": name,
             "profession": profession,
             "member_status": "filler" if member_status is None else member_status,
+            "attendance_remark": attendance_remark,
         }
-        for mid, name, profession, member_status in rows
+        for mid, name, profession, member_status, attendance_remark in rows
     ]
 
 

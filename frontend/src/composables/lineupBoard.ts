@@ -11,6 +11,7 @@ export interface CandidateItem {
   member_name: string
   profession: string
   member_status: string
+  attendance_remark: string
 }
 export interface SlotItem {
   key: string
@@ -53,6 +54,7 @@ function toCandidate(c: LineupCandidate): CandidateItem {
     member_name: c.member_name,
     profession: c.profession,
     member_status: c.member_status,
+    attendance_remark: c.attendance_remark || '',
   }
 }
 
@@ -75,6 +77,7 @@ function toCandidateItem(el: SlotItem | CandidateItem): CandidateItem {
     member_name: el.member_name || '',
     profession: 'profession' in el ? el.profession || '' : '',
     member_status: 'member_status' in el ? el.member_status || 'filler' : 'filler',
+    attendance_remark: '', // 出勤库备注仅候选池展示：拖动（含拖回）后消失，不随槽位流转
   }
 }
 

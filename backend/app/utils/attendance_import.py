@@ -40,6 +40,7 @@ async def import_formal(session: AsyncSession, guild_id: int, schedule_id: int) 
                 profession=member.main_profession,
                 status="normal",
                 is_filler=False,
+                remark=member.remark,  # 导入时带出常驻库备注（后续可在出勤库内单独修改）
             )
         )
     await session.commit()
@@ -97,6 +98,7 @@ async def import_members(session: AsyncSession, guild_id: int, schedule_id: int,
                 profession=member.main_profession,
                 status="normal",
                 is_filler=False,
+                remark=member.remark,  # 导入时带出常驻库备注（后续可在出勤库内单独修改）
             )
         )
     await session.commit()
@@ -131,6 +133,7 @@ async def import_substitutes(session: AsyncSession, guild_id: int, schedule_id: 
                 profession=member.main_profession,
                 status="normal",
                 is_filler=False,
+                remark=member.remark,  # 导入时带出常驻库备注（后续可在出勤库内单独修改）
             )
         )
     await session.commit()

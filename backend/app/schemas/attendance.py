@@ -10,6 +10,7 @@ class AttendanceRecordOut(BaseModel):
     profession: str
     status: str  # normal / leave
     is_filler: bool  # 补人（非帮会成员）
+    remark: str | None = None  # 备注（导入时带出常驻库备注，出勤库内可改）
     member_status: str | None = None  # 常驻库成员状态 formal/substitute，补人为 None
     professions: list[str] = []  # 可选职业（主+副去重，补人仅当前职业）
 
@@ -54,6 +55,10 @@ class StatusUpdate(BaseModel):
 
 class ProfessionUpdate(BaseModel):
     profession: str  # 可选职业（主/副之一）
+
+
+class RemarkUpdate(BaseModel):
+    remark: str = Field(default="", max_length=255)  # 备注（留空清除）
 
 
 class BatchStatusUpdate(BaseModel):
