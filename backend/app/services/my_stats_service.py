@@ -20,14 +20,14 @@ RANKING_FIELDS = {
 
 
 async def query_player_stats(session: AsyncSession, guild_id: int, player_name: str) -> dict:
-    """按游戏 ID 聚合该帮会下最近 10 场已导入比赛数据。
+    """按游戏 ID（精确匹配）聚合该帮会下最近 10 场已导入比赛数据。
 
     返回：
     - records: 每局明细（含衍生指标 + 赛程元信息 + 该局排名）
     - summary: 概览统计
 
     查询次数固定为 3 次：
-    1. 定位最近 10 场有该玩家数据的赛程（DISTINCT + 排序 + LIMIT，不再拉全量历史到内存截取）
+    1. 定位最近 10 场有该玩家数据的赛程（DISTINCT + 排序 + LIMIT）
     2. 一次拉取该玩家在这 10 场的全部记录（联查赛程元信息）
     3. 一次拉取这 10 场的全量记录（用于阵营汇总与排名，避免按赛程逐场 N+1）
     """
@@ -201,3 +201,18 @@ def _zero_camp_totals(camp: str) -> dict:
         "player_damage": 0, "building_damage": 0, "healing": 0,
         "damage_taken": 0, "deaths": 0, "springs": 0, "revives": 0, "fen_gu": 0,
     }
+
+
+async def search_player_names(session: AsyncSession, guild_id: int, q: str, limit: int = 10) -> list[str]:
+    """模糊搜索玩家名称：按数据量降序返回匹配的玩家名列表（用于自动补全候选）。"""
+    rows = (
+        await session.execute(
+            select(MatchData.player_name)
+            .join(Schedule, MatchData.schedule_id == Schedule.id)
+            .where(Schedule.guild_id == guild_id, MatchData.player_name.ilike(f"%{q}%"))
+            .group_by(MatchData.player_name)
+            .order_by(func.count(MatchData.player_name).desc())
+            .limit(limit)
+        )
+    )
+    return list(rows.scalars().all())

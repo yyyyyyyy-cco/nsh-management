@@ -1,12 +1,14 @@
 <template>
   <div class="player-search">
     <div class="search-row">
-      <el-input
+      <el-autocomplete
         v-model="inputName"
         placeholder="输入游戏 ID 查询战绩"
         clearable
         :prefix-icon="Search"
         class="search-input"
+        :fetch-suggestions="querySearch"
+        @select="onSelect"
         @keyup.enter="onSearch"
       />
       <el-button type="primary" :loading="loading" @click="onSearch">查询</el-button>
@@ -18,7 +20,7 @@
         :key="name"
         class="history-tag"
         effect="plain"
-        @click="$emit('search', name)"
+        @click="onHistoryClick(name)"
       >
         {{ name }}
       </el-tag>
@@ -29,6 +31,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { Search } from '@element-plus/icons-vue'
+import { getPlayerNames } from '@/api/myStats'
 
 defineProps<{ loading: boolean }>()
 const emit = defineEmits<{ search: [name: string] }>()
@@ -46,6 +49,32 @@ onMounted(() => {
   }
 })
 
+function saveHistory(name: string) {
+  const list = history.value.filter((n) => n !== name)
+  list.unshift(name)
+  history.value = list.slice(0, MAX_HISTORY)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(history.value))
+}
+
+async function querySearch(queryString: string, cb: (results: { value: string }[]) => void) {
+  if (!queryString.trim()) {
+    cb([])
+    return
+  }
+  try {
+    const names = await getPlayerNames(queryString.trim())
+    cb(names.map((name) => ({ value: name })))
+  } catch {
+    cb([])
+  }
+}
+
+function onSelect(item: { value: string }) {
+  inputName.value = item.value
+  emit('search', item.value)
+  saveHistory(item.value)
+}
+
 function onSearch() {
   const name = inputName.value.trim()
   if (!name) return
@@ -53,11 +82,10 @@ function onSearch() {
   saveHistory(name)
 }
 
-function saveHistory(name: string) {
-  const list = history.value.filter((n) => n !== name)
-  list.unshift(name)
-  history.value = list.slice(0, MAX_HISTORY)
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history.value))
+function onHistoryClick(name: string) {
+  inputName.value = name
+  emit('search', name)
+  saveHistory(name)
 }
 </script>
 

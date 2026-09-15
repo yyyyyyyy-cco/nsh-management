@@ -86,6 +86,22 @@ class MyStatsResponse(BaseModel):
 
 # ---- 路由 ----
 
+class PlayerNameList(BaseModel):
+    """玩家名候选列表。"""
+    names: list[str]
+
+
+@router.get("/player-names", response_model=PlayerNameList)
+async def get_player_names(
+    q: str = Query(..., min_length=1, max_length=32, description="搜索关键词"),
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db),
+) -> PlayerNameList:
+    """模糊搜索本帮会比赛数据中匹配的玩家名，按数据量降序返回候选（用于前端自动补全）。"""
+    names = await my_stats_service.search_player_names(session, current_user.guild_id, q)
+    return PlayerNameList(names=names)
+
+
 @router.get("", response_model=MyStatsResponse)
 async def get_my_stats(
     player_name: str = Query(..., min_length=1, max_length=32, description="游戏 ID"),
