@@ -43,6 +43,7 @@ const rules: FormRules = {
 
 async function onSubmit() {
   if (!formRef.value) return
+  form.name = form.name.trim()
   await formRef.value.validate()
   loading.value = true
   try {

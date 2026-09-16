@@ -1,5 +1,7 @@
 """出勤库请求/响应模型。"""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from app.utils.member_names import normalize_member_name
 
 
 class AttendanceRecordOut(BaseModel):
@@ -47,6 +49,12 @@ class ImportSubstitutesRequest(BaseModel):
 class FillerCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=32)
     profession: str = Field(..., max_length=16)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def normalize_name(cls, value: object) -> object:
+        # 先清理再做长度校验；非字符串继续交由字段类型校验拒绝。
+        return normalize_member_name(value) if isinstance(value, str) else value
 
 
 class StatusUpdate(BaseModel):

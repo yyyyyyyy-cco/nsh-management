@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.models.user import User
 from app.schemas.lineup import LineupCandidateOut, LineupHistoryOut, LineupImportRequest, LineupOut, LineupUpdate
 from app.services import lineup_service
+from app.utils.member_names import normalize_member_name
 
 router = APIRouter(prefix="/schedules/{schedule_id}/lineup", tags=["排表"])
 
@@ -20,11 +21,7 @@ async def get_lineup(
     session: AsyncSession = Depends(get_db),
 ) -> LineupOut:
     lineup = await lineup_service.get_lineup(session, current_user.guild_id, schedule_id)
-    # 填充槽位职业快照（出勤库按姓名匹配，供前端展示职业色点）
     prof_map = await lineup_service.get_profession_map(session, schedule_id)
-    for team in lineup.data:
-        for slot in team["slots"]:
-            slot["profession"] = prof_map.get(slot.get("member_name"))
     # 新列可能为 NULL，转为空值避免 Pydantic 校验失败
     if lineup.title_remark is None:
         lineup.title_remark = ""
@@ -35,7 +32,15 @@ async def get_lineup(
         lineup.id = 0
     if lineup.updated_at is None:
         lineup.updated_at = datetime.now(timezone.utc)
-    return LineupOut.model_validate(lineup)
+    result = LineupOut.model_validate(lineup)
+    # 仅规范化响应，不批量改写历史数据；与候选池保持同一补人姓名键。
+    for team in result.data:
+        for slot in team.slots:
+            name = normalize_member_name(slot.member_name)
+            if slot.member_id is None:
+                slot.member_name = name
+            slot.profession = prof_map.get(name)
+    return result
 
 
 @router.put("", response_model=LineupOut)

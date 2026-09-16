@@ -4,19 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attendance import AttendanceRecord
 from app.models.lineup import Lineup
-from app.models.member import Member
 from app.models.schedule import Schedule
+from app.services.lineup_attendance import LineupServiceError, candidate_pool, get_profession_map
 from app.services.schedule_service import get_schedule
 from app.utils.constants import LINEUP_LAYOUT, SLOTS_PER_TEAM
-
-
-class LineupServiceError(Exception):
-    """排表业务异常。"""
-
-    def __init__(self, message: str, status_code: int = 400):
-        super().__init__(message)
-        self.message = message
-        self.status_code = status_code
+from app.utils.member_names import normalize_member_name
 
 
 def empty_lineup_data() -> list[dict]:
@@ -70,7 +62,7 @@ async def _purge_leave_members(session: AsyncSession, lineup: Lineup, schedule_i
         if mid is not None:
             leave_ids.add(mid)
         elif is_filler:
-            leave_names.add(name)
+            leave_names.add(normalize_member_name(name))
 
     if not leave_ids and not leave_names:
         return
@@ -81,7 +73,7 @@ async def _purge_leave_members(session: AsyncSession, lineup: Lineup, schedule_i
         slots = []
         for slot in team["slots"]:
             mid = slot.get("member_id")
-            name = slot.get("member_name") or ""
+            name = normalize_member_name(slot.get("member_name"))
             if mid is not None and mid in leave_ids:
                 changed = True
                 slot = {**slot, "member_id": None, "member_name": ""}
@@ -139,6 +131,8 @@ async def get_lineup(session: AsyncSession, guild_id: int, schedule_id: int) -> 
     首次保存（save_lineup / import_lineup）时才真正插入。
     """
     await get_schedule(session, guild_id, schedule_id)
+    # 清理或保存排表前先拒绝歧义姓名，避免误清同名补人的槽位。
+    await get_profession_map(session, schedule_id)
     lineup = (
         await session.execute(select(Lineup).where(Lineup.schedule_id == schedule_id))
     ).scalar_one_or_none()
@@ -153,18 +147,6 @@ async def get_lineup(session: AsyncSession, guild_id: int, schedule_id: int) -> 
     # 出勤库中已不存在的成员自动移出排表
     await _purge_deleted_members(session, lineup, schedule_id)
     return lineup
-
-
-async def get_profession_map(session: AsyncSession, schedule_id: int) -> dict[str, str | None]:
-    """出勤库职业快照映射（按姓名，供排表读取时填充槽位职业）。"""
-    rows = (
-        await session.execute(
-            select(AttendanceRecord.member_name, AttendanceRecord.profession).where(
-                AttendanceRecord.schedule_id == schedule_id
-            )
-        )
-    ).all()
-    return {name: prof for name, prof in rows}
 
 
 async def save_lineup(
@@ -198,7 +180,7 @@ async def save_lineup(
             if slot.get("member_id") is not None:
                 slot["member_name"] = name_map[slot["member_id"]]
             else:
-                slot["member_name"] = (slot.get("member_name") or "").strip()
+                slot["member_name"] = normalize_member_name(slot.get("member_name"))
                 if len(slot["member_name"]) > 32:
                     raise LineupServiceError("补人姓名过长")
             slot["remark"] = (slot.get("remark") or "").strip()
@@ -211,35 +193,6 @@ async def save_lineup(
     await session.commit()
     await session.refresh(lineup)
     return lineup
-
-
-async def candidate_pool(session: AsyncSession, guild_id: int, schedule_id: int) -> list[dict]:
-    """候选池：出勤库中状态为正常的成员（含正式/替补/补人），最多 60 人。"""
-    await get_schedule(session, guild_id, schedule_id)
-    rows = (
-        await session.execute(
-            select(
-                AttendanceRecord.member_id,
-                AttendanceRecord.member_name,
-                AttendanceRecord.profession,
-                Member.status,
-                AttendanceRecord.remark,  # 出勤库备注（导入时从常驻库带入，可在出勤库修改）
-            )
-            .outerjoin(Member, Member.id == AttendanceRecord.member_id)
-            .where(AttendanceRecord.schedule_id == schedule_id, AttendanceRecord.status == "normal")
-            .order_by(AttendanceRecord.is_filler, AttendanceRecord.member_name)
-        )
-    ).all()
-    return [
-        {
-            "member_id": mid,
-            "member_name": name,
-            "profession": profession,
-            "member_status": "filler" if member_status is None else member_status,
-            "attendance_remark": attendance_remark,
-        }
-        for mid, name, profession, member_status, attendance_remark in rows
-    ]
 
 
 async def list_lineup_history(
@@ -313,7 +266,7 @@ async def import_lineup(
                 continue
             src = src_team["slots"][slot["slot_index"]] if slot["slot_index"] < len(src_team["slots"]) else {}
             mid = src.get("member_id")
-            name = (src.get("member_name") or "").strip()
+            name = normalize_member_name(src.get("member_name"))
             if mid is not None and mid in pool_mids:
                 slots.append(
                     {**slot, "member_id": mid, "member_name": mid_name.get(mid, name), "remark": src.get("remark") or ""}

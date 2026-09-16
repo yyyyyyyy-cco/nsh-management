@@ -6,6 +6,7 @@ from app.models.attendance import AttendanceRecord
 from app.models.member import Member
 from app.services.schedule_service import get_schedule
 from app.utils.constants import PROFESSIONS
+from app.utils.member_names import normalize_member_name
 
 MAX_NORMAL_COUNT = 60  # 出勤表正常状态人数上限（v2 §6.2）
 
@@ -51,19 +52,24 @@ async def list_attendance(session: AsyncSession, guild_id: int, schedule_id: int
     await get_schedule(session, guild_id, schedule_id)
     rows = (
         await session.execute(
-            select(AttendanceRecord, Member.status, Member.sub_profession)
+            select(AttendanceRecord, Member.status, Member.main_profession, Member.sub_profession)
             .outerjoin(Member, Member.id == AttendanceRecord.member_id)
             .where(AttendanceRecord.schedule_id == schedule_id)
             .order_by(AttendanceRecord.is_filler, AttendanceRecord.member_name)
         )
     ).all()
     records: list[AttendanceRecord] = []
-    for record, member_status, sub_profession in rows:
+    for record, member_status, main_profession, sub_profession in rows:
         record.member_status = member_status  # 供响应输出正式/替补标记
-        # 可选职业：主+副去重（补人仅当前职业）
-        options = [record.profession]
-        if sub_profession and sub_profession != record.profession:
+        # 可选职业：主+副去重（与 update_record_profession 校验口径一致，切换后仍保留另一职业）；
+        # 当前快照不在主/副中时补齐，保证下拉框能正确回显（补人仅当前职业）
+        options: list[str] = []
+        if main_profession:
+            options.append(main_profession)
+        if sub_profession and sub_profession not in options:
             options.append(sub_profession)
+        if record.profession and record.profession not in options:
+            options.append(record.profession)
         record.professions = options
         records.append(record)
     return records, calc_stats(records)
@@ -114,19 +120,21 @@ async def update_record_remark(
 async def add_filler(session: AsyncSession, guild_id: int, schedule_id: int, name: str, profession: str) -> AttendanceRecord:
     """添加补人：仅当前场次，不录入常驻库。"""
     await get_schedule(session, guild_id, schedule_id)
+    name = normalize_member_name(name)
+    if not name:
+        raise AttendanceServiceError("请输入补人名称，不能只包含空白字符")
+    if len(name) > 32:
+        raise AttendanceServiceError("补人姓名不能超过 32 字符")
     if profession not in PROFESSIONS:
         raise AttendanceServiceError(f"无效的职业：{profession}")
-    existing = (
+    existing_names = (
         await session.execute(
-            select(AttendanceRecord).where(
-                AttendanceRecord.schedule_id == schedule_id,
-                AttendanceRecord.is_filler.is_(True),
-                AttendanceRecord.member_name == name,
-            )
+            select(AttendanceRecord.member_name).where(AttendanceRecord.schedule_id == schedule_id)
         )
-    ).scalar_one_or_none()
-    if existing:
-        raise AttendanceServiceError(f"补人「{name}」已在本场出勤表中")
+    ).scalars().all()
+    # Python 统一处理全角等空白；同时兼容历史记录，防止与常驻成员的姓名映射冲突。
+    if any(normalize_member_name(existing) == name for existing in existing_names):
+        raise AttendanceServiceError(f"姓名「{name}」已在本场出勤表中（忽略首尾空白）")
     await check_normal_capacity(session, schedule_id, 1)
     record = AttendanceRecord(
         schedule_id=schedule_id,
