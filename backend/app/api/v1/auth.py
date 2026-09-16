@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
+from app.core.client_ip import get_client_ip
 from app.core.config import settings
 from app.models.guild import Guild
 from app.models.user import User
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/auth", tags=["认证"])
 async def login(
     request: Request, body: LoginRequest, session: AsyncSession = Depends(get_db)
 ) -> LoginResponse:
-    ip = request.client.host if request.client else None
+    ip = get_client_ip(request)
     try:
         token, user = await authenticate(session, body.username, body.password)
     except AuthError as exc:

@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1.router import api_router
+from app.core.client_ip import get_client_ip
 from app.core.config import settings
 from app.core.logging_config import setup_logging
 from app.core.security import decode_access_token
@@ -101,10 +102,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
     ) -> None:
         try:
             user = await self._resolve_user(request)
-            forwarded = request.headers.get("x-forwarded-for", "")
-            ip = forwarded.split(",")[0].strip() if forwarded else (
-                request.client.host if request.client else None
-            )
+            ip = get_client_ip(request)
             await log_service.record_log(
                 module=log_service.module_from_path(request.url.path),
                 action=log_service.action_from_method(request.method, request.url.path),

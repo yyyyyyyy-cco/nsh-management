@@ -1,6 +1,6 @@
 # 部署文档
 
-> 本文档描述生产服务器的实际部署架构与运维流程（2026-09-11 按服务器实况核对更新）。
+> 本文档描述生产服务器的实际部署架构与运维流程（2026-09-15 按服务器实况核对更新：单层 TLS）。
 > 文中服务器地址、用户名、域名等一律使用**占位符**；真实值仅保存在本地 `deploy.sh`
 > 与服务器配置中（`deploy.sh` 已被 `.gitignore` 排除，本文件会随仓库提交，严禁写入敏感信息）。
 
@@ -16,13 +16,14 @@
 ## 二、部署架构
 
 ```
-浏览器 ── 80/443 ──> nginx-proxy 容器（全局入口，TLS 终止，配置只读挂载于宿主机）
-                        │  proxy_pass https://nsh-management-frontend-1:443
+浏览器 ─ 80/443 ──> nginx-proxy 容器（全局入口，**唯一 TLS 终止点**，配置只读挂载于宿主机）
+                        │  proxy_pass http://nsh-management-frontend-1:80（容器网络明文）
+                        │  （限流 api 20r/s burst 40、login 5r/m burst 3，按真实客户端 IP；
+                        │    安全响应头 / HTTP→HTTPS 跳转 / 默认 server 444 也都在这一层）
                         ▼
-             nsh-management-frontend-1（Nginx，宿主机端口 8080/8443 → 容器 80/443）
-                        ├── /          → 前端静态资源（SPA 回退）
+             nsh-management-frontend-1（Nginx，容器内 :80，无宿主端口映射、无证书挂载）
+                        ├── /          → 前端静态资源（SPA 回退 + 缓存头）
                         ├── /api/*     → proxy_pass http://backend:8000
-                        │     （限流：api 20r/s burst 40；login 5r/m burst 3）
                         └── client_max_body_size 20m（Excel 导入上限）
                         ▼
              nsh-management-backend-1（FastAPI :8000，内网，gosu appuser 降权运行）
@@ -30,10 +31,18 @@
                         └── 卷 nsh-logs  → /app/logs（文件日志，10MB×5 轮转）
 ```
 
-- `nginx-proxy` 为同机多个站点共用的反向代理，frontend 容器接入外部网络 `proxy-net`
-  供其回源；frontend 自身监听宿主机 `8080/8443`（**不是** 80/443）。
+- `nginx-proxy` 为同机多个站点共用的反向代理，frontend 容器接入外部网络 `proxy-net` 供其回源。
+- **单层 TLS（2026-09-15 调整）**：TLS 终止、证书、限流、安全响应头、HTTP→HTTPS 跳转、默认 server
+  兜底全部只在 `nginx-proxy` 一层完成；frontend 容器退化为「静态资源 + `/api` 反代」，
+  容器内明文 `:80`、**不映射宿主端口**（原 8080/8443 已移除）、不再挂载证书。
+- 真实客户端 IP 链路：边缘层写 `X-Real-IP` / `X-Forwarded-For`（后者用
+  `$remote_addr` **覆盖**客户端传入值以防伪造审计 IP），内层以
+  `set_real_ip_from 172.20.0.0/16` + `real_ip_header X-Forwarded-For` 识别，
+  反代 backend 时原样透传。**内层不得用 `$remote_addr` / `$proxy_add_x_forwarded_for`
+  覆盖这两个头**，否则真实 IP 会被冲成容器 IP（曾导致限流退化为「全站共享桶」、登录审计 IP 记为容器 IP）。
+- 边缘层 upstream 启用 keepalive(32)，内层不再做 TLS：每请求少一次 TLS 握手与连接建立。
 - 数据库迁移在**容器每次启动时自动执行**（Dockerfile CMD 含 `alembic upgrade head`），
-  当前 head：`m7n8o9p0q1r2`（复合索引；此前为 `k5l6m7n8o9p0` operation_logs 审计日志表）。
+  当前 head：`n8o9p0q1r2s3`（出勤备注列；此前为 `m7n8o9p0q1r2` 复合索引）。
 - SQLite 以 **WAL 模式**运行（`journal_mode=WAL` + `synchronous=NORMAL` + `busy_timeout=30s`，
   见 `backend/app/core/database.py` 连接事件），读写不互斥；**备份方式需注意 WAL 文件**（见第五节）。
 - 后端以 `appuser`（非 root）运行，`entrypoint.sh` 负责修复 `/app/data`、`/app/logs`
@@ -57,7 +66,7 @@
 
 | 排除项 | 原因 |
 |--------|------|
-| `docker-compose.yml` | 服务器版本与本地的**端口/网络配置不同**（8080/8443 + proxy-net），覆盖即宕机 |
+| `docker-compose.yml` | 服务器版本与本地的**网络配置不同**（frontend 无宿主端口映射 + proxy-net），覆盖即宕机 |
 | `frontend/nginx.conf`(.example) / `frontend/Dockerfile` / `backend/Dockerfile` / `backend/entrypoint.sh` / `backend/alembic.ini` | 构建输入与服务器配置可能漂移，只保留服务器版本 |
 | `data/`、`*.db`、`backend/logs/`、`.env`、`_backup/` 等 | 本地数据/密钥/日志严禁上服务器 |
 
@@ -82,6 +91,15 @@
 > 本地 `frontend/nginx.conf` 与 `frontend/nginx.conf.example` 均已更新，**服务器侧需再次
 > 手动同步 nginx.conf 并重建 frontend 镜像**（`index.html` 内嵌 meta 缓存标签随构建产物进入镜像）。
 > 后续若再修改这两个文件，仍需重复"服务器侧手动同步"流程（`deploy.sh` 排除清单不变）。
+>
+> 2026-09-15 同步记录（单层 TLS 改造）：`frontend/nginx.conf`（内层改明文 80：删 443 监听、
+> 证书引用、HTTP→HTTPS 跳转、限流 zone 与安全头；加 `set_real_ip_from` 与 IP 头透传）、
+> `nginx-proxy/conf.d/nsh-management.conf`（反代改 `http://…:80` + upstream
+> keepalive，删 `proxy_ssl_verify off`）、`docker-compose.yml`（frontend 删
+> `/etc/letsencrypt` 与 `/var/www/certbot` 挂载、删 8080/8443 宿主端口）三者均已
+> 按「备份（`*.bak-20260915`）→ 改文件 → 重建镜像 → 热重载」在服务器侧落地并验证；
+> 切换采用两阶段（内层先 80+443 双监听 → 边缘切 80 → 收尾删 443），配置切换零停机，
+> 仅容器重建瞬间有约 1 秒 502。
 
 **重要**：改动 `entrypoint.sh` / `Dockerfile` / `nginx.conf` 后必须
 `docker compose up -d --build` 重建对应镜像才生效（nginx.conf 随 frontend 镜像 COPY 进容器，
@@ -141,9 +159,10 @@ docker compose start backend
 
 ## 七、常见问题
 
-### Q1：宿主机 `curl 127.0.0.1:8080` 返回 000 / 无响应？
+### Q1：宿主机 `curl 127.0.0.1:8080` 连不上？
 
-属正常现象（安全组/防火墙策略），不要以此判断服务故障。**以域名入口为准**：
+2026-09-15 起 frontend **不再映射任何宿主端口**（8080/8443 已移除），8080 无监听属正常现象；
+即便有监听，安全组/防火墙也会拦截直连。不要以此判断服务故障，**以域名入口为准**：
 `curl -sk -o /dev/null -w '%{http_code}' -H 'Host: <YOUR_DOMAIN>' https://127.0.0.1/`
 应返回 200。
 
@@ -172,10 +191,10 @@ CMD 启动即迁移，通常重启容器即可。
 
 | 项目 | 本地开发 | 生产服务器 |
 |------|---------|-----------|
-| 入口 | Vite dev server :5173（proxy /api） | nginx-proxy :443（域名 + TLS）→ frontend :8080/8443 |
+| 入口 | Vite dev server :5173（proxy /api） | nginx-proxy :443（唯一 TLS 终止）→ frontend :80（容器网络明文） |
 | 后端 | `uvicorn --reload :8000` | 容器内单 worker :8000（gosu appuser） |
 | 数据库 | `backend/data/nsh.db` | 卷 `nsh-data` |
 | 文件日志 | `backend/logs/app.log` | 卷 `nsh-logs` |
 | 配置 | `core/config.py` 默认值 + 本地 `.env` | 服务器 `.env` |
-| compose | 端口 80/443，仅 nsh-net | 端口 8080/8443，nsh-net + proxy-net（external） |
+| compose | 端口 80/443，仅 nsh-net | frontend 无宿主端口，nsh-net + proxy-net（external） |
 | 更新方式 | — | 本地 `./deploy.sh` 一键 |
