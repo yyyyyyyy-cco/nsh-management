@@ -13,7 +13,7 @@
 | 默认分支 | `main` |
 | 远程 GitHub | `origin` → `https://github.com/yyyyyyyy-cco/nsh-management.git` |
 | 远程 Gitee | `gitee` → `https://gitee.com/Gypsophilaaa/nsh-management.git` |
-| 当前版本标签 | `v1.0.0`（首个正式版本） |
+| 当前版本标签 | `v1.1.0`（新增个人战绩、系统日志模块） |
 
 > **双远程策略**：`origin`（GitHub）与 `gitee`（Gitee）互为镜像。任何推到 main 的提交和打出的 tag，都要**同步推送到两个远程**，避免仓库分叉。
 

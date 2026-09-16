@@ -264,6 +264,7 @@ nsh-management/
 | 2026-09-15 | 生产部署改「单层 TLS」（消除双层 nginx + 双层 TLS）：边缘 nginx-proxy 独占 TLS/证书/限流/安全响应头/HTTP→HTTPS 跳转，反代改 `http://…:80` 并启用 upstream keepalive(32)；frontend 容器退化为「静态资源 + /api 反代」（明文 80、无宿主端口映射、无证书挂载），新增 `set_real_ip_from` 与 IP 头透传。配套修复：①内层 `limit_req` 以 `$remote_addr`（=边缘容器 IP）为键，导致限流退化为全站共享桶（登录全站 5 次/分、API 全站 20r/s）②安全响应头在 /assets 与 /api 上重复下发 ③登录审计 IP 记为前端容器 IP（新增 `core/client_ip.py` 的 `get_client_ip`，auth.py/main.py 复用）。验证：四域名入口 200、响应头计数均为 1、限流按真实 IP（外部第 5 次 429 且另一源 IP 正常）、内层 443 已关闭、30 次请求仅 2 条 upstream 连接 | 部署、安全、后端 |
 | 2026-09-15 | 部署收尾两项：①`/assets/` 响应头去重——删除 `expires 1y`（该指令会额外生成一个 `Cache-Control: max-age=31536000` 与显式 immutable 并存成重复头），仅保留 `add_header Cache-Control`，与 `index.html` 既有约定一致；②边缘层 XFF 由追加改为覆盖（`$proxy_add_x_forwarded_for` → `$remote_addr`，3 处），防客户端自带 XFF 伪造审计 IP。验证：`/`、`/assets/`、`/api/` 三处响应头重复种数均为 0，gzip 与 index.html no-store 未受影响，携带伪造 `X-Forwarded-For: 1.2.3.4` 的登录探测审计仍记录真实 IP；重建前端容器期间 90 次探测 89×200 + 1×502 | 部署、安全、后端 |
 | 2026-09-15 | 仓库收录策略调整：`.agent/rules/*.md` 4 份 AI 编码规则入库（.gitignore 以 `!.agent/rules/` 例外于 `rules/` 忽略，保证 AGENTS.md 权威源可追溯）；`.agent/docs/` 仅文本 CSV 入库，24MB `联赛数据表Plus3.0.xlsm` 保持本地忽略（本地文件不删，仅不收录历史） | 文档体系、仓库 |
+| 2026-09-15 | 发布 v1.1.0（tag `v1.1.0`，双远端同步）：自 v1.0.0 起累计 38 个提交——新增个人战绩与系统日志模块、UI 优化与移动端适配、出勤备注与性能优化，以及超限文件拆分、补人姓名规范化修复、单层 TLS 部署改造 | 版本发布、双远程 |
 
 ---
 
