@@ -1,177 +1,57 @@
 <template>
   <div class="attendance-tab">
-    <div class="stats-bar">
-      <div class="stat">
-        <span class="label">总人数</span>
-        <span class="value num">{{ stats.total }}</span>
-      </div>
-      <div class="stat-sep" />
-      <div class="stat">
-        <span class="label">正常</span>
-        <span class="value normal num">{{ stats.normal_count }}</span>
-      </div>
-      <div class="stat-sep" />
-      <div class="stat">
-        <span class="label">请假</span>
-        <span class="value leave num">{{ stats.leave_count }}</span>
-      </div>
-      <div class="stat-sep" />
-      <div class="stat">
-        <span class="label">缺口（60 人上限）</span>
-        <span class="value num" :class="{ warn: stats.gap > 0 }">{{ stats.gap }}</span>
-      </div>
-    </div>
+    <AttendanceStatsBar
+      :stats="stats"
+      :has-gap-target="hasGapTarget"
+      :profession-gap="professionGap"
+      :custom-config="customConfig"
+      :is-admin="auth.isAdmin"
+      @open-config="profCfgVisible = true"
+    />
 
-    <!-- 职业缺口分析（配置目标 vs 当前出勤）；目标默认沿用系统配置，管理员可单场覆盖 -->
-    <div v-if="auth.isAdmin || hasGapTarget" class="gap-bar">
-      <template v-if="hasGapTarget">
-        <span class="gap-bar__label">职业缺口</span>
-        <span
-          v-for="g in professionGap"
-          :key="g.profession"
-          class="gap-chip"
-          :class="{ need: g.gap > 0, full: g.gap === 0, surplus: g.gap < 0 }"
-        >
-          {{ g.profession }}
-          <template v-if="g.gap > 0">缺{{ g.gap }}</template>
-          <template v-else-if="g.gap < 0">多{{ -g.gap }}</template>
-          <template v-else>已满</template>
-        </span>
-      </template>
-      <div v-if="auth.isAdmin" class="gap-bar__actions">
-        <el-tag v-if="customConfig" size="small" type="warning" effect="plain">已自定义</el-tag>
-        <button class="gap-chip need gap-chip--action" @click="profCfgVisible = true">修改职业配置</button>
-      </div>
-    </div>
+    <AttendanceToolbar
+      :is-admin="auth.isAdmin"
+      :loading="loading"
+      :selected-count="selectedIds.length"
+      v-model:keyword="keyword"
+      v-model:professionFilter="professionFilter"
+      v-model:typeFilter="typeFilter"
+      v-model:statusFilter="statusFilter"
+      @import-formal="onImportFormal"
+      @import-substitute="substituteVisible = true"
+      @import-member="memberImportVisible = true"
+      @add-filler="fillerVisible = true"
+      @batch-leave="onBatch('leave')"
+      @batch-normal="onBatch('normal')"
+      @import-leave="leaveImportVisible = true"
+      @open-remove="onOpenRemove"
+    />
 
-    <div v-if="auth.isAdmin" class="toolbar">
-      <el-button type="primary" :loading="loading" @click="onImportFormal">一键导入正式成员</el-button>
-      <el-button @click="substituteVisible = true">导入替补</el-button>
-      <el-button @click="memberImportVisible = true">导入成员</el-button>
-      <el-button @click="fillerVisible = true">添加补人</el-button>
-      <el-button type="warning" plain :disabled="selectedIds.length === 0" @click="onBatch('leave')">
-        批量请假（{{ selectedIds.length }}）
-      </el-button>
-      <el-button type="success" plain :disabled="selectedIds.length === 0" @click="onBatch('normal')">
-        批量正常
-      </el-button>
-      <el-button type="warning" plain @click="leaveImportVisible = true">导入请假</el-button>
-      <el-button type="danger" plain @click="onOpenRemove">一键移除</el-button>
-      <div class="spacer" />
-    </div>
-
-    <!-- ID 搜索 + 职业筛选 -->
-    <div class="filter-row">
-      <el-input
-        v-model="keyword"
-        placeholder="搜索 ID 过滤"
-        clearable
-        :prefix-icon="Search"
-        class="keyword-input"
-      />
-      <el-select v-model="professionFilter" placeholder="职业筛选" clearable class="prof-filter">
-        <el-option v-for="p in PROF_ORDER" :key="p" :label="p" :value="p" />
-      </el-select>
-      <el-select v-model="typeFilter" placeholder="类型筛选" clearable class="small-filter">
-        <el-option v-for="t in TYPE_OPTIONS" :key="t.value" :label="t.label" :value="t.value" />
-      </el-select>
-      <el-select v-model="statusFilter" placeholder="状态筛选" clearable class="small-filter">
-        <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
-      </el-select>
-    </div>
-
-    <!-- 移动端（≤768px）：出勤行列表，职业选择/状态开关/移除免横滑 -->
-    <div v-if="isMobile" class="att-rows">
-      <SkeletonTable v-if="showSkeleton && !filteredItems.length" variant="rows" :rows="5" />
-      <el-empty v-else-if="!loading && !filteredItems.length" description="暂无出勤记录" :image-size="72" />
-      <div v-for="row in filteredItems" :key="row.id" class="att-row">
-        <div class="ar-main">
-          <el-checkbox
-            v-if="auth.isAdmin"
-            class="ar-check"
-            :model-value="selectedIds.includes(row.id)"
-            @change="toggleSelect(row.id)"
-          />
-          <span class="ar-name">{{ row.member_name }}</span>
-          <el-tag v-if="row.is_filler" type="warning" effect="light" size="small">补人</el-tag>
-          <el-tag v-else-if="row.member_status === 'substitute'" type="info" effect="plain" size="small">替补</el-tag>
-          <el-tag v-else type="primary" effect="plain" size="small">正式</el-tag>
-          <el-switch
-            class="ar-switch"
-            :model-value="row.status === 'normal'"
-            inline-prompt
-            active-text="正常"
-            inactive-text="请假"
-            @change="(value: boolean) => onToggle(row, value)"
-          />
-        </div>
-        <div class="ar-meta" :class="{ 'ar-meta--indent': auth.isAdmin }">
-          <el-select
-            v-if="auth.isAdmin && (row.professions?.length || 0) > 1"
-            :model-value="row.profession"
-            class="ar-prof-select"
-            @change="(value: string) => onProfessionChange(row, value)"
-          >
-            <el-option v-for="p in row.professions" :key="p" :label="p" :value="p" />
-          </el-select>
-          <span v-else class="prof-name" :style="{ color: profColor(row.profession) }">{{ row.profession }}</span>
-          <el-icon v-if="auth.isAdmin" class="ar-remark-edit" title="编辑备注" @click="onEditRemark(row)"><EditPen /></el-icon>
-          <el-button v-if="auth.isAdmin" class="ar-act" type="danger" plain @click="onDelete(row)">移除</el-button>
-        </div>
-        <div v-if="auth.isAdmin && row.remark" class="ar-remark">备注：{{ row.remark }}</div>
-      </div>
-    </div>
-
-    <!-- 桌面端：表格形态保持不变 -->
-    <SkeletonTable v-else-if="showSkeleton && !filteredItems.length" variant="table" :rows="5" />
-      <el-table v-else :data="filteredItems" @selection-change="onSelectionChange">
-      <el-table-column v-if="auth.isAdmin" type="selection" width="44" />
-      <el-table-column prop="member_name" label="ID" min-width="110" />
-      <el-table-column prop="profession" label="职业" min-width="110">
-        <template #default="{ row }">
-          <el-select
-            v-if="auth.isAdmin && (row.professions?.length || 0) > 1"
-            :model-value="row.profession"
-            style="width: 100px"
-            @change="(value: string) => onProfessionChange(row, value)"
-          >
-            <el-option v-for="p in row.professions" :key="p" :label="p" :value="p" />
-          </el-select>
-          <span v-else class="prof-name" :style="{ color: profColor(row.profession) }">{{ row.profession }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="类型" min-width="70">
-        <template #default="{ row }">
-          <el-tag v-if="row.is_filler" type="warning" effect="light" size="small">补人</el-tag>
-          <el-tag v-else-if="row.member_status === 'substitute'" type="info" effect="plain" size="small">替补</el-tag>
-          <el-tag v-else type="primary" effect="plain" size="small">正式</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" min-width="110">
-        <template #default="{ row }">
-          <el-switch
-            :model-value="row.status === 'normal'"
-            inline-prompt
-            active-text="正常"
-            inactive-text="请假"
-            @change="(value: boolean) => onToggle(row, value)"
-          />
-        </template>
-      </el-table-column>
-      <el-table-column v-if="auth.isAdmin" label="备注" min-width="140">
-        <template #default="{ row }">
-          <span class="remark-cell">
-            <span class="remark-text" :class="{ 'remark-text--empty': !row.remark }">{{ row.remark || '-' }}</span>
-            <el-icon class="remark-edit" title="编辑备注" @click="onEditRemark(row)"><EditPen /></el-icon>
-          </span>
-        </template>
-      </el-table-column>
-      <el-table-column v-if="auth.isAdmin" label="操作" min-width="80">
-        <template #default="{ row }">
-          <el-button link type="danger" @click="onDelete(row)">移除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <!-- 移动端（≤768px）行列表 / 桌面端表格 -->
+    <AttendanceMobileList
+      v-if="isMobile"
+      :is-admin="auth.isAdmin"
+      :loading="loading"
+      :show-skeleton="showSkeleton"
+      :items="filteredItems"
+      :selected-ids="selectedIds"
+      @toggle-select="toggleSelect"
+      @toggle="onToggle"
+      @profession-change="onProfessionChange"
+      @edit-remark="onEditRemark"
+      @delete="onDelete"
+    />
+    <AttendanceTablePanel
+      v-else
+      :is-admin="auth.isAdmin"
+      :show-skeleton="showSkeleton"
+      :items="filteredItems"
+      @selection-change="onSelectionChange"
+      @toggle="onToggle"
+      @profession-change="onProfessionChange"
+      @edit-remark="onEditRemark"
+      @delete="onDelete"
+    />
 
     <FillerDialog v-model="fillerVisible" :schedule-id="scheduleId" @success="load" />
     <SubstituteImportDialog v-model="substituteVisible" :schedule-id="scheduleId" @success="load" />
@@ -207,53 +87,64 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, EditPen } from '@element-plus/icons-vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 
-import {
-  batchStatus,
-  deleteRecord,
-  getAttendance,
-  importFormal,
-  updateProfession,
-  updateRemark,
-  updateStatus,
-} from '@/api/attendance'
-import { getProfessionConfigs } from '@/api/config'
-import { getLineup, getLineupCandidates } from '@/api/lineups'
-import type { ProfessionConfig } from '@/types/config'
-import type { AttendanceRecord, AttendanceStats } from '@/types/attendance'
 import type { ScheduleInfo } from '@/types/schedule'
-import { PROF_ORDER } from '@/composables/lineupBoard'
 import { useAuthStore } from '@/stores/auth'
-import FillerDialog from '@/components/attendance/FillerDialog.vue'
-import SubstituteImportDialog from '@/components/attendance/SubstituteImportDialog.vue'
-import LeaveImportDialog from '@/components/attendance/LeaveImportDialog.vue'
-import ImportMemberDialog from '@/components/attendance/ImportMemberDialog.vue'
-import ProfessionConfigDialog from '@/components/attendance/ProfessionConfigDialog.vue'
+import { useAttendanceList } from '@/composables/useAttendanceList'
 import { profColor } from '@/utils/profession'
-import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
-import SkeletonTable from '@/components/common/SkeletonTable.vue'
+import AttendanceMobileList from '@/components/attendance/AttendanceMobileList.vue'
+import AttendanceStatsBar from '@/components/attendance/AttendanceStatsBar.vue'
+import AttendanceTablePanel from '@/components/attendance/AttendanceTablePanel.vue'
+import AttendanceToolbar from '@/components/attendance/AttendanceToolbar.vue'
+import FillerDialog from '@/components/attendance/FillerDialog.vue'
+import ImportMemberDialog from '@/components/attendance/ImportMemberDialog.vue'
+import LeaveImportDialog from '@/components/attendance/LeaveImportDialog.vue'
+import ProfessionConfigDialog from '@/components/attendance/ProfessionConfigDialog.vue'
+import SubstituteImportDialog from '@/components/attendance/SubstituteImportDialog.vue'
 
 const props = defineProps<{ scheduleId: number; schedule: ScheduleInfo }>()
 
 const auth = useAuthStore()
-const loading = ref(false)
-const showSkeleton = useSkeletonLoading(loading)
-const items = ref<AttendanceRecord[]>([])
-const stats = ref<AttendanceStats>({ total: 0, normal_count: 0, leave_count: 0, gap: 60 })
-const selectedIds = ref<number[]>([])
+
+// 数据与操作逻辑（见 composables/useAttendanceList）
+const {
+  loading,
+  showSkeleton,
+  items,
+  stats,
+  selectedIds,
+  keyword,
+  professionFilter,
+  typeFilter,
+  statusFilter,
+  customConfig,
+  profCfgVisible,
+  removeVisible,
+  removableItems,
+  removeSelected,
+  filteredItems,
+  effectiveTargets,
+  hasGapTarget,
+  professionGap,
+  load,
+  onSelectionChange,
+  toggleSelect,
+  onProfessionChange,
+  onEditRemark,
+  onProfessionConfigSaved,
+  onImportFormal,
+  onToggle,
+  onBatch,
+  onDelete,
+  onOpenRemove,
+  onConfirmRemove,
+} = useAttendanceList(props)
+
 const fillerVisible = ref(false)
 const substituteVisible = ref(false)
 const leaveImportVisible = ref(false)
 const memberImportVisible = ref(false)
-const keyword = ref('')
-const professionFilter = ref('')
-const typeFilter = ref('')
-const statusFilter = ref('')
-const customConfig = ref<Record<string, number> | null>(null) // 单场职业配置覆盖，null 沿用系统配置
-const profCfgVisible = ref(false)
 
 // 移动端（≤768px，与 MainLayout 抽屉断点一致）渲染行列表，桌面端渲染表格
 const mq = window.matchMedia('(max-width: 768px)')
@@ -263,362 +154,27 @@ const onMqChange = (e: MediaQueryListEvent) => {
   selectedIds.value = [] // 形态切换时清空勾选，避免残留「看不见的已勾选」
 }
 
-/** 类型筛选选项：正式 / 替补 / 补人。 */
-const TYPE_OPTIONS = [
-  { value: 'formal', label: '正式' },
-  { value: 'substitute', label: '替补' },
-  { value: 'filler', label: '补人' },
-]
-
-/** 状态筛选选项：正常 / 请假。 */
-const STATUS_OPTIONS = [
-  { value: 'normal', label: '正常' },
-  { value: 'leave', label: '请假' },
-]
-const professionConfigs = ref<ProfessionConfig[]>([])
-const removeVisible = ref(false)
-const removableItems = ref<AttendanceRecord[]>([])
-const removeSelected = ref<string[]>([])
-
-/** 按 ID / 职业 / 类型 / 状态客户端过滤 */
-const filteredItems = computed(() => {
-  const kw = keyword.value.toLowerCase()
-  return items.value.filter((r) => {
-    if (professionFilter.value && r.profession !== professionFilter.value) return false
-    if (statusFilter.value && r.status !== statusFilter.value) return false
-    if (typeFilter.value) {
-      const type = r.is_filler ? 'filler' : r.member_status === 'substitute' ? 'substitute' : 'formal'
-      if (type !== typeFilter.value) return false
-    }
-    return !kw || r.member_name.toLowerCase().includes(kw)
-  })
-})
-
-/** 切换出勤职业（主/副）。 */
-async function onProfessionChange(row: AttendanceRecord, profession: string) {
-  if (profession === row.profession) return
-  const updated = await updateProfession(props.scheduleId, row.id, profession)
-  row.profession = updated.profession
-  ElMessage.success(`已将「${row.member_name}」的职业设为 ${updated.profession}`)
-}
-
-/** 编辑出勤备注（管理员）：弹窗输入，留空清除；备注会带入排表候选池展示。 */
-async function onEditRemark(row: AttendanceRecord) {
-  try {
-    const { value } = await ElMessageBox.prompt('备注会带入排表候选池展示（可留空清除）', '编辑备注', {
-      inputValue: row.remark || '',
-      inputPlaceholder: '输入备注内容',
-      inputValidator: (v: string) => (v || '').length <= 255 || '备注不超过 255 字',
-    })
-    const updated = await updateRemark(props.scheduleId, row.id, value.trim())
-    row.remark = updated.remark
-    ElMessage.success('备注已保存')
-  } catch {
-    /* 取消编辑或请求失败（错误提示由 http 拦截器统一处理） */
-  }
-}
-
-/** 当前生效目标人数：单场覆盖优先，否则用系统配置。 */
-const effectiveTargets = computed<Record<string, number>>(() => {
-  if (customConfig.value) return customConfig.value
-  const map: Record<string, number> = {}
-  for (const c of professionConfigs.value) map[c.profession] = c.target_count || 0
-  return map
-})
-
-/** 是否存在目标人数大于 0 的职业（决定是否展示缺口 chips）。 */
-const hasGapTarget = computed(() => professionGap.value.some((g) => g.target > 0))
-
-/** 各职业缺口：目标人数 - 当前正常出勤人数（请假视为缺口）。 */
-const professionGap = computed(() => {
-  const current: Record<string, number> = {}
-  for (const r of items.value) {
-    if (r.status === 'normal') current[r.profession] = (current[r.profession] || 0) + 1
-  }
-  return PROF_ORDER.map((p) => {
-    const target = effectiveTargets.value[p] || 0
-    return { profession: p, target, current: current[p] || 0, gap: target - (current[p] || 0) }
-  })
-})
-
-/** 单场职业配置保存/恢复后更新本地覆盖值，立即重算缺口。 */
-function onProfessionConfigSaved(configs: Record<string, number> | null) {
-  customConfig.value = configs
-  profCfgVisible.value = false
-}
-
 onMounted(() => {
   mq.addEventListener('change', onMqChange)
   load()
 })
 
 onUnmounted(() => mq.removeEventListener('change', onMqChange))
-
-async function load() {
-  loading.value = true
-  // 刷新后清空勾选：桌面表格随数据更新失去选中，移动端勾选同步清空保持一致
-  selectedIds.value = []
-  try {
-    // 赛程详情由父级传入（避免与父级重复请求 getSchedule）
-    const [data, configs] = await Promise.all([
-      getAttendance(props.scheduleId),
-      getProfessionConfigs(),
-    ])
-    items.value = data.items
-    stats.value = data.stats
-    professionConfigs.value = configs
-    customConfig.value = props.schedule.profession_config ?? null
-  } finally {
-    loading.value = false
-  }
-}
-
-function onSelectionChange(rows: AttendanceRecord[]) {
-  selectedIds.value = rows.map((row) => row.id)
-}
-
-/** 移动端行内勾选：与桌面表格共用 selectedIds，支撑批量请假/正常。 */
-function toggleSelect(id: number) {
-  const idx = selectedIds.value.indexOf(id)
-  if (idx >= 0) selectedIds.value.splice(idx, 1)
-  else selectedIds.value.push(id)
-}
-
-async function onImportFormal() {
-  const result = await importFormal(props.scheduleId)
-  ElMessage.success(result.message)
-  load()
-}
-
-async function onToggle(row: AttendanceRecord, value: boolean) {
-  const status = value ? 'normal' : 'leave'
-  await updateStatus(props.scheduleId, row.id, status)
-  ElMessage.success(status === 'normal' ? '已设为正常' : '已请假')
-  load()
-}
-
-async function onBatch(status: 'normal' | 'leave') {
-  await ElMessageBox.confirm(
-    `确定将选中的 ${selectedIds.value.length} 名成员设为「${status === 'normal' ? '正常' : '请假'}」吗？`,
-    '提示',
-    { type: 'warning' },
-  )
-  const result = await batchStatus(props.scheduleId, selectedIds.value, status)
-  ElMessage.success(result.message)
-  load()
-}
-
-async function onDelete(row: AttendanceRecord) {
-  await ElMessageBox.confirm(`确定移除「${row.member_name}」的出勤记录吗？`, '提示', { type: 'warning' })
-  await deleteRecord(props.scheduleId, row.id)
-  ElMessage.success('移除成功')
-  load()
-}
-
-/** 一键移除：候选池中未被排入排表的已出勤（正常）成员，弹窗勾选后移出出勤表。 */
-async function onOpenRemove() {
-  const [candidates, lineup] = await Promise.all([
-    getLineupCandidates(props.scheduleId),
-    getLineup(props.scheduleId),
-  ])
-  // 已排入排表的成员集合（正式按 member_id，补人按 member_name）
-  const placed = new Set<string>()
-  for (const team of lineup.data) {
-    for (const slot of team.slots) {
-      if (slot.member_id != null) placed.add(`id:${slot.member_id}`)
-      if (slot.member_name) placed.add(`name:${slot.member_name}`)
-    }
-  }
-  const unplacedNames = new Set(
-    candidates
-      .filter((c) => !placed.has(`id:${c.member_id}`) && !placed.has(`name:${c.member_name}`))
-      .map((c) => c.member_name),
-  )
-  removableItems.value = items.value.filter(
-    (r) => r.status === 'normal' && unplacedNames.has(r.member_name),
-  )
-  if (!removableItems.value.length) {
-    ElMessage.info('没有可移除的人员：未排入排表的已出勤成员为空')
-    return
-  }
-  removeSelected.value = removableItems.value.map((r) => r.member_name)
-  removeVisible.value = true
-}
-
-async function onConfirmRemove() {
-  const targets = removableItems.value.filter((r) => removeSelected.value.includes(r.member_name))
-  for (const t of targets) {
-    await deleteRecord(props.scheduleId, t.id)
-  }
-  ElMessage.success(`已移除 ${targets.length} 名成员`)
-  removeVisible.value = false
-  load()
-}
 </script>
 
 <style scoped>
-/* finesse · register=product · shell=member-detail: row-list(≤768px) + switch(≤768px) + gap-actions(≤480px) */
-.stats-bar {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  padding: 14px 20px;
-  background: linear-gradient(135deg, var(--gold-50) 0%, var(--ink-bg-paper) 60%);
-  border: 1px solid var(--gold-200);
-  border-radius: var(--radius-lg);
-  margin-bottom: 14px;
-  box-shadow: var(--shadow-sm);
+/* ===== 出勤状态开关（浅金风，颜色更浅更柔和） ===== */
+.attendance-tab :deep(.el-switch.is-checked .el-switch__core) {
+  background: linear-gradient(135deg, #f0e0a8 0%, #e8cd72 100%);
+  border-color: transparent;
 }
 
-.stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.attendance-tab :deep(.el-switch .el-switch__core) {
+  border-radius: 999px;
 }
 
-.stat-sep {
-  width: 1px;
-  height: 30px;
-  background: linear-gradient(180deg, transparent, var(--gold-300), transparent);
-}
-
-.label {
+.attendance-tab :deep(.el-switch__inner) {
   font-size: 12px;
-  color: var(--ink-500);
-}
-
-.value {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--gold-700);
-}
-
-.value.normal {
-  color: var(--jade);
-}
-
-.value.leave {
-  color: var(--ochre);
-}
-
-.value.warn {
-  color: var(--cinnabar);
-}
-
-/* ===== 职业缺口条 ===== */
-.gap-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  border: 1px solid var(--edge-faint);
-  border-radius: var(--radius-md);
-  background: var(--ink-bg-wash);
-}
-
-.gap-bar__label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-600);
-  margin-right: 4px;
-}
-
-.gap-bar__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-left: auto;
-}
-
-/* ===== 职业缺口条 ===== */
-.gap-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  border: 1px solid var(--edge-faint);
-  border-radius: var(--radius-md);
-  background: var(--ink-bg-wash);
-}
-
-.gap-bar__label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-600);
-  margin-right: 4px;
-}
-
-.gap-chip {
-  font-size: 12px;
-  border: 1px solid var(--edge-soft);
-  border-radius: var(--radius-xl);
-  padding: 1px 9px;
-  color: var(--ink-400);
-}
-
-.gap-chip.need {
-  font-weight: 700;
-  color: var(--gold-700);
-  border-color: var(--gold-300);
-  background: var(--gold-50);
-}
-
-.gap-chip.full {
-  color: var(--ink-300);
-}
-
-.gap-chip.surplus {
-  font-weight: 700;
-  color: var(--jade);
-  border-color: var(--jade);
-}
-
-/* 与缺口标签同款的药丸按钮（置于 chip 样式后以便 hover 覆盖） */
-.gap-chip--action {
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
-}
-
-.gap-chip--action:hover {
-  background: var(--gold-100);
-  border-color: var(--gold-400);
-}
-
-.toolbar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.spacer {
-  flex: 1;
-}
-
-/* ===== ID 搜索框 ===== */
-.filter-row {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.filter-row .keyword-input {
-  flex: 1;
-  max-width: 280px;
-  margin-bottom: 0;
-}
-
-.filter-row .prof-filter {
-  width: 140px;
-}
-
-.filter-row .small-filter {
-  width: 110px;
 }
 
 /* ===== 一键移除弹窗 ===== */
@@ -661,198 +217,7 @@ async function onConfirmRemove() {
   font-size: 12px;
 }
 
-/* ===== 出勤状态开关（浅金风，颜色更浅更柔和） ===== */
-.attendance-tab :deep(.el-switch.is-checked .el-switch__core) {
-  background: linear-gradient(135deg, #f0e0a8 0%, #e8cd72 100%);
-  border-color: transparent;
-}
-
-.attendance-tab :deep(.el-switch .el-switch__core) {
-  border-radius: 999px;
-}
-
-.attendance-tab :deep(.el-switch__inner) {
-  font-size: 12px;
-}
-
-/* ===== 备注列（桌面表格）：文本 + 编辑入口 ===== */
-.remark-cell {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 100%;
-}
-
-.remark-cell .remark-text {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.remark-text--empty {
-  color: var(--ink-300);
-}
-
-.remark-edit {
-  flex-shrink: 0;
-  font-size: 14px;
-  color: var(--ink-300);
-  cursor: pointer;
-}
-
-.remark-edit:hover {
-  color: var(--gold-600);
-}
-
-/* ===== 移动端行列表（isMobile 时渲染，替换表格） ===== */
-.att-rows {
-  display: flex;
-  flex-direction: column;
-  min-height: 140px; /* 空态/加载遮罩的占位高度 */
-  touch-action: manipulation;
-}
-
-.att-row {
-  padding: 12px 2px;
-  border-bottom: 1px solid var(--edge-faint);
-}
-
-.att-row:last-child {
-  border-bottom: none;
-}
-
-.ar-main {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.ar-check {
-  flex-shrink: 0;
-  padding: 10px 6px 10px 0;
-}
-
-.ar-name {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 600;
-  color: var(--ink-900);
-}
-
-.ar-main .el-tag {
-  flex-shrink: 0;
-}
-
-.ar-switch {
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.ar-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-/* 管理员行（勾选区存在）职业与上方 ID 对齐（约 2 个字符宽） */
-.ar-meta--indent {
-  padding-left: 28px;
-}
-
-.ar-prof-select {
-  width: 110px;
-  flex-shrink: 0;
-}
-
-/* 备注编辑入口（动作行内，管理员）：占据剩余空间把移除按钮推向右侧 */
-.ar-remark-edit {
-  margin-left: auto;
-  flex-shrink: 0;
-  padding: 6px 4px;
-  font-size: 20px;
-  color: var(--ink-400);
-  cursor: pointer;
-}
-
-.ar-remark-edit:active {
-  color: var(--gold-600);
-}
-
-/* 出勤备注行（仅管理员可见，与职业/ID 左对齐） */
-.ar-remark {
-  margin-top: 6px;
-  padding-left: 28px;
-  font-size: 12px;
-  color: var(--ink-500);
-  overflow-wrap: anywhere;
-}
-
-/* 紧凑移除按钮：32px、右对齐（与常驻库/日程行列表同款） */
-.ar-meta .el-button.ar-act {
-  height: 32px;
-  margin-left: 0;
-  padding: 0 14px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-/* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
-  .stats-bar {
-    flex-wrap: wrap;
-    gap: 10px 16px;
-    padding: 12px 14px;
-  }
-
-  .stat {
-    flex: 1 1 calc(50% - 16px);
-    min-width: 0;
-  }
-
-  .stat-sep {
-    display: none;
-  }
-
-  .toolbar .el-button {
-    flex: 1 1 calc(50% - 6px);
-    margin-left: 0 !important;
-    margin-right: 0;
-  }
-
-  .filter-row {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .filter-row .keyword-input {
-    flex: 1 1 100%;
-    max-width: none;
-  }
-
-  .filter-row .prof-filter {
-    flex: 1 1 100%;
-    width: 100%;
-  }
-
-  .filter-row .small-filter {
-    flex: 1 1 calc(50% - 4px);
-    width: 100%;
-  }
-
-  .toolbar {
-    gap: 6px;
-  }
-
-  .spacer {
-    display: none;
-  }
-
   /* 状态开关隐藏外置文字，仅靠开关颜色/滑块标识状态，节省列宽 */
   .attendance-tab :deep(.el-switch__label--left),
   .attendance-tab :deep(.el-switch__label--right) {
@@ -862,37 +227,6 @@ async function onConfirmRemove() {
   /* inline-prompt 内部文字缩小，避免窄屏溢出 */
   .attendance-tab :deep(.el-switch__inner) {
     font-size: 11px;
-  }
-}
-
-@media (max-width: 480px) {
-  .value {
-    font-size: 19px;
-  }
-
-  .toolbar .el-button {
-    font-size: 12px;
-    padding-left: 8px;
-    padding-right: 8px;
-  }
-
-  .gap-bar__label {
-    flex-basis: 100%;
-  }
-
-  .stats-bar .label {
-    font-size: 11px;
-  }
-
-  .stats-bar {
-    padding: 10px 12px;
-    gap: 8px 12px;
-  }
-
-  /* 职业缺口操作区域在极窄屏撑满换行 */
-  .gap-bar__actions {
-    width: 100%;
-    justify-content: flex-end;
   }
 }
 </style>

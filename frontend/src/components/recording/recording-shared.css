@@ -1,0 +1,36 @@
+/* 录屏模块共享样式（MobileList / TablePanel 经 scoped src 引入，规则按各自组件作用域隔离） */
+
+.prof-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--ink-800);
+}
+
+.prof-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.url-link {
+  color: var(--gold-700);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+  border-bottom: 1px dashed var(--gold-300);
+  padding-bottom: 1px;
+}
+
+.url-link:hover {
+  color: var(--gold-600);
+  border-bottom-style: solid;
+}
+
+.empty-url {
+  color: var(--ink-300);
+}
