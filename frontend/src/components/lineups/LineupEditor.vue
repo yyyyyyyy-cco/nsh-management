@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：候选池↔槽位共享同一拖拽看板状态，拆分需跨组件转发拖拽处理器与槽位数据形态｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <div class="lineup-editor">
     <div class="toolbar">

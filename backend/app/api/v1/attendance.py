@@ -1,4 +1,5 @@
 """出勤库接口：列表统计、导入正式/替补、添加补人、状态切换。"""
+# 行数豁免（连续逻辑）：单资源薄路由（列表操作 + 导入端点声明同质）｜登记见 .agent/rules/file-length-rule.md 豁免清单
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 

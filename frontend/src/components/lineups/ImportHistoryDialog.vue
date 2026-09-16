@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：导入历史排表两步流程（选赛程 → 按小队多选）一体化｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <el-dialog v-model="visible" title="导入历史排表" width="760px" append-to-body :close-on-click-modal="false">
     <SkeletonTable v-if="showSkeleton && !history.length" variant="table" :rows="5" />

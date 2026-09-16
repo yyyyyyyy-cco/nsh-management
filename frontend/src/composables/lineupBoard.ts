@@ -1,4 +1,6 @@
-/** 排表编排状态与拖拽逻辑（LineupEditor 专用）。 */
+/** 排表编排状态与拖拽逻辑（LineupEditor 专用）。
+ * 行数豁免（连续逻辑）：看板状态机——拖拽上下文、自动保存定时器与候选池回池逻辑共享内部可变状态。
+ * 登记见 .agent/rules/file-length-rule.md 豁免清单。 */
 import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 

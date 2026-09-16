@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：登录表单、锁定倒计时与错误映射围绕同一登录流程｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <div class="login-page">
     <!-- 水墨装饰 -->

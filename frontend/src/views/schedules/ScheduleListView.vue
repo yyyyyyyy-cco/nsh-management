@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：赛程列表页单职责（月/全部模式 + 新建编辑弹窗）｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <div class="schedule-list">
     <div class="toolbar">

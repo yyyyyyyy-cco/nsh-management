@@ -1,4 +1,5 @@
 """常驻库接口：成员 CRUD、搜索筛选、批量删除、Excel 导入/导出、出勤率统计。"""
+# 行数豁免（连续逻辑）：单资源薄路由（CRUD + 导入导出端点声明同质）｜登记见 .agent/rules/file-length-rule.md 豁免清单
 import asyncio
 from datetime import datetime, timezone
 from urllib.parse import quote

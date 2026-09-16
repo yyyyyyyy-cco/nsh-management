@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：分析页控制器（导入/切局/筛选/加载围绕同一数据流，子 Tab 已组件化）｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <div class="match-data-tab">
     <!-- 局切换：赛程有几局即可切换几局，已导入的局打勾标记 -->

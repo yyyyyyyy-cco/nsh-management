@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：综合评分表与得分分解弹窗围绕同一评分视图｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <div class="score-tab">
     <!-- 评分雷达图 + 散点图 -->

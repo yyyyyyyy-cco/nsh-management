@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：单一日历组件（格子计算 + 月份切换 + 事件派发）｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <div class="calendar">
     <div class="calendar-header">

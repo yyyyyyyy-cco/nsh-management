@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：同一「各场明细」数据的三种视图（基础/战斗/占比与排名）｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <el-card shadow="never" class="table-card">
     <template #header>

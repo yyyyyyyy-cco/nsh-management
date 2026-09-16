@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：赛程总览页响应式双视图（移动卡片/桌面表格）同源数据｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <div class="league-overview">
     <div class="toolbar">

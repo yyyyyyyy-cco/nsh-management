@@ -1,3 +1,4 @@
+<!-- 行数豁免（连续逻辑）：单场比赛数据总览面板（统计卡/占比条/阵营卡/图表区同源）｜登记见 .agent/rules/file-length-rule.md 豁免清单 -->
 <template>
   <div class="overview-tab">
     <!-- 统计卡 -->
