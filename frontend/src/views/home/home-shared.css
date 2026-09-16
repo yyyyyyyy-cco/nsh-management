@@ -1,0 +1,95 @@
+/* 首页卡片壳与空态共享样式（各子组件经 scoped src 引入，规则按各自作用域隔离） */
+
+/* ===== 通用卡片：顶部鎏金细条 ===== */
+.card {
+  position: relative;
+  background: var(--ink-bg-paper);
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gold-line);
+  opacity: 0.6;
+}
+
+/* 辅助卡片层级：快捷操作/职业分布 — 更浅底色，更轻阴影 */
+.card--aux {
+  background: var(--ink-bg-cream);
+  box-shadow: none;
+  border-color: var(--edge-faint);
+}
+
+.card--aux::before {
+  opacity: 0.35;
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.card__header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card__header-icon {
+  font-size: 15px;
+}
+
+.card__title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-900);
+  letter-spacing: 1px;
+}
+
+.card__body {
+  padding: 8px;
+}
+
+/* ===== 空状态 ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px 16px;
+  gap: 8px;
+}
+
+.empty-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-400);
+  opacity: 0.5;
+}
+
+.empty-state__text {
+  font-size: 13px;
+  color: var(--ink-400);
+}
+
+@media (max-width: 480px) {
+  .card__header {
+    padding: 12px;
+  }
+
+  .card__body {
+    padding: 6px;
+  }
+}

@@ -4,76 +4,19 @@
     <transition name="mask-fade">
       <div v-if="isMobile && drawerOpen" class="sidebar-mask" @click="drawerOpen = false" />
     </transition>
-    <aside class="sidebar" :class="{ collapsed, 'mobile-open': isMobile && drawerOpen }">
-      <div class="logo">
-        <span class="logo-text">{{ collapsed ? (auth.user?.guild_name || '轻衫都会').charAt(0) : auth.user?.guild_name || '轻衫都会' }}</span>
-      </div>
-      <div class="logo-sub" v-show="!collapsed">逆水寒 · 帮会联赛管理</div>
-      <el-menu :default-active="activeMenu" router class="menu" :collapse="collapsed" :collapse-transition="false" @select="onMenuSelect">
-        <el-menu-item v-if="auth.user?.role === 'admin'" index="/" :title="collapsed ? '首页' : undefined" @mouseenter="prefetchRoute('/')">
-          <el-icon><HomeFilled /></el-icon>
-          <span>首页</span>
-        </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'member'" index="/league-overview" :title="collapsed ? '录屏上传' : undefined" @mouseenter="prefetchRoute('/league-overview')">
-          <el-icon><VideoCamera /></el-icon>
-          <span>录屏上传</span>
-        </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'member'" index="/my-stats" :title="collapsed ? '个人战绩' : undefined" @mouseenter="prefetchRoute('/my-stats')">
-          <el-icon><TrendCharts /></el-icon>
-          <span>个人战绩</span>
-        </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'member'" index="/schedules" :title="collapsed ? '联赛日程' : undefined" @mouseenter="prefetchRoute('/schedules')">
-          <el-icon><Calendar /></el-icon>
-          <span>联赛日程</span>
-        </el-menu-item>
-        <el-menu-item v-if="auth.isAdmin && !auth.isDeveloper" index="/members" :title="collapsed ? '常驻库' : undefined" @mouseenter="prefetchRoute('/members')">
-          <el-icon><UserFilled /></el-icon>
-          <span>常驻库</span>
-        </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'admin'" index="/schedules" :title="collapsed ? '联赛日程' : undefined" @mouseenter="prefetchRoute('/schedules')">
-          <el-icon><Calendar /></el-icon>
-          <span>联赛日程</span>
-        </el-menu-item>
-        <el-menu-item v-if="auth.isAdmin" index="/config" :title="collapsed ? '系统配置' : undefined" @mouseenter="prefetchRoute('/config')">
-          <el-icon><Setting /></el-icon>
-          <span>系统配置</span>
-        </el-menu-item>
-        <el-menu-item v-if="auth.user?.role === 'developer'" index="/logs" :title="collapsed ? '系统日志' : undefined" @mouseenter="prefetchRoute('/logs')">
-          <el-icon><Document /></el-icon>
-          <span>系统日志</span>
-        </el-menu-item>
-      </el-menu>
-      <div class="sidebar-footer" v-show="!collapsed">NSH League System</div>
-    </aside>
+    <AppSidebar
+      :collapsed="collapsed"
+      :is-mobile="isMobile"
+      :drawer-open="drawerOpen"
+      @select-menu="onMenuSelect"
+    />
     <div class="main">
-      <!-- 路由懒加载分包期鎏金进度线（导航 >150ms 才出现） -->
-      <transition name="progress-fade">
-        <div v-if="routeLoading" class="route-progress"><span class="route-progress__bar" /></div>
-      </transition>
-      <header class="header">
-        <div class="header-left">
-          <button type="button" class="collapse-btn" :title="isMobile ? '打开导航菜单' : collapsed ? '展开侧边栏' : '收起侧边栏'" @click="onToggleSidebar">
-            <span v-if="guildIconChar" class="collapse-btn__char">{{ guildIconChar }}</span>
-            <el-icon v-else :size="15"><component :is="isMobile ? Menu : collapsed ? Expand : Fold" /></el-icon>
-          </button>
-          <div class="page-title">
-            <span class="page-title__bar" />
-            {{ pageTitle }}
-          </div>
-        </div>
-        <el-dropdown @command="onCommand">
-          <span class="user-info">
-            <span class="user-name">{{ auth.user?.username }}</span>
-            <span class="user-role">{{ roleText }}</span>
-            <el-icon class="user-arrow"><ArrowDown /></el-icon>
-          </span>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </header>
+      <AppHeader
+        :route-loading="routeLoading"
+        :collapsed="collapsed"
+        :is-mobile="isMobile"
+        @toggle-sidebar="onToggleSidebar"
+      />
       <main class="content">
         <router-view v-slot="{ Component, route }">
           <transition name="page-switch" mode="out-in">
@@ -86,16 +29,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ArrowDown, Calendar, Document, Expand, Fold, HomeFilled, Menu, Setting, TrendCharts, UserFilled, VideoCamera } from '@element-plus/icons-vue'
-import { ElMessageBox } from 'element-plus'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { useAuthStore } from '@/stores/auth'
-import { prefetchRoute } from '@/router'
+import { useRouteProgress } from '@/composables/useRouteProgress'
+import AppHeader from './AppHeader.vue'
+import AppSidebar from './AppSidebar.vue'
 
-const route = useRoute()
-const router = useRouter()
 const auth = useAuthStore()
 
 // 侧边栏折叠状态，localStorage 持久化，刷新后保持（仅 PC 端生效）
@@ -107,12 +47,8 @@ const isMobile = ref(false)
 const drawerOpen = ref(false)
 let mq: MediaQueryList | null = null
 
-// 路由懒加载分包：鎏金进度线
-const routeLoading = ref(false)
-let progressTimer: number | undefined
-let removeBeforeEach: (() => void) | null = null
-let removeAfterEach: (() => void) | null = null
-let removeOnError: (() => void) | null = null
+// 路由懒加载分包：鎏金进度线（见 composables/useRouteProgress）
+const { routeLoading } = useRouteProgress()
 
 function onMqChange(e: MediaQueryListEvent) {
   isMobile.value = e.matches
@@ -124,33 +60,10 @@ onMounted(() => {
   mq = window.matchMedia('(max-width: 768px)')
   isMobile.value = mq.matches
   mq.addEventListener('change', onMqChange)
-
-  // 路由进度：懒加载分包加载期 >150ms 显示鎏金线
-  removeBeforeEach = router.beforeEach(() => {
-    if (progressTimer !== undefined) window.clearTimeout(progressTimer)
-    progressTimer = window.setTimeout(() => { routeLoading.value = true }, 150)
-  })
-  removeAfterEach = router.afterEach(() => {
-    if (progressTimer !== undefined) {
-      window.clearTimeout(progressTimer)
-      progressTimer = undefined
-    }
-    routeLoading.value = false
-  })
-  removeOnError = router.onError(() => {
-    if (progressTimer !== undefined) {
-      window.clearTimeout(progressTimer)
-      progressTimer = undefined
-    }
-    routeLoading.value = false
-  })
 })
 
 onBeforeUnmount(() => {
   mq?.removeEventListener('change', onMqChange)
-  removeBeforeEach?.()
-  removeAfterEach?.()
-  removeOnError?.()
 })
 
 /** 移动端点按钮打开抽屉，PC 端切换折叠。 */
@@ -166,147 +79,12 @@ function onToggleSidebar() {
 function onMenuSelect() {
   if (isMobile.value) drawerOpen.value = false
 }
-
-const activeMenu = computed(() => route.path)
-const pageTitle = computed(() => String(route.meta.title || ''))
-/** 帮会图标首字（管理员在系统配置设置，PC 与窄屏一致显示）。 */
-const guildIconChar = computed(() => (auth.user?.guild_icon || '').charAt(0))
-const roleText = computed(() => {
-  const role = auth.user?.role
-  return role === 'developer' ? '开发者' : role === 'admin' ? '管理员' : '帮众'
-})
-
-async function onCommand(command: string | number | object) {
-  if (command === 'logout') {
-    await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' })
-    auth.clear()
-    router.push({ name: 'login' })
-  }
-}
 </script>
 
 <style scoped>
 .layout {
   display: flex;
   height: 100%;
-}
-
-/* ===== 侧边栏：宣纸米白 ===== */
-.sidebar {
-  width: 208px;
-  flex-shrink: 0;
-  transition: width var(--dur-normal) var(--ease-out);
-  background:
-    radial-gradient(320px 240px at 50% 0%, rgba(217, 182, 74, 0.12), transparent 70%),
-    linear-gradient(180deg, #fdfaf3 0%, #f8f2e6 100%);
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-/* 侧边栏右侧鎏金细线 */
-.sidebar::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: linear-gradient(180deg, transparent, rgba(201, 161, 59, 0.45) 30%, rgba(201, 161, 59, 0.45) 70%, transparent);
-}
-
-/* ===== 折叠态：64px 仅图标 ===== */
-.sidebar.collapsed { width: 64px; }
-.sidebar.collapsed .logo { padding: 22px 0 18px; margin: 0 12px 10px; border-bottom: 1px solid var(--edge-soft); }
-.sidebar.collapsed .logo-text { letter-spacing: 0; font-size: 20px; }
-.sidebar.collapsed .menu { padding: 6px; }
-/* 折叠时强制隐藏菜单文字、图标居中，避免 Element Plus 默认样式失效导致的内部偏移 */
-.sidebar.collapsed .menu :deep(.el-menu-item) { justify-content: center; padding: 0; }
-.sidebar.collapsed .menu :deep(.el-menu-item span) { display: none; }
-
-.logo {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 22px 16px 6px;
-}
-
-.logo-text {
-  font-family: var(--font-serif);
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: 3px;
-  background: linear-gradient(135deg, #d9b64a 0%, #b18c2c 60%, #9c7a20 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.logo-sub {
-  text-align: center;
-  font-size: 10px;
-  letter-spacing: 4px;
-  color: var(--ink-300);
-  padding-bottom: 18px;
-  border-bottom: 1px solid var(--edge-soft);
-  margin: 0 18px 10px;
-}
-
-.menu {
-  --el-menu-bg-color: transparent;
-  --el-menu-text-color: var(--ink-500);
-  --el-menu-hover-bg-color: var(--gold-50);
-  --el-menu-hover-text-color: var(--gold-700);
-  --el-menu-active-color: var(--gold-700);
-  --el-menu-item-height: 44px;
-  border-right: none;
-  padding: 6px 10px;
-  flex: 1;
-}
-
-.menu :deep(.el-menu-item) {
-  border-radius: var(--radius-md);
-  margin-bottom: 4px;
-  font-size: 13.5px;
-  letter-spacing: 1px;
-  position: relative;
-  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast), box-shadow var(--dur-fast);
-}
-
-.menu :deep(.el-menu-item .el-icon) {
-  font-size: 16px;
-}
-
-.menu :deep(.el-menu-item.is-active) {
-  background: linear-gradient(135deg, var(--gold-100) 0%, var(--gold-50) 100%);
-  color: var(--gold-700);
-  font-weight: 600;
-  box-shadow: inset 0 0 0 1px var(--gold-200);
-}
-
-/* 激活项左侧金条 */
-.menu :deep(.el-menu-item.is-active::before) {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 20%;
-  bottom: 20%;
-  width: 3px;
-  border-radius: 2px;
-  background: var(--gold-gradient);
-}
-
-.menu :deep(.el-menu-item.is-active .el-icon) {
-  color: var(--gold-600);
-}
-
-.sidebar-footer {
-  text-align: center;
-  font-size: 9px;
-  letter-spacing: 2px;
-  color: var(--ink-300);
-  padding: 14px 0;
 }
 
 /* ===== 移动端抽屉遮罩 ===== */
@@ -327,87 +105,6 @@ async function onCommand(command: string | number | object) {
   opacity: 0;
 }
 
-/* ===== 移动端（≤768px）：抽屉式侧边栏 ===== */
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 1001;
-    transform: translateX(-100%);
-    transition: transform var(--dur-normal) var(--ease-out);
-    box-shadow: none;
-  }
-
-  .sidebar.mobile-open {
-    transform: translateX(0);
-    box-shadow: var(--shadow-lg);
-  }
-
-  .sidebar.collapsed {
-    width: 208px; /* 移动端忽略折叠态，抽屉始终全宽展示 */
-  }
-
-  .sidebar.collapsed .logo {
-    padding: 22px 16px 6px;
-    margin: 0;
-    border-bottom: none;
-  }
-
-  .sidebar.collapsed .logo-text {
-    letter-spacing: 3px;
-    font-size: 19px;
-  }
-
-  .sidebar .logo-sub {
-    display: block; /* 移动端抽屉忽略折叠态，副标题始终显示 */
-  }
-
-  .sidebar.collapsed .menu {
-    padding: 6px 10px;
-  }
-
-  .sidebar.collapsed .menu :deep(.el-menu-item) {
-    justify-content: flex-start;
-    padding: 0 20px;
-  }
-
-  .sidebar.collapsed .menu :deep(.el-menu-item span) {
-    display: inline;
-  }
-
-  .header {
-    height: 56px;
-    padding: 0 12px;
-  }
-
-  .header-left {
-    gap: 10px;
-  }
-
-  .page-title {
-    font-size: 15px;
-  }
-
-  .user-role,
-  .user-arrow {
-    display: none;
-  }
-
-  .user-name {
-    font-size: 13px;
-  }
-
-  .content {
-    padding: 14px 12px;
-  }
-
-  .route-progress {
-    top: 56px;
-  }
-}
-
 /* ===== 主区域 ===== */
 .main {
   flex: 1;
@@ -417,129 +114,6 @@ async function onCommand(command: string | number | object) {
   position: relative;
 }
 
-/* ===== 路由懒加载：鎏金进度线（>150ms 才出现，防闪烁） ===== */
-.route-progress {
-  position: absolute;
-  top: 62px;
-  left: 0;
-  right: 0;
-  height: 2px;
-  overflow: hidden;
-  z-index: 3000;
-  pointer-events: none;
-}
-
-.route-progress__bar {
-  display: block;
-  width: 30%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(201, 161, 59, 0.4) 30%, var(--gold-500) 50%, rgba(201, 161, 59, 0.4) 70%, transparent);
-  transform: translateX(-100%);
-  animation: route-progress-sweep 1.1s ease-in-out infinite;
-}
-
-@keyframes route-progress-sweep {
-  to {
-    transform: translateX(433%);
-  }
-}
-
-.progress-fade-enter-active {
-  transition: opacity 150ms var(--ease-out);
-}
-
-.progress-fade-leave-active {
-  transition: opacity 200ms var(--ease-out);
-}
-
-.progress-fade-enter-from,
-.progress-fade-leave-to {
-  opacity: 0;
-}
-
-.header {
-  height: 62px;
-  flex-shrink: 0;
-  background: var(--ink-bg-cream);
-  border-bottom: 1px solid var(--edge-soft);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 26px;
-}
-
-.header-left { display: flex; align-items: center; gap: 14px; }
-
-.collapse-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 34px; height: 34px; border-radius: var(--radius-md);
-  border: 1px solid var(--gold-200); background: var(--ink-bg-paper);
-  color: var(--gold-700); cursor: pointer;
-  transition: all var(--dur-fast);
-}
-
-.collapse-btn:hover { background: var(--gold-100); border-color: var(--gold-400); }
-
-.collapse-btn__char {
-  font-family: var(--font-serif);
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-serif);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--ink-900);
-  letter-spacing: 1px;
-  overflow-wrap: anywhere;
-}
-
-.page-title__bar {
-  width: 4px;
-  height: 18px;
-  border-radius: 2px;
-  background: var(--gold-gradient);
-}
-
-.user-info {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 10px;
-  border-radius: var(--radius-xl);
-  transition: background var(--dur-fast);
-}
-
-.user-info:hover {
-  background: var(--gold-50);
-}
-
-.user-name {
-  font-weight: 600;
-  color: var(--ink-900);
-  font-size: 13.5px;
-}
-
-.user-role {
-  font-size: 11px;
-  color: var(--gold-700);
-  background: var(--gold-100);
-  border-radius: var(--radius-xl);
-  padding: 1px 8px;
-  font-weight: 500;
-}
-
-.user-arrow {
-  color: var(--ink-400);
-  font-size: 12px;
-}
-
 .content {
   flex: 1;
   padding: 24px 26px;
@@ -547,5 +121,12 @@ async function onCommand(command: string | number | object) {
   max-width: 1440px;
   width: 100%;
   margin: 0 auto;
+}
+
+/* ===== 移动端（≤768px） ===== */
+@media (max-width: 768px) {
+  .content {
+    padding: 14px 12px;
+  }
 }
 </style>
