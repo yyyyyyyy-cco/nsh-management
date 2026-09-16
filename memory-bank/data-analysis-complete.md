@@ -1,13 +1,13 @@
 # 数据分析模块完整方案
 
-> 本文档整合了功能规划、差距分析、开发方案、ECharts图表设计和实施状态记录
+> 本文档整合数据规格（CSV 字段 / 小队结构）、指标公式、开发方案、ECharts 图表规划与实施记录
 
 ## 参考文档
 
 | 文档 | 路径 | 说明 |
 |------|------|------|
-| 原始CSV数据 | E:\code\@Cjy\nsh-management\.claude\docs\20260630_21037_横戈_仗剑.csv | 比赛数据样本 |
-| Excel分析表 | E:\code\@Cjy\nsh-management\.claude\docs\联赛数据表Plus3.0.xlsm | 原始分析逻辑参考 |
+| 原始CSV数据 | `.agent/docs/20260630_21037_横戈_仗剑.csv` | 比赛数据样本 |
+| Excel分析表 | `.agent/docs/联赛数据表Plus3.0.xlsm` | 原始分析逻辑参考 |
 
 ---
 
@@ -22,8 +22,8 @@
 - ECharts 可视化图表
 
 ### 1.2 技术栈
-- **后端**: Python 3.13 + FastAPI + SQLAlchemy + SQLite
-- **前端**: Vue 3 + TypeScript + Element Plus + ECharts 5
+
+> **权威源**：`tech-stack.md`（完整版本与依赖列表）。本模块图表库为 ECharts 6.x。
 
 ---
 
@@ -31,11 +31,11 @@
 
 ### 2.1 CSV 文件格式
 
-`
+```
 "阵营名","人数"
 "玩家名字","职业","击败/清泉","助攻","资源","对玩家伤害","人伤卸甲","对建筑伤害","破塔卸甲","治疗值","承受伤害","重伤","复活/清泉","焚骨"
 "玩家1","玄机"," 16/5","82","0","3189843","0","3289538","0","0","4196936","12","0","0"
-`
+```
 
 ### 2.2 字段映射关系
 
@@ -60,7 +60,8 @@
 
 - springs = 破泉次数（来自击败/清泉的右边）
 - kills = 击败 + 清泉（系统现有逻辑，不拆分）
-- evives = 化羽/清泉（来自复活/清泉字段）
+- 
+revives = 化羽/清泉（来自复活/清泉字段）
 - **忽略「资源」字段**，整个系统不显示
 - **破泉率不需要添加**
 - **比赛时长固定 23 分钟**
@@ -71,10 +72,10 @@
 
 ### 3.1 系统排表结构（10队 × 6人）
 
-`python
+```python
 LINEUP_LAYOUT = [("进攻1", 3), ("进攻2", 3), ("防守1", 2), ("防守2", 2)]
 SLOTS_PER_TEAM = 6
-`
+```
 
 ### 3.2 小队对应关系（系统 → Excel）
 
@@ -95,7 +96,7 @@ SLOTS_PER_TEAM = 6
 
 ### 3.3 JSON 数据结构
 
-`json
+```json
 {
   "category": "进攻1",
   "team_index": 0,
@@ -104,44 +105,21 @@ SLOTS_PER_TEAM = 6
     {"slot_index": 0, "member_id": 123, "member_name": "玩家名", "remark": ""}
   ]
 }
-`
+```
 
 ---
 
-## 四、当前系统现状
+## 四、当前系统现状（历史快照）
 
-### 4.1 已有功能
-
-| 功能 | 状态 | 说明 |
-|------|------|------|
-| CSV导入 | ✅ | 14个基础字段 |
-| 阵营统计 | ✅ | 人数、击杀、伤害 |
-| 数据列表 | ✅ | 基础数据表格 |
-| 排行榜 | ✅ | 6个榜单 |
-| 职业分析 | ✅ | 基础统计（人数、平均击杀、伤害、治疗） |
-| 综合评分 | ✅ | 评分系统 |
-| HTML报告导出 | ✅ | 待删除 |
-
-### 4.2 已有组件
-
-| 组件 | 功能 |
-|------|------|
-| MatchDataTab.vue | 主容器，标签页切换 |
-| OverviewTab.vue | 数据总览（统计卡、击杀占比条、职业分布） |
-| RankingTab.vue | 排行榜（折线图+表格） |
-| ProfessionTab.vue | 职业分析 |
-| ScoreTab.vue | 综合评分 |
-| PlayerAnalysis.vue | 玩家分析 |
-| CampCompare.vue | 阵营对比（已有但需增强） |
-| EChart.vue | ECharts封装组件 |
+> 原「已有功能 / 已有组件」清单为实施前快照，所有功能已于 2026-08-26 实现并验证，详见「十、实施记录」。
 
 ---
 
-## 五、功能差距分析
+## 五、指标公式与功能定义（已全部实现）
 
-### 5.1 待实现功能（共30项）
+### 5.1 指标公式与功能定义
 
-#### 衍生指标（16项）- 🔴 待实现
+#### 衍生指标（16项）
 
 **效率指标（3项）**
 
@@ -179,43 +157,17 @@ SLOTS_PER_TEAM = 6
 | 清泉/羽化使用率 | revives/(23×60) | 百分比 |
 | 焚骨使用率 | fen_gu/(23×60) | 百分比 |
 
-#### 阵营对比分析 - 🔴 待实现
+#### 阵营对比分析
 
-| 功能 | Excel | 系统 |
-|------|-------|------|
-| 敌方vs我方宏观对比 | ✓ | ❌ |
-| 差值计算 | ✓ | ❌ |
-| 波动值分析 | ✓ | ❌ |
+- 敌方 vs 我方宏观对比、差值、波动值（已实现：`camp-compare` 接口 + CampCompareTab 对比图）
 
-#### 职业深度分析 - 🟡 需扩展
+#### 职业深度分析
 
-| 功能 | Excel | 系统 |
-|------|-------|------|
-| 11职业×17项指标 | ✓ | 部分 |
-| 职业对比（敌vs我） | ✓ | ❌ |
-| 职业差值/波动值 | ✓ | ❌ |
-| 职业承伤率 | ✓ | ❌ |
-| 技能使用率 | ✓ | ❌ |
+- 11 职业 × 17 项指标（人数 + 16 项均值）、职业对比、差值/波动值、承伤率、技能使用率（已实现：`get_profession_stats` + ProfessionDetailTab）
 
-#### 小队维度分析 - 🔴 待实现
+#### 小队维度分析
 
-| 功能 | Excel | 系统 |
-|------|-------|------|
-| 进攻队分析 | ✓ | ❌ |
-| 防守队分析 | ✓ | ❌ |
-| 保镖队分析 | ✓ | ❌ |
-| 小队×职业交叉 | ✓ | ❌ |
-| 小队塔伤贡献 | ✓ | ❌ |
-| 小队差值/波动值 | ✓ | ❌ |
-
-### 5.2 已有功能
-
-| 功能 | 状态 |
-|------|------|
-| 15个基础字段 | ✅ |
-| 排行榜（6个） | ✅ |
-| 职业统计（基础） | ✅ |
-| 综合评分 | ✅ |
+- 进攻/防守小队分析、小队×职业交叉、小队塔伤贡献、差值/波动值（已实现：`squad-analysis` 接口 + SquadAnalysisTab，仅分析我方阵营）
 
 ---
 
@@ -240,7 +192,7 @@ SLOTS_PER_TEAM = 6
 #### 响应格式
 
 **indicators 响应：**
-`json
+```json
 {
   "items": [
     {
@@ -259,10 +211,10 @@ SLOTS_PER_TEAM = 6
   ],
   "camps": [...]
 }
-`
+```
 
 **camp-compare 响应：**
-`json
+```json
 {
   "camps": {
     "横戈": {"player_count": 59, "kills": 402, ...},
@@ -273,10 +225,10 @@ SLOTS_PER_TEAM = 6
     ...
   }
 }
-`
+```
 
 **squad-analysis 响应：**
-`json
+```json
 {
   "squads": [
     {
@@ -289,13 +241,13 @@ SLOTS_PER_TEAM = 6
     }
   ]
 }
-`
+```
 
 ### 6.2 后端实现要点
 
 #### 新增函数
 
-`python
+```python
 def calculate_indicators(record: dict, team_totals: dict) -> dict:
     """计算单条记录的衍生指标（16项）"""
     ...
@@ -311,27 +263,28 @@ async def get_camp_comparison(session, guild_id, schedule_id, round_no) -> dict:
 async def get_squad_analysis(session, guild_id, schedule_id, round_no) -> dict:
     """获取小队维度分析数据"""
     ...
-`
+```
 
 #### 扩展函数
 
-`python
+```python
 async def get_profession_stats(...) -> list[dict]:
     """扩展为17项指标"""
     ...
-`
+```
 
 #### 删除函数
 
-`python
+```python
 async def generate_html_report(...) -> str:
     """删除 HTML 报告导出功能"""
-`
+```
 
 #### 注意事项
 
 - MatchData 模型没有 guild_id 字段，通过 schedule_id 关联
-- 需要导入 rom app.models.lineup import Lineup
+- 需要导入 
+from app.models.lineup import Lineup
 - 占比指标分母为整个阵营，不是单个小队
 
 ### 6.3 前端组件设计
@@ -340,10 +293,14 @@ async def generate_html_report(...) -> str:
 
 | 组件 | 文件 | 功能 |
 |------|------|------|
-| IndicatorsTab.vue | rontend/src/components/match-data/ | 带指标的数据列表 |
-| CampCompareTab.vue | rontend/src/components/match-data/ | 阵营对比（含图表） |
-| SquadAnalysisTab.vue | rontend/src/components/match-data/ | 小队分析（含图表） |
-| ProfessionDetailTab.vue | rontend/src/components/match-data/ | 职业深度分析（含图表） |
+| IndicatorsTab.vue | 
+frontend/src/components/match-data/ | 带指标的数据列表 |
+| CampCompareTab.vue | 
+frontend/src/components/match-data/ | 阵营对比（含图表） |
+| SquadAnalysisTab.vue | 
+frontend/src/components/match-data/ | 小队分析（含图表） |
+| ProfessionDetailTab.vue | 
+frontend/src/components/match-data/ | 职业深度分析（含图表） |
 
 #### 修改组件
 
@@ -356,9 +313,9 @@ async def generate_html_report(...) -> str:
 
 #### 标签页结构
 
-`
+```
 数据总览 | 数据列表 | 排行榜 | 阵营对比 | 小队分析 | 职业分析 | 综合评分
-`
+```
 
 ---
 
@@ -367,7 +324,7 @@ async def generate_html_report(...) -> str:
 ### 7.1 大盘维度可视化
 
 #### 图表1：阵营击杀对比柱状图
-`	ypescript
+```ypescript
 {
   xAxis: { type: 'category', data: ['击杀', '助攻', '死亡', '破泉'] },
   yAxis: { type: 'value' },
@@ -376,10 +333,10 @@ async def generate_html_report(...) -> str:
     { name: '敌方', type: 'bar', data: [380, 5600, 350, 165] }
   ]
 }
-`
+```
 
 #### 图表2：伤害分布饼图
-`	ypescript
+```ypescript
 {
   series: [{
     type: 'pie',
@@ -390,10 +347,10 @@ async def generate_html_report(...) -> str:
     ]
   }]
 }
-`
+```
 
 #### 图表3：击杀占比条形图
-`	ypescript
+```ypescript
 {
   series: [{
     type: 'bar',
@@ -403,12 +360,12 @@ async def generate_html_report(...) -> str:
     ]
   }]
 }
-`
+```
 
 ### 7.2 职业维度可视化
 
 #### 图表4：职业人数分布饼图
-`	ypescript
+```ypescript
 {
   series: [{
     type: 'pie',
@@ -427,10 +384,10 @@ async def generate_html_report(...) -> str:
     ]
   }]
 }
-`
+```
 
 #### 图表5：职业平均击杀柱状图
-`	ypescript
+```ypescript
 {
   xAxis: { type: 'category', data: ['铁衣', '血河', '沧澜', ...] },
   yAxis: { type: 'value' },
@@ -439,10 +396,10 @@ async def generate_html_report(...) -> str:
     { name: '敌方', type: 'bar', data: [2.8, 7.9, 5.8, ...] }
   ]
 }
-`
+```
 
 #### 图表6：职业平均伤害柱状图
-`	ypescript
+```ypescript
 {
   xAxis: { type: 'category', data: ['铁衣', '血河', '沧澜', ...] },
   yAxis: { type: 'value' },
@@ -451,10 +408,10 @@ async def generate_html_report(...) -> str:
     { name: '敌方', type: 'bar', data: [1100000, 4200000, 3000000, ...] }
   ]
 }
-`
+```
 
 #### 图表7：职业平均治疗柱状图（治疗职业）
-`	ypescript
+```ypescript
 {
   xAxis: { type: 'category', data: ['素问', '鸿音', '潮光'] },
   yAxis: { type: 'value' },
@@ -463,10 +420,10 @@ async def generate_html_report(...) -> str:
     { name: '敌方', type: 'bar', data: [8200000, 5800000, 900000] }
   ]
 }
-`
+```
 
 #### 图表8：职业平均承伤柱状图（承伤职业）
-`	ypescript
+```ypescript
 {
   xAxis: { type: 'category', data: ['铁衣', '血河', '沧澜'] },
   yAxis: { type: 'value' },
@@ -475,39 +432,39 @@ async def generate_html_report(...) -> str:
     { name: '敌方', type: 'bar', data: [11500000, 5200000, 6800000] }
   ]
 }
-`
+```
 
 ### 7.3 小队维度可视化
 
 #### 图表9：小队击杀对比柱状图
-`	ypescript
+```ypescript
 {
   xAxis: { type: 'category', data: ['进攻1-1', '进攻1-2', '进攻1-3', '进攻2-1', ...] },
   yAxis: { type: 'value' },
   series: [{ type: 'bar', data: [85, 72, 68, 90, ...] }]
 }
-`
+```
 
 #### 图表10：小队伤害对比柱状图
-`	ypescript
+```ypescript
 {
   xAxis: { type: 'category', data: ['进攻1-1', '进攻1-2', '进攻1-3', '进攻2-1', ...] },
   yAxis: { type: 'value' },
   series: [{ type: 'bar', data: [25000000, 22000000, 20000000, 28000000, ...] }]
 }
-`
+```
 
 #### 图表11：小队塔伤贡献柱状图
-`	ypescript
+```ypescript
 {
   xAxis: { type: 'category', data: ['进攻1-1', '进攻1-2', '进攻1-3', '进攻2-1', ...] },
   yAxis: { type: 'value' },
   series: [{ type: 'bar', data: [8500000, 7200000, 6800000, 9000000, ...] }]
 }
-`
+```
 
 #### 图表12：小队职业分布饼图（每个小队）
-`	ypescript
+```ypescript
 {
   series: [{
     type: 'pie',
@@ -520,12 +477,12 @@ async def generate_html_report(...) -> str:
     ]
   }]
 }
-`
+```
 
 ### 7.4 玩家维度可视化
 
 #### 图表13：玩家KDA分布散点图
-`	ypescript
+```ypescript
 {
   xAxis: { name: '击杀', type: 'value' },
   yAxis: { name: '死亡', type: 'value' },
@@ -538,10 +495,10 @@ async def generate_html_report(...) -> str:
     ]
   }]
 }
-`
+```
 
 #### 图表14：玩家伤害-治疗气泡图
-`	ypescript
+```ypescript
 {
   xAxis: { name: '伤害', type: 'value' },
   yAxis: { name: '治疗', type: 'value' },
@@ -554,10 +511,10 @@ async def generate_html_report(...) -> str:
     ]
   }]
 }
-`
+```
 
 #### 图表15：玩家雷达图（综合能力）
-`	ypescript
+```ypescript
 {
   radar: {
     indicator: [
@@ -577,7 +534,7 @@ async def generate_html_report(...) -> str:
     }]
   }]
 }
-`
+```
 
 ### 7.5 图表集成方案
 
@@ -590,58 +547,9 @@ async def generate_html_report(...) -> str:
 
 ---
 
-## 八、实施计划
+## 八、实施计划（已执行）
 
-### 第一阶段：后端基础（2天）
-
-| 任务 | 说明 |
-|------|------|
-| 添加 calculate_indicators() | 计算16项衍生指标 |
-| 添加 get_team_totals() | 计算阵营汇总 |
-| 添加 get_camp_comparison() | 阵营对比分析 |
-| 添加 get_squad_analysis() | 小队维度分析 |
-| 扩展 get_profession_stats() | 扩展为17项指标 |
-| 新增API接口 | 3个新接口 |
-| 删除报告功能 | 删除 generate_html_report() 和报告接口 |
-
-### 第二阶段：前端阵营对比（1天）
-
-| 任务 | 说明 |
-|------|------|
-| 创建 CampCompareTab.vue | 阵营对比组件 |
-| 添加ECharts图表 | 双方指标对比柱状图 |
-| 集成到 MatchDataTab.vue | 添加标签页 |
-
-### 第三阶段：前端小队分析（1天）
-
-| 任务 | 说明 |
-|------|------|
-| 创建 SquadAnalysisTab.vue | 小队分析组件 |
-| 添加ECharts图表 | 小队对比柱状图、职业分布饼图 |
-| 集成到 MatchDataTab.vue | 添加标签页 |
-
-### 第四阶段：前端职业分析（1天）
-
-| 任务 | 说明 |
-|------|------|
-| 创建 ProfessionDetailTab.vue | 职业深度分析组件 |
-| 添加ECharts图表 | 职业对比柱状图、分布饼图 |
-| 集成到 MatchDataTab.vue | 添加标签页 |
-
-### 第五阶段：数据列表增强（0.5天）
-
-| 任务 | 说明 |
-|------|------|
-| 添加衍生指标列 | KDA、秒伤、占比等 |
-| 支持列排序 | 按指标排序 |
-
-### 第六阶段：测试与优化（1天）
-
-| 任务 | 说明 |
-|------|------|
-| 单元测试 | 指标计算、API接口 |
-| 集成测试 | 完整流程测试 |
-| 性能优化 | 大数据量优化 |
+> 原六阶段实施计划已全部执行完毕（2026-08-26），结果见「十、实施记录」与 `progress.md` 更新记录。
 
 ---
 
@@ -667,57 +575,9 @@ async def generate_html_report(...) -> str:
 
 ---
 
-## 十、实施状态记录
+## 十、实施记录（2026-08-26 已完成）
 
-> 以下记录了之前尝试实施的进度，已回退，供参考
-
-### 9.1 第一阶段：后端基础 ✅ 已尝试
-
-- [x] 数据库迁移 - MatchData 模型已有 springs 和 revives 字段
-- [x] 衍生指标计算函数 - calculate_indicators() 已添加
-- [x] 阵营对比计算函数 - get_camp_comparison() 已添加
-- [x] 小队分析函数 - get_squad_analysis() 已添加
-- [x] API 接口 - 新增 3 个接口
-- [x] 删除 HTML 报告导出功能
-
-### 9.2 第二阶段：前端阵营对比 ✅ 已尝试
-
-- [x] 阵营对比组件 - CampCompare.vue 已创建
-- [x] 集成到 MatchDataTab - 已添加标签页
-
-### 9.3 第三阶段：职业深度分析 ⏳ 未完成
-
-- [ ] 职业统计扩展 - 需要增强 get_profession_stats() 返回17项指标
-- [ ] 前端职业分析增强 - 需要增强 ProfessionTab.vue
-
-### 9.4 第四阶段：小队维度分析 ✅ 已尝试
-
-- [x] 数据关联 - 通过 player_name + schedule_id 关联排表和比赛数据
-- [x] 后端小队分析 API - get_squad_analysis() 已添加
-- [x] 前端小队分析组件 - SquadAnalysis.vue 已创建
-- [x] 集成到 MatchDataTab - 已添加标签页
-
-### 9.5 第五阶段：增强体验 ⏳ 部分完成
-
-- [x] 删除导出功能 - generate_html_report() 和相关接口已删除
-- [ ] 数据列表增强 - 需要增加指标列、支持排序
-
-### 9.6 遇到的问题
-
-1. **模板字符串转义** - PowerShell Here-String 转义模板字符串反引号
-2. **Promise.all 错误处理** - 任一请求失败导致全部失败
-3. **MatchData 无 guild_id** - 需要通过 schedule_id 关联
-4. **前端模块不可见** - load 函数错误处理问题
-
-### 9.7 已回退
-
-所有修改已回退，需要重新实施。
-
----
-
-## 十点五、本次重实施记录（2026-08-26）
-
-> 按本方案完整重实施，已通过自检与端到端验证；之前"已回退"的记录作废。
+> 按本方案完整重实施并完成；验证结果与口径确认如下。
 
 ### 已实现
 
@@ -728,7 +588,7 @@ async def generate_html_report(...) -> str:
 - [x] 删除 HTML 报告导出：`generate_html_report()`、`/report` 接口、前端「导出报告」按钮全部移除
 - [x] 前端：`IndicatorsTab.vue`（数据列表 + 指标列 + 排序）、`CampCompareTab.vue`（对比柱状图 + 差值/波动值进度条）、`SquadAnalysisTab.vue`（击杀/伤害/塔伤柱状图 + 职业分布饼图）、`ProfessionDetailTab.vue`（职业深度 17 项 + 对比图表）
 - [x] 玩家维度图表：`PlayerAnalysis.vue` 补 KDA 散点、伤害-治疗气泡、综合雷达图；`OverviewTab.vue` 补伤害分布饼图
-- [x] 自检脚本：`backend/scripts/selfcheck_indicators.py`（纯函数断言）、`backend/scripts/verify_e2e.py`（真实库副本端到端）
+- [x] 自检脚本：`backend/scripts/selfcheck_indicators.py`（纯函数断言）；端到端验证当时使用临时脚本（`verify_e2e.py`），已不在仓库
 
 ### 验证状态
 
@@ -748,19 +608,5 @@ async def generate_html_report(...) -> str:
 
 ---
 
-## 十一、验收标准
-
-
-- [ ] 16项衍生指标计算正确
-- [ ] 阵营对比数据与Excel一致
-- [ ] 职业分析覆盖11个职业
-- [ ] 小队维度分析可关联排表数据
-- [ ] 15个ECharts图表正常显示
-- [ ] 前端界面响应流畅
-- [ ] 标签页切换正常
-- [ ] 数据导入后正常显示
-
----
-
-*文档版本：v1.0*
-*最后更新：2026-08-25*
+*文档版本：v2.0*
+*最后更新：2026-09-15（瘦身归档：移除过时状态/计划章节，修复代码块格式与残缺字符）*

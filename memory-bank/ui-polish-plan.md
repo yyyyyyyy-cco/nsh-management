@@ -1,9 +1,11 @@
 # UI 优化方案文档
 
-> 版本：v1.0  
+> 版本：v1.2  
 > 创建日期：2026-08-26  
-> 前置文档：`ui-style-guide.md`（权威视觉规范）  
-> 实现位置：`frontend/src/styles/` + 各组件 `<style>` 区
+> 更新时间：2026-09-15  
+> 前置文档：`ui-style-guide.md`（权威视觉规范，动画族/卡片层级/交互反馈最终规范见其 §10）  
+> 实现位置：`frontend/src/styles/` + 各组件 `<style>` 区  
+> **状态**：P0–P3 共 11 项 + §2.5 代码质量重构 2 项已完成（2026-09-15 代码核对）；3 项可选未做（§2.1.3 / §2.3.3 / §2.4.4）
 
 ---
 
@@ -24,7 +26,7 @@
 
 按优先级分为 P0（视觉层次）、P1（交互反馈）、P2（视觉细节）、P3（微动效）。
 
-### 2.1 P0 · 视觉层次 & 信息密度
+### 2.1 P0 · 视觉层次 & 信息密度（已完成）
 
 #### 2.1.1 卡片层级区分
 - **现状**：所有 `.card` 样式一致（宣纸白 + `edge-soft` + `shadow-sm`），视觉层次扁平
@@ -43,7 +45,7 @@
 - **涉及文件**：新增 `composables/useCountUp.ts`，修改 `HomeView.vue`、`OverviewTab.vue` 统计卡
 - **reduced-motion 适配**：检测 `prefers-reduced-motion: reduce` 时直接显示目标值
 
-#### 2.1.3 表格密度切换（可选）
+#### 2.1.3 表格密度切换（未做，可选）
 - **现状**：统一 13.5px 字号 + 10px padding
 - **方案**：提供「紧凑 / 标准」密度按钮，紧凑模式 12.5px + 6px padding
 - **涉及文件**：`element-plus.css` 新增密度类、各表格页面增加切换按钮
@@ -51,7 +53,7 @@
 
 ---
 
-### 2.2 P1 · 交互反馈 & 精致度
+### 2.2 P1 · 交互反馈 & 精致度（已完成）
 
 #### 2.2.1 主按钮微光扫过增强
 - **现状**：`element-plus.css` 中 `::after` 白色扫光 40% 宽，效果偏弱
@@ -86,7 +88,7 @@
 
 ---
 
-### 2.3 P2 · 视觉细节打磨
+### 2.3 P2 · 视觉细节打磨（已完成，2.3.3 未做）
 
 #### 2.3.1 弹窗标题金线加宽
 - **现状**：`.el-dialog__header::after` 固定 56px 宽
@@ -101,7 +103,7 @@
   - track: `#f5f0e6`（宣纸底色调）
 - **涉及文件**：`element-plus.css`（`::-webkit-scrollbar` 系列）
 
-#### 2.3.3 空状态插画升级（可选）
+#### 2.3.3 空状态插画升级（未做，可选）
 - **现状**：用 emoji（📅）+ 文字 + 按钮
 - **方案**：SVG 手绘线条风格插画替代 emoji，保持宣纸金色调
 - **涉及文件**：各组件空状态区域
@@ -109,7 +111,7 @@
 
 ---
 
-### 2.4 P3 · 微动效 & 情感化
+### 2.4 P3 · 微动效 & 情感化（已完成，2.4.4 未做）
 
 #### 2.4.1 排表槽位放入反馈
 - **现状**：拖拽到槽位只有 `ghost-class`
@@ -128,27 +130,35 @@
 - **涉及文件**：`App.vue`
 - **注意**：`prefers-reduced-motion` 时禁用
 
-#### 2.4.4 职业标签 hover 效果
+#### 2.4.4 职业标签 hover 效果（未做，可选）
 - **现状**：职业标签是纯色胶囊，无交互反馈
 - **方案**：hover 时加微光效果（与奖牌类似的 shimmer，但更克制）
 - **涉及文件**：各组件中 `.el-tag` 职业色标签
 
+### 2.5 P-R · 代码质量重构（已完成）
+
+#### 2.5.1 职业色映射统一
+- **方案**：抽取到 `utils/profession.ts`，全站一处维护
+- **结果**：已实现（`utils/profession.ts` 存在并被各组件统一引用）
+
+#### 2.5.2 结果类型函数统一
+- **方案**：抽取到 `utils/constants.ts`，复用已有的 `SCHEDULE_RESULTS` 常量
+- **结果**：已实现（`resultType` / `resultLabel` 统一从 `@/utils/constants` 引入）
+
 ---
 
-## 3. CSS 新增令牌汇总
+## 3. CSS 令牌与动画落点汇总
 
-以下新增变量写入 `theme.css`，供全站复用：
+实际落点（2026-09-15 代码核对）：
 
-```css
-/* 动画族（在 index.css 中定义） */
-@keyframes stat-pop { ... }       /* 统计卡入场 */
-@keyframes card-slide { ... }     /* 列表卡入场 */
-@keyframes medal-shimmer { ... }  /* 奖牌微光 */
-@keyframes slot-bounce { ... }    /* 槽位放入 */
-@keyframes save-flash { ... }     /* 保存成功 */
+| 内容 | 定义位置 | 使用位置 |
+|------|---------|---------|
+| `stat-pop` / `card-slide` | `styles/index.css` | 统计卡 / 列表卡入场 |
+| `medal-shimmer` | `HomeView.vue` | 排行榜金银奖牌 |
+| `slot-bounce` / `save-flash` | `LineupEditor.vue` | 槽位放入 / 保存反馈 |
+| 滚动条配色（thumb `#d4c5a0`） | `styles/element-plus.css` | 全局滚动条 |
 
-/* 滚动条（已在 element-plus.css 中修改） */
-```
+> `theme.css` 无新增变量（所有新动画在组件内定义，避免全局污染）。
 
 ---
 
@@ -188,22 +198,6 @@
 
 ---
 
-## 2.5 P-R · 代码质量重构
-
-### 2.5.1 职业色映射统一
-- **现状**：`PROF_COLORS` 散落在 14 个文件中，每改一次色值需改 14 处
-- **方案**：抽取到 `utils/profession.ts`，全站一处维护；`match-data/analysis.ts` 已有导出，保持不变
-- **涉及文件**：新增 `utils/profession.ts`，修改 12 个组件文件删除本地定义
-- **验收标准**：`grep -r "const PROF_COLORS" frontend/src/` 仅命中 `profession.ts` 和 `analysis.ts`
-
-### 2.5.2 结果类型函数统一
-- **现状**：`resultType()`/`resultLabel()` 在 5 个文件中重复
-- **方案**：抽取到 `utils/constants.ts`，复用已有的 `SCHEDULE_RESULTS` 常量
-- **涉及文件**：修改 `constants.ts`（新增函数），修改 5 个页面文件删除本地定义
-- **验收标准**：`grep -r "function resultType\|function resultLabel\|const resultLabel\|const resultType" frontend/src/` 仅命中 `constants.ts`
-
----
-
 ## 6. 移动端适配原则
 
 - 所有动画在 `@media (max-width: 768px)` 下保持，但时长缩短（`var(--dur-normal)` 即 0.22s）
@@ -218,3 +212,4 @@
 |------|---------|
 | 2026-08-26 | 初始化 UI 优化方案文档（v1.0），4 优先级 11 项优化 |
 | 2026-08-26 | v1.1 新增 §2.5 代码质量重构：职业色映射统一（utils/profession.ts，14→1 文件）、结果类型函数统一（utils/constants.ts，5→1 文件） |
+| 2026-09-15 | v1.2：全部优化项标注完成状态（P0–P3 11 项 + §2.5 两项已完成；3 项可选未做已标注）；§2.5 归位至优化清单内；§3 更正动画/令牌实际落点（theme.css 无新增变量，最终规范以 ui-style-guide.md §10 为准） |

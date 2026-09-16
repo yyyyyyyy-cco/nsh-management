@@ -4,14 +4,15 @@
 
 ```
 nsh-management/
-├── .claude/
-│   └── rules/
+├── .agent/
+│   ├── docs/                         # 内部样例（比赛 CSV 入库；Excel 分析表仅本地）
+│   ── rules/                        # AI 编码规则（已入库）
 │       ├── code_rule.md              # 项目规则
 │       ├── file-length-rule.md       # 代码文件长度规则
 │       ├── function_rule.md          # 模块开发文档规则
 │       └── git-commit-message.md     # Git 提交信息规范
 ├── memory-bank/
-│   ├── ai-context.md           # AI 项目完整上下文文档（CLAUDE.md 扩展版）
+│   ├── ai-context.md           # AI 项目完整上下文文档（AGENTS.md 扩展版）
 │   ├── ai-checklist.md         # AI 操作检查清单（错误记录与联动规则）
 │   ├── architecture.md         # 本文档 - 项目文档索引
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
@@ -27,7 +28,7 @@ nsh-management/
 │   └── docs/README.md            # 后端模块开发文档
 ├── frontend/
 │   └── docs/README.md            # 前端模块开发文档
-├── CLAUDE.md                     # AI 项目入门指南（自动读取）
+├── AGENTS.md                     # AI 开发指南：规范/文档维护/进度追踪（自动读取）
 ├── DEPLOY.md                     # 部署文档（Docker Compose）
 ├── GIT-GUIDE.md                  # Git 管理规范
 ├── .gitignore                    # Git忽略规则
@@ -51,13 +52,13 @@ nsh-management/
 
 ### 1.2 UI优化方案文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ui-polish-plan.md`
-- **作用**：记录 UI 优化方案（P0-P3 共 11 项优化清单：视觉层次/交互反馈/细节打磨/微动效）、CSS 新增动画族规范、卡片层级规范、文件变更清单、验收标准
+- **作用**：记录 UI 优化方案（P0-P3 共 11 项优化清单：视觉层次/交互反馈/细节打磨/微动效）、CSS 新增动画族规范、卡片层级规范、文件变更清单、验收标准（2026-09-15 已完成归档；最终规范见 ui-style-guide.md §10，剩余 3 项可选未做）
 - **前置文档**：`ui-style-guide.md`（权威视觉规范，本文档仅补充优化增量）
 - **更新时机**：优化项完成或方案调整时更新
 
 ### 2. 数据库设计文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\database-design.md`
-- **作用**：定义全部数据表结构（10 表，含 squad_adjustments）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.6（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整）
+- **作用**：定义全部数据表结构（11 表，含 squad_adjustments、operation_logs）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.8（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计）
 - **更新时机**：表结构变更、业务规则调整时更新
 
 ### 3. 技术栈文档
@@ -66,22 +67,22 @@ nsh-management/
 - **更新时机**：技术栈变更、依赖升级时更新
 
 ### 4. 项目规则文档
-- **路径**：`.claude/rules/code_rule.md`
+- **路径**：`.agent/rules/code_rule.md`
 - **作用**：定义强制前置要求、文档更新规则
 - **更新时机**：项目规则调整时更新
 
 ### 5. 代码文件长度规则
-- **路径**：`.claude/rules/file-length-rule.md`
+- **路径**：`.agent/rules/file-length-rule.md`
 - **作用**：定义文件行数限制、拆分触发条件、拆分策略
 - **更新时机**：编码规范调整时更新
 
 ### 6. 模块开发文档规则
-- **路径**：`.claude/rules/function_rule.md`
+- **路径**：`.agent/rules/function_rule.md`
 - **作用**：定义模块开发文档的要求、模板、更新规则
 - **更新时机**：模块开发规范调整时更新
 
 ### 6.1 Git 提交信息规范
-- **路径**：`.claude/rules/git-commit-message.md`
+- **路径**：`.agent/rules/git-commit-message.md`
 - **作用**：定义 Git 提交信息格式（Conventional Commits + 中文）、类型、范围、正文要求
 - **更新时机**：提交规范调整时更新
 
@@ -92,7 +93,7 @@ nsh-management/
 
 ### 8. 实施方案文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\implementation-plan.md`
-- **作用**：定义项目开发任务分解、模块依赖关系、开发阶段规划
+- **作用**：定义项目开发任务分解、模块依赖关系、开发阶段规划（2026-09-15 起转为历史规划存档，最新进度见 progress.md）
 - **更新时机**：开发计划调整时更新
 
 ### 9. 项目进度文档
@@ -117,7 +118,7 @@ nsh-management/
 
 ### 13. 数据分析模块完整方案
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\data-analysis-complete.md`
-- **作用**：定义数据分析模块完整方案：CSV 结构、字段映射、16 项衍生指标、阵营对比、职业深度、小队分析、ECharts 图表规划与实施记录（当前代码已按此实现，为数据分析模块主参考文档）
+- **作用**：数据分析模块规格与实施记录（2026-09-15 瘦身归档）：CSV 结构与字段映射、小队结构、16 项衍生指标公式、开发方案、ECharts 图表规划、实施记录与口径确认
 - **更新时机**：数据分析模块功能调整时更新
 
 ### 14. 安全审查文档
@@ -127,13 +128,18 @@ nsh-management/
 
 ### 15. AI 项目完整上下文文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ai-context.md`
-- **作用**：根目录 `CLAUDE.md` 的完整扩展版，为 AI 助手提供项目全貌：功能模块、技术栈详情、编码规范、Git 工作流、文档体系、安全要点、已知待优化项
+- **作用**：根目录 `AGENTS.md` 的完整扩展版，为 AI 助手提供项目全貌：功能模块、技术栈详情、编码规范、Git 工作流、文档体系、安全要点、已知待优化项
 - **更新时机**：项目架构、技术栈、规范发生重大变更时更新
 
 ### 16. AI 操作检查清单
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ai-checklist.md`
 - **作用**：记录 AI 在本项目中犯过的错误和容易遗漏的联动点（版本号散落、文件重命名联动、目录树同步、.env 对齐等），每次修改前必读
 - **更新时机**：发现新的遗漏模式时补充
+
+### 17. AI 开发指南（入口文档）
+- **路径**：`e:\code\@Cjy\nsh-management\AGENTS.md`
+- **作用**：AI 入口文档（原 `CLAUDE.md`，2026-09-15 更名扩充）：项目简介、权威源映射、各文档维护时机、文档同步与进度追踪流程（自检清单）、代码/Git/安全摘要、AI 行为约定
+- **更新时机**：项目结构、规范或维护流程变更时更新
 
 ---
 
@@ -176,6 +182,13 @@ nsh-management/
 | 2026-08-26 | 新增 AI 操作检查清单（ai-checklist.md）：记录版本号散落、文件重命名联动、目录树同步、.env 对齐等易错模式与自检流程；CLAUDE.md 新增"操作前必读"提示；architecture.md/progress.md 同步更新索引与目录树 | ai-checklist.md, CLAUDE.md, architecture.md, progress.md |
 | 2026-08-26 | 文档瘦身与单一权威源：design-document-v2 删除内嵌 UI 规范（~200 行）改为引用 ui-style-guide；CLAUDE.md/ai-context.md 技术栈/Git/安全改为引用；ai-checklist 新增权威源规则表；修复 README 9 表→10、backend/docs v1.5→v1.6、UI 主色统一为 #C9A13B | 全部文档 |
 | 2026-08-26 | 新增 UI 优化方案文档（ui-polish-plan.md）：4 优先级 11 项优化清单（卡片层级/数字滚动/按钮微光/奖牌微光/弹窗金线/滚动条/槽位反馈/路由过渡等），含动画族规范、卡片层级规范、验收标准、文件变更清单；ui-style-guide.md 新增 §10 优化补充规范（动画族/卡片层级/交互反馈） | ui-polish-plan.md, ui-style-guide.md |
+| 2026-09-15 | 补人姓名规范化修复文档同步：progress.md 目录树补 services/lineup_attendance.py 与 utils/member_names.py 并记录修复；backend/frontend 模块文档更新记录同步 | progress.md, backend/docs, frontend/docs |
+| 2026-09-15 | ai-context.md §8 新增「出勤库 60 人上限漏洞」记录（用户决策暂不修复）：含内存库复现结论、触发路径、已定待实施方案与残余并发风险 | ai-context.md |
+| 2026-09-15 | 文档全面优化（依据实际代码核实）：design-document-v2 v2.4（出勤率公式/术语/帮众权限/页面树修正，补个人战绩与系统日志模块）；database-design v1.7；tech-stack 去重与失实项修正；ai-context 引用化与模块补全；data-analysis-complete 瘦身（768→610 行，修复代码块围栏）；implementation-plan/ui-polish-plan 归档标注；ai-checklist 编号修复 + 新增遗漏模式 | 全部文档 |
+| 2026-09-15 | 工具目录改名同步（.claude/ → .agent/）：architecture.md 与 progress.md 目录树、`.agent/rules/` 路径引用、样例文档路径（`.agent/docs/`）、deploy.sh 打包排除项同步更新 | architecture.md, progress.md, database-design.md, design-document-v2.md, ai-context.md, ai-checklist.md, deploy.sh |
+| 2026-09-15 | 根目录 `CLAUDE.md` 更名为 `AGENTS.md`（AI 开发指南）：扩充为项目规范 + 权威源映射 + 各文档维护时机 + 文档同步与进度追踪流程（自检清单）+ AI 行为约定；权威源映射表与自检清单由 ai-checklist.md 迁入并以其为准；ai-checklist/ai-context/architecture/progress/.agent/rules 引用同步 | AGENTS.md, ai-checklist.md, ai-context.md, architecture.md, progress.md |
+| 2026-09-15 | 文档失实项修正（实测核对）：全局表数 10→11、迁移数 13→14、database-design v1.8（补 operation_logs 表）；backend/frontend docs 角色场景/模块清单/待办状态按代码校正；README 功能表与权限行、DEPLOY.md 迁移 head（n8o9p0q1r2s3）同步 | 全部文档 |
+| 2026-09-15 | 仓库收录策略调整：`.agent/rules/*.md` 4 份规则文档入库（AGENTS.md 权威源可追溯），本文档 §文档结构总览同步标注入库/忽略范围；`.agent/docs/` 仅文本 CSV 入库、24MB Excel 分析表本地忽略 | architecture.md, progress.md, .gitignore |
 
 ---
 

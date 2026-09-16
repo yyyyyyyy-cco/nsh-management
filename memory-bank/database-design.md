@@ -1,7 +1,7 @@
 # 帮会管理系统 - 数据库设计
 
-> 版本：v1.6
-> 更新日期：2026-08-26
+> 版本：v1.8
+> 更新日期：2026-09-15
 > 依据：design-document-v2.md（产品设计 v2）、tech-stack.md（技术栈）
 
 ## 1. 设计总览
@@ -28,6 +28,7 @@ guilds（帮会）
      ├── recordings（录屏）             schedule_id, member_id（可空）
      ├── match_data（比赛数据）          schedule_id
      └── squad_adjustments（分析调整）    schedule_id（1:1）
+operation_logs（操作审计日志）          guild_id（可空）
 ```
 
 | # | 表名 | 用途 | 关联 |
@@ -42,6 +43,7 @@ guilds（帮会）
 | 8 | recordings | 录屏提交与审核 | schedules、members |
 | 9 | match_data | 比赛数据（CSV 导入） | schedules |
 | 10 | squad_adjustments | 分析调整（小队分析内临时分配） | schedules（1:1） |
+| 11 | operation_logs | 操作审计日志（写操作/异常落库，仅开发者可查） | guilds（guild_id 可空） |
 
 ### 1.3 设计决策
 
@@ -193,7 +195,7 @@ JSON 结构示例：
 | created_at | DATETIME | NOT NULL, default now | 提交时间 |
 
 索引：`schedule_id`、`status`。
-唯一约束：`(schedule_id, member_id, round_number)`；客人按 `(schedule_id, member_name, round_number)`。
+唯一约束：`(schedule_id, member_id, round_number)`；补人按 `(schedule_id, member_name, round_number)`。
 业务规则：创建赛程时按局数批量初始化录屏占位记录（每人每局一条）；URL 校验支持 B站、YouTube 等。
 
 ### 2.9 match_data — 比赛数据表
@@ -238,6 +240,30 @@ JSON 结构示例：
 索引：`schedule_id`（UNIQUE）。
 业务规则：每赛程最多一条记录；保存时覆盖式替换 `data` 字段；仅管理员可写，帮众可读。
 
+### 2.11 operation_logs — 操作审计日志表
+
+> 审计中间件（`main.py`）自动落库：所有写操作（POST/PUT/DELETE/PATCH）与 5xx 错误自动记录，登录成功/失败手动埋点；`detail` 为 JSON 文本，敏感字段（password/token 等）已脱敏。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| user_id | INTEGER | NULL | 操作账号 ID（匿名请求为空） |
+| username | STRING(64) | NULL, index | 操作账号名 |
+| role | STRING(16) | NULL | 角色（developer/admin/member） |
+| guild_id | INTEGER | NULL, index | 所属帮会（开发者全局操作为空） |
+| module | STRING(32) | NOT NULL, index | 业务模块（member/schedule/login/…/other） |
+| action | STRING(32) | NOT NULL | 操作类型（create/update/delete/login/…/other） |
+| method | STRING(8) | NOT NULL | HTTP 方法 |
+| path | STRING(255) | NOT NULL | 请求路径 |
+| status_code | INTEGER | NULL | 响应状态码（异常中断时为空） |
+| level | STRING(16) | NOT NULL, index | info / warning / error |
+| detail | TEXT | NULL | JSON 文本（敏感字段已脱敏） |
+| ip | STRING(64) | NULL | 客户端 IP |
+| created_at | DATETIME | NOT NULL, default now, index | 记录时间（UTC） |
+
+索引：`username`、`guild_id`、`module`、`level`、`created_at`。
+业务规则：默认保留 90 天（启动时自动清理过期记录，页面亦可手动清理，清理操作本身会被审计）；仅开发者可在「系统日志」页查看。
+
 ---
 
 ## 3. 关键业务规则落表方案
@@ -266,9 +292,9 @@ JSON 结构示例：
 
 创建赛程（rounds=N）时，为候选池成员批量生成 N 条录屏占位记录（status=pending），补人由出勤库确定后补充。
 
-### 3.5 CSV 导入解析（依据 .qoder/docs 真实样例）
+### 3.5 CSV 导入解析（依据真实样例）
 
-样例文件：`.qoder/docs/20260630_21037_横戈_仗剑.csv`（127 行）
+样例文件：`.agent/docs/20260630_21037_横戈_仗剑.csv`（127 行）
 
 - 一个 CSV 含多个阵营区块，每块结构：`"阵营名","人数"` 标题行 → 表头行 → N 条数据行
 - 第一个区块为己方阵营，其余为对手阵营；区块标题“人数”用于完整性校验（60）
@@ -278,7 +304,7 @@ JSON 结构示例：
 
 ### 3.6 帮众操作归属（共享账号）
 
-帮众使用共享账号登录后，无需选择/输入身份：出勤表、录屏列表均按姓名展示全部人员（含补人），帮众依据排表总览找到自己的姓名所在行，直接在对应行切换出勤状态或提交录屏链接。系统不绑定“当前操作者”，归属由行本身确定。
+帮众使用共享账号登录后，无需选择/输入身份：录屏列表按姓名展示全部人员（含补人），帮众找到自己的姓名所在行提交录屏链接（链接对帮众脱敏展示）。出勤库与排表 Tab 当前仅管理员可见，出勤状态由管理员维护。系统不绑定“当前操作者”，归属由行本身确定。
 
 ---
 
@@ -296,3 +322,5 @@ JSON 结构示例：
 | 2026-08-18 | v1.5c：lineups 表新增 title_remark（标题备注）、groups_remark（各组备注 JSON）字段（Alembic 迁移 dbb752d924fe） |
 | 2026-08-26 | v1.6：修正 match_data 导入业务规则为按局覆盖（一局一表，重导覆盖该局数据），与实现一致 |
 | 2026-08-26 | v1.6：新增 squad_adjustments 表（分析调整，小队分析内临时分配，1:1 关联赛程，Alembic 迁移 i3j4k5l6m7n8）；表清单从 9 张更新为 10 张；级联删除规则补充 squad_adjustments |
+| 2026-09-15 | v1.7：术语统一（客人→补人）；CSV 样例引用路径更正为 `.agent/docs`（.claude→.agent 改名）；§3.6 帮众操作归属校正（出勤/排表 Tab 仅管理员，帮众经录屏列表归属） |
+| 2026-09-15 | v1.8：补全 operation_logs 操作审计日志表（§1.2 表清单 + §2.11 字段级设计），表数 10 张更新为 11 张 |

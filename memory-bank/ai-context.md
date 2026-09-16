@@ -1,7 +1,7 @@
 # AI 项目完整上下文文档
 
-> 本文件是项目根目录 `CLAUDE.md` 的完整扩展版，供 AI 助手深入了解项目全貌。
-> 根目录 `CLAUDE.md` 提供精简速查，本文档提供完整上下文。
+> 本文件是项目根目录 `AGENTS.md` 的完整扩展版，供 AI 助手深入了解项目全貌。
+> 根目录 `AGENTS.md` 提供规范、文档维护与流程速查，本文档提供完整上下文。
 
 ---
 
@@ -24,6 +24,8 @@
 | 分析调整 | 小队分析内手动分配未排表成员到目标队伍 | `api/v1/squad_adjustments.py` | `components/match-data/SquadAnalysisTab.vue` |
 | 系统配置 | 职业配置、账号管理、帮会管理（开发者专属） | `api/v1/config.py` | `views/config/ConfigView.vue` |
 | 联赛日程 | 日历视图、赛程 CRUD、级联创建/删除、帮众联赛总览 | `api/v1/schedules.py` | `views/schedules/ScheduleListView.vue` |
+| 个人战绩 | 按游戏 ID 聚合历史比赛数据（单局指标与排名、个人概览） | `api/v1/my_stats.py` | `views/member/MyStatsView.vue` |
+| 系统日志 | 操作审计日志查询/统计/清理（仅开发者） | `api/v1/logs.py` | `views/logs/LogView.vue` |
 
 ### 1.3 三级角色权限
 
@@ -31,7 +33,8 @@
 developer（开发者）→ 不绑定帮会，全局管理
     ├── 创建/删除帮会
     ├── 创建/删除账号（全局）
-    └── 职业配置
+    ├── 职业配置
+    └── 系统日志（操作审计）
 
 admin（管理员）→ 绑定帮会，帮会内全部权限
     ├── 成员 CRUD、出勤管理、排表编辑
@@ -40,25 +43,15 @@ admin（管理员）→ 绑定帮会，帮会内全部权限
     └── 本帮会账号管理
 
 member（帮众）→ 绑定帮会，只读 + 有限操作
-    ├── 查看出勤/排表总览/录屏/数据分析
-    ├── 切换自己出勤状态（正常/请假）
-    └── 提交录屏链接
+    ├── 提交录屏链接（录屏上传 / 联赛总览）
+    ├── 查看个人战绩
+    ├── 查看联赛日程（列表 + 详情：录屏/数据分析只读）
+    └── 出勤库、排表仅管理员可见
 ```
 
-### 1.4 数据模型（10 张表）
+### 1.4 数据模型（11 张表）
 
-```
-guilds（帮会）
- ├── users（账号）                    guild_id
- ├── profession_configs（职业配置）    guild_id
- ├── members（常驻库成员）            guild_id
- └── schedules（赛程）               guild_id
-     ├── attendance_records（出勤）   schedule_id, member_id
-     ├── lineups（排表 JSON）         schedule_id（1:1）
-     ├── recordings（录屏）           schedule_id, member_id
-     ├── match_data（比赛数据）       schedule_id
-     └── squad_adjustments（分析调整） schedule_id（1:1）
-```
+> **权威源**：`database-design.md` §1.2（表清单与关联关系）、§2（字段级设计）。核心结构：`guilds` 下挂 users / profession_configs / members / schedules；`schedules` 1:N 关联 attendance_records / recordings / match_data，1:1 关联 lineups / squad_adjustments；operation_logs 独立记录全局操作审计（guild_id 可空）。
 
 ---
 
@@ -76,39 +69,23 @@ guilds（帮会）
 
 ## 3. 编码规范
 
-> **权威源**：`.claude/rules/file-length-rule.md`（行数限制）、`ui-style-guide.md`（UI 规范）
+> **权威源**：`.agent/rules/file-length-rule.md`（行数限制）、`ui-style-guide.md`（UI 规范）
 
 ### 3.1 文件行数限制
 
-| 文件类型 | 建议行数 | 强制上限 | 说明 |
-|---------|---------|---------|------|
-| Vue 组件 (.vue) | 100-200 | **300** | 超限必须拆分为子组件或 composable |
-| Python 服务 (services/*.py) | 100-200 | **300** | 超限必须拆分为多个服务或工具模块 |
-| 工具函数 (utils/*.py/ts) | 50-150 | **200** | 按功能模块拆分 |
-| 路由文件 (router/*.ts) | 50-100 | **150** | — |
+**强制上限**：Vue 组件 300 行 / Python 服务 300 行 / 工具函数 200 行 / 路由 150 行；超限必须拆分（子组件、composable、拆服务），连续逻辑文件可按规则文件的「行数豁免」机制标记保留。
 
-**拆分触发条件**：
-- 行数超过强制上限
-- 包含 3 个以上不相关的功能
-- 出现多个独立的业务逻辑块
+> **权威源**：`.agent/rules/file-length-rule.md`（建议行数、触发条件、拆分策略）。
 
 ### 3.2 前端代码规范
 
-```
-frontend/src/
-├── api/              # 每个业务模块一个 API 文件（http.ts 为基础封装）
-├── components/       # 按功能模块分子目录（attendance/lineups/match-data/members/recording/schedules）
-│   └── match-data/   # 每个 Tab 独立组件 + 共享工具（analysis.ts/chartTheme.ts/EChart.vue）
-├── views/            # 页面级组件（HomeView/LoginView + 按模块分子目录）
-├── composables/      # 组合式函数（可复用逻辑）
-├── stores/           # Pinia store（按领域拆分）
-├── types/            # TypeScript 类型定义（按模块拆分）
-├── styles/           # 主题系统
-│   ├── theme.css     # 设计令牌（CSS 变量）
-│   ├── element-plus.css  # Element Plus 深度定制
-│   └── index.css     # 全局样式入口
-└── utils/            # 通用工具函数
-```
+> **权威源**：`progress.md`（完整代码目录树）。
+
+- `api/`：每个业务模块一个 API 文件（`http.ts` 为基础封装）
+- `components/`：按功能模块分子目录（attendance / lineups / match-data / members / my-stats / recording / schedules / common）
+- `views/`：页面级组件（HomeView / LoginView + config / logs / member / members / schedules 子目录）
+- `composables/`、`stores/`、`types/`、`utils/`：组合式函数 / Pinia / 类型 / 通用工具（如 `profession.ts` 职业色、`constants.ts` 结果映射）
+- `styles/`：`theme.css`（设计令牌）+ `element-plus.css`（组件深度定制）+ `index.css`（全局入口）
 
 **UI 风格**：浅色雅金风（宣纸鎏金）
 - 页面背景：`#F7F3EA`（宣纸米白）
@@ -118,23 +95,14 @@ frontend/src/
 
 ### 3.3 后端代码规范
 
-```
-backend/app/
-├── api/v1/           # 路由层（薄层，只做参数校验和调用 service）
-│   ├── router.py     # 路由注册汇总
-│   ├── deps.py       # 依赖注入（get_current_user, require_admin）
-│   └── [模块].py     # 各模块路由
-├── core/             # 基础设施
-│   ├── config.py     # 环境变量配置（Settings 类）
-│   ├── database.py   # 异步数据库连接
-│   └── security.py   # JWT + 密码加密
-├── models/           # SQLAlchemy 模型（10 张表）
-├── schemas/          # Pydantic Schema（请求/响应模型）
-├── services/         # 业务逻辑层（核心代码）
-├── utils/            # 工具函数（Excel 导入、出勤导入、常量）
-├── init_db.py        # 初始化默认账号（仅空库时执行）
-└── main.py           # 应用入口（CORS、异常处理）
-```
+> **权威源**：`progress.md`（完整代码目录树）。
+
+- `api/v1/`：薄路由层（`router.py` 注册汇总、`deps.py` 依赖注入，各模块路由只做参数校验与调用 service）
+- `core/`：`config.py` 环境配置 / `database.py` 异步连接 / `security.py` JWT 与密码 / `logging_config.py` 日志
+- `models/`、`schemas/`：SQLAlchemy 表模型（11 张表）与 Pydantic 请求/响应模型
+- `services/`：业务逻辑核心（含 log / my_stats / lineup_attendance 等）
+- `utils/`：Excel/出勤导入、图片与 Excel 导出、常量、姓名规范化
+- `init_db.py` / `main.py`：默认账号初始化与应用入口（CORS、审计中间件、异常处理）
 
 **分层原则**：
 - `api/v1/` → 薄路由层，参数校验 + 调用 service + 返回响应
@@ -165,14 +133,9 @@ backend/app/
 
 ## 5. 文档体系
 
-> **权威源**：`architecture.md`（完整文档索引 + 目录树 + 更新记录）
+> **权威源**：`AGENTS.md` §2–§3（文档维护规范、同步与进度追踪流程）、`architecture.md`（完整文档索引 + 目录树 + 更新记录）
 
-所有项目文档在 `memory-bank/` 目录下，统一小写 kebab-case 命名。
-
-**更新铁律**：
-1. 改代码 → 更新 `progress.md`
-2. 改文档 → 更新 `architecture.md`
-3. 新增文档 → 在 `architecture.md` 添加索引
+所有项目文档在 `memory-bank/` 目录下，统一小写 kebab-case 命名。文档更新流程（改代码 → progress、改文档 → architecture、新增 → 索引）以 `AGENTS.md` §3 为准。
 
 ---
 
@@ -200,11 +163,10 @@ backend/app/
 
 ## 8. 已知待优化项
 
-### 8.1 代码行数超标（21 个文件超硬限制）
-- 热点区域：`frontend/src/components/match-data/`（8 个超限组件）
-- 最大文件：`SquadAnalysisTab.vue`（1270 行）、`HomeView.vue`（1017 行）、`LineupEditor.vue`（968 行）
-- 后端最大：`match_data_service.py`（577 行）
-- 建议在"阶段 8：测试与优化"中逐步拆分
+### 8.1 代码行数超标（2026-09-15 已完成拆分治理）
+- 原 28 个超限文件：**15 个已拆分**（全部达标，2026-09-15 复测最大文件 299 行）、**13 个连续逻辑豁免**（文件头「行数豁免」标记 + `.agent/rules/file-length-rule.md` 豁免清单登记）
+- 拆分手法：子组件 / composable / 图表 option 模块外移；样式随组件迁移，跨组件共享样式经 `<style scoped src>` 复用
+- 后续新增代码再超限时，按规则文件的「拆分 / 豁免」机制处理（豁免必须打标记并登记）
 
 ### 8.2 安全加固待办
 - `config.py` 的 `SECRET_KEY` 默认值应改为未设置时报错退出
@@ -212,9 +174,17 @@ backend/app/
 - `deploy.sh` 中 `StrictHostKeyChecking=no` 应移除
 
 ### 8.3 UI 优化待办
-> **权威源**：`ui-polish-plan.md`（完整方案含验收标准、文件变更清单）
+> **权威源**：`ui-polish-plan.md`（已完成归档，剩余项见其 §2.1.3 / §2.3.3 / §2.4.4）；最终规范见 `ui-style-guide.md` §10。
 
-- **P0 视觉层次**：卡片层级区分（辅助卡改用 `--ink-bg-cream`）、统计数字滚动动画（新增 `useCountUp.ts` composable）
-- **P1 交互反馈**：主按钮微光扫光加宽（60%/0.55）、侧边栏菜单 hover 渐变过渡、卡片入场动画差异化（stat-pop/card-slide）、排行榜奖牌微光（medal-shimmer）
-- **P2 视觉细节**：弹窗标题金线与标题等宽、滚动条金色调配色
-- **P3 微动效**：排表槽位放入弹跳（slot-bounce）、保存成功光晕（save-flash）、路由切换淡入淡出
+已完成（13 项）：卡片层级、数字滚动（`useCountUp.ts`）、按钮扫光加宽、菜单 hover 过渡、动画族（stat-pop/card-slide）、奖牌微光、弹窗金线、滚动条配色、槽位放入反馈、保存成功动效、路由过渡、职业色与结果类型统一。
+
+未做（可选）：表格密度切换、空状态 SVG 插画、职业标签 hover 微光。
+
+### 8.4 出勤库 60 人上限漏洞（2026-09-15 用户决策：暂不修复，遗留记录在案）
+- 现象：`update_status` / `batch_update_status`（请假 → 正常）不校验上限，正常人数可超过 60；已用内存库复现（60 正常 + 请假起步：单条切换变 61、批量切换变 63）
+- 触发路径：先给成员请假腾名额 → 添加补人/导入至 60 → 再把请假成员切回正常（行内开关或「批量正常」）
+- 已正确拦截的路径（对照）：添加补人、一键导入正式、导入成员、导入替补均调用 `check_normal_capacity`
+- 位置：`backend/app/services/attendance_service.py` 的 `update_status`、`batch_update_status`
+- 已定修复方案（待实施）：目标为 normal 且原状态非 normal 时调用 `check_normal_capacity`（批量按「原状态非正常且目标为正常」的增量计算）；切换失败时前端刷新数据回滚开关视觉状态
+- 残余风险：两个标签页并发操作存在先读后写窗口，彻底解决需事务级串行化
+

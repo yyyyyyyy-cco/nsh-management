@@ -7,19 +7,22 @@ nsh-management/
 ├── backend/                   # 后端项目（FastAPI）
 │   ├── app/
 │   │   ├── api/               # API 路由（v1/ 路由注册 + deps 依赖注入）
-│   │   ├── core/              # 配置、数据库、安全（JWT/密码）
-│   │   ├── models/            # 10 张表 SQLAlchemy 模型（含 squad_adjustments）
+│   │   ├── core/              # 配置、数据库、安全（JWT/密码）、客户端 IP 解析（client_ip）
+│   │   ├── models/            # 11 张表 SQLAlchemy 模型（含 squad_adjustments/operation_logs）
 │   │   ├── schemas/           # Pydantic 数据模型
-│   │   ├── services/          # 业务逻辑（auth/config/lineup/member/recording/attendance/match_data/schedule/squad_adjustment）
-│   │   ├── utils/             # 工具函数（attendance_import/excel_import/constants）
+│   │   ├── services/          # 业务逻辑（account/auth/config/guild/lineup/lineup_attendance/log/match_data/match_data_aggregate/match_data_csv/match_data_stats/member/my_stats/recording/attendance/schedule/squad_adjustment）
+│   │   ├── utils/             # 工具函数（attendance_import/excel_import/excel_export/image_export/constants/member_names）
 │   │   ├── init_db.py         # 初始化默认帮会与账号（开发者/admin/member）
 │   │   └── main.py            # 应用入口（CORS/异常处理/AuthError锁定秒数）
 │   ├── alembic/               # 数据库迁移（13 个版本）
 │   ├── data/                  # SQLite 数据库（nsh.db）
 │   ├── docs/README.md         # 后端模块开发文档
 │   ├── scripts/               # 工具脚本
-│   │   ├── generate_import_template.py  # 生成成员导入模板
-│   │   └── selfcheck_indicators.py      # 衍生指标自检脚本
+│   │   ├── audit_weights_v4_20260907.py   # 贡献度权重审计（v4）
+│   │   ├── derive_weights_v4_20260907.py  # 贡献度权重推导（v4）
+│   │   ├── generate_import_template.py    # 生成成员导入模板
+│   │   ├── selfcheck_indicators.py        # 衍生指标自检脚本
+│   │   └── sim_contribution_v4_20260907.py # 贡献度模拟（v4）
 │   ├── templates/             # Excel 模板
 │   │   └── member_import_template.xlsx  # 成员导入模板
 │   ├── Dockerfile             # 后端容器镜像（多阶段构建）
@@ -31,27 +34,31 @@ nsh-management/
 │   ├── src/
 │   │   ├── api/               # Axios 封装（http/auth/config/lineups/members/attendance/matchData/recording/schedules/squadAdjustments）
 │   │   ├── components/        # 业务组件
-│   │   │   ├── attendance/    # 出勤库（AttendanceTab/FillerDialog/ImportMemberDialog/LeaveImportDialog/SubstituteImportDialog）
-│   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab/ImportHistoryDialog/MatchConfirmDialog）
-│   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab/CampCompareTab/SquadAnalysisTab/ProfessionTab/ProfessionDetailTab/ScoreTab/CampCompare/PlayerAnalysis/MetricsGuideDialog/EChart/analysis.ts/chartTheme.ts）
-│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberFormDialog/MemberImportDialog/ProfessionShortage）
-│   │   │   ├── recording/     # 录屏审核（RecordingTab）
+│   │   │   ├── attendance/    # 出勤库（AttendanceTab+AttendanceStatsBar/AttendanceToolbar/AttendanceTablePanel/AttendanceMobileList/FillerDialog/ImportMemberDialog/LeaveImportDialog/SubstituteImportDialog）
+│   │   │   ├── common/        # 通用组件（SkeletonTable）
+│   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab+LineupOverviewPanel/LineupOverviewGroup/ImportHistoryDialog/MatchConfirmDialog）
+│   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/EChart/analysis.ts/chartTheme.ts）
+│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/ProfessionShortage）
+│   │   │   ├── my-stats/      # 个人战绩（PlayerSearch/StatsOverview/StatsMatchTable/StatsRankingPosition/StatsTrendChart）
+│   │   │   ├── recording/     # 录屏审核（RecordingTab+RecordingProgressBar/RecordingTablePanel/RecordingMobileList/recording-shared.css）
 │   │   │   └── schedules/     # 联赛日程（ScheduleCalendar）
-│   │   ├── composables/       # 组合式函数（lineupBoard）
-│   │   ├── layouts/           # 主布局（深檀侧边栏208px+宣纸顶栏62px，支持折叠64px）
+│   │   ├── composables/       # 组合式函数（lineupBoard/useAttendanceList/useRecordingList/useMemberList/useRouteProgress）
+│   │   ├── layouts/           # 主布局（MainLayout + AppSidebar/AppHeader；深檀侧边栏208px+宣纸顶栏62px，支持折叠64px）
 │   │   ├── router/            # 路由与守卫
 │   │   ├── stores/            # Pinia（auth）
 │   │   ├── styles/            # 浅色雅金风主题（theme.css 令牌 / element-plus.css 组件 / index.css 入口）
 │   │   ├── types/             # TS 类型定义（attendance/auth/config/lineup/matchData/member/recording/schedule）
 │   │   ├── utils/             # 工具函数（constants/scheduleSort）
 │   │   └── views/             # 页面
-│   │       ├── HomeView.vue           # 首页仪表盘
+│   │       ├── HomeView.vue           # 首页仪表盘（壳）+ home/ 卡片组件（HomeWelcome/HomeTodayBanner/HomeStatCards/HomeRecentSchedules/HomeProfessionOverview/HomeAttendanceRanking/HomeQuickActions + home-shared.css）
 │   │       ├── LoginView.vue          # 登录页（含锁定倒计时）
-│   │       ├── config/ConfigView.vue  # 系统配置（职业/账号/帮会管理）
+│   │       ├── config/ConfigView.vue  # 系统配置壳（+ ConfigProfessionPanel/ConfigGuildPanel/ConfigAccountPanel/ConfigAccountGroup）
+│   │       ├── logs/LogView.vue       # 系统日志壳（+ LogStatsCards/LogFilterBar/LogMobileList/LogTablePanel/LogDetailDialog/LogClearDialog/logLabels.ts）
+│   │       ├── member/MyStatsView.vue # 个人战绩（帮众）
 │   │       ├── members/MemberListView.vue  # 常驻库
 │   │       └── schedules/             # 联赛日程
 │   │           ├── ScheduleListView.vue      # 日程列表
-│   │           ├── ScheduleDetailView.vue    # 赛程详情（出勤/排表/录屏/分析 Tab）
+│   │           ├── ScheduleDetailView.vue    # 赛程详情（管理员：出勤/排表/录屏/分析；帮众：录屏/分析）
 │   │           └── LeagueOverviewView.vue    # 帮众联赛总览
 │   ├── Dockerfile             # 前端容器镜像（多阶段构建）
 │   ├── .dockerignore
@@ -63,7 +70,7 @@ nsh-management/
 │   ├── ai-checklist.md         # AI 操作检查清单（错误记录与联动规则）
 │   ├── architecture.md         # 文档索引
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
-│   ├── database-design.md      # 数据库设计文档（v1.6）
+│   ├── database-design.md      # 数据库设计文档（v1.8）
 │   ├── design-document-v2.md   # 产品设计文档（当前主文档）
 │   ├── implementation-plan.md  # 实施方案文档
 │   ├── progress.md             # 本文档 - 代码结构与进度
@@ -71,13 +78,14 @@ nsh-management/
 │   ├── tech-stack.md           # 技术栈文档
 │   ├── ui-polish-plan.md       # UI优化方案文档
 │   └── ui-style-guide.md       # UI风格参考文档
-├── .claude/                    # AI 编码规则（已入库）
-│   └── rules/
+├── .agent/                     # AI 规则与内部样例（rules 已入库）
+│   ├── docs/                   # 内部样例（比赛 CSV 入库；Excel 分析表仅本地）
+│   └── rules/                  # AI 编码规则（已入库）
 │       ├── code_rule.md        # 项目规则
 │       ├── file-length-rule.md # 文件行数限制
 │       ├── function_rule.md    # 模块开发文档规则
 │       └── git-commit-message.md # Git 提交信息规范
-├── CLAUDE.md                   # AI 项目入门指南（自动读取）
+├── AGENTS.md                   # AI 开发指南：规范/文档维护/进度追踪（自动读取）
 ├── start.bat                   # 一键启动脚本（前后端+首次建库）
 ├── deploy.sh                   # Linux 部署脚本（Docker Compose 一键部署）
 ├── docker-compose.yml          # Docker Compose 编排（Nginx + FastAPI + SQLite 卷）
@@ -106,6 +114,8 @@ nsh-management/
 | 录屏审核页面 | src/components/recording | 列表/提交/审核/进度/按姓名搜索/链接脱敏 | ✅ 已完成 |
 | 数据分析页面 | src/components/match-data | CSV导入/8Tab可视化（总览/列表/排行榜/阵营对比/小队分析/职业分析/职业深度/综合评分）/16项衍生指标/指标说明/ECharts图表 | ✅ 已完成 |
 | 系统配置页面 | src/views/config | 职业配置/账号管理/帮会管理（开发者） | ✅ 已完成 |
+| 个人战绩页面 | src/views/member + src/components/my-stats | 玩家搜索/单局明细/概览（按游戏 ID 聚合） | ✅ 已完成 |
+| 系统日志页面 | src/views/logs | 审计日志筛选/分页/清理（开发者） | ✅ 已完成 |
 | 样式系统 | src/styles/ | 浅色雅金风主题（theme.css + element-plus.css + index.css） | ✅ 已完成 |
 
 ### 后端模块
@@ -113,7 +123,7 @@ nsh-management/
 | 模块 | 路径 | 作用 | 状态 |
 |------|------|------|------|
 | 基础框架 | app/core | 配置（JWT 10h）、异步数据库、JWT/密码 | ✅ 已完成 |
-| 数据模型 | app/models | 10 张表 SQLAlchemy 模型 + 13 个 Alembic 迁移 | ✅ 已完成 |
+| 数据模型 | app/models | 11 张表 SQLAlchemy 模型 + 14 个 Alembic 迁移 | ✅ 已完成 |
 | 认证模块 | app/api/v1/auth.py | 登录/登出/me + 登录限流（含未知账号锁定） | ✅ 已完成 |
 | 常驻库 API | app/api/v1/members.py | CRUD/筛选/批量删/Excel导入/出勤率/职业统计 | ✅ 已完成 |
 | 联赛日程 API | app/api/v1/schedules.py | CRUD/时间范围/级联创建删除 | ✅ 已完成 |
@@ -123,7 +133,9 @@ nsh-management/
 | 数据分析 API | app/api/v1/match_data.py | CSV导入/6榜排行/职业17项统计/16项衍生指标/阵营对比/小队分析 | ✅ 已完成 |
 | 分析调整 API | app/api/v1/squad_adjustments.py | 小队分析内未排表成员→目标队伍的临时分配（仅作用于分析视图，不改正式排表） | ✅ 已完成 |
 | 开发者 API | app/api/v1/developer.py | 开发者专属路由（帮会管理/账号管理等） | ✅ 已完成 |
-| 系统配置 API | app/api/v1/config.py | 职业配置/账号管理/帮会管理（开发者）/删除帮会/删除账号 | ✅ 已完成 |
+| 系统配置 API | app/api/v1/config.py + accounts.py + guilds.py | 职业配置/账号管理/帮会管理（开发者）/删除帮会/删除账号（URL 前缀均为 /config） | ✅ 已完成 |
+| 个人战绩 API | app/api/v1/my_stats.py | 玩家名搜索/按游戏 ID 聚合历史战绩 | ✅ 已完成 |
+| 系统日志 API | app/api/v1/logs.py | 审计日志查询/统计/清理（开发者，审计中间件自动写入） | ✅ 已完成 |
 | 部署 | Dockerfile/docker-compose/deploy.sh | Docker Compose 一键部署（Nginx+FastAPI+SQLite） | ✅ 已完成 |
 
 ---
@@ -238,6 +250,20 @@ nsh-management/
 | 2026-09-11 | 移动端五处适配：①首页统计卡 ≤480 单列改两列（仅顶部四卡，间距/内边距收紧）；②成员编辑弹窗表单排版美化（标签 13px 加粗、字段间距收紧）；③出勤率统计面板移动端专属行列表（ID+职业+出勤率% / 进度条+正常·请假，替换表格，卡片内边距 14px）；④系统配置-职业配置表格换行列表（职业+数字步进器一行 / 说明整行）；⑤数据分析工具栏移动端布局（导入+阵营筛选均分、搜索占满+指标说明贴右）；vue-tsc 类型检查与生产构建通过 | 首页、常驻库、系统配置、数据分析、移动端 |
 | 2026-09-11 | 数据分析模块图表卡全面移动端适配审查与修复：审查确认所有图表 grid 均已折叠（10 文件）；两处补齐——①EChart.vue 封装组件统一做响应式高度（≤768px 数值高度 300~360px 收敛至 280px，ResizeObserver 自适应当前图，分析模块 8 处图表+个人战绩 2 处图表统一受益）；②9 个文件 chart-card 内边距收紧 14/16→12px（释放窄屏约 8px 宽度）；桌面端不变；vue-tsc 类型检查与生产构建通过 | 数据分析、移动端 |
 | 2026-09-11 | 修复出勤率统计面板移动端排序丢失（行列表替换表格后表头 sortable 无入口）：面板标题栏右侧新增「升序/降序」分段控件（仅移动端渲染，32px 紧凑高度），默认升序与接口默认一致（出勤率升序、无记录始终排最后）；桌面端仍用表格表头排序不变；vue-tsc 类型检查与生产构建通过 | 常驻库、出勤率、移动端 |
+| 2026-09-15 | 补人姓名规范化修复（用户反馈：出勤库添加补人后排表偶发不显示职业，移除重导才恢复）：根因为姓名规范化不一致——添加补人时原样保存（可带首尾空白）、保存排表时 strip，出勤姓名与槽位姓名精确匹配失败导致职业为空。修复：①新增 utils/member_names.py（normalize_member_name）与 services/lineup_attendance.py（get_profession_map/candidate_pool 抽出；职业映射/候选池统一按「去首尾空白」匹配，规范化后重名或空名显式报 409 而非静默覆盖）；②FillerCreate 模型 field_validator(mode=before) 先清理再校验长度，add_filler 清理姓名并与本场全部出勤姓名（含常驻成员）查重；③排表读取响应按规范化键填充槽位职业（仅响应规范化，不改写历史数据），save_lineup/import_lineup/请假清理统一 normalize_member_name，前端 FillerDialog 提交前 trim；④验证：后端 py_compile 通过、vue-tsc 通过、真实库 4 赛程 181 个已填槽位规范化后 100% 关联出勤职业、无重名冲突——存量异常数据无需删除重导即可恢复 | 出勤、排表 |
+| 2026-09-15 | 文档全面优化（依据实际代码核实）：修正出勤率公式/术语（客人→补人）/失效引用（保存考勤、verify_e2e）；权限矩阵与帮众端页面按代码校正（出勤/排表 Tab 仅管理员）；补全个人战绩/系统日志模块链路（目录树/模块表/页面树）；tech-stack 去重（目录树与依赖清单改引用权威源）并修正部署卷/健康检查/包管理/工具链失实项；ai-context 引用化；data-analysis 瘦身 768→610 行并修复 25 个代码块围栏与残缺字符；implementation-plan、ui-polish-plan 归档标注；ai-checklist 编号修复 + 新增「多处复制」遗漏模式 | 全部文档 |
+| 2026-09-15 | 工具目录改名同步（.claude/ → .agent/）：目录树、规则与样例文档路径引用（`.agent/rules/`、`.agent/docs/`）全量同步，deploy.sh 打包排除项由 `.claude` 改为 `.agent` | 全部文档、部署 |
+| 2026-09-15 | 根目录 `CLAUDE.md` 更名为 `AGENTS.md` 并扩充为 AI 开发指南：项目规范 + 权威源映射表（自 ai-checklist 迁入）+ 各文档维护时机 + 文档同步与进度追踪流程（完成后自检清单）+ AI 行为约定；ai-checklist/ai-context/architecture/.agent/rules 引用同步 | 文档体系 |
+| 2026-09-15 | 文档失实项修正（实测：11 张表/14 个迁移/head n8o9p0q1r2s3）：表数 10→11、迁移数 13→14、database-design 引用 v1.6→v1.8（含目录树条目）；补记 operation_logs 表；backend/frontend docs 帮众场景与权限按代码校正、补个人战绩/系统日志模块、移除 xlsx/保存考勤失实表述；DEPLOY.md 迁移 head 同步 | 文档体系 |
+| 2026-09-15 | 文件行数超限必要性评估与豁免标记：28 个超限文件逐一评估——15 个判定拆分（后端 3：match_data_service/config_service/api config；match-data 4：SquadAnalysisTab/PlayerAnalysis/RankingTab/ProfessionDetailTab；排表·出勤·录屏 3：LineupTab/AttendanceTab/RecordingTab；视图布局 5：HomeView/ConfigView/LogView/MemberListView/MainLayout），13 个判定为连续逻辑豁免并打「行数豁免」标记（LineupEditor、lineupBoard、MatchDataTab、LoginView、StatsMatchTable、ScoreTab、LeagueOverviewView、ScheduleListView、ScheduleCalendar、ImportHistoryDialog、OverviewTab、members.py、attendance.py）；file-length-rule.md 新增豁免机制与豁免清单，ai-context §3.1/§8.1 同步 | 代码规范、文档 |
+| 2026-09-15 | 阶段 1 拆分行数超限后端文件（match_data_service 581→4 文件：match_data_csv/match_data_stats/match_data_aggregate + 主服务 ~250；config_service 370→account_service/guild_service/config_service；api config.py 212→config/accounts/guilds 三路由，URL 不变）；同步 import 方（api match_data/developer、my_stats_service、main.py、selfcheck_indicators 脚本）；compileall + 导入冒烟 + 63 条路由健全性 + 指标自检通过 | 后端、代码拆分 |
+| 2026-09-15 | 阶段 2 拆分行数超限 match-data 前端文件（SquadAnalysisTab 1295→主 ~230 + 6 子组件 + squadCharts/squadCompareCharts；PlayerAnalysis 637→ ~230 + playerScatterCharts/playerAggregateCharts/playerRadar；RankingTab 477→ ~270 + rankingCharts；ProfessionDetailTab 476→ ~180 + ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts）；保持 route.query（squadTab/metricSub）持久化与全部样式令牌/类名不变；npm run build（vue-tsc + vite）通过 | 数据分析、代码拆分 |
+| 2026-09-15 | 阶段 3 拆分行数超限排表·出勤·录屏文件（AttendanceTab 898→ ~230 + AttendanceStatsBar/Toolbar/TablePanel/MobileList/useAttendanceList；RecordingTab 867→ ~170 + RecordingProgressBar/TablePanel/MobileList/useRecordingList + recording-shared.css（scoped src 共享样式）；LineupTab 497→ ~40 + LineupOverviewPanel/LineupOverviewGroup（PNG 导出与落盘逻辑随迁））；勾选/行内编辑/数组占位数据形态与样式令牌不变；npm run build（vue-tsc + vite）通过 | 出勤、录屏、排表、代码拆分 |
+| 2026-09-15 | 阶段 4 拆分行数超限视图/布局文件（HomeView 1065→主 ~220 + views/home/ 7 卡片组件 + home-shared.css；ConfigView 774→ ~130 + ConfigProfession/Guild/AccountPanel/AccountGroup；LogView 662→ ~210 + LogStatsCards/FilterBar/MobileList/TablePanel/DetailDialog/ClearDialog + logLabels.ts；MemberListView 594→ ~170 + MemberStatsBar/Toolbar/TablePanel + useMemberList；MainLayout 551→ ~130 + AppSidebar/AppHeader + useRouteProgress）；route.query tab 持久化、折叠态 localStorage、移动端抽屉/断点行为与全部样式令牌不变；npm run build（vue-tsc + vite）通过 | 首页、配置、日志、常驻库、布局、代码拆分 |
+| 2026-09-15 | 阶段 5 拆分收尾复测：15 个待拆分文件及其新建子文件全部 ≤300 行（最大 RecordingMobileList 299）；13 个豁免文件「行数豁免」标记齐全（grep 13/13）；全量扫描无新增超限文件 | 代码规范、代码拆分 |
+| 2026-09-15 | 生产部署改「单层 TLS」（消除双层 nginx + 双层 TLS）：边缘 nginx-proxy 独占 TLS/证书/限流/安全响应头/HTTP→HTTPS 跳转，反代改 `http://…:80` 并启用 upstream keepalive(32)；frontend 容器退化为「静态资源 + /api 反代」（明文 80、无宿主端口映射、无证书挂载），新增 `set_real_ip_from` 与 IP 头透传。配套修复：①内层 `limit_req` 以 `$remote_addr`（=边缘容器 IP）为键，导致限流退化为全站共享桶（登录全站 5 次/分、API 全站 20r/s）②安全响应头在 /assets 与 /api 上重复下发 ③登录审计 IP 记为前端容器 IP（新增 `core/client_ip.py` 的 `get_client_ip`，auth.py/main.py 复用）。验证：四域名入口 200、响应头计数均为 1、限流按真实 IP（外部第 5 次 429 且另一源 IP 正常）、内层 443 已关闭、30 次请求仅 2 条 upstream 连接 | 部署、安全、后端 |
+| 2026-09-15 | 部署收尾两项：①`/assets/` 响应头去重——删除 `expires 1y`（该指令会额外生成一个 `Cache-Control: max-age=31536000` 与显式 immutable 并存成重复头），仅保留 `add_header Cache-Control`，与 `index.html` 既有约定一致；②边缘层 XFF 由追加改为覆盖（`$proxy_add_x_forwarded_for` → `$remote_addr`，3 处），防客户端自带 XFF 伪造审计 IP。验证：`/`、`/assets/`、`/api/` 三处响应头重复种数均为 0，gzip 与 index.html no-store 未受影响，携带伪造 `X-Forwarded-For: 1.2.3.4` 的登录探测审计仍记录真实 IP；重建前端容器期间 90 次探测 89×200 + 1×502 | 部署、安全、后端 |
+| 2026-09-15 | 仓库收录策略调整：`.agent/rules/*.md` 4 份 AI 编码规则入库（.gitignore 以 `!.agent/rules/` 例外于 `rules/` 忽略，保证 AGENTS.md 权威源可追溯）；`.agent/docs/` 仅文本 CSV 入库，24MB `联赛数据表Plus3.0.xlsm` 保持本地忽略（本地文件不删，仅不收录历史） | 文档体系、仓库 |
 
 ---
 

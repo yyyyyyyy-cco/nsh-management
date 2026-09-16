@@ -20,30 +20,12 @@
 | Axios | 1.x | HTTP客户端 | 拦截器支持，请求/响应处理方便 |
 | vue.draggable.next | 4.x | 拖拽功能 | Vue3拖拽库，支持排序、移动 |
 | html2canvas | 1.x | 导出PNG | 将DOM转为Canvas导出图片 |
-| xlsx | 0.18.x | Excel解析 | 前端解析Excel文件 |
 | dayjs | 1.x | 日期处理 | 轻量级，API兼容moment |
 | echarts | 6.x | 图表库 | 数据分析可视化（总览/列表/排行/阵营对比/小队分析/职业深度/评分） |
 
 ### 前端项目结构
-```
-frontend/
-├── src/
-│   ├── api/              # API请求封装
-│   ├── components/       # 通用组件
-│   ├── layouts/          # 布局组件
-│   ├── views/            # 页面组件
-│   ├── stores/           # Pinia状态管理
-│   ├── composables/      # 组合式函数
-│   ├── utils/            # 工具函数
-│   ├── types/            # TypeScript类型定义
-│   ├── styles/           # 全局样式
-│   ├── router/           # 路由配置
-│   └── App.vue
-├── index.html
-├── vite.config.ts
-├── tsconfig.json
-└── package.json
-```
+
+> **权威源**：`progress.md`（完整代码目录树）。`src/` 分层：api / components / layouts / views / stores / composables / utils / types / styles / router。
 
 ---
 
@@ -61,57 +43,17 @@ frontend/
 | python-multipart | 0.x | 文件上传 | 处理multipart/form-data |
 | uvicorn | 0.x | ASGI服务器 | 高性能异步服务器 |
 | aiosqlite | 0.x | 异步SQLite | 异步数据库驱动 |
+| openpyxl | 3.1.5 | Excel 导入导出 | 成员模板解析与成员导出 |
+| Pillow | 11.x | 图片导出 | 常驻库导出图片 |
 
 ### 后端项目结构
-```
-backend/
-├── app/
-│   ├── api/              # API路由
-│   │   ├── deps.py       # 依赖注入
-│   │   └── v1/           # API版本1
-│   │       ├── auth.py   # 认证接口
-│   │       ├── members.py
-│   │       ├── schedules.py
-│   │       ├── attendance.py
-│   │       ├── lineups.py
-│   │       ├── recordings.py
-│   │       ├── match_data.py
-│   │       ├── squad_adjustments.py  # 分析调整
-│   │       ├── developer.py          # 开发者专属路由
-│   │       ├── config.py
-│   │       └── router.py             # 路由注册
-│   ├── core/             # 核心配置
-│   │   ├── config.py     # 应用配置
-│   │   ├── security.py   # 安全相关
-│   │   └── database.py   # 数据库连接
-│   ├── models/           # SQLAlchemy模型（10张表）
-│   ├── schemas/          # Pydantic数据模式
-│   ├── services/         # 业务逻辑层
-│   ├── utils/            # 工具函数（attendance_import/excel_import/constants）
-│   └── main.py           # 应用入口
-├── data/                 # SQLite数据库文件目录
-├── scripts/              # 工具脚本（generate_import_template/selfcheck_indicators）
-├── templates/            # Excel模板
-├── alembic/              # 数据库迁移（13个版本）
-├── alembic.ini
-├── requirements.txt
-└── pyproject.toml
-```
 
-### requirements.txt
-```
-fastapi>=0.115.0
-uvicorn[standard]==0.27.1
-sqlalchemy==2.0.36
-aiosqlite==0.20.0
-pydantic==2.11.4
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.0.1
-python-multipart>=0.0.18
-openpyxl==3.1.5
-alembic==1.13.1
-```
+> **权威源**：`progress.md`（完整代码目录树）。`app/` 分层：api（v1 路由）/ core / models / schemas / services / utils / init_db.py / main.py。
+
+### 依赖清单
+
+> **权威源**：`backend/requirements.txt`（实际锁定版本，含 bcrypt 固定 4.0.1 等注释说明）。
+
 > 版本说明（2026-08 实际验证）：适配 Python 3.13。pydantic≥2.10、SQLAlchemy≥2.0.36 才有 Python 3.13 预编译包；bcrypt 固定 4.0.1 以兼容 passlib 1.7.4（≥4.1 会报错）；fastapi 升级到 0.115+；openpyxl 用于 Excel 导入导出；python-multipart 升级修复 CVE-2024-53981。
 
 ---
@@ -134,7 +76,7 @@ alembic==1.13.1
 - 使用SQLAlchemy定义数据模型
 - 使用Pydantic进行数据验证
 - 使用Alembic管理数据库迁移
-- 数据库文件存储在 `data/nsh.db`
+- 数据库文件存储在 `backend/data/nsh.db`
 
 ---
 
@@ -176,10 +118,10 @@ alembic==1.13.1
 
 ### Docker Compose 配置
 实际配置见项目根目录 `docker-compose.yml`，关键特性：
-- **前端容器**：多阶段构建（npm build → Nginx 静态托管），端口 80，依赖后端健康检查
+- **前端容器**：多阶段构建（npm build → Nginx 静态托管），端口 80/443（HTTPS），依赖后端健康检查
 - **后端容器**：多阶段构建（pip install → uvicorn），端口 8000，SQLite 数据卷持久化
-- **数据卷**：`./data:/app/data`（SQLite 数据库持久化）
-- **健康检查**：后端 `/api/v1/auth/me` 健康探针，前端 depends_on 等待后端就绪
+- **数据卷**：命名卷 `nsh-data:/app/data`（SQLite 持久化）与 `nsh-logs:/app/logs`（日志）
+- **健康检查**：后端根路径 `/` 探活（Python urllib），前端 depends_on 等待 `service_healthy`
 - **环境变量**：通过 `.env` 文件注入（SECRET_KEY、DEVELOPER_PASSWORD、ADMIN_PASSWORD、MEMBER_PASSWORD）
 - **启动脚本**：`deploy.sh`（Linux 一键部署）、`start.bat`（Windows 本地开发）
 
@@ -189,15 +131,13 @@ alembic==1.13.1
 
 | 工具 | 用途 |
 |------|------|
-| ESLint | 前端代码规范检查 |
-| Prettier | 前端代码格式化 |
-| Ruff | Python代码规范检查和格式化 |
 | Git | 版本控制 |
-| VS Code | 推荐IDE |
+| VS Code | 推荐 IDE |
+| vue-tsc | 前端类型检查（`npm run build` 前置） |
+
+> ESLint / Prettier / Ruff 当前未配置（仓库内无配置文件与依赖），如需引入需先补充配置，属可选优化项。
 
 ### VS Code推荐插件
-- ESLint
-- Prettier
 - Volar (Vue官方插件)
 - Python
 - Pylance
@@ -209,8 +149,8 @@ alembic==1.13.1
 
 | 工具 | 用途 | 选择理由 |
 |------|------|---------|
-| pnpm | 前端包管理 | 速度快，磁盘占用小 |
-| pip / uv | Python包管理 | Python标准包管理，uv更快 |
+| npm | 前端包管理 | 随 Node 提供，仓库使用 package-lock.json 锁版本 |
+| pip + venv | Python包管理 | 随 Python 提供；uv 为可选加速方案（未启用） |
 
 ---
 
