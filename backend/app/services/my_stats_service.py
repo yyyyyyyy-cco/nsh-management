@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.match_data import MatchData
 from app.models.schedule import Schedule
-from app.services.match_data_service import calculate_indicators, get_camp_totals
+from app.services.match_data_stats import calculate_indicators, get_camp_totals
 
 # 排行榜维度：字段名 → 显示标签
 RANKING_FIELDS = {

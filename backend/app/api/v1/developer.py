@@ -6,7 +6,7 @@ from app.api.deps import require_developer
 from app.core.database import get_db
 from app.models.user import User
 from app.schemas.config import AccountCreate, AccountOut, GuildCreate, GuildOut
-from app.services import config_service
+from app.services import account_service, guild_service
 
 router = APIRouter(prefix="/developer", tags=["开发者"])
 
@@ -18,7 +18,7 @@ async def create_guild(
     session: AsyncSession = Depends(get_db),
 ) -> GuildOut:
     """创建帮会，并自动生成管理员和帮众账号（初始密码由创建者指定，仅开发者）。"""
-    guild = await config_service.create_guild(session, body.name, body.admin_password, body.member_password)
+    guild = await guild_service.create_guild(session, body.name, body.admin_password, body.member_password)
     return GuildOut.model_validate(guild)
 
 
@@ -30,7 +30,7 @@ async def create_account_for_guild(
     session: AsyncSession = Depends(get_db),
 ) -> AccountOut:
     """为指定帮会创建账号（仅开发者）。"""
-    account = await config_service.create_account(
+    account = await account_service.create_account(
         session, guild_id, body.username, body.password, body.role
     )
     return AccountOut.model_validate(account)

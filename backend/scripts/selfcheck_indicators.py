@@ -10,7 +10,7 @@ from types import SimpleNamespace
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.schemas.match_data import IndicatorOut, ProfessionStats, SquadOut
-from app.services.match_data_service import (
+from app.services.match_data_stats import (
     MATCH_DURATION_MINUTES,
     MATCH_DURATION_SECONDS,
     calculate_indicators,

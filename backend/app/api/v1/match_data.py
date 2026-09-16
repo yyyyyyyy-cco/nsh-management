@@ -20,7 +20,7 @@ from app.schemas.match_data import (
     SquadAnalysisResponse,
     SquadOut,
 )
-from app.services import match_data_service
+from app.services import match_data_aggregate, match_data_csv, match_data_service
 
 router = APIRouter(prefix="/schedules/{schedule_id}/match-data", tags=["比赛数据"])
 
@@ -36,12 +36,12 @@ async def import_csv(
     """导入 CSV 比赛数据到指定局（管理员，覆盖该局已有数据）。"""
     # 校验文件大小
     content = await file.read()
-    if len(content) > match_data_service.MAX_FILE_SIZE:
-        raise match_data_service.MatchDataError("文件大小超过 5MB 限制")
+    if len(content) > match_data_csv.MAX_FILE_SIZE:
+        raise match_data_csv.MatchDataError("文件大小超过 5MB 限制")
 
     # 校验文件类型
     if not file.filename.endswith(".csv"):
-        raise match_data_service.MatchDataError("仅支持 CSV 文件")
+        raise match_data_csv.MatchDataError("仅支持 CSV 文件")
 
     text = content.decode("utf-8-sig")  # 处理 BOM
     result = await match_data_service.import_csv(session, current_user.guild_id, schedule_id, round_no, text)
@@ -100,7 +100,7 @@ async def get_profession_stats(
     session: AsyncSession = Depends(get_db),
 ) -> ProfessionStatsResponse:
     """获取职业统计数据。"""
-    stats = await match_data_service.get_profession_stats(
+    stats = await match_data_aggregate.get_profession_stats(
         session, current_user.guild_id, schedule_id, round_no, camp
     )
     return ProfessionStatsResponse(
@@ -116,7 +116,7 @@ async def get_indicators(
     session: AsyncSession = Depends(get_db),
 ) -> IndicatorsResponse:
     """获取带 16 项衍生指标的数据列表。"""
-    data = await match_data_service.get_indicators(session, current_user.guild_id, schedule_id, round_no)
+    data = await match_data_aggregate.get_indicators(session, current_user.guild_id, schedule_id, round_no)
     return IndicatorsResponse(
         items=[IndicatorOut(**i) for i in data["items"]],
         camps=[CampTotals(**c) for c in data["camps"]],
@@ -131,7 +131,7 @@ async def get_camp_compare(
     session: AsyncSession = Depends(get_db),
 ) -> CampCompareResponse:
     """获取阵营对比数据（各阵营汇总 + 差值/波动值）。"""
-    data = await match_data_service.get_camp_comparison(session, current_user.guild_id, schedule_id, round_no)
+    data = await match_data_aggregate.get_camp_comparison(session, current_user.guild_id, schedule_id, round_no)
     return CampCompareResponse(
         camps={name: CampTotals(**t) for name, t in data["camps"].items()},
         comparison=data["comparison"],

@@ -20,7 +20,7 @@ from app.services.attendance_service import AttendanceServiceError
 from app.services.auth_service import AuthError
 from app.services.config_service import ConfigServiceError
 from app.services.lineup_service import LineupServiceError
-from app.services.match_data_service import MatchDataError
+from app.services.match_data_csv import MatchDataError
 from app.services.member_service import MemberServiceError
 from app.services.recording_service import RecordingServiceError
 from app.services.schedule_service import ScheduleServiceError
