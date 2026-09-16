@@ -70,9 +70,10 @@ docker-compose.override.yml
 # ===== 项目特定规则 =====
 # 内部文档和规则（不对外公开）
 rules/
-.qoder/
-.claude/docs/
-.trae/
+# AI 编码规则随仓库入库（例外于上一行的 rules/ 忽略，AGENTS.md 以其为权威源）
+!.agent/rules/
+# .agent/docs 样例：文本 CSV 入库；Excel 分析表体积过大（24MB）仅本地保留
+.agent/docs/*.xlsm
 
 # 前端调试截图（开发过程中产生）
 frontend/docs/*.png
