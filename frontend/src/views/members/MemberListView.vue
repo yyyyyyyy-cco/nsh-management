@@ -28,6 +28,7 @@
             @sort-change="onSortChange"
             @edit="openForm"
             @delete="onDelete"
+            @detail="goDetail"
             @reload="load"
           />
         </el-card>
@@ -107,6 +108,11 @@ const editingMember = ref<MemberInfo | null>(null)
 function openForm(member: MemberInfo | null = null) {
   editingMember.value = member
   formVisible.value = true
+}
+
+/** 进入成员详情页（点击成员 ID/名字） */
+function goDetail(member: MemberInfo) {
+  router.push({ name: 'member-detail', params: { id: member.id } })
 }
 
 onMounted(() => {

@@ -29,6 +29,11 @@
         <el-icon><Calendar /></el-icon>
         <span>联赛日程</span>
       </el-menu-item>
+      <!-- 管理员：个人战绩（与帮众同页，可自由按 ID 搜索任意成员） -->
+      <el-menu-item v-if="auth.user?.role === 'admin'" index="/my-stats" :title="collapsed ? '个人战绩' : undefined" @mouseenter="prefetchRoute('/my-stats')">
+        <el-icon><TrendCharts /></el-icon>
+        <span>个人战绩</span>
+      </el-menu-item>
       <el-menu-item v-if="auth.isAdmin" index="/config" :title="collapsed ? '系统配置' : undefined" @mouseenter="prefetchRoute('/config')">
         <el-icon><Setting /></el-icon>
         <span>系统配置</span>

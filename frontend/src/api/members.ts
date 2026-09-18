@@ -63,6 +63,11 @@ export function deleteMember(id: number): Promise<{ message: string }> {
   return http.delete(`/members/${id}`)
 }
 
+/** 查询单个成员详情（成员详情页）。 */
+export function getMember(id: number): Promise<MemberInfo> {
+  return http.get(`/members/${id}`)
+}
+
 export function batchDeleteMembers(ids: number[]): Promise<{ message: string }> {
   return http.post('/members/batch-delete', { ids })
 }

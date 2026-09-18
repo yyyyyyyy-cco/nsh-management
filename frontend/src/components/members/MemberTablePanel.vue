@@ -10,7 +10,9 @@
           :model-value="selectedIds.includes(row.id)"
           @change="$emit('toggle-select', row.id)"
         />
-        <span class="mr-name">{{ row.name }}</span>
+        <span class="mr-name mr-name--link" title="查看成员详情" @click="$emit('detail', row)">
+          {{ row.name }}<el-icon class="mr-link-icon"><ArrowRight /></el-icon>
+        </span>
         <el-tag class="mr-status" :type="row.status === 'formal' ? 'primary' : 'info'" effect="light" size="small">
           {{ row.status === 'formal' ? '正式' : '替补' }}
         </el-tag>
@@ -18,8 +20,8 @@
       <div v-if="row.remark" class="mr-remark">备注：{{ row.remark }}</div>
       <div class="mr-actions">
         <span class="mr-profs">
-          <span class="prof-tag" :style="profStyle(row.main_profession)">{{ row.main_profession }}</span>
-          <span v-if="row.sub_profession" class="prof-tag prof-tag--sub" :style="profStyle(row.sub_profession)">
+          <span class="prof-tag" :style="profTagStyle(row.main_profession)">{{ row.main_profession }}</span>
+          <span v-if="row.sub_profession" class="prof-tag prof-tag--sub" :style="profTagStyle(row.sub_profession)">
             {{ row.sub_profession }}
           </span>
         </span>
@@ -40,17 +42,17 @@
     <el-table-column type="selection" width="48" />
     <el-table-column prop="name" label="ID" min-width="120" sortable="custom">
       <template #default="{ row }">
-        <span class="member-name">{{ row.name }}</span>
+        <span class="member-name member-name--link" title="查看成员详情" @click="$emit('detail', row)">{{ row.name }}</span>
       </template>
     </el-table-column>
     <el-table-column prop="main_profession" label="主职业" min-width="100" sortable="custom">
       <template #default="{ row }">
-        <span class="prof-tag" :style="profStyle(row.main_profession)">{{ row.main_profession }}</span>
+        <span class="prof-tag" :style="profTagStyle(row.main_profession)">{{ row.main_profession }}</span>
       </template>
     </el-table-column>
     <el-table-column prop="sub_profession" label="副职业" min-width="90">
       <template #default="{ row }">
-        <span v-if="row.sub_profession" class="prof-tag prof-tag--sub" :style="profStyle(row.sub_profession)">
+        <span v-if="row.sub_profession" class="prof-tag prof-tag--sub" :style="profTagStyle(row.sub_profession)">
           {{ row.sub_profession }}
         </span>
         <span v-else class="dim">-</span>
@@ -84,9 +86,11 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowRight } from '@element-plus/icons-vue'
+
 import type { MemberQuery } from '@/api/members'
 import type { MemberInfo } from '@/types/member'
-import { PROF_COLORS } from '@/utils/profession'
+import { profTagStyle } from '@/utils/profession'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
 
 defineProps<{
@@ -105,6 +109,7 @@ const emit = defineEmits<{
   'sort-change': [payload: { prop: string; order: 'ascending' | 'descending' | null }]
   edit: [row: MemberInfo]
   delete: [row: MemberInfo]
+  detail: [row: MemberInfo]
   reload: []
 }>()
 
@@ -115,19 +120,36 @@ function onSelectionChange(rows: MemberInfo[]) {
 function onSortChange(payload: { prop: string; order: 'ascending' | 'descending' | null }) {
   emit('sort-change', payload)
 }
-
-function profStyle(prof: string) {
-  const bg = PROF_COLORS[prof] || '#e5e7eb'
-  const dark = ['#3E6BF4', '#F04545', '#8B5CF6', '#4F95FF', '#605EF0', '#C6834D']
-  const color = dark.includes(bg) ? '#fff' : '#333'
-  return { background: bg, color }
-}
 </script>
 
 <style scoped>
 .member-name {
   font-weight: 600;
   color: var(--ink-900);
+}
+
+/* 点击进入成员详情：金色 hover 反馈 */
+.member-name--link,
+.mr-name--link {
+  cursor: pointer;
+  transition: color var(--dur-fast);
+}
+
+.member-name--link:hover,
+.mr-name--link:hover {
+  color: var(--gold-700);
+}
+
+.mr-link-icon {
+  margin-left: 2px;
+  font-size: 12px;
+  vertical-align: -1px;
+  color: var(--ink-300);
+  transition: color var(--dur-fast);
+}
+
+.mr-name--link:hover .mr-link-icon {
+  color: var(--gold-600);
 }
 
 /* 职业色标签 */

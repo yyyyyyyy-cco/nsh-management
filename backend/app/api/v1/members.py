@@ -187,3 +187,16 @@ async def attendance_rate(
     session: AsyncSession = Depends(get_db),
 ) -> list[AttendanceRateItem]:
     return await member_service.attendance_rate(session, current_user.guild_id)
+
+
+# 注意：动态路径 GET /{member_id} 必须注册在全部 GET 具体路径（/export、/export-image、
+# /profession-stats、/attendance-rate）之后，否则具体路径会被 {member_id} 捕获报 422
+@router.get("/{member_id}", response_model=MemberOut)
+async def get_member_detail(
+    member_id: int,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> MemberOut:
+    """查询单个成员详情（成员详情页用）。"""
+    member = await member_service.get_member(session, current_user.guild_id, member_id)
+    return MemberOut.model_validate(member)

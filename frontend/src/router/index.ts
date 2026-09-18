@@ -29,6 +29,12 @@ const router = createRouter({
           meta: { title: '常驻库', adminOnly: true },
         },
         {
+          path: 'members/:id',
+          name: 'member-detail',
+          component: () => import('@/views/members/MemberDetailView.vue'),
+          meta: { title: '成员详情', adminOnly: true },
+        },
+        {
           path: 'schedules',
           name: 'schedules',
           component: () => import('@/views/schedules/ScheduleListView.vue'),
