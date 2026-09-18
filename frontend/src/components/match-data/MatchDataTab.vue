@@ -36,6 +36,19 @@
       </el-select>
       <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
       <div class="spacer" />
+      <!-- 生成战报：整场聚合（不随当前局），无任何已导入局时禁用 -->
+      <el-tooltip
+        v-if="auth.isAdmin"
+        :content="importedRounds.length === 0 ? '请先导入比赛数据' : ''"
+        :disabled="importedRounds.length > 0"
+        placement="top"
+      >
+        <span>
+          <el-button :icon="Trophy" :disabled="importedRounds.length === 0" @click="reportVisible = true">
+            生成战报
+          </el-button>
+        </span>
+      </el-tooltip>
       <el-button text type="primary" @click="guideRef?.open()">
         <el-icon><InfoFilled /></el-icon>
         指标说明
@@ -96,6 +109,9 @@
     <!-- 指标说明弹窗 -->
     <MetricsGuideDialog ref="guideRef" />
 
+    <!-- 单场图文战报弹窗 -->
+    <MatchReportDialog v-model="reportVisible" :schedule-id="scheduleId" :schedule="schedule ?? null" />
+
     <!-- 隐藏的文件输入 -->
     <input ref="fileInput" type="file" accept=".csv" style="display: none" @change="onFileChange" />
   </div>
@@ -105,10 +121,11 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { InfoFilled, Search } from '@element-plus/icons-vue'
+import { InfoFilled, Search, Trophy } from '@element-plus/icons-vue'
 
 import { getMatchData, getRankings, importCsv } from '@/api/matchData'
 import type { CampStats, MatchData, RankingsResponse } from '@/types/matchData'
+import type { ScheduleInfo } from '@/types/schedule'
 import { useAuthStore } from '@/stores/auth'
 import { CAMP_COLORS } from './analysis'
 import OverviewTab from './OverviewTab.vue'
@@ -119,9 +136,10 @@ import IndicatorsTab from './IndicatorsTab.vue'
 import CampCompareTab from './CampCompareTab.vue'
 import SquadAnalysisTab from './SquadAnalysisTab.vue'
 import ProfessionDetailTab from './ProfessionDetailTab.vue'
+import MatchReportDialog from './MatchReportDialog.vue'
 import MetricsGuideDialog from './MetricsGuideDialog.vue'
 
-const props = defineProps<{ scheduleId: number }>()
+const props = defineProps<{ scheduleId: number; schedule?: ScheduleInfo | null }>()
 
 const route = useRoute()
 const router = useRouter()
@@ -151,6 +169,7 @@ onBeforeUnmount(() => {
 const activeTab = ref(String(route.query.matchTab || 'overview'))
 const fileInput = ref<HTMLInputElement | null>(null)
 const guideRef = ref<InstanceType<typeof MetricsGuideDialog> | null>(null)
+const reportVisible = ref(false) // 单场图文战报弹窗
 const rankings = ref<RankingsResponse>({
   kills_ranking: [],
   damage_ranking: [],
