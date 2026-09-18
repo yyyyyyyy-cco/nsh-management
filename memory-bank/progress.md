@@ -37,8 +37,8 @@ nsh-management/
 │   │   │   ├── attendance/    # 出勤库（AttendanceTab+AttendanceStatsBar/AttendanceToolbar/AttendanceTablePanel/AttendanceMobileList/FillerDialog/ImportMemberDialog/LeaveImportDialog/SubstituteImportDialog）
 │   │   │   ├── common/        # 通用组件（SkeletonTable）
 │   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab+LineupOverviewPanel/LineupOverviewGroup/ImportHistoryDialog/MatchConfirmDialog）
-│   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/EChart/analysis.ts/chartTheme.ts）
-│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/ProfessionShortage）
+│   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/MatchReportDialog/reportData.ts/report（MatchReportPoster/PosterHeader/PosterOverview/PosterMvpKings/PosterRankings/PosterRounds/PosterProfessions）/EChart/analysis.ts/chartTheme.ts）
+│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/MemberDetailHeader/ProfessionShortage）
 │   │   │   ├── my-stats/      # 个人战绩（PlayerSearch/StatsOverview/StatsMatchTable/StatsRankingPosition/StatsTrendChart）
 │   │   │   ├── recording/     # 录屏审核（RecordingTab+RecordingProgressBar/RecordingTablePanel/RecordingMobileList/recording-shared.css）
 │   │   │   └── schedules/     # 联赛日程（ScheduleCalendar）
@@ -56,6 +56,7 @@ nsh-management/
 │   │       ├── logs/LogView.vue       # 系统日志壳（+ LogStatsCards/LogFilterBar/LogMobileList/LogTablePanel/LogDetailDialog/LogClearDialog/logLabels.ts）
 │   │       ├── member/MyStatsView.vue # 个人战绩（帮众）
 │   │       ├── members/MemberListView.vue  # 常驻库
+│   │       ├── members/MemberDetailView.vue # 成员详情（管理员：信息卡+出勤率+历史战绩，复用 my-stats 组件）
 │   │       └── schedules/             # 联赛日程
 │   │           ├── ScheduleListView.vue      # 日程列表
 │   │           ├── ScheduleDetailView.vue    # 赛程详情（管理员：出勤/排表/录屏/分析；帮众：录屏/分析）
@@ -75,6 +76,7 @@ nsh-management/
 │   ├── implementation-plan.md  # 实施方案文档
 │   ├── progress.md             # 本文档 - 代码结构与进度
 │   ├── security-review.md      # 安全审查文档
+│   ├── stats-report-plan.md    # 成员战绩与战报实施方案（已实施，2026-09-17）
 │   ├── tech-stack.md           # 技术栈文档
 │   ├── ui-polish-plan.md       # UI优化方案文档
 │   └── ui-style-guide.md       # UI风格参考文档
@@ -107,14 +109,14 @@ nsh-management/
 | 基础框架 | frontend/ | Vue3+TS+Vite+Element Plus 骨架、浅金色主题 | ✅ 已完成 |
 | 认证链路 | src/{api,stores,router} | Axios 封装、Pinia、路由守卫 | ✅ 已完成 |
 | 布局与登录 | src/{layouts,views} | 主布局（可折叠侧边栏）、登录页（锁定倒计时）、首页仪表盘 | ✅ 已完成 |
-| 常驻库页面 | src/views/members | 列表/筛选/弹窗/Excel导入/出勤率 | ✅ 已完成 |
+| 常驻库页面 | src/views/members | 列表/筛选/弹窗/Excel导入/出勤率/成员详情战绩页（复用 my-stats 组件） | ✅ 已完成 |
 | 联赛日程页面 | src/views/schedules | 日历/创建弹窗/详情Tab/联赛总览 | ✅ 已完成 |
 | 出勤库页面 | src/components/attendance | 统计/导入成员/导入请假/替补/补人/状态/保存 | ✅ 已完成 |
 | 排表页面 | src/components/lineups | 候选池/拖拽编排/总览/导出PNG/导入历史排表 | ✅ 已完成 |
 | 录屏审核页面 | src/components/recording | 列表/提交/审核/进度/按姓名搜索/链接脱敏 | ✅ 已完成 |
-| 数据分析页面 | src/components/match-data | CSV导入/8Tab可视化（总览/列表/排行榜/阵营对比/小队分析/职业分析/职业深度/综合评分）/16项衍生指标/指标说明/ECharts图表 | ✅ 已完成 |
+| 数据分析页面 | src/components/match-data | CSV导入/8Tab可视化（总览/列表/排行榜/阵营对比/小队分析/职业分析/职业深度/综合评分）/16项衍生指标/指标说明/单场图文战报（PNG 导出）/ECharts图表 | ✅ 已完成 |
 | 系统配置页面 | src/views/config | 职业配置/账号管理/帮会管理（开发者） | ✅ 已完成 |
-| 个人战绩页面 | src/views/member + src/components/my-stats | 玩家搜索/单局明细/概览（按游戏 ID 聚合） | ✅ 已完成 |
+| 个人战绩页面 | src/views/member + src/components/my-stats | 玩家搜索/单局明细/概览（按游戏 ID 聚合）；管理员菜单入口开放，同组件复用于成员详情页 | ✅ 已完成 |
 | 系统日志页面 | src/views/logs | 审计日志筛选/分页/清理（开发者） | ✅ 已完成 |
 | 样式系统 | src/styles/ | 浅色雅金风主题（theme.css + element-plus.css + index.css） | ✅ 已完成 |
 
@@ -125,7 +127,7 @@ nsh-management/
 | 基础框架 | app/core | 配置（JWT 10h）、异步数据库、JWT/密码 | ✅ 已完成 |
 | 数据模型 | app/models | 11 张表 SQLAlchemy 模型 + 14 个 Alembic 迁移 | ✅ 已完成 |
 | 认证模块 | app/api/v1/auth.py | 登录/登出/me + 登录限流（含未知账号锁定） | ✅ 已完成 |
-| 常驻库 API | app/api/v1/members.py | CRUD/筛选/批量删/Excel导入/出勤率/职业统计 | ✅ 已完成 |
+| 常驻库 API | app/api/v1/members.py | CRUD/筛选/批量删/Excel导入/出勤率/职业统计/单成员详情 | ✅ 已完成 |
 | 联赛日程 API | app/api/v1/schedules.py | CRUD/时间范围/级联创建删除 | ✅ 已完成 |
 | 出勤库 API | app/api/v1/attendance.py | 导入成员/替补/补人/请假导入/状态/保存/职业切换 | ✅ 已完成 |
 | 排表 API | app/api/v1/lineups.py | 候选池/读写/保存校验/规范化/导入历史/备注 | ✅ 已完成 |
@@ -265,6 +267,10 @@ nsh-management/
 | 2026-09-15 | 部署收尾两项：①`/assets/` 响应头去重——删除 `expires 1y`（该指令会额外生成一个 `Cache-Control: max-age=31536000` 与显式 immutable 并存成重复头），仅保留 `add_header Cache-Control`，与 `index.html` 既有约定一致；②边缘层 XFF 由追加改为覆盖（`$proxy_add_x_forwarded_for` → `$remote_addr`，3 处），防客户端自带 XFF 伪造审计 IP。验证：`/`、`/assets/`、`/api/` 三处响应头重复种数均为 0，gzip 与 index.html no-store 未受影响，携带伪造 `X-Forwarded-For: 1.2.3.4` 的登录探测审计仍记录真实 IP；重建前端容器期间 90 次探测 89×200 + 1×502 | 部署、安全、后端 |
 | 2026-09-15 | 仓库收录策略调整：`.agent/rules/*.md` 4 份 AI 编码规则入库（.gitignore 以 `!.agent/rules/` 例外于 `rules/` 忽略，保证 AGENTS.md 权威源可追溯）；`.agent/docs/` 仅文本 CSV 入库，24MB `联赛数据表Plus3.0.xlsm` 保持本地忽略（本地文件不删，仅不收录历史） | 文档体系、仓库 |
 | 2026-09-15 | 发布 v1.1.0（tag `v1.1.0`，双远端同步）：自 v1.0.0 起累计 38 个提交——新增个人战绩与系统日志模块、UI 优化与移动端适配、出勤备注与性能优化，以及超限文件拆分、补人姓名规范化修复、单层 TLS 部署改造 | 版本发布、双远程 |
+| 2026-09-17 | 新增成员战绩与战报实施方案（stats-report-plan.md，用户确认三项决策：独立成员详情页 / 管理员开放个人战绩菜单 / 战报先做单场）：成员详情战绩页（/members/:id）与单场图文战报（数据分析一键生成 PNG）；design-document 升至 v2.5、backend/frontend docs 登记待办 | 文档、成员详情、战报 |
+| 2026-09-17 | 成员详情战绩页与单场图文战报实施完成：①后端新增 GET /members/{member_id}（require_admin，注册于全部具体路径之后防路由捕获）；②前端新增 MemberDetailView/MemberDetailHeader + /members/:id 路由 + 常驻库 ID/名字入口 + 管理员「个人战绩」菜单（AppSidebar）；③profTagStyle 抽取至 utils/profession（成员表同步复用）；④战报：MatchReportDialog + reportData.ts + report/ 海报 5 组件（960px 固定宽：头部/阵营对比双向条形/三榜 TOP3 金银铜徽章/职业分布），MatchDataTab 工具栏「生成战报」+ schedule props 透传，html2canvas 动态加载导出 PNG（独立 chunk）；vue-tsc + vite build 通过，待浏览器验收 | 常驻库、个人战绩、数据分析、后端 |
+| 2026-09-17 | 战报 v2 重设计（用户反馈原版太简陋、无信息含量）：海报扩展为 8 区块——新增全场总览（四数字卡）、MVP 金卡+数据之王六格（击杀/伤害/建筑/治疗/承伤/焚骨）、逐局战况（每局结果+双营比分+该局 MVP/击杀王），阵营对比扩至 6 指标+差值、榜单按玩家去重取最佳单局、职业分布加伤害占比；数据层改为单接口（getIndicators 全场记录）+ 前端组装（复用 computeScores/aggregateProfessions）；vue-tsc + vite build 通过 | 数据分析、战报 |
+| 2026-09-17 | 战报口径调整（用户要求：不要两个阵营、只要我方）：我方阵营判定复刻后端小队分析口径（排表成员命中数最多阵营，兜底首条记录阵营），全部区块仅统计我方记录；删除阵营对比区块（PosterCampCompare 移除）、总览扩为六卡（击杀/助攻/伤害/建筑/治疗/焚骨）、逐局改我方击杀/伤害/治疗；弹窗加载增加排表接口（失败降级）；vue-tsc + vite build 通过 | 数据分析、战报 |
 
 ---
 

@@ -21,6 +21,7 @@ nsh-management/
 │   ├── implementation-plan.md    # 实施方案文档
 │   ├── progress.md               # 项目进度文档
 │   ├── security-review.md        # 安全审查文档
+│   ├── stats-report-plan.md      # 成员战绩与战报实施方案
 │   ├── tech-stack.md             # 技术栈文档
 │   ├── ui-polish-plan.md         # UI优化方案文档
 │   └── ui-style-guide.md         # UI风格参考文档
@@ -141,6 +142,11 @@ nsh-management/
 - **作用**：AI 入口文档（原 `CLAUDE.md`，2026-09-15 更名扩充）：项目简介、权威源映射、各文档维护时机、文档同步与进度追踪流程（自检清单）、代码/Git/安全摘要、AI 行为约定
 - **更新时机**：项目结构、规范或维护流程变更时更新
 
+### 18. 成员战绩与战报实施方案
+- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\stats-report-plan.md`
+- **作用**：成员详情战绩页（管理员独立页）与单场图文战报的实施方案（2026-09-17 已实施完成，待浏览器验收）：决策记录、交互设计、技术方案、文件清单、验证方案、二期规划
+- **更新时机**：方案调整或实施完成时更新
+
 ---
 
 ## 更新记录
@@ -189,6 +195,10 @@ nsh-management/
 | 2026-09-15 | 根目录 `CLAUDE.md` 更名为 `AGENTS.md`（AI 开发指南）：扩充为项目规范 + 权威源映射 + 各文档维护时机 + 文档同步与进度追踪流程（自检清单）+ AI 行为约定；权威源映射表与自检清单由 ai-checklist.md 迁入并以其为准；ai-checklist/ai-context/architecture/progress/.agent/rules 引用同步 | AGENTS.md, ai-checklist.md, ai-context.md, architecture.md, progress.md |
 | 2026-09-15 | 文档失实项修正（实测核对）：全局表数 10→11、迁移数 13→14、database-design v1.8（补 operation_logs 表）；backend/frontend docs 角色场景/模块清单/待办状态按代码校正；README 功能表与权限行、DEPLOY.md 迁移 head（n8o9p0q1r2s3）同步 | 全部文档 |
 | 2026-09-15 | 仓库收录策略调整：`.agent/rules/*.md` 4 份规则文档入库（AGENTS.md 权威源可追溯），本文档 §文档结构总览同步标注入库/忽略范围；`.agent/docs/` 仅文本 CSV 入库、24MB Excel 分析表本地忽略 | architecture.md, progress.md, .gitignore |
+| 2026-09-17 | 新增成员战绩与战报实施方案（stats-report-plan.md 入索引：目录树 + 文档说明 §18 + 更新记录）：成员详情战绩页与单场图文战报，方案已确认待实施 | stats-report-plan.md, design-document-v2.md, backend/docs, frontend/docs |
+| 2026-09-17 | 成员战绩与战报方案实施完成：stats-report-plan 状态更新（已实施待验收，含实施记录）、文档说明 §18 描述同步；design-document v2.5 描述去规划标注；backend/frontend docs 状态流转；代码变更记录见 progress.md | stats-report-plan.md, design-document-v2.md, backend/docs, frontend/docs, progress.md |
+| 2026-09-17 | 战报 v2 重设计：海报扩为 8 区块（总览/MVP 与数据之王/阵营对比 6 指标/榜单去重/逐局战况/职业伤害占比）；stats-report-plan §3.2–3.3 与更新记录同步；design-document §4.5 战报描述更新；frontend docs 同步 | stats-report-plan.md, design-document-v2.md, frontend/docs |
+| 2026-09-17 | 战报口径调整（仅我方阵营）：stats-report-plan §1.2/§3 与更新记录同步（7 区块、排表判定我方、两请求加载）；design-document §4.5 更新；frontend docs 与 progress 目录树/更新记录同步 | stats-report-plan.md, design-document-v2.md, frontend/docs, progress.md |
 
 ---
 

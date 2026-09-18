@@ -89,6 +89,7 @@
 - ✅ 用户表 guild_id 允许 NULL（developer 角色）、relationship + guild_name 属性
 - ✅ Docker 部署：backend/frontend Dockerfile（多阶段构建）、docker-compose.yml、deploy.sh、entrypoint.sh、nginx.conf
 - ✅ .env.example 部署环境变量模板
+- ✅ 成员详情接口（GET /members/{member_id}，require_admin；注册于 /export、/export-image、/profession-stats、/attendance-rate 等具体路径之后，防动态路由捕获 422）
 
 ### 进行中
 - 无
@@ -121,3 +122,5 @@
 | 2026-08-26 | 新增分析调整 API（squad_adjustments），文档全面对齐（developer 角色、表数 10、迁移数 9、v1.6 引用） |
 | 2026-09-15 | 补人姓名规范化修复（出勤与排表姓名匹配统一去首尾空白，新增 utils/member_names 与 services/lineup_attendance，重名冲突显式报错） |
 | 2026-09-15 | 文档失实项修正：表数 10→11、迁移数 13→14、database-design 引用 v1.6→v1.8、帮众场景按代码校正、补个人战绩/系统日志模块、移除「保存考勤」失实表述 |
+| 2026-09-17 | 登记规划中功能：成员详情接口 GET /members/{member_id}（P1，方案见 stats-report-plan.md） |
+| 2026-09-17 | 成员详情接口实施完成（GET /members/{member_id}，require_admin，注册于全部具体路径之后防路由捕获） |

@@ -103,6 +103,8 @@
 - ✅ 全站表格响应式（width→min-width，取消 fixed 固定列）
 - ✅ 样式系统完善（element-plus.css +496 行深度定制、theme.css +138 行设计令牌、index.css +106 行全局样式）
 - ✅ UI 优化完成（P0–P3 共 11 项 + 代码质量重构 2 项，详见 `memory-bank/ui-polish-plan.md` v1.2）
+- ✅ 成员详情战绩页（管理员 /members/:id：信息卡 + 出勤率 + 历史战绩，复用个人战绩四组件；常驻库 ID/名字入口金色 hover；管理员「个人战绩」菜单开放）
+- ✅ 单场图文战报（数据分析工具栏「生成战报」→ 预览弹窗 → html2canvas 导出 PNG；海报 960px 固定宽 7 区块：头部/我方总览（6 卡）/MVP 与数据之王/三榜 TOP3/逐局战况/职业分布；仅统计我方阵营——排表命中判定，与后端小队分析口径一致）
 
 ### 进行中
 - 无
@@ -144,3 +146,7 @@
 | 2026-08-26 | 新增 UI 优化待办清单（P0-P3 共 11 项，详见 ui-polish-plan.md），下一步计划更新 |
 | 2026-09-15 | 添加补人弹窗提交前去除姓名首尾空白（配合后端规范化，修复排表偶发不显示职业） |
 | 2026-09-15 | 文档失实项修正：帮众权限/场景按代码校正（出勤与排表仅管理员）、移除 xlsx 与「保存考勤」表述、UI 优化待办标记完成、补个人战绩/系统日志页面 |
+| 2026-09-17 | 登记规划中功能：成员详情战绩页（/members/:id + 常驻库入口 + 管理员个人战绩菜单）、单场图文战报（数据分析一键生成 PNG），方案见 stats-report-plan.md |
+| 2026-09-17 | 新增成员详情战绩页（MemberDetailView/MemberDetailHeader + 路由 + 常驻库入口 + 管理员菜单）与单场图文战报（MatchReportDialog/report 海报 5 组件 + html2canvas 导出）；profTagStyle 抽取至 utils/profession；vue-tsc + vite build 通过 |
+| 2026-09-17 | 战报 v2 重设计（用户反馈原版太简陋、无信息含量）：海报扩为 8 区块——新增 PosterOverview/PosterMvpKings/PosterRounds，阵营对比扩至 6 指标+差值，榜单去重玩家、职业加伤害占比；数据层改单接口（getIndicators）+ 前端组装；vue-tsc + vite build 通过 |
+| 2026-09-17 | 战报口径调整：仅统计我方阵营（排表命中判定，与后端小队分析一致）——删除阵营对比区块、总览扩六卡、逐局改我方击杀/伤害/治疗；弹窗加载 +排表接口（失败降级）；vue-tsc + vite build 通过 |

@@ -48,6 +48,7 @@
 | 技术栈 | `memory-bank/tech-stack.md` | 依赖版本、部署方案 | 依赖 / 构建 / 部署调整 |
 | UI 规范 | `memory-bank/ui-style-guide.md` | 浅色雅金风最终规范 | UI 规范调整 |
 | UI 优化方案 | `memory-bank/ui-polish-plan.md` | 已完成归档（剩余 3 项可选） | 完成剩余项时 |
+| 成员战绩与战报方案 | `memory-bank/stats-report-plan.md` | 已实施完成（2026-09-17） | 方案调整时 |
 | 实施方案 | `memory-bank/implementation-plan.md` | 历史规划存档（已完工） | 不维护 |
 | 项目进度 | `memory-bank/progress.md` | 代码目录树 + 模块状态 + 变更记录（**进度唯一权威**） | **每次代码变更后** |
 | 文档索引 | `memory-bank/architecture.md` | 文档结构、说明、更新记录（**文档索引唯一权威**） | **每次新增 / 改名 / 职责变更文档后** |
