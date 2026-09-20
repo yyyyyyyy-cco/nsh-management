@@ -1,4 +1,4 @@
-<!-- 战报区块：逐局战况（每局结果 + 我方击杀/伤害/治疗 + 该局 MVP/击杀王） -->
+<!-- 战报区块：逐局战况（每局结果 + 我方击杀/伤害/治疗 + 该局 MVP/击杀王/重伤第一） -->
 <template>
   <div class="rd">
     <div class="rd-head">逐局战况</div>
@@ -21,6 +21,7 @@
       <div v-if="info.hasData" class="rd-sub">
         <span v-if="info.mvp" class="rd-item">MVP <b>{{ info.mvp.player_name }}</b> <i>{{ info.mvp.score }} 分</i></span>
         <span v-if="info.killKing" class="rd-item">击杀王 <b>{{ info.killKing.player_name }}</b> <i>{{ info.killKing.kills }} 杀</i></span>
+        <span v-if="info.deathKing" class="rd-item">重伤第一 <b>{{ info.deathKing.player_name }}</b> <i>{{ info.deathKing.deaths }} 次</i></span>
       </div>
     </div>
   </div>
@@ -100,7 +101,8 @@ defineProps<{ roundsInfo: ReportRoundInfo[] }>()
 
 .rd-sub {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap; /* 三项高光（MVP/击杀王/重伤第一）遇长名自动换行，避免溢出导出宽度 */
+  gap: 6px 20px;
   margin-top: 6px;
   padding-top: 6px;
   border-top: 1px dashed var(--edge-soft);

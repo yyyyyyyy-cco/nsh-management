@@ -1,4 +1,4 @@
-<!-- 战报区块：小队战况（按排表归属聚合我方各队击杀/对玩家伤害/治疗；无排表时不出区块） -->
+<!-- 战报区块：小队战况（按排表 + 分析调整副本归属聚合我方各队击杀/助攻/重伤/对玩家伤害/对建筑伤害/治疗/承伤/焚骨；无排表时不出区块） -->
 <template>
   <div v-if="squads.length" class="sq">
     <div class="sq-head">小队战况</div>
@@ -7,6 +7,7 @@
         <span>小队</span>
         <span>击杀</span>
         <span>助攻</span>
+        <span>重伤</span>
         <span>对玩家伤害</span>
         <span>对建筑伤害</span>
         <span>治疗</span>
@@ -17,6 +18,7 @@
         <span class="sq-name" :class="{ 'sq-name--free': s.name === '未排表' }" :title="s.name">{{ s.name }}</span>
         <span class="sq-kill num">{{ s.kills }}</span>
         <span class="sq-num num">{{ s.assists }}</span>
+        <span class="sq-num num">{{ s.deaths }}</span>
         <span class="sq-num num">{{ fmtNum(s.playerDamage) }}</span>
         <span class="sq-num num">{{ fmtNum(s.buildingDamage) }}</span>
         <span class="sq-num num">{{ fmtNum(s.healing) }}</span>
@@ -57,7 +59,7 @@ defineProps<{ squads: ReportSquadItem[] }>()
 
 .sq-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 52px 52px 88px 88px 80px 80px 80px;
+  grid-template-columns: minmax(0, 1fr) 52px 52px 52px 88px 88px 80px 80px 80px;
   align-items: center;
   gap: 8px;
   padding: 6px 0;

@@ -1,5 +1,7 @@
-/** 单场战报渲染数据：仅统计我方阵营（排表成员命中数最多的阵营，与后端小队分析口径一致）。 */
-import type { IndicatorsResponse, MatchDataIndicators } from '@/types/matchData'
+/** 单场战报渲染数据：仅统计我方阵营（排表成员命中数最多的阵营，与后端小队分析口径一致）。
+ * 行数豁免（连续逻辑）：战报数据组装围绕同一数据流（衍生指标记录 + 排表/分析调整副本 + 赛程元信息）。
+ * 登记见 .agent/rules/file-length-rule.md 豁免清单。 */
+import type { IndicatorsResponse, MatchData, MatchDataIndicators } from '@/types/matchData'
 import type { LineupInfo } from '@/types/lineup'
 import type { ScheduleInfo } from '@/types/schedule'
 import { computeScores } from './analysis'
@@ -43,6 +45,7 @@ export interface ReportRoundInfo {
   team: ReportSideAgg | null
   mvp: { player_name: string; score: number } | null
   killKing: { player_name: string; kills: number } | null
+  deathKing: { player_name: string; deaths: number } | null
 }
 
 /** 全场 MVP（各局内最高评分者的最高分，标注所属局）。 */
@@ -68,11 +71,12 @@ export interface ReportOverviewStats {
   totalFenGu: number
 }
 
-/** 小队战况条目（按排表归属聚合我方记录；无排表时列表为空）。 */
+/** 小队战况条目（按排表 + 分析调整副本归属聚合我方记录；无排表时列表为空）。 */
 export interface ReportSquadItem {
   name: string
   kills: number
   assists: number
+  deaths: number
   playerDamage: number
   buildingDamage: number
   healing: number
@@ -93,6 +97,9 @@ export interface MatchReportData {
   killsTop: ReportRankItem[]
   damageTop: ReportRankItem[]
   healingTop: ReportRankItem[]
+  buildingTop: ReportRankItem[]
+  deathsTop: ReportRankItem[]
+  scoreTop: ReportRankItem[]
   roundsInfo: ReportRoundInfo[]
   squads: ReportSquadItem[]
 }
@@ -175,11 +182,12 @@ function sumSide(camp: string, recs: MatchDataIndicators[]): ReportSideAgg {
   return acc
 }
 
-/** 组装战报数据：单一数据源（全部已导入局的衍生指标记录）+ 排表（判定我方/小队归属）+ 赛程元信息。 */
+/** 组装战报数据：单一数据源（全部已导入局的衍生指标记录）+ 排表（判定我方/小队归属）+ 分析调整副本（覆盖小队归属）+ 赛程元信息。 */
 export function buildReportData(
   indicators: IndicatorsResponse,
   lineup: LineupInfo | null,
   schedule: ScheduleInfo | null,
+  adjustments: Record<string, string> | null = null,
 ): MatchReportData {
   const ourCamp = resolveOurCamp(indicators.items, lineup)
   // 仅保留我方阵营记录（其余阵营不参与任何统计）
@@ -214,16 +222,26 @@ export function buildReportData(
   // 逐局战况 + 全场 MVP（评分口径：该局我方同职业(分路)均值基准，见 analysis.computeScores）
   let mvp: ReportMvp | null = null
   const roundsInfo: ReportRoundInfo[] = []
+  // 总分榜：按玩家保留最佳单局综合评分（与榜单“去重取最佳单局”口径一致）
+  const scoreBest = new Map<string, { player: MatchData; score: number; roundNo: number }>()
   for (let n = 1; n <= rounds; n++) {
     const recs = byRound.get(n)
     const result = schedule?.round_results?.[n - 1] ?? null
     if (!recs?.length) {
-      roundsInfo.push({ roundNo: n, result, hasData: false, team: null, mvp: null, killKing: null })
+      roundsInfo.push({ roundNo: n, result, hasData: false, team: null, mvp: null, killKing: null, deathKing: null })
       continue
     }
     const team = sumSide(ourCamp ?? '', recs)
-    const top = computeScores(recs)[0]
+    const scored = computeScores(recs)
+    const top = scored[0]
+    for (const s of scored) {
+      const prev = scoreBest.get(s.player.player_name)
+      if (!prev || s.total > prev.score) {
+        scoreBest.set(s.player.player_name, { player: s.player, score: s.total, roundNo: n })
+      }
+    }
     const killKingRec = recs.reduce((best, r) => (r.kills > best.kills ? r : best), recs[0])
+    const deathKingRec = recs.reduce((worst, r) => (r.deaths > worst.deaths ? r : worst), recs[0])
     roundsInfo.push({
       roundNo: n,
       result,
@@ -231,6 +249,7 @@ export function buildReportData(
       team,
       mvp: top ? { player_name: top.player.player_name, score: top.total } : null,
       killKing: { player_name: killKingRec.player_name, kills: killKingRec.kills },
+      deathKing: { player_name: deathKingRec.player_name, deaths: deathKingRec.deaths },
     })
     if (top && (!mvp || top.total > mvp.score)) {
       mvp = {
@@ -259,25 +278,47 @@ export function buildReportData(
     }
   })
 
-  // 小队战况（按排表归属聚合我方各队记录；无排表时列表为空，区块自动隐藏）
+  // 总分榜（综合评分最佳单局 TOP3；口径与 MVP 一致，见 analysis.computeScores）
+  const scoreTop: ReportRankItem[] = [...scoreBest.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, TOP_N)
+    .map((s, index) => ({
+      rank: index + 1,
+      player_name: s.player.player_name,
+      profession: s.player.profession,
+      value: s.score,
+      round_no: s.roundNo,
+    }))
+
+  // 小队战况（按排表 + 分析调整副本归属聚合我方各队记录；无排表时列表为空，区块自动隐藏）
   const squads: ReportSquadItem[] = []
   if (lineup?.data?.length) {
     const squadOf = new Map<string, string>()
     const squadOrder: string[] = []
+    // 排表队伍 key（category:team_index）→ 展示名，同时用于校验调整目标仍存在
+    const nameByKey = new Map<string, string>()
     for (const team of lineup.data) {
       const name = `${team.category} 第${team.team_index + 1}队`
+      nameByKey.set(`${team.category}:${team.team_index}`, name)
       if (!squadOrder.includes(name)) squadOrder.push(name)
       for (const slot of team.slots ?? []) {
         const member = (slot.member_name || '').trim()
         if (member) squadOf.set(member, name)
       }
     }
+    // 叠加分析调整副本（未排表成员 → 目标队伍；目标已不存在于排表时忽略，与小队分析视图口径一致）
+    for (const [player, target] of Object.entries(adjustments ?? {})) {
+      const name = nameByKey.get(target)
+      const member = (player || '').trim()
+      if (name && member) squadOf.set(member, name)
+    }
     const acc = new Map<string, Omit<ReportSquadItem, 'name'>>()
     for (const r of items) {
       const squad = squadOf.get((r.player_name || '').trim()) ?? '未排表'
-      const cur = acc.get(squad) ?? { kills: 0, assists: 0, playerDamage: 0, buildingDamage: 0, healing: 0, damageTaken: 0, fenGu: 0 }
+      const cur = acc.get(squad) ?? { kills: 0, assists: 0, deaths: 0, playerDamage: 0, buildingDamage: 0, healing: 0, damageTaken: 0, fenGu: 0 }
       cur.kills += r.kills
       cur.assists += r.assists
+      cur.deaths += r.deaths
       cur.playerDamage += r.player_damage
       cur.buildingDamage += r.building_damage
       cur.healing += r.healing
@@ -291,7 +332,7 @@ export function buildReportData(
         squads.push({ name, ...cur })
       } else if (name !== '未排表') {
         // 已排表但无比赛记录的队伍：显示 0，保证排表队伍完整呈现
-        squads.push({ name, kills: 0, assists: 0, playerDamage: 0, buildingDamage: 0, healing: 0, damageTaken: 0, fenGu: 0 })
+        squads.push({ name, kills: 0, assists: 0, deaths: 0, playerDamage: 0, buildingDamage: 0, healing: 0, damageTaken: 0, fenGu: 0 })
       }
     }
   }
@@ -308,6 +349,9 @@ export function buildReportData(
     killsTop: toRankItems(items, (r) => r.kills),
     damageTop: toRankItems(items, (r) => r.player_damage),
     healingTop: toRankItems(items, (r) => r.healing),
+    buildingTop: toRankItems(items, (r) => r.building_damage),
+    deathsTop: toRankItems(items, (r) => r.deaths),
+    scoreTop,
     roundsInfo,
     squads,
   }

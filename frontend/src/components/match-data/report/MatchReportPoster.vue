@@ -10,7 +10,14 @@
     />
     <PosterOverview :stats="data.overview" />
     <PosterMvpKings :mvp="data.mvp" :kings="data.kings" />
-    <PosterRankings :kills="data.killsTop" :damage="data.damageTop" :healing="data.healingTop" />
+    <PosterRankings
+      :kills="data.killsTop"
+      :damage="data.damageTop"
+      :healing="data.healingTop"
+      :building="data.buildingTop"
+      :deaths="data.deathsTop"
+      :score="data.scoreTop"
+    />
     <PosterRounds :rounds-info="data.roundsInfo" />
     <PosterSquads :squads="data.squads" />
     <div class="poster-footer">轻衫都会用的帮会联赛管理系统 · 生成于 {{ genDate }}</div>

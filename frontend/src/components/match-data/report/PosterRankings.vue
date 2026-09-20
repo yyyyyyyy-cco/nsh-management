@@ -1,4 +1,4 @@
-<!-- 战报区块：高光榜单（击杀/对玩家伤害/治疗 TOP3，三列） -->
+<!-- 战报区块：高光榜单（击杀/对玩家伤害/治疗/建筑伤害/重伤/总分 TOP3，三列两行） -->
 <template>
   <div class="rk">
     <div class="rk-head">高光榜单</div>
@@ -28,12 +28,18 @@ const props = defineProps<{
   kills: ReportRankItem[]
   damage: ReportRankItem[]
   healing: ReportRankItem[]
+  building: ReportRankItem[]
+  deaths: ReportRankItem[]
+  score: ReportRankItem[]
 }>()
 
 const columns = computed(() => [
   { title: '击杀榜', items: props.kills },
   { title: '对玩家伤害榜', items: props.damage },
   { title: '治疗榜', items: props.healing },
+  { title: '对建筑伤害榜', items: props.building },
+  { title: '重伤榜', items: props.deaths },
+  { title: '总分榜', items: props.score },
 ])
 </script>
 
@@ -146,5 +152,5 @@ const columns = computed(() => [
   color: var(--ink-400);
 }
 
-/* finesse · register=product · shell=match-report-poster: 三榜 TOP3（960px 固定宽，导出用不响应式） */
+/* finesse · register=product · shell=match-report-poster: 六榜 TOP3（960px 固定宽，三列两行，导出用不响应式） */
 </style>

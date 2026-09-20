@@ -43,6 +43,7 @@ import { ElMessage } from 'element-plus'
 
 import { getLineup } from '@/api/lineups'
 import { getIndicators } from '@/api/matchData'
+import { getSquadAdjustments } from '@/api/squadAdjustments'
 import type { ScheduleInfo } from '@/types/schedule'
 import MatchReportPoster from './report/MatchReportPoster.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -65,18 +66,20 @@ watch(visible, (open) => {
   if (open) loadReport()
 })
 
-/** 加载数据：衍生指标记录（唯一数据源，仅统计我方阵营）+ 排表（判定我方阵营）。 */
+/** 加载数据：衍生指标记录（唯一数据源，仅统计我方阵营）+ 排表（判定我方阵营）+ 分析调整副本（小队归属）。 */
 async function loadReport() {
   loading.value = true
   loadFailed.value = false
   report.value = null
   try {
-    const [indicators, lineup] = await Promise.all([
+    const [indicators, lineup, adjustments] = await Promise.all([
       getIndicators(props.scheduleId),
       // 排表仅用于判定我方阵营（口径与后端小队分析一致），失败时兜底取首条记录阵营
       getLineup(props.scheduleId).catch(() => null),
+      // 分析调整副本（小队分析内未排表成员的手动分配）：缺失时战报按正式排表归属，不阻断生成
+      getSquadAdjustments(props.scheduleId).catch(() => null),
     ])
-    report.value = buildReportData(indicators, lineup, props.schedule ?? null)
+    report.value = buildReportData(indicators, lineup, props.schedule ?? null, adjustments?.data ?? null)
   } catch {
     // 错误提示由 http 拦截器统一处理，此处展示弹窗内错误态
     loadFailed.value = true

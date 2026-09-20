@@ -58,7 +58,7 @@ utils/
 - 围绕同一状态的控制器、单一日历/表格式组件、单资源薄路由、同源数据的多视图/弹窗 → 可豁免
 - 豁免文件**再增长时应重新评估**；新增豁免必须登记，不得只打标记
 
-### 豁免清单（2026-09-15 登记；行数为打标记前实测值）
+### 豁免清单（2026-09-15 登记，2026-09-20 增补；行数为打标记前实测值）
 
 | 文件 | 行数 | 超限原因（连续逻辑） |
 |------|------|---------------------|
@@ -71,6 +71,7 @@ utils/
 | `frontend/src/views/schedules/LeagueOverviewView.vue` | 342 | 赛程总览页响应式双视图（移动卡片 / 桌面表格）同源数据 |
 | `frontend/src/views/schedules/ScheduleListView.vue` | 339 | 赛程列表页单职责（月/全部模式 + 新建编辑弹窗） |
 | `frontend/src/components/schedules/ScheduleCalendar.vue` | 328 | 单一日历组件（格子计算 + 月份切换 + 事件派发） |
+| `frontend/src/components/match-data/reportData.ts` | 327 | 战报数据组装同一数据流（我方判定 / 总览 / MVP / 榜单 / 逐局 / 小队聚合共用指标记录与排表、分析调整副本） |
 | `frontend/src/components/lineups/ImportHistoryDialog.vue` | 310 | 导入历史排表两步流程（选赛程 → 按小队多选）一体化 |
 | `frontend/src/components/match-data/OverviewTab.vue` | 301 | 单场比赛数据总览面板（统计卡 / 占比条 / 阵营卡 / 图表区同源） |
 | `backend/app/api/v1/members.py` | 188 | 单资源薄路由（CRUD + 导入导出端点声明同质） |
