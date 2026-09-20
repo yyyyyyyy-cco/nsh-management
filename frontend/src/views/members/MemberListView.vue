@@ -36,6 +36,10 @@
       <el-tab-pane label="出勤率统计" name="rate">
         <AttendanceRatePanel />
       </el-tab-pane>
+      <!-- 改名审核：仅严格管理员（developer 虽可进入本页，但审核接口对新功能一律 403） -->
+      <el-tab-pane v-if="isStrictAdmin" label="改名审核" name="game-id-requests">
+        <GameIdReviewPanel @reviewed="load" />
+      </el-tab-pane>
     </el-tabs>
 
     <MemberFormDialog v-model="formVisible" :member="editingMember" @success="load" />
@@ -44,12 +48,14 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import { useAuthStore } from '@/stores/auth'
 import { useMemberList } from '@/composables/useMemberList'
 import type { MemberInfo } from '@/types/member'
 import AttendanceRatePanel from '@/components/members/AttendanceRatePanel.vue'
+import GameIdReviewPanel from '@/components/members/GameIdReviewPanel.vue'
 import MemberFormDialog from '@/components/members/MemberFormDialog.vue'
 import MemberImportDialog from '@/components/members/MemberImportDialog.vue'
 import MemberStatsBar from '@/components/members/MemberStatsBar.vue'
@@ -59,12 +65,21 @@ import ProfessionShortage from '@/components/members/ProfessionShortage.vue'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
+
+// 严格管理员（不含 developer）：改名审核入口与接口权限保持一致
+const isStrictAdmin = computed(() => auth.user?.role === 'admin')
 
 const activeTab = ref('list')
 
-// 支持从首页「出勤排行」跳转直达出勤率统计 Tab；刷新时从 URL 恢复当前 Tab
-if (route.query.tab === 'rate') {
-  activeTab.value = 'rate'
+// 支持从首页「出勤排行」跳转直达出勤率统计 Tab、从改名审核直达审核 Tab；刷新时从 URL 恢复
+const TAB_NAMES = ['list', 'rate', 'game-id-requests']
+if (typeof route.query.tab === 'string' && TAB_NAMES.includes(route.query.tab)) {
+  activeTab.value = route.query.tab
+}
+// 非管理员不展示改名审核 Tab，避免 URL 残留导致空白
+if (activeTab.value === 'game-id-requests' && !isStrictAdmin.value) {
+  activeTab.value = 'list'
 }
 
 /** Tab 切换同步到 URL，刷新后保持当前 Tab。 */

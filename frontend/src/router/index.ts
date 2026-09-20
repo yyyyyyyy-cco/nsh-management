@@ -70,6 +70,12 @@ const router = createRouter({
           component: () => import('@/views/member/MyStatsView.vue'),
           meta: { title: '个人战绩' },
         },
+        {
+          path: 'game-id-change',
+          name: 'game-id-change',
+          component: () => import('@/views/member/GameIdChangeView.vue'),
+          meta: { title: '修改游戏 ID', memberOnly: true },
+        },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
@@ -97,6 +103,10 @@ router.beforeEach(async (to) => {
   if (to.meta.developerOnly && !auth.isDeveloper) {
     // 仅开发者页面：管理员/帮众按角色回退
     return { name: auth.user?.role === 'member' ? 'league-overview' : 'home' }
+  }
+  if (to.meta.memberOnly && auth.user?.role !== 'member') {
+    // 仅帮众页面（修改游戏 ID）：管理员回首页，开发者由下方规则跳系统配置
+    return { name: 'home' }
   }
   if (to.name === 'login' && auth.isLoggedIn) {
     if (auth.isDeveloper) return { name: 'config' }

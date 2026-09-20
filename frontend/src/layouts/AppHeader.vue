@@ -33,6 +33,7 @@
         </span>
         <template #dropdown>
           <el-dropdown-menu>
+            <el-dropdown-item v-if="auth.user?.role === 'member'" command="game-id-change">修改游戏 ID</el-dropdown-item>
             <el-dropdown-item command="logout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -75,6 +76,10 @@ async function onCommand(command: string | number | object) {
     await ElMessageBox.confirm('确定退出登录吗？', '提示', { type: 'warning' })
     auth.clear()
     router.push({ name: 'login' })
+    return
+  }
+  if (command === 'game-id-change') {
+    router.push({ name: 'game-id-change' })
   }
 }
 </script>

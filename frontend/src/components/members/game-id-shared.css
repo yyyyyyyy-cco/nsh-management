@@ -1,0 +1,254 @@
+/* 游戏 ID 改名申请/审核共用样式（宣纸鎏金令牌）：表单、历史、审核列表与移动端行列表。
+   finesse · register=product · shell=member-list: 桌面表格 + ≤768px 行列表；仅用既有令牌，不新增主题色。 */
+
+/* ===== 卡片标题 ===== */
+.card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.card-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.card-sub {
+  font-size: 12px;
+  color: var(--ink-400);
+}
+
+/* ===== 表单 ===== */
+.tip {
+  margin-bottom: 14px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.field__label {
+  flex-shrink: 0;
+  width: 88px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-700);
+  text-align: right;
+}
+
+.field__control {
+  flex: 1;
+  min-width: 0;
+}
+
+.current {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.current__value {
+  font-family: var(--font-num);
+  letter-spacing: 0.5px;
+}
+
+.current__empty {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-400);
+}
+
+.opt-name {
+  margin-right: 8px;
+}
+
+.opt-prof {
+  margin-right: 6px;
+}
+
+.arrow-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 10px 100px;
+  padding: 10px 12px;
+  border: 1px dashed var(--edge-strong);
+  border-radius: var(--radius-sm);
+  background: var(--gold-50);
+  font-size: 14px;
+  min-width: 0;
+}
+
+.arrow-line__old,
+.arrow-line__new {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+  color: var(--ink-900);
+}
+
+.arrow-line__new {
+  color: var(--gold-700);
+}
+
+.arrow-line__icon {
+  color: var(--gold-600);
+}
+
+.hint {
+  margin: 0 0 12px 100px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-400);
+}
+
+.pending {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0 0 12px 100px;
+}
+
+.pending__text {
+  font-size: 12.5px;
+  color: var(--ink-600);
+  overflow-wrap: anywhere;
+}
+
+.submit {
+  margin-left: 100px;
+}
+
+/* ===== 申请记录 ===== */
+.record-id {
+  font-weight: 600;
+  color: var(--ink-900);
+  overflow-wrap: anywhere;
+}
+
+.record-arrow {
+  color: var(--gold-600);
+  margin: 0 6px;
+}
+
+.record-new {
+  font-weight: 700;
+  color: var(--gold-700);
+  overflow-wrap: anywhere;
+}
+
+.record-meta {
+  font-size: 12px;
+  color: var(--ink-400);
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+}
+
+.remark {
+  font-size: 12.5px;
+  color: var(--ink-700);
+  overflow-wrap: anywhere;
+}
+
+.remark--empty {
+  color: var(--ink-300);
+}
+
+/* ===== 审核列表 ===== */
+.review-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.review-toolbar__spacer {
+  flex: 1;
+}
+
+.review-rows {
+  display: flex;
+  flex-direction: column;
+  min-height: 140px;
+  touch-action: manipulation;
+}
+
+.review-row {
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.review-row:last-child {
+  border-bottom: none;
+}
+
+.rr-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.rr-line + .rr-line {
+  margin-top: 8px;
+}
+
+.rr-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.review-pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* ===== 移动端 ===== */
+@media (max-width: 768px) {
+  .req-card :deep(.el-card__body),
+  .review-card :deep(.el-card__body),
+  .history-card :deep(.el-card__body) {
+    padding: 14px;
+  }
+
+  .field {
+    align-items: flex-start;
+    gap: 8px;
+    flex-direction: column;
+  }
+
+  .field__label {
+    width: auto;
+    text-align: left;
+  }
+
+  .arrow-line,
+  .hint,
+  .pending,
+  .submit {
+    margin-left: 0;
+  }
+
+  .submit {
+    width: 100%;
+  }
+
+  .review-toolbar {
+    align-items: stretch;
+  }
+
+  .review-toolbar__spacer {
+    display: none;
+  }
+}

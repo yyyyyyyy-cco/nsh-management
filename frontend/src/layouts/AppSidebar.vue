@@ -17,6 +17,10 @@
         <el-icon><TrendCharts /></el-icon>
         <span>个人战绩</span>
       </el-menu-item>
+      <el-menu-item v-if="auth.user?.role === 'member'" index="/game-id-change" :title="collapsed ? '修改游戏 ID' : undefined" @mouseenter="prefetchRoute('/game-id-change')">
+        <el-icon><EditPen /></el-icon>
+        <span>修改游戏 ID</span>
+      </el-menu-item>
       <el-menu-item v-if="auth.user?.role === 'member'" index="/schedules" :title="collapsed ? '联赛日程' : undefined" @mouseenter="prefetchRoute('/schedules')">
         <el-icon><Calendar /></el-icon>
         <span>联赛日程</span>
@@ -50,7 +54,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Calendar, Document, HomeFilled, Setting, TrendCharts, UserFilled, VideoCamera } from '@element-plus/icons-vue'
+import { Calendar, Document, EditPen, HomeFilled, Setting, TrendCharts, UserFilled, VideoCamera } from '@element-plus/icons-vue'
 
 import { useAuthStore } from '@/stores/auth'
 import { prefetchRoute } from '@/router'
