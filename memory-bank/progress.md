@@ -22,6 +22,8 @@ nsh-management/
 │   │   ├── derive_weights_v4_20260907.py  # 贡献度权重推导（v4）
 │   │   ├── generate_import_template.py    # 生成成员导入模板
 │   │   ├── selfcheck_indicators.py        # 衍生指标自检脚本
+│   │   ├── selfcheck_member_exports.py    # 出勤隔离 + Excel 回导回归（内存库）
+│   │   ├── selfcheck_security_fixes.py    # 用户隔离回归（真实 JWT + ASGI 路由，内存库）
 │   │   └── sim_contribution_v4_20260907.py # 贡献度模拟（v4）
 │   ├── templates/             # Excel 模板
 │   │   └── member_import_template.xlsx  # 成员导入模板
@@ -35,14 +37,14 @@ nsh-management/
 │   │   ├── api/               # Axios 封装（http/auth/config/lineups/members/attendance/matchData/recording/schedules/squadAdjustments）
 │   │   ├── components/        # 业务组件
 │   │   │   ├── attendance/    # 出勤库（AttendanceTab+AttendanceStatsBar/AttendanceToolbar/AttendanceTablePanel/AttendanceMobileList/FillerDialog/ImportMemberDialog/LeaveImportDialog/SubstituteImportDialog）
-│   │   │   ├── common/        # 通用组件（SkeletonTable）
+│   │   │   ├── common/        # 通用组件（SkeletonTable/EmptyState）
 │   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab+LineupOverviewPanel/LineupOverviewGroup/ImportHistoryDialog/MatchConfirmDialog）
-│   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/MatchReportDialog/reportData.ts/report（MatchReportPoster/PosterHeader/PosterOverview/PosterMvpKings/PosterRankings/PosterRounds/PosterProfessions）/EChart/analysis.ts/chartTheme.ts）
+│   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/MatchReportDialog/reportData.ts/report（MatchReportPoster/PosterHeader/PosterOverview/PosterMvpKings/PosterRankings/PosterRounds/PosterSquads）/EChart/analysis.ts/chartTheme.ts）
 │   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/MemberDetailHeader/ProfessionShortage）
 │   │   │   ├── my-stats/      # 个人战绩（PlayerSearch/StatsOverview/StatsMatchTable/StatsRankingPosition/StatsTrendChart）
 │   │   │   ├── recording/     # 录屏审核（RecordingTab+RecordingProgressBar/RecordingTablePanel/RecordingMobileList/recording-shared.css）
 │   │   │   └── schedules/     # 联赛日程（ScheduleCalendar）
-│   │   ├── composables/       # 组合式函数（lineupBoard/useAttendanceList/useRecordingList/useMemberList/useRouteProgress）
+│   │   ├── composables/       # 组合式函数（lineupBoard/useAttendanceList/useRecordingList/useMemberList/useRouteProgress/useTableDensity）
 │   │   ├── layouts/           # 主布局（MainLayout + AppSidebar/AppHeader；深檀侧边栏208px+宣纸顶栏62px，支持折叠64px）
 │   │   ├── router/            # 路由与守卫
 │   │   ├── stores/            # Pinia（auth）
@@ -271,6 +273,11 @@ nsh-management/
 | 2026-09-17 | 成员详情战绩页与单场图文战报实施完成：①后端新增 GET /members/{member_id}（require_admin，注册于全部具体路径之后防路由捕获）；②前端新增 MemberDetailView/MemberDetailHeader + /members/:id 路由 + 常驻库 ID/名字入口 + 管理员「个人战绩」菜单（AppSidebar）；③profTagStyle 抽取至 utils/profession（成员表同步复用）；④战报：MatchReportDialog + reportData.ts + report/ 海报 5 组件（960px 固定宽：头部/阵营对比双向条形/三榜 TOP3 金银铜徽章/职业分布），MatchDataTab 工具栏「生成战报」+ schedule props 透传，html2canvas 动态加载导出 PNG（独立 chunk）；vue-tsc + vite build 通过，待浏览器验收 | 常驻库、个人战绩、数据分析、后端 |
 | 2026-09-17 | 战报 v2 重设计（用户反馈原版太简陋、无信息含量）：海报扩展为 8 区块——新增全场总览（四数字卡）、MVP 金卡+数据之王六格（击杀/伤害/建筑/治疗/承伤/焚骨）、逐局战况（每局结果+双营比分+该局 MVP/击杀王），阵营对比扩至 6 指标+差值、榜单按玩家去重取最佳单局、职业分布加伤害占比；数据层改为单接口（getIndicators 全场记录）+ 前端组装（复用 computeScores/aggregateProfessions）；vue-tsc + vite build 通过 | 数据分析、战报 |
 | 2026-09-17 | 战报口径调整（用户要求：不要两个阵营、只要我方）：我方阵营判定复刻后端小队分析口径（排表成员命中数最多阵营，兜底首条记录阵营），全部区块仅统计我方记录；删除阵营对比区块（PosterCampCompare 移除）、总览扩为六卡（击杀/助攻/伤害/建筑/治疗/焚骨）、逐局改我方击杀/伤害/治疗；弹窗加载增加排表接口（失败降级）；vue-tsc + vite build 通过 | 数据分析、战报 |
+| 2026-09-18 | 战报区块替换（用户要求：职业分布没必要）：移除职业分布（PosterProfessions 删除），新增「小队战况」（PosterSquads：按排表归属聚合我方各队击杀/对玩家伤害/治疗，未排表成员单列，无排表时区块自动隐藏，复用已加载排表零额外请求）；reportData 移除 professions/aggregateProfessions、新增 squads 聚合；vue-tsc + vite build 通过 | 数据分析、战报 |
+| 2026-09-18 | 小队战况修复（用户反馈信息不完整、未对齐）：数据列由 3 项扩为 7 项（+助攻/对建筑伤害/承伤/焚骨）；已排表但无比赛记录的队伍改为显示 0（不再跳过，排表队伍完整呈现）；修正表头「小队」列被右对齐规则误伤导致的错位（对齐规则改为 :not(:first-child)，表头与数据逐列对齐）；vue-tsc + vite build 通过 | 数据分析、战报 |
+| 2026-09-18 | 修复帮会图标字切换账号后"被清空"（用户浏览器批注排查）：根因为登录接口 `UserOut.model_validate(user)` 序列化时 User 模型仅有 guild_name property、缺 guild_icon，登录响应 guild_icon 恒为默认值 None（/me 为手动构造故正常）→ 切换账号后前端 auth.user.guild_icon 为空，配置页输入框与侧边栏图标回退；修复：User 模型补 guild_icon property（与 guild_name 对称），实证脚本修复前后对比 None→'帮'；数据未丢失（仅登录路径序列化缺陷） | 认证、系统配置、后端 |
+| 2026-09-18 | UI 可选 3 项收尾（ui-polish-plan §2.1.3/§2.3.3/§2.4.4）：①表格密度切换（顶栏全局开关，标准 13.5px/10px ↔ 紧凑 12.5px/6px，localStorage 持久化，移动端隐藏；新增 composables/useTableDensity + element-plus.css 密度档规则）；②空状态 SVG 插画（新增 components/common/EmptyState：empty/search/chart/error 4 变体宣纸金线手绘风，替换全站 20 处 el-empty 默认插画）；③职业标签 hover 微光（.prof-tag 白色高光扫过 0.5s，hover:hover 门控）；vue-tsc + vite build 通过 | 全模块 UI |
+| 2026-09-18 | 用户隔离与权限定向修复（security-review.md §十 F-1～F-5）：①账号创建跨帮会越权修复——accounts.py 按角色收紧 target_guild_id（管理员仅本帮会，跨帮会 403；开发者目标帮会需存在，400/404/422），account_service 写库前校验帮会存在，AccountCreate.guild_id 加 ge=1；②member_service.attendance_rate 出勤聚合关联 Schedule 限定 guild_id（防外帮会脏引用污染本帮会统计）；③未绑定帮会创建/导入成员提前 403（更正：Member.guild_id NOT NULL 本就存在，原为 500 风险）；④Excel 各 Sheet 首行加帮会来源标识 + 导出文件名含帮会名（服务端/客户端同步，非法字符清理），导入兼容新旧格式且归属只取认证帮会；⑤批量 ID 统一 schemas/common.py BatchIds（1～500 严格正整数：成员批量删/出勤导入与批量状态/录屏批量审核）；新增 scripts/selfcheck_security_fixes.py + selfcheck_member_exports.py 共 16 项回归全部通过；后端 compileall + 前端 vue-tsc/vite build 通过 | 认证、常驻库、出勤、录屏、系统配置、后端 |
 
 ---
 

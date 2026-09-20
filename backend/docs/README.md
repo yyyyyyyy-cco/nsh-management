@@ -98,7 +98,17 @@
 - 无
 
 ### 下一步计划
-测试与优化：补充单元测试、压力测试、安全审计
+测试与优化：补充单元测试、压力测试、安全审计；未解决风险见 `memory-bank/security-review.md` §十。
+
+### 隔离与导出回归（2026-09-18 新增）
+在项目根目录用 backend 虚拟环境运行（无需 pytest/httpx，不连接业务数据库）：
+
+```bat
+backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_security_fixes.py
+backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_member_exports.py
+```
+
+覆盖：账号跨帮会创建拒绝（403）、开发者目标帮会校验（400/404/422）、批量 ID 边界（空/超限/非正整数 → 422）、未绑定帮会创建/导入成员拒绝、出勤率跨帮会隔离、Excel 新旧格式回导兼容与来源行不可改写归属。
 
 ### 更新记录
 | 日期 | 更新内容 |
@@ -124,3 +134,6 @@
 | 2026-09-15 | 文档失实项修正：表数 10→11、迁移数 13→14、database-design 引用 v1.6→v1.8、帮众场景按代码校正、补个人战绩/系统日志模块、移除「保存考勤」失实表述 |
 | 2026-09-17 | 登记规划中功能：成员详情接口 GET /members/{member_id}（P1，方案见 stats-report-plan.md） |
 | 2026-09-17 | 成员详情接口实施完成（GET /members/{member_id}，require_admin，注册于全部具体路径之后防路由捕获） |
+| 2026-09-18 | 修复登录响应丢失 guild_icon：User 模型补 guild_icon property（与 guild_name 对称），UserOut.model_validate 序列化恢复正常（修复前登录后切换账号图标显示为空，/me 手动构造路径正常） |
+| 2026-09-18 | 用户隔离定向修复（security-review §十 F-1～F-5）：①`POST /config/accounts` 管理员仅能为本帮会创建、跨帮会 403，开发者目标帮会需存在（400/404/422），service 写库前校验帮会存在；②`attendance_rate` 关联 Schedule 按 guild_id 聚合；③未绑定帮会创建/导入成员提前 403（更正：Member.guild_id 非空约束本就存在，原为 500 风险非写入成功）；④Excel 导出各 Sheet 加帮会来源行 + 文件名含帮会名，导入兼容新旧格式且归属以认证帮会为准；⑤批量 ID 统一 BatchIds（1～500 严格正整数） |
+| 2026-09-18 | 新增回归脚本：`scripts/selfcheck_security_fixes.py`（8 项，真实 JWT + ASGI 路由）、`scripts/selfcheck_member_exports.py`（8 项，出勤隔离 + Excel 回导），16 项全部通过 |

@@ -121,6 +121,8 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 | 10 | 同一事实多处复制（公式/目录树/依赖清单/工具链） | 同一内容在 3+ 文档各写一份，改动时只改一处导致互相矛盾（曾出现出勤率公式两版、目录树三份、requirements 失配） | 重复内容一律改为「摘要 + 引用权威源」；2026-09-15 已全量清理，后续新增内容先查权威源表 |
 | 11 | 多层反代下 `$remote_addr` 不是客户端 IP | 内层 nginx 用 `limit_req_zone $binary_remote_addr` 时，键是上游代理容器 IP → 所有用户共用一个桶（曾导致登录全站 5 次/分、API 全站 20r/s），日志与审计里的 IP 也全是容器 IP | 内层必须 `set_real_ip_from <代理网段>` + `real_ip_header X-Forwarded-For`，并原样透传 `X-Real-IP`/`X-Forwarded-For`（后端取 XFF 首段）；改反代后实测「外部源第 5 次 429 + 另一源 IP 仍正常」才算通过；边缘层须用 `$remote_addr` **覆盖** XFF（`$proxy_add_x_forwarded_for` 会把客户端伪造值排到首位，污染审计 IP） |
 | 12 | 编辑 CRLF 文件被无声改成 LF | 用默认 newline 读写（Python `read_text()`、部分编辑器）会把 CRLF 转 LF，`git diff` 显示整文件变更、掩盖真实改动 | 读写统一 `open(..., newline="")` 保留原行尾；改完用 `git diff --stat` 复核改动行数是否只等于实际改动 |
+| 13 | ORM 模型缺 property 导致 `model_validate` 静默丢字段 | 登录接口用 `UserOut.model_validate(user)` 序列化，而 `User` 模型只有 `guild_name` property、缺 `guild_icon` → 登录响应该字段恒取默认值 None（`/me` 手动构造故正常），前端切换账号后表现为"设置被清空"；写入成功但两条序列化路径分叉造成假象 | 给输出 Schema 新增字段时，同步检查 ORM 模型是否有对应属性/property；同一模型存在「`model_validate` 与手动构造」两条序列化路径时，两侧都要覆盖，并用实证脚本逐字段对比 |
+| 14 | 数据归属字段可被请求体覆盖（跨帮会越权） | `POST /config/accounts` 原实现 `target_guild_id = body.guild_id or current_user.guild_id`：管理员在请求体附带其他帮会 `guild_id` 即可为目标帮会创建账号（可含 admin 角色）→ 跨帮会接管（同类正确模式见 `update_guild_icon` 的 403 归属校验）；2026-09-18 已修复并加固（管理员仅本帮会，开发者目标需存在） | 数据归属一律取认证上下文（`current_user.guild_id`）；仅确认角色范围后（如 developer）才允许请求体指定，且服务层校验目标归属/存在；新增写接口时对照同资源既有接口的归属校验模式做交叉检查 |
 
 ---
 

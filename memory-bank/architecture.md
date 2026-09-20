@@ -53,7 +53,7 @@ nsh-management/
 
 ### 1.2 UI优化方案文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ui-polish-plan.md`
-- **作用**：记录 UI 优化方案（P0-P3 共 11 项优化清单：视觉层次/交互反馈/细节打磨/微动效）、CSS 新增动画族规范、卡片层级规范、文件变更清单、验收标准（2026-09-15 已完成归档；最终规范见 ui-style-guide.md §10，剩余 3 项可选未做）
+- **作用**：记录 UI 优化方案（P0-P3 共 11 项优化清单：视觉层次/交互反馈/细节打磨/微动效）、CSS 新增动画族规范、卡片层级规范、文件变更清单、验收标准（2026-09-18 全部完成：P0–P3 11 项 + §2.5 代码质量 2 项 + 3 项可选项——表格密度切换/空状态 SVG 插画/职业标签 hover 微光；最终规范见 ui-style-guide.md §10）
 - **前置文档**：`ui-style-guide.md`（权威视觉规范，本文档仅补充优化增量）
 - **更新时机**：优化项完成或方案调整时更新
 
@@ -124,7 +124,7 @@ nsh-management/
 
 ### 14. 安全审查文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\security-review.md`
-- **作用**：项目安全审查记录，涵盖认证、权限、数据安全等方面的审查结论与改进项
+- **作用**：项目安全审查记录，涵盖认证、权限、数据安全等方面的审查结论与改进项（§一～九为 2026-08-20 全量审查；§十为 2026-09-18 用户隔离定向修复 F-1～F-5、验证范围与未解决项更正）
 - **更新时机**：安全相关变更或审查时更新
 
 ### 15. AI 项目完整上下文文档
@@ -199,6 +199,9 @@ nsh-management/
 | 2026-09-17 | 成员战绩与战报方案实施完成：stats-report-plan 状态更新（已实施待验收，含实施记录）、文档说明 §18 描述同步；design-document v2.5 描述去规划标注；backend/frontend docs 状态流转；代码变更记录见 progress.md | stats-report-plan.md, design-document-v2.md, backend/docs, frontend/docs, progress.md |
 | 2026-09-17 | 战报 v2 重设计：海报扩为 8 区块（总览/MVP 与数据之王/阵营对比 6 指标/榜单去重/逐局战况/职业伤害占比）；stats-report-plan §3.2–3.3 与更新记录同步；design-document §4.5 战报描述更新；frontend docs 同步 | stats-report-plan.md, design-document-v2.md, frontend/docs |
 | 2026-09-17 | 战报口径调整（仅我方阵营）：stats-report-plan §1.2/§3 与更新记录同步（7 区块、排表判定我方、两请求加载）；design-document §4.5 更新；frontend docs 与 progress 目录树/更新记录同步 | stats-report-plan.md, design-document-v2.md, frontend/docs, progress.md |
+| 2026-09-18 | 战报区块替换（职业分布 → 小队战况）：stats-report-plan §3 与更新记录同步；design-document §4.5 更新；frontend docs 与 progress 目录树/更新记录同步 | stats-report-plan.md, design-document-v2.md, frontend/docs, progress.md |
+| 2026-09-18 | UI 优化可选项收尾（ui-polish-plan v1.3 全部完成）：表格密度切换（顶栏全局开关）/空状态 SVG 插画（EmptyState 4 变体全站替换）/职业标签 hover 微光；ui-style-guide §9 实现索引 + §10.1/§10.3/§10.4 同步；frontend docs 与 progress.md 同步 | ui-polish-plan.md, ui-style-guide.md |
+| 2026-09-18 | 用户隔离定向修复（security-review §十 F-1～F-5）：security-review 新增 §十（修复记录/验证范围/未解决项更正，§14 文档说明同步）；design-document §3.2/§4.1 补充账号创建边界与导出标识规则；ai-checklist 新增遗漏模式 14（数据归属字段被请求体覆盖）；backend/frontend docs 更新记录；progress 目录树（+2 selfcheck 脚本）与更新记录 | security-review.md, design-document-v2.md, ai-checklist.md, backend/docs, frontend/docs, progress.md |
 
 ---
 

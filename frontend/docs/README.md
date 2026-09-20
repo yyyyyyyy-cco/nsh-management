@@ -102,18 +102,16 @@
 - ✅ 系统日志页面（审计日志筛选/分页/清理，仅开发者）
 - ✅ 全站表格响应式（width→min-width，取消 fixed 固定列）
 - ✅ 样式系统完善（element-plus.css +496 行深度定制、theme.css +138 行设计令牌、index.css +106 行全局样式）
-- ✅ UI 优化完成（P0–P3 共 11 项 + 代码质量重构 2 项，详见 `memory-bank/ui-polish-plan.md` v1.2）
+- ✅ UI 优化完成（P0–P3 共 11 项 + 代码质量重构 2 项 + 3 项可选项，详见 `memory-bank/ui-polish-plan.md` v1.3）
 - ✅ 成员详情战绩页（管理员 /members/:id：信息卡 + 出勤率 + 历史战绩，复用个人战绩四组件；常驻库 ID/名字入口金色 hover；管理员「个人战绩」菜单开放）
-- ✅ 单场图文战报（数据分析工具栏「生成战报」→ 预览弹窗 → html2canvas 导出 PNG；海报 960px 固定宽 7 区块：头部/我方总览（6 卡）/MVP 与数据之王/三榜 TOP3/逐局战况/职业分布；仅统计我方阵营——排表命中判定，与后端小队分析口径一致）
+- ✅ 单场图文战报（数据分析工具栏「生成战报」→ 预览弹窗 → html2canvas 导出 PNG；海报 960px 固定宽 7 区块：头部/我方总览（6 卡）/MVP 与数据之王/三榜 TOP3/逐局战况/小队战况；仅统计我方阵营——排表命中判定，与后端小队分析口径一致）
+- ✅ 常驻库导出文件名携带帮会名（Excel/PNG，与后端 Content-Disposition 一致，仅作来源识别）
 
 ### 进行中
 - 无
 
 ### 待开始
-- UI 优化可选项（详见 `memory-bank/ui-polish-plan.md`，仅剩 3 项）：
-  - [ ] 表格密度切换（§2.1.3）
-  - [ ] 空状态插画升级（§2.3.3）
-  - [ ] 职业标签 hover 微光（§2.4.4）
+- 无
 
 ### 下一步计划
 测试与优化：补充 E2E 测试、性能优化、无障碍适配
@@ -150,3 +148,7 @@
 | 2026-09-17 | 新增成员详情战绩页（MemberDetailView/MemberDetailHeader + 路由 + 常驻库入口 + 管理员菜单）与单场图文战报（MatchReportDialog/report 海报 5 组件 + html2canvas 导出）；profTagStyle 抽取至 utils/profession；vue-tsc + vite build 通过 |
 | 2026-09-17 | 战报 v2 重设计（用户反馈原版太简陋、无信息含量）：海报扩为 8 区块——新增 PosterOverview/PosterMvpKings/PosterRounds，阵营对比扩至 6 指标+差值，榜单去重玩家、职业加伤害占比；数据层改单接口（getIndicators）+ 前端组装；vue-tsc + vite build 通过 |
 | 2026-09-17 | 战报口径调整：仅统计我方阵营（排表命中判定，与后端小队分析一致）——删除阵营对比区块、总览扩六卡、逐局改我方击杀/伤害/治疗；弹窗加载 +排表接口（失败降级）；vue-tsc + vite build 通过 |
+| 2026-09-18 | 战报区块替换：移除职业分布（PosterProfessions 删除），新增小队战况（PosterSquads：按排表归属聚合我方各队击杀/对玩家伤害/治疗，未排表单列，无排表自动隐藏）；vue-tsc + vite build 通过 |
+| 2026-09-18 | 小队战况修复：数据列扩为 7 项（击杀/助攻/对玩家伤害/对建筑伤害/治疗/承伤/焚骨）、空队显示 0 完整呈现、表头列对齐修复（:not(:first-child)）；vue-tsc + vite build 通过 |
+| 2026-09-18 | 常驻库导出文件名含帮会名（useMemberList 下载名 `常驻库_{帮会名}_{日期}`，请求前捕获并清理非法字符；与后端 Content-Disposition 一致）；配合 security-review §十 F-4 来源标识 |
+| 2026-09-18 | UI 优化可选项收尾 3 项（表格密度切换/空状态 SVG 插画/职业标签 hover 微光），全站 el-empty 替换为 EmptyState 组件；vue-tsc + vite build 通过 |
