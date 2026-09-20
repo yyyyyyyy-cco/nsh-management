@@ -29,14 +29,20 @@
       <MemberDetailHeader v-else-if="member" :member="member" :attendance-rate="attendanceRate" />
     </el-card>
 
-    <!-- 历史战绩（按成员名=游戏 ID 精确匹配，复用个人战绩组件） -->
+    <!-- 历史战绩（默认合并已确认的新旧 ID；冲突时提示并跳转个人战绩精确查询） -->
     <template v-if="member">
       <template v-if="summary && records.length > 0">
+        <StatsIdentityNotice class="section" :identity="identity" />
         <StatsOverview :summary="summary" class="section" />
         <StatsTrendChart :records="records" class="section" />
         <StatsRankingPosition :records="records" class="section" />
         <StatsMatchTable :records="records" class="section" />
       </template>
+      <el-card v-else-if="statsConflict" shadow="never" class="empty-card section">
+        <EmptyState variant="error" :description="statsConflict" :image-size="72">
+          <el-button type="primary" plain @click="goExactStats">前往个人战绩精确查询</el-button>
+        </EmptyState>
+      </el-card>
       <el-card v-else shadow="never" class="empty-card section">
         <EmptyState variant="chart" description="该成员暂无比赛数据" :image-size="72" />
       </el-card>
@@ -52,9 +58,10 @@ import { UserFilled } from '@element-plus/icons-vue'
 import { getAttendanceRate, getMember } from '@/api/members'
 import { getMyStats } from '@/api/myStats'
 import type { MemberInfo } from '@/types/member'
-import type { PlayerRecord, PlayerSummary } from '@/types/myStats'
+import type { PlayerIdentity, PlayerRecord, PlayerSummary } from '@/types/myStats'
 import MemberDetailHeader from '@/components/members/MemberDetailHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import StatsIdentityNotice from '@/components/my-stats/StatsIdentityNotice.vue'
 import StatsMatchTable from '@/components/my-stats/StatsMatchTable.vue'
 import StatsOverview from '@/components/my-stats/StatsOverview.vue'
 import StatsRankingPosition from '@/components/my-stats/StatsRankingPosition.vue'
@@ -72,19 +79,36 @@ const member = ref<MemberInfo | null>(null)
 const attendanceRate = ref<number | null>(null)
 const records = ref<PlayerRecord[]>([])
 const summary = ref<PlayerSummary | null>(null)
+const identity = ref<PlayerIdentity | null>(null)
+const statsConflict = ref<string | null>(null)
 
 async function load() {
   const id = Number(route.params.id)
   loading.value = true
   loadFailed.value = false
+  statsConflict.value = null
   try {
     const m = await getMember(id)
-    // 战绩与出勤率并行加载（战绩按成员名精确匹配游戏 ID）
-    const [stats, rates] = await Promise.all([getMyStats(m.name), getAttendanceRate()])
     member.value = m
-    records.value = stats.records
-    summary.value = stats.summary
+    // 战绩：默认合并已确认的新旧 ID；单独捕获冲突，避免与“成员不存在”共用错误态
+    const [rates, stats] = await Promise.all([
+      getAttendanceRate(),
+      getMyStats(m.name).catch((error) => {
+        const status = (error as { response?: { status?: number } })?.response?.status
+        if (status === 409) {
+          statsConflict.value =
+            (error as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+            '该 ID 存在名称归属冲突，无法自动合并'
+        }
+        return null
+      }),
+    ])
     attendanceRate.value = rates.find((r) => r.member_id === id)?.attendance_rate ?? null
+    if (stats) {
+      records.value = stats.records
+      summary.value = stats.summary
+      identity.value = stats.identity
+    }
   } catch {
     loadFailed.value = true
   } finally {
@@ -94,6 +118,12 @@ async function load() {
 
 function goBack() {
   router.push('/members')
+}
+
+/** 冲突退路：到个人战绩按该 ID 精确查询（不合并历史 ID，不冒认归属） */
+function goExactStats() {
+  if (!member.value) return
+  router.push({ name: 'my-stats', query: { player_name: member.value.name, merge_aliases: 'false' } })
 }
 
 onMounted(load)

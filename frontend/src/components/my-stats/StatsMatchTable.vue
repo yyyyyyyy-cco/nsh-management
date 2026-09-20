@@ -24,6 +24,8 @@
                 <el-tag :type="resultType(row.schedule_result)" size="small" effect="light">{{ resultLabel(row.schedule_result) }}</el-tag>
                 vs {{ row.opponent }}
               </span>
+              <!-- 合并历史 ID 查询时，明细保留该场使用的 ID -->
+              <span class="round-id">ID：{{ row.player_name }}</span>
             </template>
           </el-table-column>
           <el-table-column label="局" width="45">
@@ -74,6 +76,7 @@
                 <el-tag :type="resultType(row.schedule_result)" size="small" effect="light">{{ resultLabel(row.schedule_result) }}</el-tag>
                 vs {{ row.opponent }}
               </span>
+              <span class="round-id">ID：{{ row.player_name }}</span>
             </template>
           </el-table-column>
           <el-table-column label="局" width="45">
@@ -257,6 +260,15 @@ function rankClass(r: RankingItem): string {
   gap: 6px;
   font-weight: 600;
   color: var(--ink-900);
+}
+
+/* 该场使用的游戏 ID（改名合并查询时提示，不额外增加列） */
+.round-id {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--ink-400);
+  overflow-wrap: anywhere;
 }
 
 .time-cell {

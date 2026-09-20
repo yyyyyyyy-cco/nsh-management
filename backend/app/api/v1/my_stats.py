@@ -1,103 +1,31 @@
-"""个人战绩查询接口：按游戏 ID 聚合历史比赛数据。"""
+"""个人战绩查询接口：按游戏 ID 聚合历史比赛数据，支持已确认的新旧 ID 合并查询。
+
+名称归属解析（merged/exact 与冲突 409）见 design-game-id-change.md §4.3/§5。
+"""
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import require_member_or_admin
 from app.core.database import get_db
 from app.models.user import User
+from app.schemas.my_stats import (
+    MyStatsResponse,
+    PlayerNameList,
+    PlayerRecordOut,
+    PlayerSummary,
+)
 from app.services import my_stats_service
 
 router = APIRouter(prefix="/my-stats", tags=["个人战绩"])
 
 
-# ---- Schema ----
-
-class RankingItem(BaseModel):
-    """单维度排名。"""
-    label: str
-    rank: int
-    total: int
-
-
-class PlayerRecordOut(BaseModel):
-    """单局明细（含衍生指标 + 赛程元信息 + 该局排名）。"""
-    schedule_id: int
-    opponent: str
-    match_time: str
-    schedule_result: str
-    round_no: int
-    player_name: str
-    profession: str | None
-    camp: str
-    kills: int
-    springs: int
-    assists: int
-    player_damage: int
-    armor_break_damage: int
-    building_damage: int
-    tower_break_damage: int
-    healing: int
-    damage_taken: int
-    deaths: int
-    revives: int
-    fen_gu: int
-    kda: float
-    dps: int
-    kpa_damage: int
-    damage_per_death: int
-    taken_per_death: int
-    healing_per_death: int
-    heal_conversion: float
-    kill_ratio: float
-    assist_ratio: float
-    player_damage_ratio: float
-    building_ratio: float
-    taken_ratio: float
-    death_ratio: float
-    heal_ratio: float
-    revive_rate: float
-    fen_gu_rate: float
-    rankings: list[RankingItem]
-    rankings_camp: list[RankingItem]
-
-
-class PlayerSummary(BaseModel):
-    """个人概览统计。"""
-    player_name: str
-    total_rounds: int
-    total_matches: int
-    main_profession: str | None
-    avg_kda: float
-    avg_kills: float
-    avg_damage: float
-    avg_healing: float
-    avg_deaths: float
-    total_kills: int
-    total_damage: int
-    total_healing: int
-
-
-class MyStatsResponse(BaseModel):
-    """个人战绩响应。"""
-    records: list[PlayerRecordOut]
-    summary: PlayerSummary
-
-
-# ---- 路由 ----
-
-class PlayerNameList(BaseModel):
-    """玩家名候选列表。"""
-    names: list[str]
-
-
 @router.get("/player-names", response_model=PlayerNameList)
 async def get_player_names(
     q: str = Query(..., min_length=1, max_length=32, description="搜索关键词"),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_member_or_admin),
     session: AsyncSession = Depends(get_db),
 ) -> PlayerNameList:
-    """模糊搜索本帮会比赛数据中匹配的玩家名，按数据量降序返回候选（用于前端自动补全）。"""
+    """模糊搜索本帮会候选名称（比赛数据名称 + 已确认改名关系的新旧名称与当前名）。"""
     names = await my_stats_service.search_player_names(session, current_user.guild_id, q)
     return PlayerNameList(names=names)
 
@@ -105,12 +33,23 @@ async def get_player_names(
 @router.get("", response_model=MyStatsResponse)
 async def get_my_stats(
     player_name: str = Query(..., min_length=1, max_length=32, description="游戏 ID"),
-    current_user: User = Depends(get_current_user),
+    merge_aliases: bool = Query(True, description="是否合并该成员已确认的历史 ID；false 为仅查此 ID"),
+    current_user: User = Depends(require_member_or_admin),
     session: AsyncSession = Depends(get_db),
 ) -> MyStatsResponse:
-    """按游戏 ID 查询个人历史战绩（帮众可访问）。"""
-    data = await my_stats_service.query_player_stats(session, current_user.guild_id, player_name)
+    """按游戏 ID 查询历史战绩（帮众/管理员）；合并冲突返回 409，可改用 merge_aliases=false。"""
+    data = await my_stats_service.query_player_stats(
+        session, current_user.guild_id, player_name, merge_aliases
+    )
+    identity = data["identity"]
     return MyStatsResponse(
         records=[PlayerRecordOut(**r) for r in data["records"]],
         summary=PlayerSummary(**data["summary"]),
+        identity={
+            "mode": identity.mode,
+            "query_player_name": identity.query_player_name,
+            "member_id": identity.member_id,
+            "current_game_id": identity.current_game_id,
+            "aliases": identity.aliases,
+        },
     )

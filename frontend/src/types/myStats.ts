@@ -65,8 +65,18 @@ export interface PlayerSummary {
   total_healing: number
 }
 
-/** 个人战绩响应 */
+/** 个人战绩响应（identity：名称归属说明，merged 合并已确认新旧 ID / exact 原始按名查询）。 */
 export interface MyStatsResponse {
   records: PlayerRecord[]
   summary: PlayerSummary
+  identity: PlayerIdentity
+}
+
+/** 名称归属说明。 */
+export interface PlayerIdentity {
+  mode: 'merged' | 'exact'
+  query_player_name: string
+  member_id: number | null
+  current_game_id: string | null
+  aliases: string[]
 }

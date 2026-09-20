@@ -3,7 +3,7 @@
     <div class="search-row">
       <el-autocomplete
         v-model="inputName"
-        placeholder="输入游戏 ID 查询战绩"
+        placeholder="输入当前或历史游戏 ID 查询战绩"
         clearable
         :prefix-icon="Search"
         class="search-input"
@@ -29,17 +29,26 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { getPlayerNames } from '@/api/myStats'
 
-defineProps<{ loading: boolean }>()
+const props = defineProps<{ loading: boolean; initialName?: string }>()
 const emit = defineEmits<{ search: [name: string] }>()
 
 const inputName = ref('')
 const STORAGE_KEY = 'my-stats-history'
 const MAX_HISTORY = 5
 const history = ref<string[]>([])
+
+// 外部（成员详情跳转/URL 参数）设置查询名时同步输入框
+watch(
+  () => props.initialName,
+  (value) => {
+    if (value !== undefined) inputName.value = value
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   try {

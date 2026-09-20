@@ -1,4 +1,4 @@
-"""个人战绩查询业务：按游戏 ID 聚合历史比赛数据。"""
+"""个人战绩查询业务：按游戏 ID 聚合历史比赛数据（支持已确认的新旧 ID 合并查询）。"""
 from collections import Counter
 
 from sqlalchemy import func, select
@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.match_data import MatchData
 from app.models.schedule import Schedule
 from app.services.match_data_stats import calculate_indicators, get_camp_totals
+from app.services.player_identity_service import resolve_player_identity, search_identity_names
 
 # 排行榜维度：字段名 → 显示标签
 RANKING_FIELDS = {
@@ -19,25 +20,34 @@ RANKING_FIELDS = {
 }
 
 
-async def query_player_stats(session: AsyncSession, guild_id: int, player_name: str) -> dict:
-    """按游戏 ID（精确匹配）聚合该帮会下最近 10 场已导入比赛数据。
+async def query_player_stats(
+    session: AsyncSession, guild_id: int, player_name: str, merge_aliases: bool = True
+) -> dict:
+    """聚合该帮会下最近 10 场已导入比赛数据。
 
     返回：
-    - records: 每局明细（含衍生指标 + 赛程元信息 + 该局排名）
+    - records: 每局明细（含衍生指标 + 赛程元信息 + 该局排名；player_name 为比赛当时 ID）
     - summary: 概览统计
+    - identity: 名称归属说明（merged 合并 / exact 原始按名查询）
 
-    查询次数固定为 3 次：
-    1. 定位最近 10 场有该玩家数据的赛程（DISTINCT + 排序 + LIMIT）
-    2. 一次拉取该玩家在这 10 场的全部记录（联查赛程元信息）
+    merge_aliases=True 时按已审核通过的改名关系合并新旧 ID；检测到归属冲突抛
+    PlayerIdentityError(409)，不静默改为精确查询。
+
+    统计固定 3 次查询（另有 1 次名称归属解析）：
+    1. 定位最近 10 场有关联名称数据的赛程（DISTINCT + 排序 + LIMIT，按赛程整体截取）
+    2. 一次拉取这些名称在这 10 场的全部记录（联查赛程元信息）
     3. 一次拉取这 10 场的全量记录（用于阵营汇总与排名，避免按赛程逐场 N+1）
     """
-    # 1. 最近 10 场有该玩家数据的赛程（按比赛时间倒序）
+    identity = await resolve_player_identity(session, guild_id, player_name, merge_aliases)
+    names = identity.aliases
+
+    # 1. 最近 10 场有关联名称数据的赛程（按比赛时间倒序）
     recent_schedule_ids = list(
         (
             await session.execute(
                 select(MatchData.schedule_id)
                 .join(Schedule, MatchData.schedule_id == Schedule.id)
-                .where(Schedule.guild_id == guild_id, MatchData.player_name == player_name)
+                .where(Schedule.guild_id == guild_id, MatchData.player_name.in_(names))
                 .group_by(MatchData.schedule_id)
                 .order_by(func.max(Schedule.match_time).desc())
                 .limit(10)
@@ -49,17 +59,18 @@ async def query_player_stats(session: AsyncSession, guild_id: int, player_name: 
     if not recent_schedule_ids:
         return {
             "records": [],
-            "summary": _empty_summary(player_name),
+            "summary": _empty_summary(identity.display_name),
+            "identity": identity,
         }
 
-    # 2. 该玩家在最近 10 场的全部记录（含赛程元信息）
+    # 2. 关联名称在最近 10 场的全部记录（含赛程元信息）
     rows = (
         await session.execute(
             select(MatchData, Schedule)
             .join(Schedule, MatchData.schedule_id == Schedule.id)
             .where(
                 MatchData.schedule_id.in_(recent_schedule_ids),
-                MatchData.player_name == player_name,
+                MatchData.player_name.in_(names),
             )
             .order_by(Schedule.match_time.desc(), MatchData.round_no.asc())
         )
@@ -149,7 +160,7 @@ async def query_player_stats(session: AsyncSession, guild_id: int, player_name: 
     return {
         "records": records,
         "summary": {
-            "player_name": player_name,
+            "player_name": identity.display_name,
             "total_rounds": total_rounds,
             "total_matches": total_matches,
             "main_profession": main_profession,
@@ -162,6 +173,7 @@ async def query_player_stats(session: AsyncSession, guild_id: int, player_name: 
             "total_damage": total_damage,
             "total_healing": total_healing,
         },
+        "identity": identity,
     }
 
 
@@ -204,15 +216,8 @@ def _zero_camp_totals(camp: str) -> dict:
 
 
 async def search_player_names(session: AsyncSession, guild_id: int, q: str, limit: int = 10) -> list[str]:
-    """模糊搜索玩家名称：按数据量降序返回匹配的玩家名列表（用于自动补全候选）。"""
-    rows = (
-        await session.execute(
-            select(MatchData.player_name)
-            .join(Schedule, MatchData.schedule_id == Schedule.id)
-            .where(Schedule.guild_id == guild_id, MatchData.player_name.ilike(f"%{q}%"))
-            .group_by(MatchData.player_name)
-            .order_by(func.count(MatchData.player_name).desc())
-            .limit(limit)
-        )
-    )
-    return list(rows.scalars().all())
+    """模糊搜索玩家名称候选：比赛数据名称 + 已确认改名关系的新旧名称/当前名。
+
+    排序与冲突边界见 player_identity_service.search_identity_names。
+    """
+    return await search_identity_names(session, guild_id, q, limit)
