@@ -44,11 +44,12 @@
 |------|------|------|-------------|
 | AGENTS.md（本文件） | 根目录 | AI 入口：规范 + 文档维护 + 同步流程 | 项目结构、规范或维护流程变更 |
 | 产品设计 | `memory-bank/design-document-v2.md` | 功能定义、权限矩阵、页面结构 | 需求 / 功能 / 权限调整 |
-| 数据库设计 | `memory-bank/database-design.md` | 11 张表、字段约束、业务规则落表 | 表结构变更 / Alembic 迁移 |
+| 数据库设计 | `memory-bank/database-design.md` | 12 张表、字段约束、业务规则落表 | 表结构变更 / Alembic 迁移 |
 | 技术栈 | `memory-bank/tech-stack.md` | 依赖版本、部署方案 | 依赖 / 构建 / 部署调整 |
 | UI 规范 | `memory-bank/ui-style-guide.md` | 浅色雅金风最终规范 | UI 规范调整 |
 | UI 优化方案 | `memory-bank/ui-polish-plan.md` | 已完成归档（全部完成） | 方案调整时 |
 | 成员战绩与战报方案 | `memory-bank/stats-report-plan.md` | 已实施完成（2026-09-17） | 方案调整时 |
+| 游戏 ID 改名与战绩关联设计 | `memory-bank/design-game-id-change.md` | 专项设计（2026-09-20 已实施，待验收） | 功能调整或实施完成时 |
 | 实施方案 | `memory-bank/implementation-plan.md` | 历史规划存档（已完工） | 不维护 |
 | 项目进度 | `memory-bank/progress.md` | 代码目录树 + 模块状态 + 变更记录（**进度唯一权威**） | **每次代码变更后** |
 | 文档索引 | `memory-bank/architecture.md` | 文档结构、说明、更新记录（**文档索引唯一权威**） | **每次新增 / 改名 / 职责变更文档后** |

@@ -91,7 +91,7 @@ nsh-management/
 │   ├── app/
 │   │   ├── api/v1/             # API 路由
 │   │   ├── core/               # 配置、数据库、安全
-│   │   ├── models/             # SQLAlchemy 模型（11 表）
+│   │   ├── models/             # SQLAlchemy 模型（12 表）
 │   │   ├── schemas/            # Pydantic Schema
 │   │   ├── services/           # 业务逻辑
 │   │   └── utils/              # 工具函数

@@ -49,7 +49,7 @@ member（帮众）→ 绑定帮会，只读 + 有限操作
     └── 出勤库、排表仅管理员可见
 ```
 
-### 1.4 数据模型（11 张表）
+### 1.4 数据模型（12 张表）
 
 > **权威源**：`database-design.md` §1.2（表清单与关联关系）、§2（字段级设计）。核心结构：`guilds` 下挂 users / profession_configs / members / schedules；`schedules` 1:N 关联 attendance_records / recordings / match_data，1:1 关联 lineups / squad_adjustments；operation_logs 独立记录全局操作审计（guild_id 可空）。
 
@@ -99,7 +99,7 @@ member（帮众）→ 绑定帮会，只读 + 有限操作
 
 - `api/v1/`：薄路由层（`router.py` 注册汇总、`deps.py` 依赖注入，各模块路由只做参数校验与调用 service）
 - `core/`：`config.py` 环境配置 / `database.py` 异步连接 / `security.py` JWT 与密码 / `logging_config.py` 日志
-- `models/`、`schemas/`：SQLAlchemy 表模型（11 张表）与 Pydantic 请求/响应模型
+- `models/`、`schemas/`：SQLAlchemy 表模型（12 张表）与 Pydantic 请求/响应模型
 - `services/`：业务逻辑核心（含 log / my_stats / lineup_attendance 等）
 - `utils/`：Excel/出勤导入、图片与 Excel 导出、常量、姓名规范化
 - `init_db.py` / `main.py`：默认账号初始化与应用入口（CORS、审计中间件、异常处理）
@@ -114,7 +114,7 @@ member（帮众）→ 绑定帮会，只读 + 有限操作
 
 - SQLite 单文件存储（`backend/data/nsh.db`）
 - SQLAlchemy 异步模式（`aiosqlite` 驱动）
-- Alembic 管理迁移（`backend/alembic/versions/`，当前 13 个版本）
+- Alembic 管理迁移（`backend/alembic/versions/`，当前 15 个版本，head `o9p0q1r2s3t4`）
 - 多帮会隔离：核心表通过 `guild_id` 字段隔离数据
 - JSON 字段：排表（60 槽位）、局数结果、比赛数据扩展列、分析调整
 

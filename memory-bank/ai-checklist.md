@@ -25,7 +25,7 @@
 | 版本号 | 权威源 | 可能残留的位置 | 检查方式 |
 |--------|--------|---------------|---------|
 | 数据库设计版本 | `database-design.md` 头部 | `architecture.md`、`progress.md`、`backend/docs` | `grep "v1\." memory-bank/` |
-| 表数量 | `database-design.md` | `architecture.md`、`progress.md`、`backend/docs`、`README.md` | `grep "11 表\|10 表" .` |
+| 表数量 | `database-design.md` | `architecture.md`、`progress.md`、`backend/docs`、`README.md` | `grep "12 表\|11 表" .` |
 | Python 版本 | `tech-stack.md` | `implementation-plan.md`、`README.md` | `grep "Python 3\." .` |
 
 **教训**：2026-08-26 连续三轮才修完版本号散落 — 改了权威源漏了引用方。
@@ -123,6 +123,8 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 | 12 | 编辑 CRLF 文件被无声改成 LF | 用默认 newline 读写（Python `read_text()`、部分编辑器）会把 CRLF 转 LF，`git diff` 显示整文件变更、掩盖真实改动 | 读写统一 `open(..., newline="")` 保留原行尾；改完用 `git diff --stat` 复核改动行数是否只等于实际改动 |
 | 13 | ORM 模型缺 property 导致 `model_validate` 静默丢字段 | 登录接口用 `UserOut.model_validate(user)` 序列化，而 `User` 模型只有 `guild_name` property、缺 `guild_icon` → 登录响应该字段恒取默认值 None（`/me` 手动构造故正常），前端切换账号后表现为"设置被清空"；写入成功但两条序列化路径分叉造成假象 | 给输出 Schema 新增字段时，同步检查 ORM 模型是否有对应属性/property；同一模型存在「`model_validate` 与手动构造」两条序列化路径时，两侧都要覆盖，并用实证脚本逐字段对比 |
 | 14 | 数据归属字段可被请求体覆盖（跨帮会越权） | `POST /config/accounts` 原实现 `target_guild_id = body.guild_id or current_user.guild_id`：管理员在请求体附带其他帮会 `guild_id` 即可为目标帮会创建账号（可含 admin 角色）→ 跨帮会接管（同类正确模式见 `update_guild_icon` 的 403 归属校验）；2026-09-18 已修复并加固（管理员仅本帮会，开发者目标需存在） | 数据归属一律取认证上下文（`current_user.guild_id`）；仅确认角色范围后（如 developer）才允许请求体指定，且服务层校验目标归属/存在；新增写接口时对照同资源既有接口的归属校验模式做交叉检查 |
+| 15 | 分页响应模型 `items` 声明基类 → 子类额外字段被静默裁剪 | 改名申请审核列表项为 `GameIdRequestAdminOut`（含 `requester_username`），若塞进 `items: list[GameIdRequestMemberOut]` 的 Page 模型，Pydantic 会按基类重建并丢弃快照字段（实测 KeyError: 'requester_username'）；与第 13 条同源——「序列化路径按声明类型收敛」 | 角色相关响应字段不同时，为每种角色各建一个 Page/响应模型（如 MemberPage / AdminPage），不要用基类接收；新增字段后用实证脚本断言响应 JSON 中确实存在该键 |
+| 16 | 回滚后访问 ORM 实例属性触发 `MissingGreenlet` | 审核事务在 `session.rollback()` 后拼装错误消息时读取 `record.new_game_id`，实例已过期 → 异步下同步 lazy load 报 `greenlet_spawn has not been called`（表现为 500 而非预期的 409） | 事务内需要的字段在首次读取时先取局部快照（`new, old = record.x, record.y`），rollback 后只用局部变量；同理不要在 rollback/commit 后继续访问已过期实例的属性 |
 
 ---
 

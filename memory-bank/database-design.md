@@ -1,8 +1,8 @@
 # 帮会管理系统 - 数据库设计
 
-> 版本：v1.8
-> 更新日期：2026-09-15
-> 依据：design-document-v2.md（产品设计 v2）、tech-stack.md（技术栈）
+> 版本：v1.9
+> 更新日期：2026-09-20
+> 依据：design-document-v2.md（产品设计 v2）、tech-stack.md（技术栈）、design-game-id-change.md（改名申请与战绩关联）
 
 ## 1. 设计总览
 
@@ -28,6 +28,7 @@ guilds（帮会）
      ├── recordings（录屏）             schedule_id, member_id（可空）
      ├── match_data（比赛数据）          schedule_id
      └── squad_adjustments（分析调整）    schedule_id（1:1）
+member_game_id_requests（游戏 ID 改名申请）  guild_id, member_id（可空）
 operation_logs（操作审计日志）          guild_id（可空）
 ```
 
@@ -44,6 +45,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 | 9 | match_data | 比赛数据（CSV 导入） | schedules |
 | 10 | squad_adjustments | 分析调整（小队分析内临时分配） | schedules（1:1） |
 | 11 | operation_logs | 操作审计日志（写操作/异常落库，仅开发者可查） | guilds（guild_id 可空） |
+| 12 | member_game_id_requests | 游戏 ID 修改申请与审核记录（兼作战绩新旧 ID 关联来源） | guilds、members（可空）、users（可空） |
 
 ### 1.3 设计决策
 
@@ -57,6 +59,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 | 级联删除 | 应用层（Service）实现 | 实施计划已定，避免 DB 外键级联影响日志审计 |
 | 登录限流 | users.failed_attempts + locked_until | 安全验收：5 次失败锁定 5 分钟 |
 | 时间戳 | 所有表含 created_at；变更表含 updated_at | 出勤、录屏等含审核/更新语义 |
+| 改名申请 | 独立申请表存原/新 ID 与审核轨迹；通过时同步 members.name | 待审不污染常驻库，保留审计；兼作战绩新旧 ID 关联来源（见 design-game-id-change.md） |
 
 ---
 
@@ -264,6 +267,44 @@ JSON 结构示例：
 索引：`username`、`guild_id`、`module`、`level`、`created_at`。
 业务规则：默认保留 90 天（启动时自动清理过期记录，页面亦可手动清理，清理操作本身会被审计）；仅开发者可在「系统日志」页查看。
 
+### 2.12 member_game_id_requests — 游戏 ID 修改申请表
+
+> 帮众经共享账号代填申请，管理员核实身份后审核；通过时在同一事务更新 `members.name`。管理员直接在常驻库改名时，同一事务也写入一条 approved 记录（提交/审核人=操作管理员，备注标注来源）。approved 记录兼作个人战绩新旧 ID 合并查询的已确认名称关系来源（API、算法与冲突边界见 `design-game-id-change.md`）。本表不随 operation_logs 保留期清理。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| guild_id | INTEGER | NOT NULL, FK → guilds.id | 所属帮会（取认证上下文） |
+| member_id | INTEGER | NULL, FK → members.id | 目标常驻成员；成员删除后置空，防主键复用误关联 |
+| old_game_id | TEXT | NOT NULL, max 32 | 提交时从成员表读取的原 ID 快照 |
+| new_game_id | TEXT | NOT NULL, max 32 | 目标新 ID（去首尾空白后校验） |
+| requester_id | INTEGER | NULL, FK → users.id | 提交账号；账号删除后置空 |
+| requester_username | TEXT | NOT NULL, max 64 | 提交账号名快照 |
+| status | TEXT | NOT NULL, default 'pending', CHECK | `pending` 待审核 / `approved` 已通过 / `rejected` 已驳回 / `invalidated` 已失效 |
+| reviewer_id | INTEGER | NULL, FK → users.id | 审核管理员；账号删除后置空 |
+| reviewer_username | TEXT | NULL, max 64 | 审核账号名快照 |
+| review_remark | TEXT | NULL, max 255 | 审核意见；驳回时必填，帮众可见 |
+| invalidated_reason | TEXT | NULL, max 32 | `member_renamed` / `member_deleted`（自动失效原因） |
+| created_at | DATETIME | NOT NULL, default now | 申请时间（UTC） |
+| reviewed_at | DATETIME | NULL | 人工审核时间（自动失效时为空） |
+| updated_at | DATETIME | NOT NULL, default now, onupdate now | 审核或自动失效时间 |
+
+索引与约束：
+- 普通索引：`guild_id`；查询用 `(guild_id, status, created_at, id)`、`(guild_id, member_id, created_at, id)`；账号清理用 `requester_id`、`reviewer_id`。
+- **部分唯一索引**：`UNIQUE(guild_id, member_id) WHERE status = 'pending'` —— 数据库层兜底同一成员的并发重复申请。
+- **approved 部分索引**：`(guild_id, old_game_id) WHERE status='approved'`、`(guild_id, new_game_id) WHERE status='approved'` —— 战绩新旧 ID 定位与冲突检测。
+- 状态白名单由 CHECK 约束保护（SQLite 不支持事后 ADD CONSTRAINT，须在建表迁移中一次定义）。
+
+业务规则：
+- 同一成员同时最多一条 pending；重名不新增 members 全局唯一约束（沿用现有政策，审核时检查名称占用）。
+- 待审新 ID 不作为名称占用；不同成员可并存同一新 ID，审核时先通过者生效。
+- 终态不可再次审核或改写；重新申请创建新记录。
+- 生命周期（应用层维护，辅助函数不自行 commit）：
+  - 成员被直接改名：该成员 pending 申请置 `invalidated` + `member_renamed`，并写入一条 approved 关联记录（原/新 ID + 操作管理员快照，`review_remark` 标注来源）；
+  - 成员被删除（单个/批量）：pending 置失效后，将其全部申请 `member_id` 置空；
+  - 账号被删除：`requester_id` / `reviewer_id` 置空，账号名快照保留；
+  - 整帮会删除：先删本表该帮会记录，再删成员与账号。
+
 ---
 
 ## 3. 关键业务规则落表方案
@@ -324,3 +365,5 @@ JSON 结构示例：
 | 2026-08-26 | v1.6：新增 squad_adjustments 表（分析调整，小队分析内临时分配，1:1 关联赛程，Alembic 迁移 i3j4k5l6m7n8）；表清单从 9 张更新为 10 张；级联删除规则补充 squad_adjustments |
 | 2026-09-15 | v1.7：术语统一（客人→补人）；CSV 样例引用路径更正为 `.agent/docs`（.claude→.agent 改名）；§3.6 帮众操作归属校正（出勤/排表 Tab 仅管理员，帮众经录屏列表归属） |
 | 2026-09-15 | v1.8：补全 operation_logs 操作审计日志表（§1.2 表清单 + §2.11 字段级设计），表数 10 张更新为 11 张 |
+| 2026-09-20 | v1.9：新增 member_game_id_requests 游戏 ID 修改申请表（§1.2 表清单 + §2.12 字段/约束/生命周期），表数 11 张更新为 12 张；approved 记录兼作战绩新旧 ID 关联来源（Alembic 迁移 o9p0q1r2s3t4） |
+| 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |

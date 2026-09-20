@@ -42,7 +42,7 @@
   覆盖这两个头**，否则真实 IP 会被冲成容器 IP（曾导致限流退化为「全站共享桶」、登录审计 IP 记为容器 IP）。
 - 边缘层 upstream 启用 keepalive(32)，内层不再做 TLS：每请求少一次 TLS 握手与连接建立。
 - 数据库迁移在**容器每次启动时自动执行**（Dockerfile CMD 含 `alembic upgrade head`），
-  当前 head：`n8o9p0q1r2s3`（出勤备注列；此前为 `m7n8o9p0q1r2` 复合索引）。
+  当前 head：`o9p0q1r2s3t4`（member_game_id_requests 游戏 ID 修改申请表；此前为 `n8o9p0q1r2s3` 出勤备注列）。
 - SQLite 以 **WAL 模式**运行（`journal_mode=WAL` + `synchronous=NORMAL` + `busy_timeout=30s`，
   见 `backend/app/core/database.py` 连接事件），读写不互斥；**备份方式需注意 WAL 文件**（见第五节）。
 - 后端以 `appuser`（非 root）运行，`entrypoint.sh` 负责修复 `/app/data`、`/app/logs`

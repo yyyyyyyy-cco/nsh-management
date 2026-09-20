@@ -18,6 +18,7 @@ nsh-management/
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
 │   ├── database-design.md        # 数据库设计文档
 │   ├── design-document-v2.md     # 产品设计文档（当前主文档）
+│   ├── design-game-id-change.md  # 游戏 ID 改名申请与战绩关联设计
 │   ├── implementation-plan.md    # 实施方案文档
 │   ├── progress.md               # 项目进度文档
 │   ├── security-review.md        # 安全审查文档
@@ -59,7 +60,7 @@ nsh-management/
 
 ### 2. 数据库设计文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\database-design.md`
-- **作用**：定义全部数据表结构（11 表，含 squad_adjustments、operation_logs）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.8（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计）
+- **作用**：定义全部数据表结构（12 表，含 squad_adjustments、operation_logs、member_game_id_requests）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.9（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计、游戏 ID 修改申请）
 - **更新时机**：表结构变更、业务规则调整时更新
 
 ### 3. 技术栈文档
@@ -147,6 +148,11 @@ nsh-management/
 - **作用**：成员详情战绩页（管理员独立页）与单场图文战报的实施方案（2026-09-17 已实施完成，待浏览器验收）：决策记录、交互设计、技术方案、文件清单、验证方案、二期规划
 - **更新时机**：方案调整或实施完成时更新
 
+### 19. 游戏 ID 改名申请与战绩关联设计
+- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\design-game-id-change.md`
+- **作用**：帮众提交游戏 ID 修改申请、管理员审核、通过后同步常驻库，以及个人战绩/成员详情新旧 ID 合并查询专项设计（2026-09-20 设计确认并实施完成，待浏览器验收；实施与验证状态见 progress.md）：背景决策、业务流程、API 合同、关联算法与冲突边界、权限事务、前端交互、验证方案
+- **更新时机**：功能调整或实施完成时更新
+
 ---
 
 ## 更新记录
@@ -202,6 +208,8 @@ nsh-management/
 | 2026-09-18 | 战报区块替换（职业分布 → 小队战况）：stats-report-plan §3 与更新记录同步；design-document §4.5 更新；frontend docs 与 progress 目录树/更新记录同步 | stats-report-plan.md, design-document-v2.md, frontend/docs, progress.md |
 | 2026-09-18 | UI 优化可选项收尾（ui-polish-plan v1.3 全部完成）：表格密度切换（顶栏全局开关）/空状态 SVG 插画（EmptyState 4 变体全站替换）/职业标签 hover 微光；ui-style-guide §9 实现索引 + §10.1/§10.3/§10.4 同步；frontend docs 与 progress.md 同步 | ui-polish-plan.md, ui-style-guide.md |
 | 2026-09-18 | 用户隔离定向修复（security-review §十 F-1～F-5）：security-review 新增 §十（修复记录/验证范围/未解决项更正，§14 文档说明同步）；design-document §3.2/§4.1 补充账号创建边界与导出标识规则；ai-checklist 新增遗漏模式 14（数据归属字段被请求体覆盖）；backend/frontend docs 更新记录；progress 目录树（+2 selfcheck 脚本）与更新记录 | security-review.md, design-document-v2.md, ai-checklist.md, backend/docs, frontend/docs, progress.md |
+| 2026-09-20 | 新增游戏 ID 改名申请与战绩关联设计（design-game-id-change.md 入索引：目录树 + 文档说明 §19 + 更新记录）：帮众提交、管理员审核、通过后同步常驻库并支持新旧 ID 战绩合并查询；database-design v1.9（表数 11→12）、design-document v2.6、data-analysis/stats-report 口径同步；代码实施与验证状态见 progress.md | design-game-id-change.md, database-design.md, design-document-v2.md, data-analysis-complete.md, stats-report-plan.md, progress.md |
+| 2026-09-20 | 游戏 ID 改名申请与战绩关联实施完成：新增 member_game_id_requests 表与迁移 o9p0q1r2s3t4、改名申请 API/服务/生命周期、个人战绩新旧 ID 合并与冲突 409 退路、帮众改名页与常驻库改名审核 Tab；4 个新增 selfcheck（13/5/9/1 项）与既有 16 项回归全部通过，后端 compileall、前端 vue-tsc/vite build 通过；design-game-id-change 状态更新为已实施待验收，security-review 新增 §十一 | design-game-id-change.md, database-design.md, security-review.md, backend/docs, frontend/docs, progress.md |
 
 ---
 

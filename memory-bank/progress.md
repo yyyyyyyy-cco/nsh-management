@@ -8,21 +8,25 @@ nsh-management/
 │   ├── app/
 │   │   ├── api/               # API 路由（v1/ 路由注册 + deps 依赖注入）
 │   │   ├── core/              # 配置、数据库、安全（JWT/密码）、客户端 IP 解析（client_ip）
-│   │   ├── models/            # 11 张表 SQLAlchemy 模型（含 squad_adjustments/operation_logs）
+│   │   ├── models/            # 12 张表 SQLAlchemy 模型（含 squad_adjustments/operation_logs/member_game_id_requests）
 │   │   ├── schemas/           # Pydantic 数据模型
-│   │   ├── services/          # 业务逻辑（account/auth/config/guild/lineup/lineup_attendance/log/match_data/match_data_aggregate/match_data_csv/match_data_stats/member/my_stats/recording/attendance/schedule/squad_adjustment）
+│   │   ├── services/          # 业务逻辑（account/auth/config/guild/game_id_request/game_id_request_lifecycle/lineup/lineup_attendance/log/match_data/match_data_aggregate/match_data_csv/match_data_stats/member/my_stats/player_identity/recording/attendance/schedule/squad_adjustment）
 │   │   ├── utils/             # 工具函数（attendance_import/excel_import/excel_export/image_export/constants/member_names）
 │   │   ├── init_db.py         # 初始化默认帮会与账号（开发者/admin/member）
 │   │   └── main.py            # 应用入口（CORS/异常处理/AuthError锁定秒数）
-│   ├── alembic/               # 数据库迁移（13 个版本）
+│   ├── alembic/               # 数据库迁移（15 个版本）
 │   ├── data/                  # SQLite 数据库（nsh.db）
 │   ├── docs/README.md         # 后端模块开发文档
 │   ├── scripts/               # 工具脚本
 │   │   ├── audit_weights_v4_20260907.py   # 贡献度权重审计（v4）
 │   │   ├── derive_weights_v4_20260907.py  # 贡献度权重推导（v4）
 │   │   ├── generate_import_template.py    # 生成成员导入模板
+│   │   ├── selfcheck_game_id_requests.py          # 改名申请回归（真实 JWT + ASGI，内存库）
+│   │   ├── selfcheck_game_id_requests_concurrency.py # 改名申请并发回归（隔离文件库 + 独立连接）
 │   │   ├── selfcheck_indicators.py        # 衍生指标自检脚本
 │   │   ├── selfcheck_member_exports.py    # 出勤隔离 + Excel 回导回归（内存库）
+│   │   ├── selfcheck_migration_game_id.py # 改名表迁移隔离验证（临时库升级/回退）
+│   │   ├── selfcheck_my_stats_aliases.py  # 新旧 ID 战绩关联回归（真实 JWT + ASGI，内存库）
 │   │   ├── selfcheck_security_fixes.py    # 用户隔离回归（真实 JWT + ASGI 路由，内存库）
 │   │   └── sim_contribution_v4_20260907.py # 贡献度模拟（v4）
 │   ├── templates/             # Excel 模板
@@ -40,8 +44,8 @@ nsh-management/
 │   │   │   ├── common/        # 通用组件（SkeletonTable/EmptyState）
 │   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab+LineupOverviewPanel/LineupOverviewGroup/ImportHistoryDialog/MatchConfirmDialog）
 │   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/MatchReportDialog/reportData.ts/report（MatchReportPoster/PosterHeader/PosterOverview/PosterMvpKings/PosterRankings/PosterRounds/PosterSquads）/EChart/analysis.ts/chartTheme.ts）
-│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/MemberDetailHeader/ProfessionShortage）
-│   │   │   ├── my-stats/      # 个人战绩（PlayerSearch/StatsOverview/StatsMatchTable/StatsRankingPosition/StatsTrendChart）
+│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/MemberDetailHeader/ProfessionShortage/GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog + game-id-shared.css）
+│   │   │   ├── my-stats/      # 个人战绩（PlayerSearch/StatsOverview/StatsMatchTable/StatsRankingPosition/StatsTrendChart/StatsIdentityNotice）
 │   │   │   ├── recording/     # 录屏审核（RecordingTab+RecordingProgressBar/RecordingTablePanel/RecordingMobileList/recording-shared.css）
 │   │   │   └── schedules/     # 联赛日程（ScheduleCalendar）
 │   │   ├── composables/       # 组合式函数（lineupBoard/useAttendanceList/useRecordingList/useMemberList/useRouteProgress/useTableDensity）
@@ -56,7 +60,8 @@ nsh-management/
 │   │       ├── LoginView.vue          # 登录页（含锁定倒计时）
 │   │       ├── config/ConfigView.vue  # 系统配置壳（+ ConfigProfessionPanel/ConfigGuildPanel/ConfigAccountPanel/ConfigAccountGroup）
 │   │       ├── logs/LogView.vue       # 系统日志壳（+ LogStatsCards/LogFilterBar/LogMobileList/LogTablePanel/LogDetailDialog/LogClearDialog/logLabels.ts）
-│   │       ├── member/MyStatsView.vue # 个人战绩（帮众）
+│   │       ├── member/MyStatsView.vue # 个人战绩（帮众/管理员；支持合并新旧 ID 与冲突退路）
+│   │       ├── member/GameIdChangeView.vue # 修改游戏 ID（帮众：提交改名申请 + 查看记录）
 │   │       ├── members/MemberListView.vue  # 常驻库
 │   │       ├── members/MemberDetailView.vue # 成员详情（管理员：信息卡+出勤率+历史战绩，复用 my-stats 组件）
 │   │       └── schedules/             # 联赛日程
@@ -73,8 +78,9 @@ nsh-management/
 │   ├── ai-checklist.md         # AI 操作检查清单（错误记录与联动规则）
 │   ├── architecture.md         # 文档索引
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
-│   ├── database-design.md      # 数据库设计文档（v1.8）
+│   ├── database-design.md      # 数据库设计文档（v1.9）
 │   ├── design-document-v2.md   # 产品设计文档（当前主文档）
+│   ├── design-game-id-change.md # 游戏 ID 改名申请与战绩关联设计（已实施，待浏览器验收）
 │   ├── implementation-plan.md  # 实施方案文档
 │   ├── progress.md             # 本文档 - 代码结构与进度
 │   ├── security-review.md      # 安全审查文档
@@ -111,14 +117,15 @@ nsh-management/
 | 基础框架 | frontend/ | Vue3+TS+Vite+Element Plus 骨架、浅金色主题 | ✅ 已完成 |
 | 认证链路 | src/{api,stores,router} | Axios 封装、Pinia、路由守卫 | ✅ 已完成 |
 | 布局与登录 | src/{layouts,views} | 主布局（可折叠侧边栏）、登录页（锁定倒计时）、首页仪表盘 | ✅ 已完成 |
-| 常驻库页面 | src/views/members | 列表/筛选/弹窗/Excel导入/出勤率/成员详情战绩页（复用 my-stats 组件） | ✅ 已完成 |
+| 常驻库页面 | src/views/members | 列表/筛选/弹窗/Excel导入/出勤率/成员详情战绩页（复用 my-stats 组件）/改名审核 Tab（严格管理员） | ✅ 已完成 |
 | 联赛日程页面 | src/views/schedules | 日历/创建弹窗/详情Tab/联赛总览 | ✅ 已完成 |
 | 出勤库页面 | src/components/attendance | 统计/导入成员/导入请假/替补/补人/状态/保存 | ✅ 已完成 |
 | 排表页面 | src/components/lineups | 候选池/拖拽编排/总览/导出PNG/导入历史排表 | ✅ 已完成 |
 | 录屏审核页面 | src/components/recording | 列表/提交/审核/进度/按姓名搜索/链接脱敏 | ✅ 已完成 |
 | 数据分析页面 | src/components/match-data | CSV导入/8Tab可视化（总览/列表/排行榜/阵营对比/小队分析/职业分析/职业深度/综合评分）/16项衍生指标/指标说明/单场图文战报（PNG 导出）/ECharts图表 | ✅ 已完成 |
 | 系统配置页面 | src/views/config | 职业配置/账号管理/帮会管理（开发者） | ✅ 已完成 |
-| 个人战绩页面 | src/views/member + src/components/my-stats | 玩家搜索/单局明细/概览（按游戏 ID 聚合）；管理员菜单入口开放，同组件复用于成员详情页 | ✅ 已完成 |
+| 个人战绩页面 | src/views/member + src/components/my-stats | 玩家搜索/单局明细/概览（按游戏 ID 聚合，支持合并经审核确认的新旧 ID；冲突时仅查此 ID）；管理员菜单入口开放，同组件复用于成员详情页 | ✅ 已完成 |
+| 游戏 ID 改名页面 | src/views/member/GameIdChangeView + src/components/members（GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog） | 帮众提交改名申请与查看记录；管理员在常驻库「改名审核」Tab 通过/驳回 | ✅ 已完成 |
 | 系统日志页面 | src/views/logs | 审计日志筛选/分页/清理（开发者） | ✅ 已完成 |
 | 样式系统 | src/styles/ | 浅色雅金风主题（theme.css + element-plus.css + index.css） | ✅ 已完成 |
 
@@ -127,7 +134,7 @@ nsh-management/
 | 模块 | 路径 | 作用 | 状态 |
 |------|------|------|------|
 | 基础框架 | app/core | 配置（JWT 10h）、异步数据库、JWT/密码 | ✅ 已完成 |
-| 数据模型 | app/models | 11 张表 SQLAlchemy 模型 + 14 个 Alembic 迁移 | ✅ 已完成 |
+| 数据模型 | app/models | 12 张表 SQLAlchemy 模型 + 15 个 Alembic 迁移 | ✅ 已完成 |
 | 认证模块 | app/api/v1/auth.py | 登录/登出/me + 登录限流（含未知账号锁定） | ✅ 已完成 |
 | 常驻库 API | app/api/v1/members.py | CRUD/筛选/批量删/Excel导入/出勤率/职业统计/单成员详情 | ✅ 已完成 |
 | 联赛日程 API | app/api/v1/schedules.py | CRUD/时间范围/级联创建删除 | ✅ 已完成 |
@@ -138,7 +145,8 @@ nsh-management/
 | 分析调整 API | app/api/v1/squad_adjustments.py | 小队分析内未排表成员→目标队伍的临时分配（仅作用于分析视图，不改正式排表） | ✅ 已完成 |
 | 开发者 API | app/api/v1/developer.py | 开发者专属路由（帮会管理/账号管理等） | ✅ 已完成 |
 | 系统配置 API | app/api/v1/config.py + accounts.py + guilds.py | 职业配置/账号管理/帮会管理（开发者）/删除帮会/删除账号（URL 前缀均为 /config） | ✅ 已完成 |
-| 个人战绩 API | app/api/v1/my_stats.py | 玩家名搜索/按游戏 ID 聚合历史战绩 | ✅ 已完成 |
+| 个人战绩 API | app/api/v1/my_stats.py | 玩家名搜索/按游戏 ID 聚合历史战绩（支持经审核确认的新旧 ID 合并；冲突 409） | ✅ 已完成 |
+| 游戏 ID 改名 API | app/api/v1/game_id_requests.py + services/game_id_request_service.py/game_id_request_lifecycle.py/player_identity_service.py | 候选检索/提交/成员历史/审核列表/原子审核；生命周期联动与战绩新旧 ID 关联 | ✅ 已完成 |
 | 系统日志 API | app/api/v1/logs.py | 审计日志查询/统计/清理（开发者，审计中间件自动写入） | ✅ 已完成 |
 | 部署 | Dockerfile/docker-compose/deploy.sh | Docker Compose 一键部署（Nginx+FastAPI+SQLite） | ✅ 已完成 |
 
@@ -278,6 +286,15 @@ nsh-management/
 | 2026-09-18 | 修复帮会图标字切换账号后"被清空"（用户浏览器批注排查）：根因为登录接口 `UserOut.model_validate(user)` 序列化时 User 模型仅有 guild_name property、缺 guild_icon，登录响应 guild_icon 恒为默认值 None（/me 为手动构造故正常）→ 切换账号后前端 auth.user.guild_icon 为空，配置页输入框与侧边栏图标回退；修复：User 模型补 guild_icon property（与 guild_name 对称），实证脚本修复前后对比 None→'帮'；数据未丢失（仅登录路径序列化缺陷） | 认证、系统配置、后端 |
 | 2026-09-18 | UI 可选 3 项收尾（ui-polish-plan §2.1.3/§2.3.3/§2.4.4）：①表格密度切换（顶栏全局开关，标准 13.5px/10px ↔ 紧凑 12.5px/6px，localStorage 持久化，移动端隐藏；新增 composables/useTableDensity + element-plus.css 密度档规则）；②空状态 SVG 插画（新增 components/common/EmptyState：empty/search/chart/error 4 变体宣纸金线手绘风，替换全站 20 处 el-empty 默认插画）；③职业标签 hover 微光（.prof-tag 白色高光扫过 0.5s，hover:hover 门控）；vue-tsc + vite build 通过 | 全模块 UI |
 | 2026-09-18 | 用户隔离与权限定向修复（security-review.md §十 F-1～F-5）：①账号创建跨帮会越权修复——accounts.py 按角色收紧 target_guild_id（管理员仅本帮会，跨帮会 403；开发者目标帮会需存在，400/404/422），account_service 写库前校验帮会存在，AccountCreate.guild_id 加 ge=1；②member_service.attendance_rate 出勤聚合关联 Schedule 限定 guild_id（防外帮会脏引用污染本帮会统计）；③未绑定帮会创建/导入成员提前 403（更正：Member.guild_id NOT NULL 本就存在，原为 500 风险）；④Excel 各 Sheet 首行加帮会来源标识 + 导出文件名含帮会名（服务端/客户端同步，非法字符清理），导入兼容新旧格式且归属只取认证帮会；⑤批量 ID 统一 schemas/common.py BatchIds（1～500 严格正整数：成员批量删/出勤导入与批量状态/录屏批量审核）；新增 scripts/selfcheck_security_fixes.py + selfcheck_member_exports.py 共 16 项回归全部通过；后端 compileall + 前端 vue-tsc/vite build 通过 | 认证、常驻库、出勤、录屏、系统配置、后端 |
+| 2026-09-20 | 新增「游戏 ID 改名申请与战绩关联」设计（design-game-id-change.md，用户确认三项决策：共享账号代填 + 人工核实身份 / 通过后仅改写常驻库不改历史数据 / 个人战绩新旧 ID 合并查询且冲突时停止自动合并）；同步 database-design v1.9（新增 member_game_id_requests 表，表数 11→12）、design-document v2.6（权限矩阵/功能列表/页面结构）、data-analysis-complete 口径、stats-report-plan 引用；代码与迁移待实施 | 文档、常驻库、个人战绩 |
+| 2026-09-20 | 「游戏 ID 改名申请与战绩关联」实施完成：①后端新增 member_game_id_requests 表（迁移 o9p0q1r2s3t4，含 CHECK、pending 部分唯一索引、approved 关联索引）与 model/schema/service/lifecycle/player_identity/route 六件套；②提交与审核均为单事务原子写（条件 UPDATE + 行数校验，通过与 members.name 同一事务提交，重放 409）；③权限新增 require_member / require_admin_strict / require_member_or_admin（developer 一律 403），归属只取认证上下文；④生命周期联动（成员直接改名/删除、账号删除、整帮会删除）由 game_id_request_lifecycle 统一维护且不自行 commit；⑤个人战绩按 approved 关系合并新旧 ID 查询最近 10 场（含连续改名与改回），可检测冲突（当前重名/他人批准记录/失效引用/同局多名称或阵营）返回 409 并保留 merge_aliases=false 精确退路，指标与排名口径不变；⑥前端新增帮众页 /game-id-change、常驻库「改名审核」Tab、个人战绩模式切换与冲突提示、成员详情冲突跳转；⑦验证：4 个新增 selfcheck（改名 13 项、并发 5 项、别名 9 项、迁移 1 项）与既有 16 项回归全部通过，后端 compileall、前端 vue-tsc/vite build 通过；未做浏览器验收 | 常驻库、个人战绩、后端、前端 |
+| 2026-09-20 | 帮众改名页成员候选移除正式/替补标签及无用样式，保留游戏 ID 与职业；管理员侧与接口不变，同步专项设计和前端开发文档；vue-tsc + vite build 通过，未运行前端测试或浏览器验收 | 前端、游戏 ID 改名 |
+| 2026-09-20 | 战报小队归属修复（用户反馈：小队分析内分配未排表成员后，生成战报的小队仍显示未分配）：根因为 reportData.buildReportData 仅按正式排表（lineup）聚合小队战况，未读取分析调整副本（squad_adjustments，该副本原仅在小队分析视图前端叠加生效）；修复：MatchReportDialog 并发加载 getSquadAdjustments（失败降级为 null，不阻断生成），buildReportData 增加 adjustments 参数，按目标队伍 key 校验后叠加覆盖成员小队归属（目标已不存在于排表时忽略，与小队分析视图口径一致）；我方阵营判定口径不变（仍按排表命中，与后端 squad-analysis 一致）；reportData.ts 按行数规则登记豁免（.agent/rules/file-length-rule.md）；stats-report-plan §3.2/§3.3 与 frontend docs 同步；vue-tsc + vite build 通过 | 数据分析、战报、前端 |
+| 2026-09-20 | 战报逐局战况新增「重伤第一」（用户要求：每局的重伤第一也挂出来）：ReportRoundInfo 增加 deathKing（取该局我方重伤次数最多者，并列取首个最大值，与击杀王同口径），PosterRounds 副行显示「重伤第一 名字 N 次」并允许换行防长名溢出；未导入局不显示；口径同步 stats-report-plan §3.2 与 frontend docs；vue-tsc + vite build 通过 | 数据分析、战报、前端 |
+| 2026-09-20 | 战报小队战况新增「重伤」列（用户要求：小队战况里面把重伤也加上）：ReportSquadItem 增加 deaths 并纳入聚合（含空队显示 0），PosterSquads 表格列由七项扩为八项（重伤插在助攻后，与小队分析表列序一致）并同步网格列宽；口径同步 stats-report-plan §3.2 与 frontend docs；vue-tsc + vite build 通过 | 数据分析、战报、前端 |
+| 2026-09-20 | 战报高光榜单扩为六榜（用户要求：还要有建筑伤害榜、重伤榜、总分榜）：MatchReportData 增加 buildingTop/deathsTop/scoreTop；buildReportData 复用逐局 computeScores 结果，按玩家保留最佳单局综合评分生成总分榜（与 MVP 口径一致），重伤榜按重伤次数倒序、建筑伤害榜按对建筑伤害（均沿用去重取最佳单局）；PosterRankings 三列两行展示六榜 TOP3；口径同步 stats-report-plan §1.2/§3.2、design-document-v2 §4.5 与 frontend docs；vue-tsc + vite build 通过 | 数据分析、战报、前端 |
+| 2026-09-20 | 管理员直接改名自动记录历史 ID 关联（用户确认新增支持）：原设计“直接改名不追溯别名”导致直接改名后无法合并查询；现 `PUT /members/{id}` 改名时同一事务失效待审申请并写入一条 approved 关联（`game_id_request_lifecycle.record_admin_rename`，提交/审核人=操作管理员快照，`review_remark` 标注“管理员直接在常驻库改名（自动记录，无提交申请）”），个人战绩即时支持新旧合并；`member_service.update_member` 增加 operator 参数（路由与并发 selfcheck 同步）；测试：game_id_requests 扩展自动记录断言、my_stats_aliases 新增直接改名合并用例（13/5/10/1 项 + 既有 16 项全部通过）；文档同步 design-game-id-change §1/§5/§6、database-design §2.12（v1.9 补充）、design-document-v2 §4.1、security-review §十一、backend docs | 常驻库、个人战绩、后端 |
+| 2026-09-20 | 暂存代码审查修复（Warning）：帮众改名页「常驻成员」远程搜索补请求序号守卫（GameIdRequestForm.searchMembers）——快速连续输入时旧响应可能覆盖新结果、先完成的请求会把 loading 提前复位；按同批组件 GameIdRequestHistory/GameIdReviewPanel 既有 loadSeq 惯例新增 searchSeq：过期响应直接丢弃，loading 仅在最新请求 finally 复位；vue-tsc 通过，未运行前端测试与浏览器验收 | 前端、游戏 ID 改名 |
 
 ---
 

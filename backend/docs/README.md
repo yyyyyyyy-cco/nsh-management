@@ -22,7 +22,7 @@
 - [x] 后端项目初始化、目录结构搭建（P0）
 - [x] 依赖安装（FastAPI、SQLAlchemy、Pydantic、JWT、Alembic 等）（P0）
 - [x] 数据库配置（异步连接、Session 管理）（P0）
-- [x] 数据模型定义（11 张表，见 database-design.md v1.8）（P0）
+- [x] 数据模型定义（12 张表，见 database-design.md v1.9）（P0）
 - [x] Pydantic Schema 定义（P0）
 - [x] 全局异常处理、CORS 配置（P0）
 - [x] 认证模块：登录/登出/获取用户信息 + 登录限流（含未知账号锁定）（P0）
@@ -36,10 +36,11 @@
 - [x] 系统配置 API（职业配置、账号管理、帮会管理、开发者角色）（P2）
 - [x] 个人战绩 API（玩家名搜索、按游戏 ID 聚合历史比赛数据与排名）（P2）
 - [x] 系统日志 API（审计中间件自动落库写操作与 5xx、查询/统计/清理，仅开发者）（P2）
+- [x] 游戏 ID 改名申请 API（帮众提交/成员历史、管理员审核列表与原子审核、经审核通过的新旧 ID 战绩关联）（P1）
 - [x] Docker 部署（Dockerfile、docker-compose、deploy.sh、entrypoint.sh）（P2）
 
 ### 依赖关系
-- 依赖 database-design.md v1.8（表结构）
+- 依赖 database-design.md v1.9（表结构）
 - 依赖 tech-stack.md（技术选型、requirements.txt）
 - 认证模块是其他所有 API 的前置（依赖注入校验 Token）
 - 排表/录屏/分析依赖赛程模块的级联创建
@@ -53,7 +54,7 @@
 ### 已完成
 - ✅ 项目初始化、目录结构、依赖安装（venv，Python 3.13）
 - ✅ 数据库配置（SQLAlchemy 2.0.36 异步 + aiosqlite）
-- ✅ 11 张表模型 + 14 个 Alembic 迁移（data/nsh.db）
+- ✅ 12 张表模型 + 15 个 Alembic 迁移（data/nsh.db）
 - ✅ Pydantic Schema、全局异常处理、CORS
 - ✅ 认证模块（登录/登出/me + 5 次失败锁定 5 分钟 + 未知账号锁定 + 锁定倒计时 remaining_seconds）
 - ✅ 开发者角色（developer，不绑定帮会，可创建帮会/派发账号/删除帮会）
@@ -90,6 +91,8 @@
 - ✅ Docker 部署：backend/frontend Dockerfile（多阶段构建）、docker-compose.yml、deploy.sh、entrypoint.sh、nginx.conf
 - ✅ .env.example 部署环境变量模板
 - ✅ 成员详情接口（GET /members/{member_id}，require_admin；注册于 /export、/export-image、/profession-stats、/attendance-rate 等具体路径之后，防动态路由捕获 422）
+- ✅ 游戏 ID 改名申请 API（2026-09-20，新增 member_game_id_requests 表 + 迁移 o9p0q1r2s3t4）：候选检索（member）、提交（member，条件写入 + 部分唯一索引防并发重复）、成员历史（member/admin 分角色脱敏）、审核列表与审核（严格 admin，申请状态与 members.name 同事务原子提交）；成员直接改名（同一事务失效待审 + 自动记录 approved 关联，操作管理员为提交/审核人快照）/删除、账号删除、整帮会删除均同步维护关联
+- ✅ 个人战绩新旧 ID 关联（2026-09-20）：approved 申请作为已确认名称关系来源，输入任一端合并查询最近 10 场；可检测冲突（其他成员占用、他人批准记录重叠、失效引用、同局多名称/阵营）一律 409 并可退回精确查询；指标公式与单局排名口径不变
 
 ### 进行中
 - 无
@@ -109,6 +112,15 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_member_export
 ```
 
 覆盖：账号跨帮会创建拒绝（403）、开发者目标帮会校验（400/404/422）、批量 ID 边界（空/超限/非正整数 → 422）、未绑定帮会创建/导入成员拒绝、出勤率跨帮会隔离、Excel 新旧格式回导兼容与来源行不可改写归属。
+
+### 改名申请与新旧 ID 关联回归（2026-09-20 新增）
+```bat
+backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_game_id_requests.py
+backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_game_id_requests_concurrency.py
+backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_my_stats_aliases.py
+backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_game_id.py
+```
+覆盖：角色矩阵与租户隔离、参数边界、重复待审与竞争、审核原子性/重放、直接改名与删除联动、账号删除快照、响应脱敏；独立连接文件库并发（重复提交/双审核/同名竞争/改名竞争）；改名链与改回、新名无数据、跨帮会隔离、冲突 409 与精确退路、最近 10 场整体截取；临时库迁移升级/回退与约束生效。
 
 ### 更新记录
 | 日期 | 更新内容 |
@@ -136,4 +148,6 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_member_export
 | 2026-09-17 | 成员详情接口实施完成（GET /members/{member_id}，require_admin，注册于全部具体路径之后防路由捕获） |
 | 2026-09-18 | 修复登录响应丢失 guild_icon：User 模型补 guild_icon property（与 guild_name 对称），UserOut.model_validate 序列化恢复正常（修复前登录后切换账号图标显示为空，/me 手动构造路径正常） |
 | 2026-09-18 | 用户隔离定向修复（security-review §十 F-1～F-5）：①`POST /config/accounts` 管理员仅能为本帮会创建、跨帮会 403，开发者目标帮会需存在（400/404/422），service 写库前校验帮会存在；②`attendance_rate` 关联 Schedule 按 guild_id 聚合；③未绑定帮会创建/导入成员提前 403（更正：Member.guild_id 非空约束本就存在，原为 500 风险非写入成功）；④Excel 导出各 Sheet 加帮会来源行 + 文件名含帮会名，导入兼容新旧格式且归属以认证帮会为准；⑤批量 ID 统一 BatchIds（1～500 严格正整数） |
+| 2026-09-20 | 新增游戏 ID 改名申请与新旧 ID 关联模块：member_game_id_requests 表 + 迁移 o9p0q1r2s3t4；新增 services/game_id_request_service、game_id_request_lifecycle、player_identity_service 与 api/v1/game_id_requests；members/accounts/guilds 服务接入生命周期维护；my_stats 路由抽 Schema 至 schemas/my_stats.py 并改用严格 member/admin 依赖；4 个 selfcheck 脚本（含并发与迁移）全部通过 |
+| 2026-09-20 | 管理员直接改名自动记录关联：`game_id_request_lifecycle.record_admin_rename`（同一事务写入 approved 关联，提交/审核人=操作管理员快照，备注标注来源）；`member_service.update_member` 增加 operator 参数并接入；selfcheck_game_id_requests 扩展直接改名断言、selfcheck_my_stats_aliases 新增直接改名合并用例（13/5/10/1 项全部通过） |
 | 2026-09-18 | 新增回归脚本：`scripts/selfcheck_security_fixes.py`（8 项，真实 JWT + ASGI 路由）、`scripts/selfcheck_member_exports.py`（8 项，出勤隔离 + Excel 回导），16 项全部通过 |

@@ -36,6 +36,7 @@
 - [x] 系统配置页面（职业配置、账号管理、帮会管理-开发者专属）（P2）
 - [x] 个人战绩页面（按游戏 ID 搜索、单局明细与排名、个人概览）（P2）
 - [x] 系统日志页面（审计日志筛选/分页/清理，仅开发者）（P2）
+- [x] 游戏 ID 改名页面与常驻库改名审核 Tab（帮众提交申请/查看记录；管理员通过或驳回；个人战绩与成员详情支持合并新旧 ID）（P1）
 
 ### 依赖关系
 - 依赖 ui-style-guide.md（视觉规范）与 design-document-v2.md（页面结构）
@@ -104,8 +105,9 @@
 - ✅ 样式系统完善（element-plus.css +496 行深度定制、theme.css +138 行设计令牌、index.css +106 行全局样式）
 - ✅ UI 优化完成（P0–P3 共 11 项 + 代码质量重构 2 项 + 3 项可选项，详见 `memory-bank/ui-polish-plan.md` v1.3）
 - ✅ 成员详情战绩页（管理员 /members/:id：信息卡 + 出勤率 + 历史战绩，复用个人战绩四组件；常驻库 ID/名字入口金色 hover；管理员「个人战绩」菜单开放）
-- ✅ 单场图文战报（数据分析工具栏「生成战报」→ 预览弹窗 → html2canvas 导出 PNG；海报 960px 固定宽 7 区块：头部/我方总览（6 卡）/MVP 与数据之王/三榜 TOP3/逐局战况/小队战况；仅统计我方阵营——排表命中判定，与后端小队分析口径一致）
+- ✅ 单场图文战报（数据分析工具栏「生成战报」→ 预览弹窗 → html2canvas 导出 PNG；海报 960px 固定宽 7 区块：头部/我方总览（6 卡）/MVP 与数据之王/六榜 TOP3（击杀/对玩家伤害/治疗/对建筑伤害/重伤/总分）/逐局战况/小队战况；仅统计我方阵营——排表命中判定，与后端小队分析口径一致；小队战况归属叠加分析调整副本——小队分析内手动分配未排表成员后战报同步生效）
 - ✅ 常驻库导出文件名携带帮会名（Excel/PNG，与后端 Content-Disposition 一致，仅作来源识别）
+- ✅ 游戏 ID 改名（2026-09-20）：帮众页 `/game-id-change`（共享账号说明 + 成员远程检索选择 + 当前 ID 只读 + 新 ID 输入 + 申请记录，侧边栏与账号下拉入口）；常驻库「改名审核」Tab（状态筛选/关键词搜索/分页，通过需确认身份、驳回需填原因，≤768px 行列表）；个人战绩支持「合并历史 ID / 仅查此 ID」切换与冲突提示；成员详情战绩默认合并，冲突时跳转个人战绩精确查询；明细赛程单元格展示当场 ID
 
 ### 进行中
 - 无
@@ -150,5 +152,11 @@
 | 2026-09-17 | 战报口径调整：仅统计我方阵营（排表命中判定，与后端小队分析一致）——删除阵营对比区块、总览扩六卡、逐局改我方击杀/伤害/治疗；弹窗加载 +排表接口（失败降级）；vue-tsc + vite build 通过 |
 | 2026-09-18 | 战报区块替换：移除职业分布（PosterProfessions 删除），新增小队战况（PosterSquads：按排表归属聚合我方各队击杀/对玩家伤害/治疗，未排表单列，无排表自动隐藏）；vue-tsc + vite build 通过 |
 | 2026-09-18 | 小队战况修复：数据列扩为 7 项（击杀/助攻/对玩家伤害/对建筑伤害/治疗/承伤/焚骨）、空队显示 0 完整呈现、表头列对齐修复（:not(:first-child)）；vue-tsc + vite build 通过 |
+| 2026-09-20 | 战报小队归属修复（用户反馈：小队分析内分配未排表成员后，战报小队仍显示未分配）：根因为战报仅按正式排表聚合，未读取分析调整副本；MatchReportDialog 增加 getSquadAdjustments 并发加载（失败降级为 null 不阻断生成），buildReportData 增加 adjustments 参数叠加覆盖小队归属（目标队伍不存在于排表时忽略，与小队分析视图口径一致）；口径详见 [stats-report-plan §3.2](../../memory-bank/stats-report-plan.md)；vue-tsc + vite build 通过 |
+| 2026-09-20 | 逐局战况新增「重伤第一」（用户要求：每局的重伤第一也挂出来）：ReportRoundInfo 增加 deathKing（取该局我方重伤次数最多者，并列取首个最大值），PosterRounds 副行显示「重伤第一 名字 N 次」并允许换行防长名溢出；口径详见 [stats-report-plan §3.2](../../memory-bank/stats-report-plan.md)；vue-tsc + vite build 通过 |
+| 2026-09-20 | 小队战况新增「重伤」列（用户要求：小队战况里面把重伤也加上）：ReportSquadItem 增加 deaths 并纳入聚合（含空队显示 0），PosterSquads 列由七项扩为八项（重伤插在助攻后，与小队分析表列序一致）；口径详见 [stats-report-plan §3.2](../../memory-bank/stats-report-plan.md)；vue-tsc + vite build 通过 |
+| 2026-09-20 | 高光榜单扩为六榜（用户要求：还要有建筑伤害榜、重伤榜、总分榜）：MatchReportData 增加 buildingTop/deathsTop/scoreTop，buildReportData 复用逐局 computeScores 按玩家保留最佳单局综合评分（与 MVP 口径一致）；PosterRankings 三列两行展示六榜 TOP3；口径详见 [stats-report-plan §3.2](../../memory-bank/stats-report-plan.md)；vue-tsc + vite build 通过 |
 | 2026-09-18 | 常驻库导出文件名含帮会名（useMemberList 下载名 `常驻库_{帮会名}_{日期}`，请求前捕获并清理非法字符；与后端 Content-Disposition 一致）；配合 security-review §十 F-4 来源标识 |
+| 2026-09-20 | 帮众改名页移除正式/替补标签，展示规则见 [专项设计 §7](../../memory-bank/design-game-id-change.md#7-前端交互)；管理员侧不变 |
+| 2026-09-20 | 新增游戏 ID 改名前端：`/game-id-change` 帮众页（GameIdChangeView + GameIdRequestForm/GameIdRequestHistory + game-id-shared.css）、常驻库「改名审核」Tab（GameIdReviewPanel/GameIdReviewDialog，严格 admin 可见）、导航入口（侧边栏 + 账号下拉）；个人战绩与成员详情支持合并新旧 ID（PlayerSearch 提示、MyStatsView 模式切换与冲突退路、StatsIdentityNotice、StatsMatchTable 当场 ID）；路由新增 memberOnly 守卫；vue-tsc + vite build 通过 |
 | 2026-09-18 | UI 优化可选项收尾 3 项（表格密度切换/空状态 SVG 插画/职业标签 hover 微光），全站 el-empty 替换为 EmptyState 组件；vue-tsc + vite build 通过 |
