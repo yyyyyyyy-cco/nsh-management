@@ -12,7 +12,7 @@
     <PosterMvpKings :mvp="data.mvp" :kings="data.kings" />
     <PosterRankings :kills="data.killsTop" :damage="data.damageTop" :healing="data.healingTop" />
     <PosterRounds :rounds-info="data.roundsInfo" />
-    <PosterProfessions :items="data.professions" />
+    <PosterSquads :squads="data.squads" />
     <div class="poster-footer">轻衫都会用的帮会联赛管理系统 · 生成于 {{ genDate }}</div>
   </div>
 </template>
@@ -24,9 +24,9 @@ import type { ScheduleInfo } from '@/types/schedule'
 import PosterHeader from './PosterHeader.vue'
 import PosterMvpKings from './PosterMvpKings.vue'
 import PosterOverview from './PosterOverview.vue'
-import PosterProfessions from './PosterProfessions.vue'
 import PosterRankings from './PosterRankings.vue'
 import PosterRounds from './PosterRounds.vue'
+import PosterSquads from './PosterSquads.vue'
 import type { MatchReportData } from '../reportData'
 
 defineProps<{

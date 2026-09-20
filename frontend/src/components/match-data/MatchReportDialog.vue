@@ -18,9 +18,9 @@
     </div>
 
     <!-- 加载失败 -->
-    <el-empty v-else-if="loadFailed" description="战报数据加载失败">
+    <EmptyState v-else-if="loadFailed" variant="error" description="战报数据加载失败">
       <el-button @click="loadReport">重试</el-button>
-    </el-empty>
+    </EmptyState>
 
     <!-- 海报预览（视口滚动；导出截取内层 960px 原尺寸海报） -->
     <div v-else-if="report" class="poster-viewport">
@@ -45,6 +45,7 @@ import { getLineup } from '@/api/lineups'
 import { getIndicators } from '@/api/matchData'
 import type { ScheduleInfo } from '@/types/schedule'
 import MatchReportPoster from './report/MatchReportPoster.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { buildReportData, type MatchReportData } from './reportData'
 
 const visible = defineModel<boolean>({ required: true })

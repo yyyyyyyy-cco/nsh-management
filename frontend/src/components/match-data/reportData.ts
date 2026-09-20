@@ -2,7 +2,7 @@
 import type { IndicatorsResponse, MatchDataIndicators } from '@/types/matchData'
 import type { LineupInfo } from '@/types/lineup'
 import type { ScheduleInfo } from '@/types/schedule'
-import { aggregateProfessions, computeScores } from './analysis'
+import { computeScores } from './analysis'
 
 /** 榜单条目（按玩家去重后的最佳单局）。 */
 export interface ReportRankItem {
@@ -68,11 +68,16 @@ export interface ReportOverviewStats {
   totalFenGu: number
 }
 
-/** 职业分布条目（人数 + 伤害占比）。 */
-export interface ReportProfessionItem {
-  profession: string
-  count: number
-  damagePct: number
+/** 小队战况条目（按排表归属聚合我方记录；无排表时列表为空）。 */
+export interface ReportSquadItem {
+  name: string
+  kills: number
+  assists: number
+  playerDamage: number
+  buildingDamage: number
+  healing: number
+  damageTaken: number
+  fenGu: number
 }
 
 /** 战报完整渲染数据。 */
@@ -89,7 +94,7 @@ export interface MatchReportData {
   damageTop: ReportRankItem[]
   healingTop: ReportRankItem[]
   roundsInfo: ReportRoundInfo[]
-  professions: ReportProfessionItem[]
+  squads: ReportSquadItem[]
 }
 
 /** 数据之王口径（六项，各取全场最佳单局）。 */
@@ -170,7 +175,7 @@ function sumSide(camp: string, recs: MatchDataIndicators[]): ReportSideAgg {
   return acc
 }
 
-/** 组装战报数据：单一数据源（全部已导入局的衍生指标记录）+ 排表（判定我方）+ 赛程元信息。 */
+/** 组装战报数据：单一数据源（全部已导入局的衍生指标记录）+ 排表（判定我方/小队归属）+ 赛程元信息。 */
 export function buildReportData(
   indicators: IndicatorsResponse,
   lineup: LineupInfo | null,
@@ -254,10 +259,42 @@ export function buildReportData(
     }
   })
 
-  // 职业分布（我方人数 + 我方伤害占比）
-  const professions = aggregateProfessions(items)
-    .sort((a, b) => b.count - a.count)
-    .map((p) => ({ profession: p.profession, count: p.count, damagePct: Math.round(p.damage_pct * 10) / 10 }))
+  // 小队战况（按排表归属聚合我方各队记录；无排表时列表为空，区块自动隐藏）
+  const squads: ReportSquadItem[] = []
+  if (lineup?.data?.length) {
+    const squadOf = new Map<string, string>()
+    const squadOrder: string[] = []
+    for (const team of lineup.data) {
+      const name = `${team.category} 第${team.team_index + 1}队`
+      if (!squadOrder.includes(name)) squadOrder.push(name)
+      for (const slot of team.slots ?? []) {
+        const member = (slot.member_name || '').trim()
+        if (member) squadOf.set(member, name)
+      }
+    }
+    const acc = new Map<string, Omit<ReportSquadItem, 'name'>>()
+    for (const r of items) {
+      const squad = squadOf.get((r.player_name || '').trim()) ?? '未排表'
+      const cur = acc.get(squad) ?? { kills: 0, assists: 0, playerDamage: 0, buildingDamage: 0, healing: 0, damageTaken: 0, fenGu: 0 }
+      cur.kills += r.kills
+      cur.assists += r.assists
+      cur.playerDamage += r.player_damage
+      cur.buildingDamage += r.building_damage
+      cur.healing += r.healing
+      cur.damageTaken += r.damage_taken
+      cur.fenGu += r.fen_gu
+      acc.set(squad, cur)
+    }
+    for (const name of [...squadOrder, '未排表']) {
+      const cur = acc.get(name)
+      if (cur) {
+        squads.push({ name, ...cur })
+      } else if (name !== '未排表') {
+        // 已排表但无比赛记录的队伍：显示 0，保证排表队伍完整呈现
+        squads.push({ name, kills: 0, assists: 0, playerDamage: 0, buildingDamage: 0, healing: 0, damageTaken: 0, fenGu: 0 })
+      }
+    }
+  }
 
   return {
     ourCamp,
@@ -272,6 +309,6 @@ export function buildReportData(
     damageTop: toRankItems(items, (r) => r.player_damage),
     healingTop: toRankItems(items, (r) => r.healing),
     roundsInfo,
-    professions,
+    squads,
   }
 }

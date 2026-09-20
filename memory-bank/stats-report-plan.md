@@ -18,7 +18,7 @@
 | 功能 | 目标 |
 |------|------|
 | 成员详情战绩页 | 管理员从常驻库点击成员 → 查看该成员基本信息（职业/状态/备注/出勤率）+ 历史战绩（复用个人战绩全部组件）；同时开放管理员「个人战绩」菜单入口（自由按 ID 搜索） |
-| 单场图文战报 | 数据分析页一键生成单场「图文战报」PNG（仅统计我方阵营：对局信息 + 我方总览 + MVP 与数据之王 + 三榜 TOP3 + 逐局战况 + 职业分布），用于群内分享 |
+| 单场图文战报 | 数据分析页一键生成单场「图文战报」PNG（仅统计我方阵营：对局信息 + 我方总览 + MVP 与数据之王 + 三榜 TOP3 + 逐局战况 + 小队战况），用于群内分享 |
 
 ### 1.3 决策记录（2026-09-17，用户确认）
 
@@ -129,7 +129,7 @@
 3. **MVP 与数据之王**：MVP 金卡（我方最高单局评分：评分/KDA/击杀/伤害，标注所属局）+ 数据之王六格（击杀/伤害/建筑/治疗/承伤/焚骨，各取我方最佳单局）
 4. **高光榜单**：击杀 / 对玩家伤害 / 治疗 TOP3（我方按玩家去重保留最佳单局）
 5. **逐局战况**：每局一块（局号 + 结果徽章 + 我方击杀/伤害/治疗 + 该局 MVP/击杀王；未导入局显式占位）
-6. **职业分布**：我方人数条形（职业色）+ 人数与伤害占比
+6. **小队战况**：按排表归属聚合我方各队（进攻 1/2、防守 1/2）击杀/助攻/对玩家伤害/对建筑伤害/治疗/承伤/焚骨七项；排表队伍完整呈现（空队显示 0），未排表成员单列；无排表时区块自动隐藏
 7. **页脚**：水印「轻衫都会用的帮会联赛管理系统 · 生成于 YYYY-MM-DD」
 
 ### 3.3 技术方案
@@ -139,10 +139,10 @@
 | 数据 | 接口 | 用途 |
 |------|------|------|
 | 全场衍生指标记录 | `getIndicators(scheduleId)`（不传 round_no = 全部已导入局） | 数据源：每人每局基础字段 + 16 项衍生指标 |
-| 排表 | `getLineup(scheduleId)`（失败降级为 null） | 判定我方阵营 |
+| 排表 | `getLineup(scheduleId)`（失败降级为 null） | 判定我方阵营 + 小队战况聚合 |
 | 赛程信息 | 由父级传入 `schedule` 对象 | 对手/时间/总结果/各局结果 |
 
-> **我方阵营判定**（与后端 `squad-analysis` 口径一致）：排表成员名命中数最多的阵营；无命中时兜底取首条记录阵营。过滤后所有统计（总览/MVP/榜单/逐局/职业）仅含我方记录；MVP/榜单/职业聚合由 `reportData.ts` 前端组装（复用 `computeScores`/`aggregateProfessions`）。
+> **我方阵营判定**（与后端 `squad-analysis` 口径一致）：排表成员名命中数最多的阵营；无命中时兜底取首条记录阵营。过滤后所有统计（总览/MVP/榜单/逐局/小队）仅含我方记录；MVP/榜单/小队聚合由 `reportData.ts` 前端组装（复用 `computeScores`）。
 
 > 赛程对象获取：`ScheduleDetailView` 已加载 `schedule` 后才挂载 `MatchDataTab`，只需扩展 props（`MatchDataTab` 仅在此处使用，已核实）。`schedule.round_results` 为各局结果数组。
 
@@ -158,7 +158,7 @@
 | `match-data/report/PosterMvpKings.vue` | MVP 金卡 + 数据之王六格 | ~180 |
 | `match-data/report/PosterRankings.vue` | 三榜 TOP3（去重玩家） | ~145 |
 | `match-data/report/PosterRounds.vue` | 逐局战况（我方） | ~130 |
-| `match-data/report/PosterProfessions.vue` | 职业分布（人数 + 伤害占比） | ~115 |
+| `match-data/report/PosterSquads.vue` | 小队战况（按排表归属聚合各队） | ~105 |
 
 **导出实现**（沿用排表总览先例 `LineupOverviewPanel`）：
 
@@ -230,3 +230,4 @@ const canvas = await html2canvas(posterRef.value, {
 | 2026-09-17 | 实施完成：后端 GET /members/{member_id}；前端成员详情页（MemberDetailView/MemberDetailHeader/路由/入口/管理员菜单）与单场图文战报（MatchReportDialog/reportData.ts/report 海报 5 组件/MatchDataTab 入口 + schedule 透传）；profTagStyle 抽取至 utils/profession；vue-tsc + vite build 通过 |
 | 2026-09-17 | v2 重设计（用户反馈原版太简陋、无信息含量）：海报扩展为 8 区块（新增全场总览/MVP 与数据之王/逐局战况，阵营对比扩至 6 指标+差值、榜单去重玩家、职业加伤害占比）；数据层改为单接口（getIndicators）前端组装；vue-tsc + vite build 通过 |
 | 2026-09-17 | 口径调整（用户要求：不要两个阵营、只要我方）：仅统计我方阵营（排表命中判定，与后端小队分析一致）——删除阵营对比区块、总览扩为六卡、逐局改我方击杀/伤害/治疗；数据加载增加排表（判我方，失败降级）；vue-tsc + vite build 通过 |
+| 2026-09-18 | 区块替换（用户要求：职业分布没必要）：移除职业分布，新增「小队战况」——按排表归属聚合我方各队（进攻 1/2、防守 1/2 + 未排表）击杀/对玩家伤害/治疗；未排表成员单列、无排表时区块自动隐藏（零额外请求，复用已加载排表）；vue-tsc + vite build 通过 |
