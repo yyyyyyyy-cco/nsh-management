@@ -30,3 +30,8 @@ class User(Base):
     def guild_name(self) -> str | None:
         """所属帮会名称（开发者无帮会时为 None）。"""
         return self.guild.name if self.guild else None
+
+    @property
+    def guild_icon(self) -> str | None:
+        """所属帮会图标字（开发者无帮会时为 None）；与 guild_name 对称，供 UserOut.model_validate 序列化。"""
+        return self.guild.icon_char if self.guild else None
