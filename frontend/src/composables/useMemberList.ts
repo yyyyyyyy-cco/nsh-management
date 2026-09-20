@@ -13,6 +13,7 @@ import {
 } from '@/api/members'
 import type { MemberInfo } from '@/types/member'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import { useAuthStore } from '@/stores/auth'
 
 export function useMemberList() {
   const loading = ref(false)
@@ -63,6 +64,9 @@ export function useMemberList() {
   /** 一键导出：沿用当前筛选与排序（不含分页），浏览器直接下载 xlsx / png。 */
   async function onExport(format: 'xlsx' | 'png') {
     exporting.value = true
+    // 请求前捕获帮会名，避免下载等待期间切换账号后误标来源。
+    const guildName = (useAuthStore().user?.guild_name || '未命名帮会')
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
     try {
       const params = {
         keyword: query.keyword,
@@ -76,7 +80,7 @@ export function useMemberList() {
       const link = document.createElement('a')
       const tag = new Date().toISOString().slice(0, 10).replace(/-/g, '')
       link.href = url
-      link.download = `常驻库_${tag}.${format}`
+      link.download = `常驻库_${guildName}_${tag}.${format}`
       link.click()
       URL.revokeObjectURL(url)
     } catch {

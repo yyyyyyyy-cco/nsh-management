@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.member import Member
+from app.services.member_service import MemberServiceError
 from app.utils.constants import PROFESSIONS
 
 # 导入限制：与 CSV 导入接口保持一致，防止超大文件/超多行耗尽内存
@@ -65,7 +66,10 @@ def _parse_workbook(content: bytes) -> tuple[list[str], list[tuple]]:
         nonlocal header
         sheet_header = None
         for index, row in enumerate(sheet.iter_rows(values_only=True)):
-            if index == 0:
+            if index == 0 and row and row[0] == "所属帮会":
+                # 只跳过新版导出的固定来源行；其中的帮会 ID 不能决定写入归属。
+                continue
+            if sheet_header is None:
                 sheet_header = [_header_index(cell) for cell in row]
                 if "name" not in sheet_header or "main_profession" not in sheet_header:
                     return False
@@ -90,11 +94,13 @@ def _parse_workbook(content: bytes) -> tuple[list[str], list[tuple]]:
     return header, data_rows
 
 
-async def import_members(session: AsyncSession, guild_id: int, content: bytes) -> dict:
+async def import_members(session: AsyncSession, guild_id: int | None, content: bytes) -> dict:
     """解析 Excel 成员数据并入库，返回 {imported, skipped, errors}。重名一律跳过。
 
     解析（openpyxl）在线程池执行，避免阻塞事件循环；入库逻辑在主线程 session 中执行。
     """
+    if guild_id is None:
+        raise MemberServiceError("当前账号未绑定帮会，无法导入成员", 403)
     header, data_rows = await asyncio.to_thread(_parse_workbook, content)
 
     existing = set(

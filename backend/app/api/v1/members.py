@@ -23,7 +23,7 @@ from app.schemas.member import (
     ProfessionStat,
 )
 from app.services import member_service
-from app.utils.excel_export import build_members_xlsx
+from app.utils.excel_export import build_members_xlsx, member_export_filename
 from app.utils.excel_import import MAX_FILE_SIZE, ExcelImportError, import_members
 from app.utils.image_export import MAX_IMAGE_MEMBERS, draw_members_png
 
@@ -129,11 +129,13 @@ async def export_members(
         session, current_user.guild_id, keyword, profession, status, sort_by, sort_order
     )
     # openpyxl 写表为 CPU 密集操作，放线程池避免阻塞事件循环
-    content = await asyncio.to_thread(build_members_xlsx, members)
+    guild = await session.get(Guild, current_user.guild_id) if current_user.guild_id else None
+    guild_name = guild.name if guild else None
+    content = await asyncio.to_thread(build_members_xlsx, members, guild_name, current_user.guild_id)
     date_tag = datetime.now(timezone.utc).astimezone().strftime("%Y%m%d")
-    # ASCII fallback + RFC 5987 编码中文文件名
-    filename = f"members_{date_tag}.xlsx"
-    quoted = quote(f"常驻库_{date_tag}.xlsx")
+    # ASCII fallback + RFC 5987 编码中文文件名（均携带帮会来源）
+    filename = f"members_{current_user.guild_id}_{date_tag}.xlsx"
+    quoted = quote(member_export_filename(guild_name, date_tag, "xlsx"))
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -163,11 +165,11 @@ async def export_image(
     # PIL 绘制与 PNG 编码为 CPU 密集操作，放线程池避免阻塞事件循环
     content = await asyncio.to_thread(draw_members_png, members, guild.name if guild else None)
     date_tag = datetime.now(timezone.utc).astimezone().strftime("%Y%m%d")
-    quoted = quote(f"常驻库_{date_tag}.png")
+    quoted = quote(member_export_filename(guild.name if guild else None, date_tag, "png"))
     return Response(
         content=content,
         media_type="image/png",
-        headers={"Content-Disposition": f"attachment; filename=members_{date_tag}.png; filename*=UTF-8''{quoted}"},
+        headers={"Content-Disposition": f"attachment; filename=members_{current_user.guild_id}_{date_tag}.png; filename*=UTF-8''{quoted}"},
     )
 
 

@@ -1,4 +1,5 @@
 """Excel 成员导出：按主职业分 Sheet，组内正式在前、替补在后，与导入模板表头一致。"""
+import re
 from io import BytesIO
 
 from openpyxl import Workbook
@@ -38,34 +39,44 @@ def _group_members(members: list[Member]) -> list[tuple[str, list[Member]]]:
     return result
 
 
-def _write_group(sheet, members: list[Member]) -> None:
+def member_export_filename(guild_name: str | None, date_tag: str, extension: str) -> str:
+    """导出名包含帮会来源；清理路径、控制字符，兼容 Windows 下载。"""
+    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", guild_name or "未命名帮会")
+    return f"常驻库_{name}_{date_tag}.{extension}"
+
+
+def _write_group(sheet, members: list[Member], guild_name: str | None, guild_id: int | None) -> None:
+    # 来源行不是业务表头；导入器仅识别这个固定标记后跳过一行。
+    sheet.append(["所属帮会", guild_name or "未命名帮会", "帮会ID", guild_id, "仅作来源标识，非防伪凭证"])
+    sheet.cell(row=1, column=2).data_type = "s"
+    sheet.cell(row=1, column=1).font = Font(bold=True)
     header_fill = PatternFill("solid", fgColor="F3E9D2")
     header_font = Font(bold=True)
     for col, title in enumerate(HEADERS, start=1):
-        cell = sheet.cell(row=1, column=col, value=title)
+        cell = sheet.cell(row=2, column=col, value=title)
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center")
         sheet.column_dimensions[get_column_letter(col)].width = COL_WIDTHS[col - 1]
 
-    for row, member in enumerate(members, start=2):
+    for row, member in enumerate(members, start=3):
         sheet.cell(row=row, column=1, value=member.name)
         sheet.cell(row=row, column=2, value=member.main_profession)
         sheet.cell(row=row, column=3, value=member.sub_profession or "")
         sheet.cell(row=row, column=4, value=STATUS_LABELS.get(member.status, member.status))
         sheet.cell(row=row, column=5, value=member.remark or "")
 
-    sheet.freeze_panes = "A2"  # 冻结表头行
+    sheet.freeze_panes = "A3"  # 冻结来源与表头两行
 
 
-def build_members_xlsx(members: list[Member]) -> bytes:
-    """按主职业生成多 Sheet 的 xlsx 字节流，每个职业一个 Sheet。"""
+def build_members_xlsx(members: list[Member], guild_name: str | None = None, guild_id: int | None = None) -> bytes:
+    """按主职业生成多 Sheet，来源标识只用于辨认，不作为导入授权依据。"""
     workbook = Workbook()
     workbook.remove(workbook.active)  # 移除默认空 Sheet
 
-    for profession, group in _group_members(members):
+    for profession, group in _group_members(members) or [("成员", [])]:
         sheet = workbook.create_sheet(title=profession.translate(_SHEET_ILLEGAL)[:31])
-        _write_group(sheet, group)
+        _write_group(sheet, group, guild_name, guild_id)
 
     buffer = BytesIO()
     workbook.save(buffer)
