@@ -241,7 +241,7 @@
 **验证范围（未做浏览器与线上验收）**
 
 - `scripts/selfcheck_game_id_requests.py`（13 项，真实 JWT + ASGI）：角色矩阵与租户隔离、参数边界、重复待审、共享账号多成员提交、审核确认/重放/跨帮会、名称占用冲突回滚、双成员同名竞争、直接改名（含自动记录关联）与删除联动、账号删除快照、帮众响应脱敏。
-- `scripts/selfcheck_game_id_requests_concurrency.py`（5 项，隔离文件库 + 独立连接）：并发重复提交、双管理员审核单赢家、通过与驳回竞争、同名目标竞争、直接改名与审核竞争后名称一致性。
+- `scripts/selfcheck_game_id_requests_concurrency.py`（5 项，隔离文件库 + 独立连接）：并发重复提交、双管理员审核单赢家、通过与驳回竞争、同名目标竞争、直接改名与审核竞争后名称一致性（2026-09-20 修正该用例断言：原「审核 approved ⇒ 名称 == 新 ID」假设单一写者，未覆盖「审核通过 → 管理员再次直接改名」的合法交错；现按写者顺序断言并新增两条确定性约束，连续 10 次运行通过）。
 - `scripts/selfcheck_my_stats_aliases.py`（10 项）：合并/精确模式、改名链与改回、管理员直接改名自动关联、新名无数据、跨帮会隔离、冲突 409 与精确退路、冲突位于最近 10 场之外仍被发现、开发者拒绝。
 - `scripts/selfcheck_migration_game_id.py`（1 项）：临时库空库升级 → 回退 → 再升级，校验表、索引与 CHECK/唯一索引真实生效；未接触业务库。
 - 既有回归 `selfcheck_security_fixes.py`（8 项）、`selfcheck_member_exports.py`（8 项）、`selfcheck_indicators.py` 全部通过；后端 `compileall` 与前端 `vue-tsc + vite build` 通过。

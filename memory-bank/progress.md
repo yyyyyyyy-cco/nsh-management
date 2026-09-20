@@ -295,6 +295,7 @@ nsh-management/
 | 2026-09-20 | 战报高光榜单扩为六榜（用户要求：还要有建筑伤害榜、重伤榜、总分榜）：MatchReportData 增加 buildingTop/deathsTop/scoreTop；buildReportData 复用逐局 computeScores 结果，按玩家保留最佳单局综合评分生成总分榜（与 MVP 口径一致），重伤榜按重伤次数倒序、建筑伤害榜按对建筑伤害（均沿用去重取最佳单局）；PosterRankings 三列两行展示六榜 TOP3；口径同步 stats-report-plan §1.2/§3.2、design-document-v2 §4.5 与 frontend docs；vue-tsc + vite build 通过 | 数据分析、战报、前端 |
 | 2026-09-20 | 管理员直接改名自动记录历史 ID 关联（用户确认新增支持）：原设计“直接改名不追溯别名”导致直接改名后无法合并查询；现 `PUT /members/{id}` 改名时同一事务失效待审申请并写入一条 approved 关联（`game_id_request_lifecycle.record_admin_rename`，提交/审核人=操作管理员快照，`review_remark` 标注“管理员直接在常驻库改名（自动记录，无提交申请）”），个人战绩即时支持新旧合并；`member_service.update_member` 增加 operator 参数（路由与并发 selfcheck 同步）；测试：game_id_requests 扩展自动记录断言、my_stats_aliases 新增直接改名合并用例（13/5/10/1 项 + 既有 16 项全部通过）；文档同步 design-game-id-change §1/§5/§6、database-design §2.12（v1.9 补充）、design-document-v2 §4.1、security-review §十一、backend docs | 常驻库、个人战绩、后端 |
 | 2026-09-20 | 暂存代码审查修复（Warning）：帮众改名页「常驻成员」远程搜索补请求序号守卫（GameIdRequestForm.searchMembers）——快速连续输入时旧响应可能覆盖新结果、先完成的请求会把 loading 提前复位；按同批组件 GameIdRequestHistory/GameIdReviewPanel 既有 loadSeq 惯例新增 searchSeq：过期响应直接丢弃，loading 仅在最新请求 finally 复位；vue-tsc 通过，未运行前端测试与浏览器验收 | 前端、游戏 ID 改名 |
+| 2026-09-20 | 并发回归断言修正（selfcheck_game_id_requests_concurrency.py）：原「审核 approved ⇒ 成员名必等于新 ID」假设单一写者，未覆盖「审核通过 → 管理员再次直接改名」这一合法交错（实测 4 次 1 次失败），与 security-review §十一「5 项全部通过」表述不符；改为按写者顺序断言——写入者未知时允许任一合法结果，仅在无后续写入者时要求名称等于新 ID，并新增「直接改名必留已确认关联记录」「invalidated ⇒ 名称必为直接改名结果」两条确定性断言；连续 10 次运行通过；security-review §十一 验证范围与 ai-checklist #17 同步 | 代码规范、改名申请 |
 
 ---
 

@@ -158,12 +158,30 @@ class ConcurrencyTests(unittest.IsolatedAsyncioTestCase):
         async with await self._new_session() as session:
             member = await session.get(Member, 1)
             record = await session.get(MemberGameIdRequest, rid)
-            # 无论谁先，最终名称必须是某一次改名结果，且申请通过时名称必须与新 ID 一致
-            self.assertIn(member.name, ("甲直接改", "甲改"))
-            if record.status == "approved":
+            # 并发下最后写入者不定：名称可能是「甲」（两者都失败）、「甲改」（审核生效）或
+            # 「甲直接改」（直接改名生效，含「审核通过 → 管理员再次直接改名」这一合法交错）
+            self.assertIn(member.name, ("甲", "甲改", "甲直接改"))
+            if record.status == "approved" and rename_result is None:
+                # 直接改名未生效时审核是最后写入者，没有后续写入，名称必然等于申请的新 ID
                 self.assertEqual(member.name, record.new_game_id)
-            else:
-                self.assertIn(record.status, ("invalidated", "pending"))
+            elif record.status == "approved":
+                # 审核通过后又被直接改名：名称必为直接改名结果（审核之后无其他写入者）
+                self.assertEqual(member.name, "甲直接改")
+            if record.status == "invalidated":
+                # 直接改名抢先失效待审申请：名称必为直接改名结果，审核不得改写
+                self.assertEqual(member.name, "甲直接改")
+            if rename_result == "renamed":
+                # 直接改名必须留下一条已确认关联记录（个人战绩新旧 ID 合并依赖它）
+                confirmed = (
+                    await session.execute(
+                        select(MemberGameIdRequest).where(
+                            MemberGameIdRequest.member_id == 1,
+                            MemberGameIdRequest.status == "approved",
+                            MemberGameIdRequest.new_game_id == "甲直接改",
+                        )
+                    )
+                ).scalars().all()
+                self.assertTrue(confirmed)
         if rename_result is None and audit_result[0] is None:
             self.assertIn(audit_result[1], (409, 503))
 

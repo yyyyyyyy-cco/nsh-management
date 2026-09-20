@@ -125,6 +125,7 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 | 14 | 数据归属字段可被请求体覆盖（跨帮会越权） | `POST /config/accounts` 原实现 `target_guild_id = body.guild_id or current_user.guild_id`：管理员在请求体附带其他帮会 `guild_id` 即可为目标帮会创建账号（可含 admin 角色）→ 跨帮会接管（同类正确模式见 `update_guild_icon` 的 403 归属校验）；2026-09-18 已修复并加固（管理员仅本帮会，开发者目标需存在） | 数据归属一律取认证上下文（`current_user.guild_id`）；仅确认角色范围后（如 developer）才允许请求体指定，且服务层校验目标归属/存在；新增写接口时对照同资源既有接口的归属校验模式做交叉检查 |
 | 15 | 分页响应模型 `items` 声明基类 → 子类额外字段被静默裁剪 | 改名申请审核列表项为 `GameIdRequestAdminOut`（含 `requester_username`），若塞进 `items: list[GameIdRequestMemberOut]` 的 Page 模型，Pydantic 会按基类重建并丢弃快照字段（实测 KeyError: 'requester_username'）；与第 13 条同源——「序列化路径按声明类型收敛」 | 角色相关响应字段不同时，为每种角色各建一个 Page/响应模型（如 MemberPage / AdminPage），不要用基类接收；新增字段后用实证脚本断言响应 JSON 中确实存在该键 |
 | 16 | 回滚后访问 ORM 实例属性触发 `MissingGreenlet` | 审核事务在 `session.rollback()` 后拼装错误消息时读取 `record.new_game_id`，实例已过期 → 异步下同步 lazy load 报 `greenlet_spawn has not been called`（表现为 500 而非预期的 409） | 事务内需要的字段在首次读取时先取局部快照（`new, old = record.x, record.y`），rollback 后只用局部变量；同理不要在 rollback/commit 后继续访问已过期实例的属性 |
+| 17 | 并发/竞争类回归断言假设单一写者 | 「直接改名 vs 审核通过」并发用例断言「approved ⇒ 成员名 == 新 ID」，但审核通过后管理员再次直接改名是合法交错 → 间歇失败（实测 4 次 1 次失败），文档却据此声称「5 项全部通过」 | 断言业务不变量（无后续写入者才要求名称等于新 ID、改名必留已确认关联、失效后名称必为直接改名结果），不锁定最终值；并发用例定稿前多跑几次 |
 
 ---
 
