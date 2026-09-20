@@ -1,7 +1,7 @@
 """常驻库成员请求/响应模型。"""
 from pydantic import BaseModel, Field
 
-from app.schemas.common import UtcDatetime
+from app.schemas.common import BatchIds, UtcDatetime
 
 
 class MemberBase(BaseModel):
@@ -46,7 +46,7 @@ class MemberPage(BaseModel):
 
 
 class BatchDeleteRequest(BaseModel):
-    ids: list[int]
+    ids: BatchIds
 
 
 class AttendanceRateItem(BaseModel):

@@ -1,7 +1,7 @@
 """录屏模块 Pydantic Schema。"""
 from pydantic import BaseModel, Field
 
-from app.schemas.common import UtcDatetime
+from app.schemas.common import BatchIds, UtcDatetime
 
 
 class RecordingOut(BaseModel):
@@ -45,7 +45,7 @@ class RecordingReview(BaseModel):
 
 class BatchApproveRequest(BaseModel):
     """批量审核通过。"""
-    ids: list[int] = Field(..., min_length=1, description="录屏记录 ID 列表")
+    ids: BatchIds = Field(..., description="录屏记录 ID 列表")
 
 
 class RoundProgress(BaseModel):

@@ -70,7 +70,7 @@ class AccountCreate(BaseModel):
         description="密码（8-128 位，需含字母和数字）",
     )
     role: str = Field("member", description="角色：admin/member")
-    guild_id: int | None = Field(None, description="目标帮会ID（开发者创建时必传，管理员默认本帮会）")
+    guild_id: int | None = Field(None, ge=1, description="目标帮会ID（开发者创建时必传，管理员仅限本帮会）")
 
     _password_complexity = field_validator("password")(_validate_password_complexity)
 

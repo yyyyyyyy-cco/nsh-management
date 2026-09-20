@@ -1,4 +1,4 @@
-"""Schema 共享类型：时间戳序列化约定。
+"""Schema 共享类型：时间戳序列化与批量 ID 校验约定。
 
 全站时间语义分两类（勿混用）：
 - 系统生成时间戳（created_at / updated_at / reviewed_at）：存储为 UTC（naive），
@@ -9,7 +9,7 @@
 from datetime import datetime, timezone
 from typing import Annotated
 
-from pydantic import PlainSerializer
+from pydantic import Field, PlainSerializer
 
 
 def _mark_utc(dt: datetime) -> datetime:
@@ -18,3 +18,9 @@ def _mark_utc(dt: datetime) -> datetime:
 
 
 UtcDatetime = Annotated[datetime, PlainSerializer(_mark_utc, return_type=datetime)]
+
+# 批量写操作共用边界：非空、最多 500 个正整数 ID，拒绝布尔值与隐式类型转换。
+BatchIds = Annotated[
+    list[Annotated[int, Field(gt=0, strict=True)]],
+    Field(min_length=1, max_length=500),
+]

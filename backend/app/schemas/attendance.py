@@ -1,6 +1,7 @@
 """出勤库请求/响应模型。"""
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.common import BatchIds
 from app.utils.member_names import normalize_member_name
 
 
@@ -43,7 +44,7 @@ class SubstituteCandidateOut(BaseModel):
 
 
 class ImportSubstitutesRequest(BaseModel):
-    member_ids: list[int]
+    member_ids: BatchIds
 
 
 class FillerCreate(BaseModel):
@@ -70,5 +71,5 @@ class RemarkUpdate(BaseModel):
 
 
 class BatchStatusUpdate(BaseModel):
-    ids: list[int]
+    ids: BatchIds
     status: str  # normal / leave

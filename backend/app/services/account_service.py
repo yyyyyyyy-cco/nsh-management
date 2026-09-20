@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
+from app.models.guild import Guild
 from app.models.user import User
 from app.services.config_service import ConfigServiceError
 
@@ -28,6 +29,8 @@ async def create_account(
         raise ConfigServiceError("请选择目标帮会后再创建账号")
     if role not in ["admin", "member"]:
         raise ConfigServiceError("无效的角色")
+    if target_guild_id < 1 or await session.get(Guild, target_guild_id) is None:
+        raise ConfigServiceError("目标帮会不存在", 404)
 
     # 检查用户名是否已存在
     existing = (

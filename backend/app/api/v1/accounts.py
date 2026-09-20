@@ -44,7 +44,14 @@ async def create_account(
     session: AsyncSession = Depends(get_db),
 ) -> AccountOut:
     """创建账号（管理员/开发者）。开发者可指定目标帮会，管理员默认本帮会。"""
-    target_guild_id = body.guild_id or current_user.guild_id
+    if current_user.role == "developer":
+        target_guild_id = body.guild_id
+    else:
+        if current_user.guild_id is None:
+            raise ConfigServiceError("当前账号未绑定帮会", 403)
+        if body.guild_id is not None and body.guild_id != current_user.guild_id:
+            raise ConfigServiceError("无权限为其他帮会创建账号", 403)
+        target_guild_id = current_user.guild_id
     account = await account_service.create_account(
         session, target_guild_id, body.username, body.password, body.role
     )

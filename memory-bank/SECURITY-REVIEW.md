@@ -1,5 +1,7 @@
 # 安全与性能审查报告
 
+> §一～九保留历史审查记录；当前定向修复、结论更正与未解决项见 §十，历史「已修复」不代表所有响应路径已验证。
+
 > 审查日期：2026-08-20
 > 审查范围：nsh-management 全栈（FastAPI 后端 + Vue3 前端 + Nginx/Docker 部署）
 > 审查方式：静态代码审查（未修改任何代码）
@@ -188,6 +190,32 @@
 
 ## 九、审查依据文件清单
 
+> 以下为 2026-08-20 的历史审查依据；2026-09-18 定向修复与结论更正见 §十。
+
 - 后端：`app/main.py`、`app/core/config.py`、`app/core/security.py`、`app/core/database.py`、`app/api/deps.py`、`app/api/v1/*.py`（auth/members/match_data/config/attendance/lineups/recording/schedules）、`app/services/*.py`、`app/utils/excel_import.py`、`app/utils/attendance_import.py`、`app/schemas/*.py`、`app/models/*.py`、`app/init_db.py`、`requirements.txt`
 - 前端：`src/api/http.ts`、`src/stores/auth.ts`、`src/components/recording/RecordingTab.vue`、`index.html`、`package.json`、`vite.config.ts`
 - 部署：`nginx.conf`、`docker-compose.yml`、`backend/Dockerfile`、`frontend/Dockerfile`、`entrypoint.sh`、`deploy.sh`、`.env`（仅检查强度，未输出值）、`.gitignore`
+
+---
+
+## 十、用户隔离定向修复（2026-09-18）
+
+本次经用户确认实施 F-1～F-5，不等同于全体系安全验收；历史条目保留，最新进度统一见 `progress.md`。
+
+| 编号 | 核实结果与处理 | 实现位置 |
+|---|---|---|
+| F-1 | admin 原可通过请求体指定外帮会创建账号；现在只能使用自身帮会，跨帮会/未绑定帮会返回 403。developer 必须指定目标；目标 ID 非正数返回 422、不存在返回 404、未选择返回 400；service 在写库前检查目标存在性 | `backend/app/api/v1/accounts.py`、`backend/app/services/account_service.py`、`backend/app/schemas/config.py` |
+| F-2 | 出勤聚合原全库扫描、输出再映射本帮会成员；改为关联 Schedule 并在聚合前限定 guild_id，避免外帮会赛程中的历史错误引用污染本帮会统计 | `backend/app/services/member_service.py` |
+| F-3 | **更正前次结论**：Member.guild_id 已有 NOT NULL，不会成功写入无帮会成员；缺少业务校验可能导致 500。单个创建及 Excel 导入现在提前拒绝未绑定帮会（403），不修改表结构 | `backend/app/services/member_service.py`、`backend/app/utils/excel_import.py` |
+| F-4 | Excel 各 Sheet 首行增加帮会名/ID，文件名包含帮会名，客户端与服务端清理非法文件名字符；兼容旧首行表头与新来源行格式。来源行不决定导入归属，导入始终以认证帮会为准；空成员导出保留有效工作表 | `backend/app/utils/excel_export.py`、`excel_import.py`、`backend/app/api/v1/members.py`、`frontend/src/composables/useMemberList.ts` |
+| F-5 | 批量删除、出勤成员导入/状态更新、录屏批量审核统一使用 BatchIds：1～500 个严格正整数；空列表、超限、布尔值、字符串及非整数在请求校验阶段返回 422 | `backend/app/schemas/common.py`、`member.py`、`attendance.py`、`recording.py` |
+
+### 验证范围
+- `backend/scripts/selfcheck_security_fixes.py`：真实 JWT 与认证依赖、实际 ASGI 路由，覆盖管理员同帮会/跨帮会、开发者目标选择、帮众与匿名拒绝、空帮会成员创建、批量边界与跨帮会记录保护。
+- `backend/scripts/selfcheck_member_exports.py`：内存库出勤隔离（含外帮会赛程脏引用）、新旧 Excel 回导、来源不可改写导入归属、空导出、文件名与来源文本处理。
+- 两个脚本共 16 项测试通过（含参数子用例）；后端 compileall 与前端 vue-tsc/vite build 通过。未访问业务数据库，未做线上或浏览器验收，未运行前端 vitest。
+
+### 边界与待办更正
+- 帮会名、水印只用于识别来源，**不提供密码学防伪能力**；若需要防篡改验证，另行设计服务端签名与校验入口。
+- 不改动已接受的明文列保留、共享账号、localStorage、10 小时 Token 或登出不吊销策略。
+- **前次「明文密码仅 developer 返回已全面通过」结论不准确**：`accounts.py` 仅列表响应置空，创建/更新/状态更新响应仍直接序列化 AccountOut，可能向 admin 返回 plain_password。本项未列入已确认的 F-1～F-5；待用户确认后统一响应脱敏并覆盖回归，不能视为已修复。

@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attendance import AttendanceRecord
 from app.models.member import Member
+from app.models.schedule import Schedule
 from app.schemas.member import MemberCreate, MemberUpdate
 from app.utils.constants import MEMBER_STATUSES, PROFESSIONS
 
@@ -140,7 +141,9 @@ async def profession_stats(session: AsyncSession, guild_id: int, formal_only: bo
     return [{"profession": p, "count": c} for p, c in rows]
 
 
-async def create_member(session: AsyncSession, guild_id: int, data: MemberCreate) -> Member:
+async def create_member(session: AsyncSession, guild_id: int | None, data: MemberCreate) -> Member:
+    if guild_id is None:
+        raise MemberServiceError("当前账号未绑定帮会，无法创建成员", 403)
     validate_profession(data.main_profession, data.sub_profession)
     if data.status not in MEMBER_STATUSES:
         raise MemberServiceError("无效的成员状态")
@@ -193,7 +196,12 @@ async def attendance_rate(session: AsyncSession, guild_id: int) -> list[dict]:
                 func.sum(case((AttendanceRecord.status == "normal", 1), else_=0)).label("normal_count"),
                 func.sum(case((AttendanceRecord.status == "leave", 1), else_=0)).label("leave_count"),
             )
-            .where(AttendanceRecord.is_filler.is_(False), AttendanceRecord.member_id.is_not(None))
+            .join(Schedule, Schedule.id == AttendanceRecord.schedule_id)
+            .where(
+                Schedule.guild_id == guild_id,
+                AttendanceRecord.is_filler.is_(False),
+                AttendanceRecord.member_id.is_not(None),
+            )
             .group_by(AttendanceRecord.member_id)
         )
     ).all()
