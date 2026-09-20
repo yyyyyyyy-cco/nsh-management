@@ -20,9 +20,11 @@ from app.services import log_service
 from app.services.attendance_service import AttendanceServiceError
 from app.services.auth_service import AuthError
 from app.services.config_service import ConfigServiceError
+from app.services.game_id_request_service import GameIdRequestError
 from app.services.lineup_service import LineupServiceError
 from app.services.match_data_csv import MatchDataError
 from app.services.member_service import MemberServiceError
+from app.services.player_identity_service import PlayerIdentityError
 from app.services.recording_service import RecordingServiceError
 from app.services.schedule_service import ScheduleServiceError
 from app.services.squad_adjustment_service import SquadAdjustmentError
@@ -167,6 +169,17 @@ async def auth_error_handler(request: Request, exc: AuthError) -> JSONResponse:
 
 @app.exception_handler(MemberServiceError)
 async def member_error_handler(request: Request, exc: MemberServiceError) -> JSONResponse:
+    return error_response(exc.status_code, exc.message)
+
+
+@app.exception_handler(GameIdRequestError)
+async def game_id_request_error_handler(request: Request, exc: GameIdRequestError) -> JSONResponse:
+    return error_response(exc.status_code, exc.message)
+
+
+@app.exception_handler(PlayerIdentityError)
+async def player_identity_error_handler(request: Request, exc: PlayerIdentityError) -> JSONResponse:
+    """战绩名称合并冲突：提示改用「仅查此 ID」（HTTP 409）。"""
     return error_response(exc.status_code, exc.message)
 
 

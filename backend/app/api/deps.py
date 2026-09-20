@@ -46,3 +46,31 @@ async def require_developer(current_user: User = Depends(get_current_user)) -> U
     if current_user.role != "developer":
         raise HTTPException(status_code=403, detail="仅开发者可操作")
     return current_user
+
+
+async def _require_guild(user: User) -> User:
+    """要求账号绑定有效帮会（developer 无帮会，不能访问帮会内功能）。"""
+    if user.guild_id is None:
+        raise HTTPException(status_code=403, detail="当前账号未绑定帮会")
+    return user
+
+
+async def require_member(current_user: User = Depends(get_current_user)) -> User:
+    """仅帮众（游戏 ID 改名申请提交；不含 developer）。"""
+    if current_user.role != "member":
+        raise HTTPException(status_code=403, detail="无权限操作")
+    return await _require_guild(current_user)
+
+
+async def require_admin_strict(current_user: User = Depends(get_current_user)) -> User:
+    """仅管理员（游戏 ID 改名审核；不含 developer）。"""
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="无权限操作")
+    return await _require_guild(current_user)
+
+
+async def require_member_or_admin(current_user: User = Depends(get_current_user)) -> User:
+    """帮众或管理员（个人战绩查询；不含 developer）。"""
+    if current_user.role not in ("member", "admin"):
+        raise HTTPException(status_code=403, detail="无权限操作")
+    return await _require_guild(current_user)

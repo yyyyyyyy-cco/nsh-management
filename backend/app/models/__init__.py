@@ -1,5 +1,6 @@
 """模型汇总导出。"""
 from app.models.attendance import AttendanceRecord
+from app.models.game_id_request import MemberGameIdRequest
 from app.models.guild import Guild
 from app.models.lineup import Lineup
 from app.models.match_data import MatchData
@@ -17,6 +18,7 @@ __all__ = [
     "Lineup",
     "MatchData",
     "Member",
+    "MemberGameIdRequest",
     "OperationLog",
     "ProfessionConfig",
     "Recording",

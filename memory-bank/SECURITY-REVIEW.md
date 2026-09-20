@@ -219,3 +219,29 @@
 - 帮会名、水印只用于识别来源，**不提供密码学防伪能力**；若需要防篡改验证，另行设计服务端签名与校验入口。
 - 不改动已接受的明文列保留、共享账号、localStorage、10 小时 Token 或登出不吊销策略。
 - **前次「明文密码仅 developer 返回已全面通过」结论不准确**：`accounts.py` 仅列表响应置空，创建/更新/状态更新响应仍直接序列化 AccountOut，可能向 admin 返回 plain_password。本项未列入已确认的 F-1～F-5；待用户确认后统一响应脱敏并覆盖回归，不能视为已修复。
+
+---
+
+## 十一、游戏 ID 改名申请与战绩关联安全决策（2026-09-20）
+
+> 功能与 API 详见 `design-game-id-change.md`；表结构见 `database-design.md` §2.12；进度与验证结果见 `progress.md`。
+
+**决策与实现要点**
+
+| 项 | 处理 | 位置 |
+|---|---|---|
+| 角色边界 | 新增 `require_member`（提交/候选）、`require_admin_strict`（审核/审核列表）、`require_member_or_admin`（成员历史、个人战绩）；三者均要求账号绑定有效帮会，developer 访问一律 403；未改动包含 developer 的原 `require_admin` | `backend/app/api/deps.py`、`api/v1/game_id_requests.py`、`api/v1/my_stats.py` |
+| 租户归属 | 归属只取 `current_user.guild_id`；成员/申请均先校验帮会归属，外帮会统一 404（不暴露存在性）；请求体 `extra="forbid"` 拒绝夹带 guild_id/status/requester/reviewer 等字段 | 同上 + `schemas/game_id_request.py` |
+| 并发与一致性 | 提交侧：应用校验 + `UNIQUE(guild_id, member_id) WHERE status='pending'` 部分唯一索引兜底；审核侧：`request_id+guild_id+status='pending'` 条件 UPDATE 校验行数 → 同事务内名称占用检查 → `member_id+guild_id+name=旧值` 条件 UPDATE，任一步失败整体回滚；重放审核 409，不覆盖首位审核人 | `services/game_id_request_service.py` |
+| 生命周期 | 成员被直接改名（`PUT /members/{id}`，仅 admin）→ pending 置 `invalidated(member_renamed)`，并在同一事务写入一条 approved 关联记录（提交/审核人=操作管理员快照，备注标注来源）；成员删除（单个/批量）→ pending 失效并将该成员全部申请 `member_id` 置空；账号删除 → 申请人/审核人引用置空、账号名快照保留；帮会删除 → 先清理本帮会申请记录。以上辅助函数均不自行 commit | `services/game_id_request_lifecycle.py` + member/account/guild 服务 |
+| 历史数据 | 审核通过不改写出勤/排表/录屏/比赛数据；`match_data.player_name` 保持比赛当时 ID；旧 ID 战绩查询（merge_aliases=false）与原口径一致 | `services/my_stats_service.py` |
+| 名称关联边界 | 仅 approved 记录作为已确认关系（来源：帮众申请审核通过 / 管理员直接改名自动记录，后者 `review_remark` 标注来源）；可检测冲突（其他当前成员占用、他人批准记录重叠、`member_id` 置空的失效引用、同一场同一局多名称/阵营）一律 409 并提示改用「仅查此 ID」；不承诺识别未登记的跨时期同名复用 | `services/player_identity_service.py` |
+| 已知接受风险 | 共享 member 账号无法从技术上证明申请人身份，身份核实依赖管理员线下确认（沿用既有共享账号风险）；审批意见字段帮众可见，已提示不要填写隐私信息 | 已记录，无需额外修复 |
+
+**验证范围（未做浏览器与线上验收）**
+
+- `scripts/selfcheck_game_id_requests.py`（13 项，真实 JWT + ASGI）：角色矩阵与租户隔离、参数边界、重复待审、共享账号多成员提交、审核确认/重放/跨帮会、名称占用冲突回滚、双成员同名竞争、直接改名（含自动记录关联）与删除联动、账号删除快照、帮众响应脱敏。
+- `scripts/selfcheck_game_id_requests_concurrency.py`（5 项，隔离文件库 + 独立连接）：并发重复提交、双管理员审核单赢家、通过与驳回竞争、同名目标竞争、直接改名与审核竞争后名称一致性。
+- `scripts/selfcheck_my_stats_aliases.py`（10 项）：合并/精确模式、改名链与改回、管理员直接改名自动关联、新名无数据、跨帮会隔离、冲突 409 与精确退路、冲突位于最近 10 场之外仍被发现、开发者拒绝。
+- `scripts/selfcheck_migration_game_id.py`（1 项）：临时库空库升级 → 回退 → 再升级，校验表、索引与 CHECK/唯一索引真实生效；未接触业务库。
+- 既有回归 `selfcheck_security_fixes.py`（8 项）、`selfcheck_member_exports.py`（8 项）、`selfcheck_indicators.py` 全部通过；后端 `compileall` 与前端 `vue-tsc + vite build` 通过。

@@ -5,7 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.attendance import AttendanceRecord
 from app.models.member import Member
 from app.models.schedule import Schedule
+from app.models.user import User
 from app.schemas.member import MemberCreate, MemberUpdate
+from app.services.game_id_request_lifecycle import (
+    detach_member,
+    invalidate_pending_by_member,
+    record_admin_rename,
+)
 from app.utils.constants import MEMBER_STATUSES, PROFESSIONS
 
 
@@ -154,7 +160,10 @@ async def create_member(session: AsyncSession, guild_id: int | None, data: Membe
     return member
 
 
-async def update_member(session: AsyncSession, guild_id: int, member_id: int, data: MemberUpdate) -> Member:
+async def update_member(
+    session: AsyncSession, guild_id: int, member_id: int, data: MemberUpdate, operator: User
+) -> Member:
+    """更新成员；管理员直接改名时同步失效待审申请并记录一条已确认的新旧 ID 关联。"""
     member = await get_member(session, guild_id, member_id)
     changes = data.model_dump(exclude_unset=True)
     if "main_profession" in changes or "sub_profession" in changes:
@@ -164,8 +173,22 @@ async def update_member(session: AsyncSession, guild_id: int, member_id: int, da
         )
     if "status" in changes and changes["status"] not in MEMBER_STATUSES:
         raise MemberServiceError("无效的成员状态")
+    renamed = "name" in changes and changes["name"] != member.name
+    old_name = member.name  # 改名前的名称（用于自动记录关联快照）
     for field, value in changes.items():
         setattr(member, field, value)
+    if renamed:
+        # 管理员直接改名：待审申请失效 + 自动记录已确认关联（个人战绩新旧 ID 合并用），同事务提交
+        await invalidate_pending_by_member(session, member.id)
+        await record_admin_rename(
+            session,
+            guild_id=guild_id,
+            member_id=member.id,
+            old_game_id=old_name,
+            new_game_id=member.name,
+            operator_id=operator.id,
+            operator_username=operator.username,
+        )
     await session.commit()
     await session.refresh(member)
     return member
@@ -173,6 +196,8 @@ async def update_member(session: AsyncSession, guild_id: int, member_id: int, da
 
 async def delete_member(session: AsyncSession, guild_id: int, member_id: int) -> None:
     member = await get_member(session, guild_id, member_id)
+    # 成员删除：待审申请置失效并解除引用（保留记录作为历史证据）
+    await detach_member(session, [member.id])
     await session.delete(member)
     await session.commit()
 
@@ -181,6 +206,8 @@ async def batch_delete(session: AsyncSession, guild_id: int, ids: list[int]) -> 
     members = (
         (await session.execute(select(Member).where(Member.guild_id == guild_id, Member.id.in_(ids)))).scalars().all()
     )
+    if members:
+        await detach_member(session, [m.id for m in members])
     for member in members:
         await session.delete(member)
     await session.commit()

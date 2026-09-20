@@ -11,6 +11,7 @@ from app.core.security import hash_password
 from app.models.guild import Guild
 from app.models.user import User
 from app.services.config_service import ConfigServiceError
+from app.services.game_id_request_lifecycle import detach_user
 
 
 async def list_accounts(session: AsyncSession, guild_id: int | None) -> list[User]:
@@ -119,5 +120,7 @@ async def delete_account(session: AsyncSession, guild_id: int | None, user_id: i
     if user.role == "developer":
         raise ConfigServiceError("不能删除开发者账号")
 
+    # 账号删除：清空改名申请的申请人/审核人引用（保留账号名快照），同事务提交
+    await detach_user(session, user_id)
     await session.delete(user)
     await session.commit()

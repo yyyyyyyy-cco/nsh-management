@@ -18,6 +18,7 @@ from app.models.recording import Recording
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.services.config_service import ConfigServiceError
+from app.services.game_id_request_lifecycle import purge_guild
 from app.utils.constants import PROFESSIONS
 
 
@@ -103,6 +104,8 @@ async def delete_guild(session: AsyncSession, guild_id: int) -> None:
         await session.execute(delete(Schedule).where(Schedule.guild_id == guild_id))
 
     await session.execute(delete(Member).where(Member.guild_id == guild_id))
+    # 改名申请先于成员/账号删除（成员、账号删除后其引用会被置空，记录不再可清理）
+    await purge_guild(session, guild_id)
     await session.execute(delete(ProfessionConfig).where(ProfessionConfig.guild_id == guild_id))
     await session.execute(delete(User).where(User.guild_id == guild_id))
     await session.delete(guild)

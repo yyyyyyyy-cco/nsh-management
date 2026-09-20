@@ -71,7 +71,7 @@ async def update_member(
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> MemberOut:
-    member = await member_service.update_member(session, current_user.guild_id, member_id, body)
+    member = await member_service.update_member(session, current_user.guild_id, member_id, body, current_user)
     return MemberOut.model_validate(member)
 
 
