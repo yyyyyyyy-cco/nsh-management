@@ -20,7 +20,7 @@
           </el-checkbox>
         </el-checkbox-group>
       </template>
-      <el-empty v-else description="未排表成员已全部调整" :image-size="60" />
+      <EmptyState v-else description="未排表成员已全部调整" :image-size="60" />
     </div>
     <template #footer>
       <el-button size="small" @click="visible = false">取消</el-button>
@@ -41,6 +41,7 @@ import { ref, watch } from 'vue'
 import type { SquadAnalysis, SquadMember } from '@/types/matchData'
 
 import { profColor } from './analysis'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 defineProps<{ members: SquadMember[]; teams: SquadAnalysis[]; saving: boolean }>()
 

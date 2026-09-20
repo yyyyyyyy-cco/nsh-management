@@ -22,9 +22,9 @@
       </div>
 
       <!-- 成员不存在/加载失败（错误提示由 http 拦截器统一处理） -->
-      <el-empty v-else-if="loadFailed" description="成员不存在或已删除" :image-size="72">
+      <EmptyState v-else-if="loadFailed" variant="error" description="成员不存在或已删除" :image-size="72">
         <el-button @click="goBack">返回常驻库</el-button>
-      </el-empty>
+      </EmptyState>
 
       <MemberDetailHeader v-else-if="member" :member="member" :attendance-rate="attendanceRate" />
     </el-card>
@@ -38,7 +38,7 @@
         <StatsMatchTable :records="records" class="section" />
       </template>
       <el-card v-else shadow="never" class="empty-card section">
-        <el-empty description="该成员暂无比赛数据" :image-size="72" />
+        <EmptyState variant="chart" description="该成员暂无比赛数据" :image-size="72" />
       </el-card>
     </template>
   </div>
@@ -54,6 +54,7 @@ import { getMyStats } from '@/api/myStats'
 import type { MemberInfo } from '@/types/member'
 import type { PlayerRecord, PlayerSummary } from '@/types/myStats'
 import MemberDetailHeader from '@/components/members/MemberDetailHeader.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import StatsMatchTable from '@/components/my-stats/StatsMatchTable.vue'
 import StatsOverview from '@/components/my-stats/StatsOverview.vue'
 import StatsRankingPosition from '@/components/my-stats/StatsRankingPosition.vue'

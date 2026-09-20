@@ -2,7 +2,7 @@
   <!-- 移动端（≤768px）：成员行列表，职业标签 + 紧凑编辑/删除 -->
   <div v-if="isMobile" class="member-rows">
     <SkeletonTable v-if="showSkeleton && !items.length" variant="rows" :rows="5" />
-    <el-empty v-else-if="!loading && !items.length" description="暂无成员数据" :image-size="72" />
+    <EmptyState v-else-if="!loading && !items.length" description="暂无成员数据" :image-size="72" />
     <div v-for="row in items" :key="row.id" class="member-row">
       <div class="mr-main">
         <el-checkbox
@@ -92,6 +92,7 @@ import type { MemberQuery } from '@/api/members'
 import type { MemberInfo } from '@/types/member'
 import { profTagStyle } from '@/utils/profession'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 defineProps<{
   isMobile: boolean

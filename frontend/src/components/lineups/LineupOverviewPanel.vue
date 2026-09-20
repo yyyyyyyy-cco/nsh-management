@@ -12,7 +12,7 @@
       </template>
       <div v-if="titleRemark" class="title-remark-bar">{{ titleRemark }}</div>
       <SkeletonTable v-if="showSkeleton && !totalPlaced" variant="table" :rows="4" />
-      <el-empty v-else-if="!loading && !totalPlaced" description="排表中暂无成员" />
+      <EmptyState v-else-if="!loading && !totalPlaced" description="排表中暂无成员" />
       <template v-else>
         <!-- 四组卡片 -->
         <div class="overview-grid">
@@ -49,6 +49,7 @@ import { PROF_ORDER } from '@/composables/lineupBoard'
 import { profColor } from '@/utils/profession'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import LineupOverviewGroup from './LineupOverviewGroup.vue'
 
 const props = defineProps<{ scheduleId: number }>()

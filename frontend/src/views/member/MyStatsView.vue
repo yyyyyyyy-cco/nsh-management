@@ -19,7 +19,7 @@
     </div>
 
     <!-- 空状态 -->
-    <el-empty v-else-if="queried && records.length === 0" description="未找到该 ID 的比赛数据，请确认 ID 是否正确" />
+    <EmptyState v-else-if="queried && records.length === 0" variant="search" description="未找到该 ID 的比赛数据，请确认 ID 是否正确" />
 
     <!-- 结果 -->
     <div v-else-if="records.length > 0" class="soft-appear">
@@ -30,19 +30,16 @@
     </div>
 
     <!-- 初始状态 -->
-    <el-empty v-else description="输入你的游戏 ID，查看个人历史战绩">
-      <template #image>
-        <el-icon :size="48" class="empty-icon"><Trophy /></el-icon>
-      </template>
-    </el-empty>
+    <EmptyState v-else variant="search" description="输入你的游戏 ID，查看个人历史战绩" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { TrendCharts, Trophy } from '@element-plus/icons-vue'
+import { TrendCharts } from '@element-plus/icons-vue'
 
 import { getMyStats } from '@/api/myStats'
+import EmptyState from '@/components/common/EmptyState.vue'
 import type { PlayerRecord, PlayerSummary } from '@/types/myStats'
 import PlayerSearch from '@/components/my-stats/PlayerSearch.vue'
 import StatsOverview from '@/components/my-stats/StatsOverview.vue'
@@ -108,11 +105,6 @@ async function onSearch(name: string) {
 
 .section {
   margin-top: 16px;
-}
-
-.empty-icon {
-  color: var(--gold-400);
-  opacity: 0.5;
 }
 
 @media (max-width: 768px) {

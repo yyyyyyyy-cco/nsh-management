@@ -1,6 +1,6 @@
 <template>
   <div class="squad-analysis-tab">
-    <el-empty v-if="!loading && squads.length === 0" description="暂无数据或未关联排表（需先导入 CSV 与排表）" />
+    <EmptyState v-if="!loading && squads.length === 0" variant="chart" description="暂无数据或未关联排表（需先导入 CSV 与排表）" />
     <template v-else>
       <el-tabs v-model="mainTab" class="squad-main-tabs">
         <!-- 子 tab 1：总览图表 -->
@@ -55,6 +55,7 @@ import SquadCardsGrid from './SquadCardsGrid.vue'
 import SquadCompareDialog from './SquadCompareDialog.vue'
 import SquadDetailDialog from './SquadDetailDialog.vue'
 import SquadOverviewPanel from './SquadOverviewPanel.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const props = defineProps<{ scheduleId: number; roundNo: number }>()
 

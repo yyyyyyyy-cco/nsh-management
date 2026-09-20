@@ -56,11 +56,16 @@
     </div>
 
     <!-- 该局无任何数据（加载中保持空态并叠加遮罩，避免视图切换闪烁） -->
-    <el-empty v-if="items.length === 0" v-loading="loading" :description="`第 ${roundNo} 局暂无比赛数据，请导入 CSV 文件`">
+    <EmptyState
+      v-if="items.length === 0"
+      v-loading="loading"
+      variant="chart"
+      :description="`第 ${roundNo} 局暂无比赛数据，请导入 CSV 文件`"
+    >
       <el-button v-if="auth.isAdmin" type="primary" @click="onImport">导入 CSV</el-button>
-    </el-empty>
+    </EmptyState>
     <!-- 有数据但被筛选过滤为空 -->
-    <el-empty v-else-if="filteredItems.length === 0" v-loading="loading" description="无符合当前筛选条件的数据" />
+    <EmptyState v-else-if="filteredItems.length === 0" v-loading="loading" variant="search" description="无符合当前筛选条件的数据" />
 
     <!-- 标签页切换（切局/加载时整体遮罩）；lazy：子 Tab 首次激活时才挂载并发请求，
          不再进入页面即并发 8 个子 Tab 的加载请求与聚合计算 -->
@@ -138,6 +143,7 @@ import SquadAnalysisTab from './SquadAnalysisTab.vue'
 import ProfessionDetailTab from './ProfessionDetailTab.vue'
 import MatchReportDialog from './MatchReportDialog.vue'
 import MetricsGuideDialog from './MetricsGuideDialog.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const props = defineProps<{ scheduleId: number; schedule?: ScheduleInfo | null }>()
 

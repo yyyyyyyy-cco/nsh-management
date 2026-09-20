@@ -1,7 +1,7 @@
 <template>
   <div class="rec-list">
     <SkeletonTable v-if="showSkeleton && items.length === 0" variant="rows" :rows="5" />
-    <el-empty v-else-if="!loading && items.length === 0" description="暂无录屏记录" :image-size="72" />
+    <EmptyState v-else-if="!loading && items.length === 0" description="暂无录屏记录" :image-size="72" />
     <div v-for="row in items" :key="row.id" class="rec-row" :class="{ 'rec-row--admin': isAdmin }">
       <div class="rec-row__main">
         <el-checkbox
@@ -88,6 +88,7 @@ import { CopyDocument } from '@element-plus/icons-vue'
 import type { Recording } from '@/types/recording'
 import { profColor } from '@/utils/profession'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { normalizeUrl, statusLabel, statusType } from '@/composables/useRecordingList'
 
 defineProps<{

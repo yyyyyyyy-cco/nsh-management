@@ -117,6 +117,33 @@ a:hover {
   margin: 16px 0;
 }
 
+/* finesse · register=product · shell=global: 职业色标签 hover 微光（克制版奖牌 shimmer，与主按钮扫光同族；hover:hover 门控，触屏不触发；reduced-motion 由全局回退规则停用） */
+.prof-tag {
+  position: relative;
+  overflow: hidden;
+}
+
+@media (hover: hover) {
+  .prof-tag::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.42) 50%, transparent 62%);
+    transform: translateX(-101%);
+  }
+
+  .prof-tag:hover::after {
+    animation: prof-tag-sweep 0.5s var(--ease-out);
+  }
+}
+
+@keyframes prof-tag-sweep {
+  to {
+    transform: translateX(101%);
+  }
+}
+
 /* 数字用衬线字体 */
 .num {
   font-family: var(--font-num);

@@ -23,7 +23,7 @@
 | 数据库表结构 / 字段 / 业务规则 | `database-design.md` | 引用，不复制表结构 |
 | 技术栈版本 | `tech-stack.md` + `backend/requirements.txt` | 摘要 + "详见 tech-stack.md" |
 | UI 规范（最终视觉规范） | `ui-style-guide.md`（§10 优化补充规范） | 引用，不复制令牌 |
-| UI 优化方案 | `ui-polish-plan.md`（已完成归档；剩余可选项见其 §2.1.3 / §2.3.3 / §2.4.4） | 引用 |
+| UI 优化方案 | `ui-polish-plan.md`（已全部完成归档） | 引用 |
 | 代码目录树 | `progress.md` | 不复制，引用 progress.md |
 | 文档索引 / 文档目录树 | `architecture.md` | 不复制，引用 architecture.md |
 | 文件行数规范 | `.agent/rules/file-length-rule.md` | 摘要 + 链接 |
@@ -47,7 +47,7 @@
 | 数据库设计 | `memory-bank/database-design.md` | 11 张表、字段约束、业务规则落表 | 表结构变更 / Alembic 迁移 |
 | 技术栈 | `memory-bank/tech-stack.md` | 依赖版本、部署方案 | 依赖 / 构建 / 部署调整 |
 | UI 规范 | `memory-bank/ui-style-guide.md` | 浅色雅金风最终规范 | UI 规范调整 |
-| UI 优化方案 | `memory-bank/ui-polish-plan.md` | 已完成归档（剩余 3 项可选） | 完成剩余项时 |
+| UI 优化方案 | `memory-bank/ui-polish-plan.md` | 已完成归档（全部完成） | 方案调整时 |
 | 成员战绩与战报方案 | `memory-bank/stats-report-plan.md` | 已实施完成（2026-09-17） | 方案调整时 |
 | 实施方案 | `memory-bank/implementation-plan.md` | 历史规划存档（已完工） | 不维护 |
 | 项目进度 | `memory-bank/progress.md` | 代码目录树 + 模块状态 + 变更记录（**进度唯一权威**） | **每次代码变更后** |

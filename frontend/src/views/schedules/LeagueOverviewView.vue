@@ -18,8 +18,9 @@
     <!-- 移动端（≤768px）：场次卡片列表，整卡可点进入录屏上传 -->
     <div v-if="isMobile" class="match-list">
       <SkeletonTable v-if="showSkeleton && !filteredSchedules.length" variant="rows" :rows="5" />
-      <el-empty
+      <EmptyState
         v-else-if="!loading && !filteredSchedules.length"
+        variant="search"
         description="当前筛选下暂无场次"
         :image-size="72"
       />
@@ -92,6 +93,7 @@ import { resultLabel, resultType } from '@/utils/constants'
 import { sortSchedulesByProximity } from '@/utils/scheduleSort'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const router = useRouter()
 const loading = ref(false)

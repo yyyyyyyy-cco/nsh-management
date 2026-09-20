@@ -228,6 +228,8 @@
 | `layouts/MainLayout.vue` | 宣纸米白侧边栏、宣纸顶栏、用户头像 |
 | `views/LoginView.vue` | 水墨登录页 |
 | `composables/useCountUp.ts` | 数字滚动动画 composable（UI 优化新增） |
+| `components/common/EmptyState.vue` | 空状态统一插画（empty/search/chart/error 4 变体，UI 优化新增） |
+| `composables/useTableDensity.ts` | 表格密度档（标准/紧凑，顶栏全局开关，UI 优化新增） |
 
 ---
 
@@ -244,6 +246,7 @@
 | `medal-shimmer` | 排行榜奖牌 | 金色/银色高光从左到右循环扫过 |
 | `slot-bounce` | 排表槽位放入 | scale(1.05) → scale(1)，金色边框闪烁 |
 | `save-flash` | 保存成功 | 金色光晕扩散 |
+| `prof-tag-sweep` | 职业色标签 hover | 白色高光从左上到右下扫过（0.5s，仅 hover:hover 设备） |
 
 ### 10.2 卡片层级规范
 
@@ -262,3 +265,11 @@
 | 弹窗标题 | 渲染 | 金线与标题等宽，两端渐隐 |
 | 侧边栏菜单 | hover | background 渐变过渡 |
 | 滚动条 | 全局 | thumb #d4c5a0，track #f5f0e6 |
+| 职业色标签 | hover | 微光扫过（与主按钮扫光同族，峰值 0.42 更克制；触屏与 reduced-motion 停用） |
+| 表格密度 | 顶栏开关 | 标准 13.5px/10px ↔ 紧凑 12.5px/6px（localStorage 持久化，移动端隐藏） |
+
+### 10.4 空状态插画规范
+
+- 统一组件：`components/common/EmptyState.vue`（内核 el-empty + 自定义插画，默认 slot 承接操作按钮）
+- 插画风格：手绘线条 SVG——金线（`--gold-400`/`--gold-500`）描边 + 宣纸白（`--ink-bg-paper`）填充 + 墨色淡线（`--ink-300`），尺寸对齐原 el-empty image-size（60/72/80，默认 88）
+- 变体映射：`empty` 无数据（空白册页）· `search` 无结果（放大镜）· `chart` 图表无数据（折线坐标）· `error` 加载失败（朱砂警示圆）

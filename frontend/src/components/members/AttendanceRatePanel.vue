@@ -12,7 +12,7 @@
     </template>
     <!-- 移动端（≤768px）：出勤率行列表（专属排版：ID+职业+出勤率 / 进度条+正常请假） -->
     <div v-if="isMobile" class="rate-rows">
-      <el-empty v-if="!rateItems.length" description="暂无出勤率数据" :image-size="72" />
+      <EmptyState v-if="!rateItems.length" description="暂无出勤率数据" :image-size="72" />
       <div v-for="row in sortedItems" :key="row.name" class="rate-row">
         <div class="rr-main">
           <span class="rr-name">{{ row.name }}</span>
@@ -79,6 +79,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import { getAttendanceRate, type AttendanceRateItem } from '@/api/members'
 import { profColor } from '@/utils/profession'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const rateItems = ref<AttendanceRateItem[]>([])
 

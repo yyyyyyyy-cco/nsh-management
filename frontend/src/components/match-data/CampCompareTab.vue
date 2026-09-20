@@ -1,6 +1,6 @@
 <template>
   <div class="camp-compare-tab">
-    <el-empty v-if="!loading && campNames.length === 0" description="暂无比赛数据，请先导入 CSV" />
+    <EmptyState v-if="!loading && campNames.length === 0" variant="chart" description="暂无比赛数据，请先导入 CSV" />
     <template v-else>
       <el-alert
         v-if="campNames.length === 1"
@@ -67,6 +67,7 @@ import { getCampCompare } from '@/api/matchData'
 import type { CampCompareResponse } from '@/types/matchData'
 import { CAMP_COLORS, fmtNum } from './analysis'
 import EChart from './EChart.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { CHART_THEME } from './chartTheme'
 
 const props = defineProps<{ scheduleId: number; roundNo: number }>()

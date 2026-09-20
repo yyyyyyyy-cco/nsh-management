@@ -1,11 +1,11 @@
 # UI 优化方案文档
 
-> 版本：v1.2  
+> 版本：v1.3  
 > 创建日期：2026-08-26  
-> 更新时间：2026-09-15  
+> 更新时间：2026-09-18  
 > 前置文档：`ui-style-guide.md`（权威视觉规范，动画族/卡片层级/交互反馈最终规范见其 §10）  
 > 实现位置：`frontend/src/styles/` + 各组件 `<style>` 区  
-> **状态**：P0–P3 共 11 项 + §2.5 代码质量重构 2 项已完成（2026-09-15 代码核对）；3 项可选未做（§2.1.3 / §2.3.3 / §2.4.4）
+> **状态**：全部完成（2026-09-18）——P0–P3 共 11 项 + §2.5 代码质量重构 2 项（2026-09-15 代码核对）+ 3 项可选项（§2.1.3 / §2.3.3 / §2.4.4，2026-09-18 实施）
 
 ---
 
@@ -45,11 +45,9 @@
 - **涉及文件**：新增 `composables/useCountUp.ts`，修改 `HomeView.vue`、`OverviewTab.vue` 统计卡
 - **reduced-motion 适配**：检测 `prefers-reduced-motion: reduce` 时直接显示目标值
 
-#### 2.1.3 表格密度切换（未做，可选）
-- **现状**：统一 13.5px 字号 + 10px padding
-- **方案**：提供「紧凑 / 标准」密度按钮，紧凑模式 12.5px + 6px padding
-- **涉及文件**：`element-plus.css` 新增密度类、各表格页面增加切换按钮
-- **优先级较低，可在其他优化完成后考虑**
+#### 2.1.3 表格密度切换（已完成，2026-09-18）
+- **方案（实施调整：全局开关替代每页按钮，用户确认）**：顶栏 AppHeader 新增密度切换按钮（Rank 图标，紧凑态金底高亮），一处切换全站 `el-table` 生效；localStorage 持久化；移动端隐藏（≤768px 为行列表无表格）
+- **实现**：新增 `composables/useTableDensity.ts`（模块级单例，`html[data-table-density]`）；`element-plus.css` 紧凑档规则（12.5px 字号 + 6px 单元格内边距，仅覆盖 `.el-table`）
 
 ---
 
@@ -88,7 +86,7 @@
 
 ---
 
-### 2.3 P2 · 视觉细节打磨（已完成，2.3.3 未做）
+### 2.3 P2 · 视觉细节打磨（已完成）
 
 #### 2.3.1 弹窗标题金线加宽
 - **现状**：`.el-dialog__header::after` 固定 56px 宽
@@ -103,15 +101,14 @@
   - track: `#f5f0e6`（宣纸底色调）
 - **涉及文件**：`element-plus.css`（`::-webkit-scrollbar` 系列）
 
-#### 2.3.3 空状态插画升级（未做，可选）
-- **现状**：用 emoji（📅）+ 文字 + 按钮
-- **方案**：SVG 手绘线条风格插画替代 emoji，保持宣纸金色调
-- **涉及文件**：各组件空状态区域
-- **优先级较低**
+#### 2.3.3 空状态插画升级（已完成，2026-09-18）
+- **方案**：新增通用组件 `components/common/EmptyState.vue`——内核对齐 el-empty（description / imageSize / 默认 slot 承接按钮），插画为手绘线条风 SVG（宣纸金线调），4 变体：
+  - `empty` 空白册页（列表/表格无数据）· `search` 放大镜（筛选/搜索无结果）· `chart` 折线坐标（图表无数据）· `error` 朱砂警示（加载失败）
+- **实施**：全站 20 处 `el-empty` 替换为 `EmptyState`，按语义分派变体（原 Trophy 图标空态一并统一）
 
 ---
 
-### 2.4 P3 · 微动效 & 情感化（已完成，2.4.4 未做）
+### 2.4 P3 · 微动效 & 情感化（已完成）
 
 #### 2.4.1 排表槽位放入反馈
 - **现状**：拖拽到槽位只有 `ghost-class`
@@ -130,10 +127,9 @@
 - **涉及文件**：`App.vue`
 - **注意**：`prefers-reduced-motion` 时禁用
 
-#### 2.4.4 职业标签 hover 效果（未做，可选）
-- **现状**：职业标签是纯色胶囊，无交互反馈
-- **方案**：hover 时加微光效果（与奖牌类似的 shimmer，但更克制）
-- **涉及文件**：各组件中 `.el-tag` 职业色标签
+#### 2.4.4 职业标签 hover 效果（已完成，2026-09-18）
+- **方案**：职业色实底胶囊 `.prof-tag`（成员表格/成员详情）hover 时白色高光从左上向右下扫过（0.5s，峰值透明度 0.42，比奖牌 shimmer 更克制）
+- **实现**：`index.css` 全局规则（`::after` 伪元素 + `@media (hover: hover)` 门控，触屏不触发；reduced-motion 由全局回退规则停用）；战报海报内标签为导出静态内容不参与
 
 ### 2.5 P-R · 代码质量重构（已完成）
 
@@ -157,6 +153,8 @@
 | `medal-shimmer` | `HomeView.vue` | 排行榜金银奖牌 |
 | `slot-bounce` / `save-flash` | `LineupEditor.vue` | 槽位放入 / 保存反馈 |
 | 滚动条配色（thumb `#d4c5a0`） | `styles/element-plus.css` | 全局滚动条 |
+| `prof-tag-sweep` | `styles/index.css` | 职业色标签 hover 微光（2026-09-18） |
+| 表格紧凑密度档 | `styles/element-plus.css`（`html[data-table-density=compact]`） | 全站 el-table（顶栏全局开关，2026-09-18） |
 
 > `theme.css` 无新增变量（所有新动画在组件内定义，避免全局污染）。
 
@@ -175,6 +173,10 @@
 | `frontend/src/components/match-data/OverviewTab.vue` | 修改 | 统计卡用 countUp |
 | `frontend/src/components/lineups/LineupEditor.vue` | 修改 | 槽位放入反馈 + 保存成功动效 |
 | `frontend/src/App.vue` | 修改 | 路由切换过渡 |
+| `frontend/src/composables/useTableDensity.ts` | **新增** | 表格密度偏好（标准/紧凑，localStorage 持久化，2026-09-18） |
+| `frontend/src/components/common/EmptyState.vue` | **新增** | 空状态统一插画（empty/search/chart/error 4 变体，2026-09-18） |
+| `frontend/src/layouts/AppHeader.vue` | 修改 | 密度切换按钮（紧凑态金底高亮，移动端隐藏，2026-09-18） |
+| 各组件 / 视图（20 处） | 修改 | `el-empty` → `EmptyState` 空态替换（2026-09-18） |
 
 ---
 
@@ -213,3 +215,4 @@
 | 2026-08-26 | 初始化 UI 优化方案文档（v1.0），4 优先级 11 项优化 |
 | 2026-08-26 | v1.1 新增 §2.5 代码质量重构：职业色映射统一（utils/profession.ts，14→1 文件）、结果类型函数统一（utils/constants.ts，5→1 文件） |
 | 2026-09-15 | v1.2：全部优化项标注完成状态（P0–P3 11 项 + §2.5 两项已完成；3 项可选未做已标注）；§2.5 归位至优化清单内；§3 更正动画/令牌实际落点（theme.css 无新增变量，最终规范以 ui-style-guide.md §10 为准） |
+| 2026-09-18 | v1.3：3 项可选项全部实施完成（§2.1.3 表格密度切换——顶栏全局开关替代每页按钮，用户确认；§2.3.3 空状态 SVG 插画 EmptyState 组件 4 变体全站替换；§2.4.4 职业标签 hover 微光）；§3 落点表与 §4 文件清单同步；vue-tsc + vite build 通过 |

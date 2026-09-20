@@ -14,28 +14,41 @@
         {{ pageTitle }}
       </div>
     </div>
-    <el-dropdown @command="onCommand">
-      <span class="user-info">
-        <span class="user-name">{{ auth.user?.username }}</span>
-        <span class="user-role">{{ roleText }}</span>
-        <el-icon class="user-arrow"><ArrowDown /></el-icon>
-      </span>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item command="logout">退出登录</el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
+    <div class="header-right">
+      <!-- 表格密度切换：紧凑 / 标准（全局生效，localStorage 持久化） -->
+      <button
+        type="button"
+        class="density-btn"
+        :class="{ 'density-btn--compact': density === 'compact' }"
+        :title="density === 'compact' ? '切换为标准密度' : '切换为紧凑密度'"
+        @click="toggleDensity"
+      >
+        <el-icon :size="15"><Rank /></el-icon>
+      </button>
+      <el-dropdown @command="onCommand">
+        <span class="user-info">
+          <span class="user-name">{{ auth.user?.username }}</span>
+          <span class="user-role">{{ roleText }}</span>
+          <el-icon class="user-arrow"><ArrowDown /></el-icon>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
   </header>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowDown, Expand, Fold, Menu } from '@element-plus/icons-vue'
+import { ArrowDown, Expand, Fold, Menu, Rank } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 
 import { useAuthStore } from '@/stores/auth'
+import { useTableDensity } from '@/composables/useTableDensity'
 
 defineProps<{ routeLoading: boolean; collapsed: boolean; isMobile: boolean }>()
 
@@ -44,6 +57,8 @@ defineEmits<{ 'toggle-sidebar': [] }>()
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+
+const { density, toggle: toggleDensity } = useTableDensity()
 
 const pageTitle = computed(() => String(route.meta.title || ''))
 
@@ -117,6 +132,21 @@ async function onCommand(command: string | number | object) {
 }
 
 .header-left { display: flex; align-items: center; gap: 14px; }
+
+.header-right { display: flex; align-items: center; gap: 10px; }
+
+/* finesse · register=product · shell=global: 密度切换按钮（紧凑态金底高亮，移动端隐藏） */
+.density-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: var(--radius-md);
+  border: 1px solid var(--gold-200); background: var(--ink-bg-paper);
+  color: var(--gold-700); cursor: pointer;
+  transition: background var(--dur-fast), border-color var(--dur-fast);
+}
+
+.density-btn:hover { background: var(--gold-100); border-color: var(--gold-400); }
+
+.density-btn--compact { background: var(--gold-100); border-color: var(--gold-400); }
 
 .collapse-btn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -204,7 +234,8 @@ async function onCommand(command: string | number | object) {
   }
 
   .user-role,
-  .user-arrow {
+  .user-arrow,
+  .density-btn {
     display: none;
   }
 

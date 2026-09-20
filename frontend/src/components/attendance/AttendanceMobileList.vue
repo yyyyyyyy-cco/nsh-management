@@ -1,7 +1,7 @@
 <template>
   <div class="att-rows">
     <SkeletonTable v-if="showSkeleton && !items.length" variant="rows" :rows="5" />
-    <el-empty v-else-if="!loading && !items.length" description="暂无出勤记录" :image-size="72" />
+    <EmptyState v-else-if="!loading && !items.length" description="暂无出勤记录" :image-size="72" />
     <div v-for="row in items" :key="row.id" class="att-row">
       <div class="ar-main">
         <el-checkbox
@@ -47,6 +47,7 @@ import { EditPen } from '@element-plus/icons-vue'
 import type { AttendanceRecord } from '@/types/attendance'
 import { profColor } from '@/utils/profession'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 defineProps<{
   isAdmin: boolean

@@ -1,6 +1,6 @@
 <template>
   <div class="profession-detail-tab">
-    <el-empty v-if="!loading && profStats.length === 0" description="暂无比赛数据，请先导入 CSV" />
+    <EmptyState v-if="!loading && profStats.length === 0" variant="chart" description="暂无比赛数据，请先导入 CSV" />
     <template v-else>
       <!-- 工具栏 -->
       <div class="toolbar">
@@ -62,6 +62,7 @@ import { getProfessionStats } from '@/api/matchData'
 import type { ProfessionStats } from '@/types/matchData'
 import { fmtNum } from './analysis'
 import EChart from './EChart.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import ProfessionCompareTable from './ProfessionCompareTable.vue'
 import ProfessionMetricTables from './ProfessionMetricTables.vue'
 import {

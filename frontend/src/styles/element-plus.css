@@ -135,6 +135,15 @@
   background-color: var(--el-table-row-hover-bg-color);
 }
 
+/* finesse · register=product · shell=global: 紧凑密度档（顶栏全局开关切换，html[data-table-density=compact]） */
+html[data-table-density='compact'] .el-table {
+  font-size: 12.5px;
+}
+
+html[data-table-density='compact'] .el-table .el-table__cell {
+  padding: 6px 0;
+}
+
 /* ===== 弹窗：宣纸面板 + 宋体标题 ===== */
 /* 弹窗在视口内垂直居中（桌面与移动端统一，避免内容偏高/超出视口） */
 .el-overlay-dialog {

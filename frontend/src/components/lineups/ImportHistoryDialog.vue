@@ -2,7 +2,7 @@
 <template>
   <el-dialog v-model="visible" title="导入历史排表" width="760px" append-to-body :close-on-click-modal="false">
     <SkeletonTable v-if="showSkeleton && !history.length" variant="table" :rows="5" />
-    <el-empty v-else-if="!history.length" description="暂无其他赛程的排表数据" :image-size="80" />
+    <EmptyState v-else-if="!history.length" description="暂无其他赛程的排表数据" :image-size="80" />
 
     <template v-else>
       <!-- 第一步：选择历史赛程 -->
@@ -70,6 +70,7 @@ import { ElMessage } from 'element-plus'
 import dayjs from 'dayjs'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 import { getLineupHistory, importLineup } from '@/api/lineups'
 import type { LineupHistoryItem } from '@/types/lineup'

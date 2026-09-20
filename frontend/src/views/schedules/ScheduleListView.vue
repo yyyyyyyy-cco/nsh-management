@@ -25,7 +25,7 @@
       <!-- 移动端（≤768px）：赛程行列表（参照联赛总览卡片的信息层级），详情/删除紧凑按钮 -->
       <div v-if="isMobile" class="match-list">
         <SkeletonTable v-if="showSkeleton && !schedules.length" variant="rows" :rows="5" />
-        <el-empty v-else-if="!loading && !schedules.length" description="当前筛选下暂无赛程" :image-size="72" />
+        <EmptyState v-else-if="!loading && !schedules.length" variant="search" description="当前筛选下暂无赛程" :image-size="72" />
         <div v-for="row in schedules" :key="row.id" class="match-card">
           <div class="mc-top">
             <span class="time-date num">{{ formatDate(row.match_time) }}</span>
@@ -96,6 +96,7 @@ import ScheduleCalendar from '@/components/schedules/ScheduleCalendar.vue'
 import ScheduleFormDialog from '@/components/schedules/ScheduleFormDialog.vue'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const router = useRouter()
 const auth = useAuthStore()

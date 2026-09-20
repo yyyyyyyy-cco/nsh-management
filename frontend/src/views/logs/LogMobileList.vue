@@ -1,7 +1,7 @@
 <template>
   <div class="log-rows">
     <SkeletonTable v-if="showSkeleton && !logs.length" variant="rows" :rows="5" />
-    <el-empty v-else-if="!loading && !logs.length" description="暂无日志记录" :image-size="72" />
+    <EmptyState v-else-if="!loading && !logs.length" description="暂无日志记录" :image-size="72" />
     <div v-for="row in logs" :key="row.id" class="log-row" @click="$emit('select', row)">
       <div class="log-row__main">
         <span class="log-row__name">{{ row.username || '匿名' }}</span>
@@ -20,6 +20,7 @@
 <script setup lang="ts">
 import type { OperationLog } from '@/types/log'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 import { actionLabels, formatTime, levelLabel, levelTagType, moduleLabels } from './logLabels'
 
