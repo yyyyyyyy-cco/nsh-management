@@ -23,6 +23,12 @@ const router = createRouter({
           meta: { title: '首页', adminOnly: true },
         },
         {
+          path: 'member-home',
+          name: 'member-home',
+          component: () => import('@/views/member-home/MemberHomeView.vue'),
+          meta: { title: '首页', memberOnly: true },
+        },
+        {
           path: 'members',
           name: 'members',
           component: () => import('@/views/members/MemberListView.vue'),
@@ -97,12 +103,12 @@ router.beforeEach(async (to) => {
     }
   }
   if (to.meta.adminOnly && !auth.isAdmin) {
-    // 帮众访问管理员页面：跳转帮众默认页（回退到 home 会因 home 也是 adminOnly 而死循环）
-    return { name: auth.user?.role === 'member' ? 'league-overview' : 'config' }
+    // 帮众访问管理员页面：跳转帮众首页（回退到 home 会因 home 也是 adminOnly 而死循环）
+    return { name: auth.user?.role === 'member' ? 'member-home' : 'config' }
   }
   if (to.meta.developerOnly && !auth.isDeveloper) {
     // 仅开发者页面：管理员/帮众按角色回退
-    return { name: auth.user?.role === 'member' ? 'league-overview' : 'home' }
+    return { name: auth.user?.role === 'member' ? 'member-home' : 'home' }
   }
   if (to.meta.memberOnly && auth.user?.role !== 'member') {
     // 仅帮众页面（修改游戏 ID）：管理员回首页，开发者由下方规则跳系统配置
@@ -110,7 +116,7 @@ router.beforeEach(async (to) => {
   }
   if (to.name === 'login' && auth.isLoggedIn) {
     if (auth.isDeveloper) return { name: 'config' }
-    if (auth.user?.role === 'member') return { name: 'league-overview' }
+    if (auth.user?.role === 'member') return { name: 'member-home' }
     return { name: 'home' }
   }
   // 开发者仅允许访问 首页、系统配置、系统日志、登录页

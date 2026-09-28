@@ -9,6 +9,10 @@
         <el-icon><HomeFilled /></el-icon>
         <span>首页</span>
       </el-menu-item>
+      <el-menu-item v-if="auth.user?.role === 'member'" index="/member-home" :title="collapsed ? '首页' : undefined" @mouseenter="prefetchRoute('/member-home')">
+        <el-icon><HomeFilled /></el-icon>
+        <span>首页</span>
+      </el-menu-item>
       <el-menu-item v-if="auth.user?.role === 'member'" index="/league-overview" :title="collapsed ? '录屏上传' : undefined" @mouseenter="prefetchRoute('/league-overview')">
         <el-icon><VideoCamera /></el-icon>
         <span>录屏上传</span>

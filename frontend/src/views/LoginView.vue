@@ -130,7 +130,7 @@ async function onSubmit() {
     } else if (auth.isDeveloper) {
       router.push({ name: 'config' })
     } else if (auth.user?.role === 'member') {
-      router.push({ name: 'league-overview' })
+      router.push({ name: 'member-home' })
     } else {
       router.push({ name: 'home' })
     }

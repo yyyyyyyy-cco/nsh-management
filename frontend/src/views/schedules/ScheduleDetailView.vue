@@ -105,10 +105,12 @@ const formatTime = (value: string) => dayjs(value).format('YYYY-MM-DD HH:mm')
 
 onMounted(load)
 
-/** 返回：从联赛总览进入则显式跳回总览，避免依赖浏览器历史栈导致后退异常。 */
+/** 返回：带 from 来源参数时显式回跳（联赛总览/帮众首页），避免依赖浏览器历史栈导致后退异常。 */
 function goBack() {
   if (route.query.from === 'overview') {
     router.push({ name: 'league-overview' })
+  } else if (route.query.from === 'home') {
+    router.push({ name: 'member-home' })
   } else {
     router.back()
   }

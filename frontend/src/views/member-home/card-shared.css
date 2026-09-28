@@ -1,0 +1,71 @@
+/* finesse · register=product · shell=member-home: 卡片壳共享（paper 卡 + 顶部鎏金细条 + 头部/标题/正文），沿用 home-shared 模式 */
+
+/* ===== 通用卡片：顶部鎏金细条 ===== */
+.card {
+  position: relative;
+  background: var(--ink-bg-paper);
+  border: 1px solid var(--edge-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--gold-line);
+  opacity: 0.6;
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.card__header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.card__header-icon {
+  font-size: 15px;
+}
+
+.card__title {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-900);
+  letter-spacing: 1px;
+}
+
+.card__subtitle {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--ink-400);
+  overflow-wrap: anywhere;
+}
+
+.card__body {
+  padding: 12px;
+}
+
+@media (max-width: 480px) {
+  .card__header {
+    padding: 12px;
+  }
+
+  .card__body {
+    padding: 10px;
+  }
+}
