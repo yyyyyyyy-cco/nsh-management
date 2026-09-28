@@ -1,7 +1,7 @@
 /** 小队分析图表 option 构建：总览柱状图与成员明细图表（自 SquadAnalysisTab.vue 拆出，纯函数）。 */
 import type { SquadMember } from '@/types/matchData'
 
-import { fmtNum, profColor } from './analysis'
+import { fmtNum } from './analysis'
 import { CHART_THEME } from './chartTheme'
 
 export const CONTRIB_COLORS = ['#c9a13b', '#5b7a9d', '#2e8b57', '#c0392b']
@@ -123,51 +123,7 @@ export function memberRatioBarOption(members: SquadMember[]) {
   }
 }
 
-/** 成员 KDA 散点：击杀 vs 重伤，气泡大小=伤害 */
-export function memberKdaScatterOption(members: SquadMember[]) {
-  return {
-    backgroundColor: 'transparent',
-    tooltip: {
-      ...CHART_THEME.tooltip,
-      formatter: (p: unknown) => {
-        const d = (p as { data: (number | string)[] }).data
-        return `<b>${d[3]}</b> (${d[4]})<br/>击杀: ${d[0]}<br/>重伤: ${d[1]}<br/>KDA: ${Number(d[5]).toFixed(2)}<br/>伤害: ${fmtNum(Number(d[2]))}`
-      },
-    },
-    grid: { left: 16, right: 20, top: 20, bottom: 16, containLabel: true },
-    xAxis: {
-      name: '击杀', nameLocation: 'middle', nameGap: 28,
-      axisLabel: { ...CHART_THEME.axis.axisLabel, margin: 10 },
-      splitLine: CHART_THEME.axis.splitLine,
-      nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [6, 0, 0, 0] },
-    },
-    yAxis: {
-      name: '重伤', nameLocation: 'middle', nameGap: 40,
-      axisLabel: { ...CHART_THEME.axis.axisLabel, width: 40, overflow: 'truncate' },
-      splitLine: CHART_THEME.axis.splitLine,
-      nameTextStyle: { ...CHART_THEME.axis.axisName },
-    },
-    series: [{
-      type: 'scatter',
-      symbolSize: (data: number[]) => Math.max(8, Math.min(22, Math.sqrt(data[2]) / 400)),
-      data: members.map((m) => [m.kills, m.deaths, m.player_damage, m.player_name, m.profession || '未知', m.kda]),
-      itemStyle: {
-        color: (p: { data: (number | string)[] }) => profColor(String(p.data[4])),
-        opacity: 0.8,
-        borderColor: 'rgba(0,0,0,0.1)',
-        borderWidth: 1,
-      },
-      emphasis: { itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } },
-      label: {
-        show: true,
-        formatter: (p: unknown) => (p as { data: (string | number)[] }).data[3],
-        fontSize: 10,
-        color: '#555',
-        position: 'top',
-      },
-    }],
-  }
-}
+export { memberKdaScatterOption } from './kdaScatterCharts'
 
 /** 成员击杀/助攻/重伤 分组柱状图 */
 export function memberKillsStackOption(members: SquadMember[]) {
