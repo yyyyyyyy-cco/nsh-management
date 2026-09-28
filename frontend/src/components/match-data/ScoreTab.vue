@@ -74,7 +74,7 @@ import type { MatchData } from '@/types/matchData'
 import { computeScores, profColor, SCORE_METRICS } from './analysis'
 import type { PlayerScore } from './analysis'
 import EChart from './EChart.vue'
-import { CHART_THEME } from './chartTheme'
+import { CHART_THEME, tooltipText } from './chartTheme'
 
 const props = defineProps<{ items: MatchData[] }>()
 
@@ -118,8 +118,8 @@ const radarOption = computed(() => ({
     ...CHART_THEME.tooltip,
     formatter: (p: unknown) => {
       const d = p as { name: string; value: number[] }
-      const lines = SCORE_METRICS.map((m, i) => `${m}: ${d.value[i]}`).join('<br/>')
-      return `<b>${d.name}</b><br/>${lines}<br/><span style="color:#aaa">数值为相对同职业均值的百分比</span>`
+      const lines = SCORE_METRICS.map((m, i) => `${tooltipText(m)}: ${tooltipText(d.value[i])}`).join('<br/>')
+      return `<b>${tooltipText(d.name)}</b><br/>${lines}<br/><span style="color:#aaa">数值为相对同职业均值的百分比</span>`
     },
   },
   legend: { bottom: 0, ...CHART_THEME.legend },
@@ -150,8 +150,8 @@ const scatterOption = computed(() => ({
   tooltip: {
     ...CHART_THEME.tooltip,
     formatter: (p: unknown) => {
-      const d = (p as { data: (number | string)[] }).data
-      return `<b>${d[3]}</b> (${d[4]})<br/>总分: ${d[0]}<br/>重伤倍数: ${Number(d[1]).toFixed(2)}`
+      const d = (p as { data: [number, number, string, string] }).data
+      return `<b>${tooltipText(d[2])}</b> (${tooltipText(d[3])})<br/>总分: ${tooltipText(d[0])}<br/>重伤倍数: ${d[1].toFixed(2)}`
     },
   },
   grid: { left: 12, right: 24, top: 20, bottom: 12, containLabel: true },

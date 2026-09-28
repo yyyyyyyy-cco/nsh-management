@@ -1,8 +1,8 @@
-/** 玩家与小队成员的 KDA 散点图（自 playerScatterCharts / squadCharts 拆出）。 */
+/** 玩家与小队成员的 KDA 散点图；动态 tooltip 文本在输出边界转义。 */
 import type { MatchData, SquadMember } from '@/types/matchData'
 
 import { calcKDA, fmtNum, profColor } from './analysis'
-import { CHART_THEME } from './chartTheme'
+import { CHART_THEME, tooltipText } from './chartTheme'
 
 /** 击杀 vs 重伤散点（KDA 分布）。 */
 export function buildKdaScatterOption(items: MatchData[]) {
@@ -12,7 +12,7 @@ export function buildKdaScatterOption(items: MatchData[]) {
       ...CHART_THEME.tooltip,
       formatter: (p: unknown) => {
         const d = (p as { data: (number | string)[] }).data
-        return `<b>${d[2]}</b> (${d[3]})<br/>击杀: ${d[0]}<br/>重伤: ${d[1]}<br/>KDA: ${Number(d[4]).toFixed(2)}`
+        return `<b>${tooltipText(d[2])}</b> (${tooltipText(d[3])})<br/>击杀: ${tooltipText(d[0])}<br/>重伤: ${tooltipText(d[1])}<br/>KDA: ${Number(d[4]).toFixed(2)}`
       },
     },
     grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },
@@ -62,7 +62,7 @@ export function memberKdaScatterOption(members: SquadMember[]) {
       ...CHART_THEME.tooltip,
       formatter: (p: unknown) => {
         const d = (p as { data: (number | string)[] }).data
-        return `<b>${d[3]}</b> (${d[4]})<br/>击杀: ${d[0]}<br/>重伤: ${d[1]}<br/>KDA: ${Number(d[5]).toFixed(2)}<br/>伤害: ${fmtNum(Number(d[2]))}`
+        return `<b>${tooltipText(d[3])}</b> (${tooltipText(d[4])})<br/>击杀: ${tooltipText(d[0])}<br/>重伤: ${tooltipText(d[1])}<br/>KDA: ${Number(d[5]).toFixed(2)}<br/>伤害: ${fmtNum(Number(d[2]))}`
       },
     },
     grid: { left: 16, right: 20, top: 20, bottom: 16, containLabel: true },

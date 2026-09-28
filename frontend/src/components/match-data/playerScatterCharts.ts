@@ -2,7 +2,7 @@
 import type { MatchData } from '@/types/matchData'
 
 import { calcKDA, computeScores, fmtNum, profColor } from './analysis'
-import { CHART_THEME } from './chartTheme'
+import { CHART_THEME, tooltipText } from './chartTheme'
 
 /** 击杀 vs 伤害分析（散点，气泡大小 = KDA） */
 export function buildScatterOption(items: MatchData[]) {
@@ -11,8 +11,8 @@ export function buildScatterOption(items: MatchData[]) {
     tooltip: {
       ...CHART_THEME.tooltip,
       formatter: (p: unknown) => {
-        const d = (p as { data: number[] }).data
-        return `<b>${d[3]}</b> (${d[4]})<br/>击杀: ${d[0]}<br/>伤害: ${fmtNum(d[1])}<br/>治疗: ${fmtNum(d[2])}<br/>KDA: ${d[5].toFixed(1)}`
+        const d = (p as { data: [number, number, number, string, string, number] }).data
+        return `<b>${tooltipText(d[3])}</b> (${tooltipText(d[4])})<br/>击杀: ${tooltipText(d[0])}<br/>伤害: ${fmtNum(d[1])}<br/>治疗: ${fmtNum(d[2])}<br/>KDA: ${d[5].toFixed(1)}`
       },
     },
     grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },
@@ -73,8 +73,8 @@ export function buildHealTakenOption(items: MatchData[]) {
     tooltip: {
       ...CHART_THEME.tooltip,
       formatter: (p: unknown) => {
-        const d = (p as { data: number[] }).data
-        return `<b>${d[3]}</b> (${d[4]})<br/>治疗: ${fmtNum(d[0])}<br/>承伤: ${fmtNum(d[1])}<br/>评分: ${d[2]}<br/>KDA: ${d[5].toFixed(1)}`
+        const d = (p as { data: [number, number, number, string, string, number] }).data
+        return `<b>${tooltipText(d[3])}</b> (${tooltipText(d[4])})<br/>治疗: ${fmtNum(d[0])}<br/>承伤: ${fmtNum(d[1])}<br/>评分: ${tooltipText(d[2])}<br/>KDA: ${d[5].toFixed(1)}`
       },
     },
     grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },
@@ -130,7 +130,7 @@ export function buildDmgHealBubbleOption(items: MatchData[]) {
       ...CHART_THEME.tooltip,
       formatter: (p: unknown) => {
         const d = (p as { data: (number | string)[] }).data
-        return `<b>${d[3]}</b> (${d[4]})<br/>伤害: ${fmtNum(Number(d[0]))}<br/>治疗: ${fmtNum(Number(d[1]))}<br/>承伤: ${fmtNum(Number(d[2]))}`
+        return `<b>${tooltipText(d[3])}</b> (${tooltipText(d[4])})<br/>伤害: ${fmtNum(Number(d[0]))}<br/>治疗: ${fmtNum(Number(d[1]))}<br/>承伤: ${fmtNum(Number(d[2]))}`
       },
     },
     grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },

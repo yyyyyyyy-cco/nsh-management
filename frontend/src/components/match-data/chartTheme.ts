@@ -1,4 +1,10 @@
 /** ECharts 浅色雅金风主题（对齐 ui-style-guide）。 */
+import { format } from 'echarts/core'
+
+/** 自定义 HTML tooltip 的动态文本必须转义；不改写源数据或图例标签。 */
+export function tooltipText(value: unknown): string {
+  return format.encodeHTML(String(value ?? ''))
+}
 
 export const CHART_THEME = {
   tooltip: {

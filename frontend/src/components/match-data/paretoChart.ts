@@ -2,7 +2,7 @@
 import type { MatchData } from '@/types/matchData'
 
 import { fmtNum } from './analysis'
-import { CHART_THEME } from './chartTheme'
+import { CHART_THEME, tooltipText } from './chartTheme'
 
 export const RANKING_X_LABEL = { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate', hideOverlap: true }
 
@@ -22,9 +22,9 @@ export function buildParetoOption(items: MatchData[]) {
       ...CHART_THEME.tooltip,
       formatter: (params: unknown) => {
         const list = params as { name: string; marker: string; seriesName: string; value: number }[]
-        let html = `<b>${list[0].name}</b><br/>`
+        let html = `<b>${tooltipText(list[0]?.name)}</b><br/>`
         list.forEach((p) => {
-          html += `${p.marker} ${p.seriesName}: ${p.seriesName === '累计占比' ? p.value + '%' : fmtNum(p.value)}<br/>`
+          html += `${p.marker} ${tooltipText(p.seriesName)}: ${p.seriesName === '累计占比' ? tooltipText(p.value) + '%' : fmtNum(p.value)}<br/>`
         })
         return html
       },

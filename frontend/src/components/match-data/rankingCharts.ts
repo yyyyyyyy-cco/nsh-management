@@ -2,7 +2,7 @@
 import type { MatchData } from '@/types/matchData'
 
 import { calcKDA, fmtNum } from './analysis'
-import { CHART_THEME } from './chartTheme'
+import { CHART_THEME, tooltipText } from './chartTheme'
 
 import { RANKING_X_LABEL as X_LABEL } from './paretoChart'
 
@@ -134,9 +134,9 @@ export function buildKdaStackOption(items: MatchData[]) {
       ...CHART_THEME.tooltip,
       formatter: (params: unknown) => {
         const list = params as { name: string; marker: string; seriesName: string; value: number }[]
-        let html = `<b>${list[0].name}</b><br/>`
+        let html = `<b>${tooltipText(list[0]?.name)}</b><br/>`
         list.forEach((p) => {
-          html += `${p.marker} ${p.seriesName}: ${p.value}<br/>`
+          html += `${p.marker} ${tooltipText(p.seriesName)}: ${tooltipText(p.value)}<br/>`
         })
         return html
       },

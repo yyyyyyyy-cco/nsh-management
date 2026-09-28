@@ -3,7 +3,7 @@ import type { MatchData } from '@/types/matchData'
 
 import type { CampAgg } from './analysis'
 import { computeScores, fmtNum, profColor } from './analysis'
-import { CHART_THEME } from './chartTheme'
+import { CHART_THEME, tooltipText } from './chartTheme'
 
 /** 职业×指标热力图（按平均值归一化：avg / 该列最高均值 * 100）。 */
 export function buildHeatmapOption(items: MatchData[], allProfs: string[]) {
@@ -34,8 +34,8 @@ export function buildHeatmapOption(items: MatchData[], allProfs: string[]) {
     tooltip: {
       ...CHART_THEME.tooltip,
       formatter: (p: unknown) => {
-        const d = (p as { data: number[] }).data
-        return `<b>${d[5]}</b> · ${d[4]}<br/>平均值: ${d[3]}<br/>相对水平: ${d[2]}%`
+        const d = (p as { data: (number | string)[] }).data
+        return `<b>${tooltipText(d[5])}</b> · ${tooltipText(d[4])}<br/>平均值: ${tooltipText(d[3])}<br/>相对水平: ${tooltipText(d[2])}%`
       },
     },
     grid: { left: 64, right: 20, top: 10, bottom: 52 },
@@ -129,9 +129,9 @@ export function buildStackOption(
       ...CHART_THEME.tooltip,
       formatter: (params: unknown) => {
         const list = params as { axisValue: string; marker: string; seriesName: string; value: number }[]
-        let html = `<b>${list[0].axisValue}</b><br/>`
+        let html = `<b>${tooltipText(list[0]?.axisValue)}</b><br/>`
         list.forEach((p) => {
-          html += `${p.marker} ${p.seriesName}: ${fmtNum(p.value)}<br/>`
+          html += `${p.marker} ${tooltipText(p.seriesName)}: ${fmtNum(p.value)}<br/>`
         })
         return html
       },
@@ -171,7 +171,7 @@ export function buildDamagePieOption(items: MatchData[]) {
       trigger: 'item',
       ...CHART_THEME.tooltip,
       formatter: (p: { name: string; value: number; percent: number }) =>
-        `${p.name}: ${fmtNum(p.value)} (${p.percent}%)`,
+        `${tooltipText(p.name)}: ${fmtNum(p.value)} (${tooltipText(p.percent)}%)`
     },
     legend: { orient: 'vertical', right: 5, top: 'center', ...CHART_THEME.legend },
     series: [

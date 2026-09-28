@@ -12,7 +12,7 @@
 
 ## 一、总体评价
 
-项目在基础安全上做得不错：bcrypt 密码哈希、JWT 认证、登录失败锁定、全接口角色权限校验（`require_admin`/`require_developer`）、SQL 全参数化（无注入）、前端无 `v-html`（无存储型 XSS）、Docker 非 root 运行 + 资源限制、HTTPS + 安全响应头均已具备。
+项目在基础安全上做得不错：bcrypt 密码哈希、JWT 认证、登录失败锁定、全接口角色权限校验（`require_admin`/`require_developer`）、SQL 全参数化（无注入）、Vue 模板默认转义（不能据此排除图表自定义 HTML 的 XSS，修正见 §十二）、Docker 非 root 运行 + 资源限制、HTTPS + 安全响应头均已具备。
 
 **核心短板集中在三点：**
 1. **明文密码入库且通过接口返回**（`plain_password` 字段贯穿数据流）；
@@ -119,7 +119,7 @@
 - ✅ JWT 签名、过期校验、`get_current_user` 对异常 payload 防御
 - ✅ 角色权限：`require_admin` / `require_developer`，帮会隔离（`guild_id` 过滤）+ 跨帮会资源 404 掩盖
 - ✅ 全接口 SQL 参数化（SQLAlchemy ORM），未发现注入点
-- ✅ 前端无 `v-html`/`innerHTML`/`eval`，Vue 默认转义，无存储型 XSS
+- Vue 模板默认转义；自定义 HTML 输出需单独检查，ECharts tooltip 修复与原结论更正见 §十二
 - ✅ 管理员不能禁用/删除自己；开发者账号不可删除
 - ✅ CSV 导入有 5MB 大小限制 + `.csv` 后缀校验 + 局号范围校验（1~rounds）
 - ✅ 帮会图标仅限本帮会（403）；职业配置/账号操作限管理员
@@ -245,3 +245,15 @@
 - `scripts/selfcheck_my_stats_aliases.py`（10 项）：合并/精确模式、改名链与改回、管理员直接改名自动关联、新名无数据、跨帮会隔离、冲突 409 与精确退路、冲突位于最近 10 场之外仍被发现、开发者拒绝。
 - `scripts/selfcheck_migration_game_id.py`（1 项）：临时库空库升级 → 回退 → 再升级，校验表、索引与 CHECK/唯一索引真实生效；未接触业务库。
 - 既有回归 `selfcheck_security_fixes.py`（8 项）、`selfcheck_member_exports.py`（8 项）、`selfcheck_indicators.py` 全部通过；后端 `compileall` 与前端 `vue-tsc + vite build` 通过。
+
+---
+
+## 十二、全项目审查 F01：图表 HTML tooltip 输出边界（2026-09-24）
+
+> 本节 F01 为全项目存量审查编号，与 §十的 F-1～F-5 无关。验证结果统一见 `progress.md` 对应日期记录；人工验收步骤见 `frontend/docs/README.md`。
+
+- **问题与更正**：CSV 中的玩家名、职业、阵营经接口进入自定义 `tooltip.formatter` 后，原代码直接拼入 HTML；Vue 模板转义不作用于此输出路径。因此原「无 v-html 即无存储型 XSS」判断不成立。
+- **修复边界**：`chartTheme.tooltipText` 复用 `echarts/core` 的 `format.encodeHTML`，仅在 HTML 输出边界编码 `& < > " '`；不预编码数据库、API、图例或 Canvas 标签，不改变姓名匹配、筛选与统计口径。
+- **覆盖路径**：玩家伤害/治疗散点、KDA 散点、小队成员 KDA、职业热力图、阵营职业堆叠、KDA 构成、帕累托、综合评分雷达与散点等自定义 formatter；普通 HTML 标签保持静态，ECharts 根据固定配色生成的 `marker` 保留原样。
+- **结构与兼容**：按工具文件行数限制抽出 `kdaScatterCharts.ts` 与 `paretoChart.ts`；原入口重导出函数，调用方接口不变。综合评分散点按实际元组位置读取姓名和职业。
+- **不包含**：未调整认证策略、明文列、localStorage、共享账号、后端 CSV 存储或本轮其他审查项；类型检查与构建不等于浏览器 XSS 执行验证。
