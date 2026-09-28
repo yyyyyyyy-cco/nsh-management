@@ -43,7 +43,7 @@ nsh-management/
 │   │   │   ├── attendance/    # 出勤库（AttendanceTab+AttendanceStatsBar/AttendanceToolbar/AttendanceTablePanel/AttendanceMobileList/FillerDialog/ImportMemberDialog/LeaveImportDialog/SubstituteImportDialog）
 │   │   │   ├── common/        # 通用组件（SkeletonTable/EmptyState）
 │   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab+LineupOverviewPanel/LineupOverviewGroup/ImportHistoryDialog/MatchConfirmDialog）
-│   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/MatchReportDialog/reportData.ts/report（MatchReportPoster/PosterHeader/PosterOverview/PosterMvpKings/PosterRankings/PosterRounds/PosterSquads）/EChart/analysis.ts/chartTheme.ts）
+│   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/paretoChart/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/kdaScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/MatchReportDialog/reportData.ts/report（MatchReportPoster/PosterHeader/PosterOverview/PosterMvpKings/PosterRankings/PosterRounds/PosterSquads）/EChart/analysis.ts/chartTheme.ts）
 │   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/MemberDetailHeader/ProfessionShortage/GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog + game-id-shared.css）
 │   │   │   ├── my-stats/      # 个人战绩（PlayerSearch/StatsOverview/StatsMatchTable/StatsRankingPosition/StatsTrendChart/StatsIdentityNotice）
 │   │   │   ├── recording/     # 录屏审核（RecordingTab+RecordingProgressBar/RecordingTablePanel/RecordingMobileList/recording-shared.css）
@@ -60,6 +60,7 @@ nsh-management/
 │   │       ├── LoginView.vue          # 登录页（含锁定倒计时）
 │   │       ├── config/ConfigView.vue  # 系统配置壳（+ ConfigProfessionPanel/ConfigGuildPanel/ConfigAccountPanel/ConfigAccountGroup）
 │   │       ├── logs/LogView.vue       # 系统日志壳（+ LogStatsCards/LogFilterBar/LogMobileList/LogTablePanel/LogDetailDialog/LogClearDialog/logLabels.ts）
+│   │       ├── member-home/           # 帮众首页（MemberHomeView + GuildStatCards/RecentMatchesCard/DataHighlightCard/RecordingTodoStrip/MemberQuickActions + stats/highlight/types + card-shared.css）
 │   │       ├── member/MyStatsView.vue # 个人战绩（帮众/管理员；支持合并新旧 ID 与冲突退路）
 │   │       ├── member/GameIdChangeView.vue # 修改游戏 ID（帮众：提交改名申请 + 查看记录）
 │   │       ├── members/MemberListView.vue  # 常驻库
@@ -117,12 +118,13 @@ nsh-management/
 | 基础框架 | frontend/ | Vue3+TS+Vite+Element Plus 骨架、浅金色主题 | ✅ 已完成 |
 | 认证链路 | src/{api,stores,router} | Axios 封装、Pinia、路由守卫 | ✅ 已完成 |
 | 布局与登录 | src/{layouts,views} | 主布局（可折叠侧边栏）、登录页（锁定倒计时）、首页仪表盘 | ✅ 已完成 |
+| 帮众首页 | src/views/member-home | 战绩看板（统计卡/最近比赛/数据亮点（MVP/数据之王））+ 录屏待办状态条 + 快捷入口；帮众登录默认落点 | ✅ 已完成 |
 | 常驻库页面 | src/views/members | 列表/筛选/弹窗/Excel导入/出勤率/成员详情战绩页（复用 my-stats 组件）/改名审核 Tab（严格管理员） | ✅ 已完成 |
 | 联赛日程页面 | src/views/schedules | 日历/创建弹窗/详情Tab/联赛总览 | ✅ 已完成 |
 | 出勤库页面 | src/components/attendance | 统计/导入成员/导入请假/替补/补人/状态/保存 | ✅ 已完成 |
-| 排表页面 | src/components/lineups | 候选池/拖拽编排/总览/导出PNG/导入历史排表 | ✅ 已完成 |
+| 排表页面 | src/components/lineups | 候选池/拖拽编排/总览/导出PNG/导入历史排表/串行保存与重载防覆盖 | ✅ 已完成（F04 交互待验收） |
 | 录屏审核页面 | src/components/recording | 列表/提交/审核/进度/按姓名搜索/链接脱敏 | ✅ 已完成 |
-| 数据分析页面 | src/components/match-data | CSV导入/8Tab可视化（总览/列表/排行榜/阵营对比/小队分析/职业分析/职业深度/综合评分）/16项衍生指标/指标说明/单场图文战报（PNG 导出）/ECharts图表 | ✅ 已完成 |
+| 数据分析页面 | src/components/match-data | CSV导入/8Tab可视化（总览/列表/排行榜/阵营对比/小队分析/职业分析/职业深度/综合评分）/16项衍生指标/指标说明/单场图文战报（PNG 导出）/ECharts图表（HTML tooltip 输出转义） | ✅ 已完成（F01 交互待验收） |
 | 系统配置页面 | src/views/config | 职业配置/账号管理/帮会管理（开发者） | ✅ 已完成 |
 | 个人战绩页面 | src/views/member + src/components/my-stats | 玩家搜索/单局明细/概览（按游戏 ID 聚合，支持合并经审核确认的新旧 ID；冲突时仅查此 ID）；管理员菜单入口开放，同组件复用于成员详情页 | ✅ 已完成 |
 | 游戏 ID 改名页面 | src/views/member/GameIdChangeView + src/components/members（GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog） | 帮众提交改名申请与查看记录；管理员在常驻库「改名审核」Tab 通过/驳回 | ✅ 已完成 |
@@ -296,6 +298,10 @@ nsh-management/
 | 2026-09-20 | 管理员直接改名自动记录历史 ID 关联（用户确认新增支持）：原设计“直接改名不追溯别名”导致直接改名后无法合并查询；现 `PUT /members/{id}` 改名时同一事务失效待审申请并写入一条 approved 关联（`game_id_request_lifecycle.record_admin_rename`，提交/审核人=操作管理员快照，`review_remark` 标注“管理员直接在常驻库改名（自动记录，无提交申请）”），个人战绩即时支持新旧合并；`member_service.update_member` 增加 operator 参数（路由与并发 selfcheck 同步）；测试：game_id_requests 扩展自动记录断言、my_stats_aliases 新增直接改名合并用例（13/5/10/1 项 + 既有 16 项全部通过）；文档同步 design-game-id-change §1/§5/§6、database-design §2.12（v1.9 补充）、design-document-v2 §4.1、security-review §十一、backend docs | 常驻库、个人战绩、后端 |
 | 2026-09-20 | 暂存代码审查修复（Warning）：帮众改名页「常驻成员」远程搜索补请求序号守卫（GameIdRequestForm.searchMembers）——快速连续输入时旧响应可能覆盖新结果、先完成的请求会把 loading 提前复位；按同批组件 GameIdRequestHistory/GameIdReviewPanel 既有 loadSeq 惯例新增 searchSeq：过期响应直接丢弃，loading 仅在最新请求 finally 复位；vue-tsc 通过，未运行前端测试与浏览器验收 | 前端、游戏 ID 改名 |
 | 2026-09-20 | 并发回归断言修正（selfcheck_game_id_requests_concurrency.py）：原「审核 approved ⇒ 成员名必等于新 ID」假设单一写者，未覆盖「审核通过 → 管理员再次直接改名」这一合法交错（实测 4 次 1 次失败），与 security-review §十一「5 项全部通过」表述不符；改为按写者顺序断言——写入者未知时允许任一合法结果，仅在无后续写入者时要求名称等于新 ID，并新增「直接改名必留已确认关联记录」「invalidated ⇒ 名称必为直接改名结果」两条确定性断言；连续 10 次运行通过；security-review §十一 验证范围与 ai-checklist #17 同步 | 代码规范、改名申请 |
+| 2026-09-24 | 全项目审查 F01/F04 定向修复：F01 图表自定义 HTML tooltip 统一输出转义（含评分、小队同类路径），按 200 行工具上限抽出 kdaScatterCharts/paretoChart 并保留原导出；安全边界见 security-review §十二。F04 排表保存统一串行、编辑版本与请求序号防覆盖、失败保留待保存状态，历史导入与路由离开/参数切换先保存；保存约定与人工用例见 frontend/docs。类型检查与 Vite 非清理构建通过（存在依赖注释、动态/静态导入及大 chunk 警告）；未运行前端测试或浏览器验收。保留原 CRLF，按 cr-at-eol 口径检查差异空白；未修改其他审查项、后端、依赖或数据库 | 前端、排表、数据分析、安全 |
+| 2026-09-24 | 新增帮众专属首页（/member-home，登录默认落点）：①路由与守卫——新增 member-home（memberOnly），帮众登录跳转、adminOnly/developerOnly 回退、登录页已登录跳转三处落点由 league-overview 改为 member-home，侧边栏新增帮众「首页」菜单；②比赛焦点卡（MatchFocusCard）按优先级四态——今日未开赛（鎏金高亮，多场显示「另有 N 场」）> 录屏待办（最近一场已结束且 ≤7 天、存在未提交或被驳回，按局进度=已通过+待审、驳回单独标注，进度条驳回报赭黄/交齐报黛绿）> 下一场 > 最近一场（结果 + 各局结果）；今日比赛存在更早场次待办时以提示行保留独立入口；③快捷操作宫格（录屏上传/个人战绩/修改游戏 ID/联赛日程，2×2，触控 ≥44px）；④赛程详情 goBack 支持 from=home 回跳；⑤样式外置 focus-card.css（行数规则），finesse 静态检查 0 P0；vue-tsc 与 vite build:only 通过，未运行前端测试与浏览器验收 | 帮众首页、路由、布局、赛程详情 |
+| 2026-09-24 | 帮众首页重设计（用户反馈「录屏待办块太大、展示内容没深度」）：弃双栏改全宽纵排——①焦点卡全宽重做：左日期块（今天/24 金底）+ 中比赛信息（对手/时间/局数/地点，最近一场含各局结果）+ 右操作按钮，底部 3px 鎏金条（与统计卡同语言）；②录屏待办改版：粗进度条（el-progress）改为紧凑逐局胶囊（已交=已通过+待审；驳回赭黄/交齐黛绿）+ 未交齐名单（前 5 名，悬停查看完整名单）+ 驳回人数，去除大块进度条；③快捷操作改整行四格、图标统一浅金底（去四色）并横向排布；④欢迎行衬线标题 + 日期右对齐；vue-tsc 与 vite build:only 通过，finesse 0 P0，未运行前端测试与浏览器验收 | 帮众首页、UI |
+| 2026-09-24 | 帮众首页内容重设计（用户确认新方向「帮会战绩看板」）：以数据为主线重做内容——①战绩统计卡 4 张（已赛场次/近5场战绩/局胜率/录屏完成，与管理员首页统计卡同语言：浅金图标底+渐变数字+底部金条+数字滚动）；②最近比赛结果列表（近 5 场，含各局比分，点击进详情）；③数据亮点卡（最近一场 MVP + 数据之王六格，复用战报同源 buildReportData，reportData/analysis 成为共享分包；最多尝试最近 3 场有数据场次、失败静默降级）；④录屏待办收敛为一行状态条（未交齐/驳回人数 + 悬停完整名单 + 去处理）；⑤删除比赛焦点卡（MatchFocusCard/focus-card.css），新增 GuildStatCards/RecentMatchesCard/DataHighlightCard/RecordingTodoStrip/stats.ts/highlight.ts/card-shared.css；vue-tsc 与 vite build:only 通过，finesse 0 P0（渐变数字为 ui-style-guide §5.3 锁定规范），未运行前端测试与浏览器验收 | 帮众首页、UI |
 
 ---
 

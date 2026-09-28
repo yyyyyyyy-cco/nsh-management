@@ -29,7 +29,7 @@ nsh-management/
 ├── backend/
 │   └── docs/README.md            # 后端模块开发文档
 ├── frontend/
-│   └── docs/README.md            # 前端模块开发文档
+│   └── docs/README.md            # 前端模块开发文档（含排表保存约定与人工回归清单）
 ├── AGENTS.md                     # AI 开发指南：规范/文档维护/进度追踪（自动读取）
 ├── DEPLOY.md                     # 部署文档（Docker Compose）
 ├── GIT-GUIDE.md                  # Git 管理规范
@@ -110,7 +110,7 @@ nsh-management/
 
 ### 11. 前端模块开发文档
 - **路径**：`e:\code\@Cjy\nsh-management\frontend\docs\README.md`
-- **作用**：前端模块的需求说明、开发计划（全部 P0/P1/P2 已完成）、进度跟踪
+- **作用**：前端模块的需求说明、功能清单、排表保存约定与人工回归清单；实际进度与验证结果以 progress.md 为准
 - **更新时机**：前端每个功能点完成时更新
 
 ### 12. 部署文档
@@ -125,7 +125,7 @@ nsh-management/
 
 ### 14. 安全审查文档
 - **路径**：`e:\code\@Cjy\nsh-management\memory-bank\security-review.md`
-- **作用**：项目安全审查记录，涵盖认证、权限、数据安全等方面的审查结论与改进项（§一～九为 2026-08-20 全量审查；§十为 2026-09-18 用户隔离定向修复 F-1～F-5、验证范围与未解决项更正）
+- **作用**：项目安全审查记录，涵盖认证、权限、数据安全等方面的审查结论与改进项（§一～九为初次全量审查；§十为用户隔离定向修复；§十一为改名关联安全决策；§十二为全项目审查 F01 图表 HTML 输出边界及历史结论更正）
 - **更新时机**：安全相关变更或审查时更新
 
 ### 15. AI 项目完整上下文文档
@@ -210,6 +210,7 @@ nsh-management/
 | 2026-09-18 | 用户隔离定向修复（security-review §十 F-1～F-5）：security-review 新增 §十（修复记录/验证范围/未解决项更正，§14 文档说明同步）；design-document §3.2/§4.1 补充账号创建边界与导出标识规则；ai-checklist 新增遗漏模式 14（数据归属字段被请求体覆盖）；backend/frontend docs 更新记录；progress 目录树（+2 selfcheck 脚本）与更新记录 | security-review.md, design-document-v2.md, ai-checklist.md, backend/docs, frontend/docs, progress.md |
 | 2026-09-20 | 新增游戏 ID 改名申请与战绩关联设计（design-game-id-change.md 入索引：目录树 + 文档说明 §19 + 更新记录）：帮众提交、管理员审核、通过后同步常驻库并支持新旧 ID 战绩合并查询；database-design v1.9（表数 11→12）、design-document v2.6、data-analysis/stats-report 口径同步；代码实施与验证状态见 progress.md | design-game-id-change.md, database-design.md, design-document-v2.md, data-analysis-complete.md, stats-report-plan.md, progress.md |
 | 2026-09-20 | 游戏 ID 改名申请与战绩关联实施完成：新增 member_game_id_requests 表与迁移 o9p0q1r2s3t4、改名申请 API/服务/生命周期、个人战绩新旧 ID 合并与冲突 409 退路、帮众改名页与常驻库改名审核 Tab；4 个新增 selfcheck（13/5/9/1 项）与既有 16 项回归全部通过，后端 compileall、前端 vue-tsc/vite build 通过；design-game-id-change 状态更新为已实施待验收，security-review 新增 §十一 | design-game-id-change.md, database-design.md, security-review.md, backend/docs, frontend/docs, progress.md |
+| 2026-09-24 | F01/F04 定向修复文档同步：security-review 新增 §十二输出边界与历史 XSS 结论更正；frontend/docs 补排表保存约定及人工回归清单，文档说明与目录注释同步；新增图表源码登记在 progress 的代码目录树，本索引不重复维护源码树 | security-review.md, frontend/docs/README.md, progress.md, ai-checklist.md |
 
 ---
 

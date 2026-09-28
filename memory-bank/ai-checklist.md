@@ -126,6 +126,8 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 | 15 | 分页响应模型 `items` 声明基类 → 子类额外字段被静默裁剪 | 改名申请审核列表项为 `GameIdRequestAdminOut`（含 `requester_username`），若塞进 `items: list[GameIdRequestMemberOut]` 的 Page 模型，Pydantic 会按基类重建并丢弃快照字段（实测 KeyError: 'requester_username'）；与第 13 条同源——「序列化路径按声明类型收敛」 | 角色相关响应字段不同时，为每种角色各建一个 Page/响应模型（如 MemberPage / AdminPage），不要用基类接收；新增字段后用实证脚本断言响应 JSON 中确实存在该键 |
 | 16 | 回滚后访问 ORM 实例属性触发 `MissingGreenlet` | 审核事务在 `session.rollback()` 后拼装错误消息时读取 `record.new_game_id`，实例已过期 → 异步下同步 lazy load 报 `greenlet_spawn has not been called`（表现为 500 而非预期的 409） | 事务内需要的字段在首次读取时先取局部快照（`new, old = record.x, record.y`），rollback 后只用局部变量；同理不要在 rollback/commit 后继续访问已过期实例的属性 |
 | 17 | 并发/竞争类回归断言假设单一写者 | 「直接改名 vs 审核通过」并发用例断言「approved ⇒ 成员名 == 新 ID」，但审核通过后管理员再次直接改名是合法交错 → 间歇失败（实测 4 次 1 次失败），文档却据此声称「5 项全部通过」 | 断言业务不变量（无后续写入者才要求名称等于新 ID、改名必留已确认关联、失效后名称必为直接改名结果），不锁定最终值；并发用例定稿前多跑几次 |
+| 18 | 将 Vue 模板转义误当作所有 HTML 输出的保护 | ECharts 自定义 formatter 绕过模板，姓名/职业/阵营直接拼接仍可注入 HTML；详见 security-review §十二 | 沿数据流检查每个 HTML 输出入口，只转义动态文本；图表重构后核对所有同类 formatter，不改源数据或 Canvas 标签 |
+| 19 | 防抖保存与重载各自执行，旧快照覆盖未保存编辑 | 切回 Tab 会重载，自动保存到执行时才读当前状态；重载可能先覆盖编辑，再把旧内容保存回服务器 | 保存串行化并记录编辑版本；重载先保存，返回时校验请求序号与编辑版本；失败保留本地数据，导入及卸载前处理待保存任务，回归顺序见 frontend/docs |
 
 ---
 
