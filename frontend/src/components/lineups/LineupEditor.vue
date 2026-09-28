@@ -31,8 +31,8 @@
         <el-radio-button value="input">输入</el-radio-button>
       </el-radio-group>
       <div class="spacer" />
-      <el-button :icon="Download" @click="importVisible = true">导入历史排表</el-button>
-      <el-button :loading="board.saving.value" type="primary" :icon="Check" @click="onSave">保存排表</el-button>
+      <el-button :icon="Download" :disabled="board.loading.value || board.saving.value" @click="onOpenImport">导入历史排表</el-button>
+      <el-button :loading="board.saving.value" :disabled="board.loading.value" type="primary" :icon="Check" @click="onSave">保存排表</el-button>
     </div>
 
     <div v-loading="board.loading.value" class="editor">
@@ -171,6 +171,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { onBeforeRouteLeave, onBeforeRouteUpdate, type RouteLocationNormalized } from 'vue-router'
 import { ArrowRight, Check, Close, Download, EditPen, Search, User } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import draggable from 'vuedraggable'
@@ -338,8 +339,9 @@ const teamGroups = computed(() => {
 })
 
 async function onSave() {
-  await board.onSave()
-  emit('saved')
+  try {
+    await board.onSave()
+  } catch { /* HTTP 层已提示，保留本地编辑；成功统一由状态监听刷新总览 */ }
 }
 
 /** 移除槽位成员：确认后再从排表下掉。 */
@@ -350,15 +352,45 @@ async function onRemoveSlotClick(team: TeamBox, si: number) {
   board.onRemoveSlot(team, si)
 }
 
-/** 历史排表导入成功后：刷新编辑器数据并通知父级刷新总览。 */
-function onImported() {
-  board.load()
-  emit('saved')
+/** 导入会写入服务器；先完成当前保存，避免旧自动保存覆盖导入结果。 */
+async function onOpenImport() {
+  try {
+    await board.flushSave()
+    importVisible.value = true
+  } catch { /* 保存失败时不打开导入，保留本地编辑 */ }
 }
 
-defineExpose({ reload: () => board.load() })
+async function reload() {
+  const loaded = await board.load()
+  if (loaded) cancelInput()
+  return loaded
+}
 
-onMounted(() => board.load())
+/** 历史排表导入成功后：刷新编辑器数据并通知父级刷新总览。 */
+async function onImported() {
+  if (await reload()) emit('saved')
+}
+
+async function saveBeforeLeave(to: RouteLocationNormalized) {
+  // 登出及会话失效不能被保存失败阻止。
+  if (to.name === 'login') return true
+  try {
+    await board.flushSave()
+    return true
+  } catch {
+    return ElMessageBox.confirm('排表尚未保存，是否放弃本次编辑并离开？', '未保存的排表', {
+      type: 'warning', confirmButtonText: '放弃并离开', cancelButtonText: '留下重试',
+    }).then(() => true).catch(() => false)
+  }
+}
+
+onBeforeRouteLeave(saveBeforeLeave)
+// MainLayout 按 route.path 重建组件，切换赛程参数时也需先保存。
+onBeforeRouteUpdate((to, from) => to.path !== from.path ? saveBeforeLeave(to) : true)
+
+defineExpose({ reload })
+
+onMounted(reload)
 </script>
 
 <style scoped>

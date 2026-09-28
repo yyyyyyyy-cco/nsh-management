@@ -24,9 +24,10 @@ const editorRef = ref<InstanceType<typeof LineupEditor>>()
 const overviewRef = ref<InstanceType<typeof LineupOverviewPanel>>()
 
 /** Tab 重新激活时刷新（出勤库变动后补人/成员可同步到候选池与总览）。 */
-function reload() {
+async function reload() {
+  // 编辑器先保存并加载；失败时保留看板，不让总览提前读取旧快照。
+  if (editorRef.value && !(await editorRef.value.reload())) return
   overviewRef.value?.reload()
-  editorRef.value?.reload()
 }
 
 defineExpose({ reload })

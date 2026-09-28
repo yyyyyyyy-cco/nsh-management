@@ -1,7 +1,7 @@
 /** 排表编排状态与拖拽逻辑（LineupEditor 专用）。
  * 行数豁免（连续逻辑）：看板状态机——拖拽上下文、自动保存定时器与候选池回池逻辑共享内部可变状态。
  * 登记见 .agent/rules/file-length-rule.md 豁免清单。 */
-import { computed, ref } from 'vue'
+import { computed, onScopeDispose, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { getLineup, getLineupCandidates, saveLineup } from '@/api/lineups'
@@ -108,6 +108,24 @@ export function useLineupBoard(scheduleId: number) {
   /** 自动保存状态：idle / pending（待保存） / saving（保存中） / saved（已保存）。 */
   const autoSaveStatus = ref<'idle' | 'pending' | 'saving' | 'saved'>('idle')
   let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
+  let savedTimer: ReturnType<typeof setTimeout> | null = null
+  let editVersion = 0
+  let savedVersion = 0
+  let saveTask: Promise<void> | null = null
+  let loadSeq = 0
+  let disposed = false
+
+  function clearSaveTimers() {
+    if (autoSaveTimer !== null) clearTimeout(autoSaveTimer)
+    if (savedTimer !== null) clearTimeout(savedTimer)
+    autoSaveTimer = savedTimer = null
+  }
+
+  onScopeDispose(() => {
+    disposed = true
+    loadSeq++
+    clearSaveTimers()
+  })
 
   /** 构建保存载荷（槽位数据 + 团/标题备注）。 */
   function buildPayload(): LineupTeam[] {
@@ -123,26 +141,59 @@ export function useLineupBoard(scheduleId: number) {
     }))
   }
 
+  /** 所有保存共用一个任务；在途期间的新编辑按版本串行补存。 */
+  async function persistChanges() {
+    saving.value = true
+    try {
+      while (!disposed && savedVersion < editVersion) {
+        clearSaveTimers()
+        const version = editVersion
+        autoSaveStatus.value = 'saving'
+        await saveLineup(scheduleId, {
+          data: buildPayload(),
+          title_remark: titleRemark.value,
+          groups_remark: { ...groupsRemark.value },
+        })
+        if (disposed) return
+        savedVersion = version
+      }
+      if (disposed) return
+      autoSaveStatus.value = 'saved'
+      savedTimer = setTimeout(() => {
+        savedTimer = null
+        autoSaveStatus.value = 'idle'
+      }, 2000)
+    } catch (error) {
+      if (!disposed) {
+        clearSaveTimers()
+        // 保留未保存版本；HTTP 层提示原因，用户可点击「保存排表」重试。
+        autoSaveStatus.value = 'pending'
+      }
+      throw error
+    } finally {
+      if (!disposed) saving.value = false
+    }
+  }
+
+  /** 重载、导入或离开页面前调用；失败向上传递，禁止用旧快照覆盖编辑。 */
+  function flushSave(): Promise<void> {
+    if (autoSaveTimer !== null) clearTimeout(autoSaveTimer)
+    autoSaveTimer = null
+    if (saveTask) return saveTask
+    if (disposed || savedVersion === editVersion) return Promise.resolve()
+    saveTask = persistChanges().finally(() => { saveTask = null })
+    return saveTask
+  }
+
   /** 变更后触发自动保存（防抖 3 秒）。 */
   function scheduleAutoSave() {
+    if (disposed) return
+    editVersion++
+    clearSaveTimers()
     autoSaveStatus.value = 'pending'
-    if (autoSaveTimer) clearTimeout(autoSaveTimer)
     autoSaveTimer = setTimeout(() => {
-      autoSaveStatus.value = 'saving'
-      saveLineup(scheduleId, {
-        data: buildPayload(),
-        title_remark: titleRemark.value,
-        groups_remark: { ...groupsRemark.value },
-      })
-        .then(() => {
-          autoSaveStatus.value = 'saved'
-          setTimeout(() => {
-            autoSaveStatus.value = 'idle'
-          }, 2000)
-        })
-        .catch(() => {
-          autoSaveStatus.value = 'idle'
-        })
+      autoSaveTimer = null
+      void flushSave().catch(() => { /* HTTP 层已提示，保留待保存状态 */ })
     }, 3000)
   }
 
@@ -356,32 +407,27 @@ export function useLineupBoard(scheduleId: number) {
   }
 
   async function onSave() {
-    // 取消待执行的自动保存
-    if (autoSaveTimer) {
-      clearTimeout(autoSaveTimer)
-      autoSaveTimer = null
-    }
-    autoSaveStatus.value = 'idle'
-    saving.value = true
-    try {
-      await saveLineup(scheduleId, {
-        data: buildPayload(),
-        title_remark: titleRemark.value,
-        groups_remark: { ...groupsRemark.value },
-      })
-      ElMessage.success('排表已保存')
-    } finally {
-      saving.value = false
-    }
+    if (disposed) return
+    editVersion++
+    clearSaveTimers()
+    await flushSave()
+    if (!disposed) ElMessage.success('排表已保存')
   }
 
-  async function load() {
+  async function load(): Promise<boolean> {
+    if (disposed) return false
+    const seq = ++loadSeq
     loading.value = true
     try {
+      await flushSave()
+      if (disposed || seq !== loadSeq || savedVersion !== editVersion) return false
+      const version = editVersion
       const [lineup, pool] = await Promise.all([
         getLineup(scheduleId),
         getLineupCandidates(scheduleId),
       ])
+      // 旧请求、加载期间的新编辑以及卸载后的响应都不能覆盖看板。
+      if (disposed || seq !== loadSeq || version !== editVersion) return false
       teams.value = lineup.data.map((t) => ({
         category: t.category,
         team_index: t.team_index,
@@ -399,8 +445,12 @@ export function useLineupBoard(scheduleId: number) {
         }
       }
       candidates.value = pool.map((c) => toCandidate(c)).filter((c) => !placed.has(c.key))
+      return true
+    } catch {
+      // 保存或加载失败都保留当前看板；统一错误提示由 HTTP 层负责。
+      return false
     } finally {
-      loading.value = false
+      if (!disposed && seq === loadSeq) loading.value = false
     }
   }
 
@@ -416,6 +466,7 @@ export function useLineupBoard(scheduleId: number) {
     professionGroups,
     titleRemark,
     groupsRemark,
+    flushSave,
     onSave,
     editRemark,
     editTitleRemark,
