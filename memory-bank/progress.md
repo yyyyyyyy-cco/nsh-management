@@ -78,6 +78,7 @@ nsh-management/
 │   ├── ai-context.md           # AI 项目完整上下文文档
 │   ├── ai-checklist.md         # AI 操作检查清单（错误记录与联动规则）
 │   ├── architecture.md         # 文档索引
+│   ├── code-ui-audit-2026-09.md # 2026-09 代码审查与 UI 评估结论快照
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
 │   ├── database-design.md      # 数据库设计文档（v1.9）
 │   ├── design-document-v2.md   # 产品设计文档（当前主文档）
@@ -303,6 +304,7 @@ nsh-management/
 | 2026-09-24 | 帮众首页重设计（用户反馈「录屏待办块太大、展示内容没深度」）：弃双栏改全宽纵排——①焦点卡全宽重做：左日期块（今天/24 金底）+ 中比赛信息（对手/时间/局数/地点，最近一场含各局结果）+ 右操作按钮，底部 3px 鎏金条（与统计卡同语言）；②录屏待办改版：粗进度条（el-progress）改为紧凑逐局胶囊（已交=已通过+待审；驳回赭黄/交齐黛绿）+ 未交齐名单（前 5 名，悬停查看完整名单）+ 驳回人数，去除大块进度条；③快捷操作改整行四格、图标统一浅金底（去四色）并横向排布；④欢迎行衬线标题 + 日期右对齐；vue-tsc 与 vite build:only 通过，finesse 0 P0，未运行前端测试与浏览器验收 | 帮众首页、UI |
 | 2026-09-24 | 帮众首页内容重设计（用户确认新方向「帮会战绩看板」）：以数据为主线重做内容——①战绩统计卡 4 张（已赛场次/近5场战绩/局胜率/录屏完成，与管理员首页统计卡同语言：浅金图标底+渐变数字+底部金条+数字滚动）；②最近比赛结果列表（近 5 场，含各局比分，点击进详情）；③数据亮点卡（最近一场 MVP + 数据之王六格，复用战报同源 buildReportData，reportData/analysis 成为共享分包；最多尝试最近 3 场有数据场次、失败静默降级）；④录屏待办收敛为一行状态条（未交齐/驳回人数 + 悬停完整名单 + 去处理）；⑤删除比赛焦点卡（MatchFocusCard/focus-card.css），新增 GuildStatCards/RecentMatchesCard/DataHighlightCard/RecordingTodoStrip/stats.ts/highlight.ts/card-shared.css；vue-tsc 与 vite build:only 通过，finesse 0 P0（渐变数字为 ui-style-guide §5.3 锁定规范），未运行前端测试与浏览器验收 | 帮众首页、UI |
 | 2026-09-28 | 小队分析模块新增单成员「取消分配」功能：后端 DELETE /schedules/{id}/squad-adjustments/{player_name} 端点 + 前端成员表操作列；修复「重置调整」按钮缺少 isAdmin 权限门控 | 数据分析 / 小队分析 |
+| 2026-09-28 | 新增代码审查与 UI 评估报告 memory-bank/code-ui-audit-2026-09.md | 文档/全栈审查 |
 | 2026-09-28 | 三个严重问题修复（code-ui-audit-2026-09.md C-1～C-3）：①accounts 响应统一脱敏——新增辅助函数 _build_account_out(account, current_user)，list/create/update/update_status 四条响应路径全部对非 developer 角色置空 plain_password（developer 仍可见，明文列按既定决策保留）；②config 生产弱密钥启动门禁——APP_ENV 主判据 + 容器特征兜底 + 弱片段/年份黑名单 + 64 位 hex 豁免，开发环境 fail-open 仅 WARNING；docker-compose backend 固定 APP_ENV=production；deploy.sh 健康检查失败改非零退出并打印容器日志；根与 backend .env.example、DEPLOY.md、README 补门禁与核对说明；security-review.md 同步（C-1 关闭 + C-2 门禁专节）；③element-plus 主按钮对比度与禁用态——实心主按钮文字改墨色 --ink-900（对比度达 AAA），:not(.is-plain):not(.is-text):not(.is-link) 收敛作用域，新增可辨禁用态；ui-style-guide.md §4.1 同步 | 系统配置 / 安全 / 部署 / UI |
 | 2026-09-28 | C-3 主按钮深色文字方案按用户美观偏好回退为白字+浅金渐变，对比度作为已知接受项；element-plus.css 恢复原样（移除 --ink-900 文字色与自定义禁用态），ui-style-guide §4.1 与审查报告同步 | UI / 文档 |
 
