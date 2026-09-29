@@ -5,7 +5,7 @@
       <div class="card-toolbar">
         <span class="card-toolbar__count">共 {{ squads.length }} 个小队 · {{ totalPlayers }} 人</span>
         <el-tag v-if="adjustedCount" size="small" type="warning" effect="plain">已调整 {{ adjustedCount }} 人</el-tag>
-        <el-button v-if="adjustedCount" link type="warning" size="small" @click="$emit('reset-adjustments')">重置调整</el-button>
+        <el-button v-if="adjustedCount && isAdmin" link type="warning" size="small" @click="$emit('reset-adjustments')">重置调整</el-button>
         <el-checkbox v-model="compareModeProxy" label="对比模式" />
         <el-button
           v-if="compareModeProxy && compareSelectedCount >= 2"

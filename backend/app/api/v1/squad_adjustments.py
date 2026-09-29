@@ -42,3 +42,17 @@ async def save_squad_adjustment(
         session, current_user.guild_id, schedule_id, payload.data
     )
     return SquadAdjustmentOut.model_validate(adj)
+
+
+@router.delete("/{player_name}", response_model=SquadAdjustmentOut)
+async def remove_member_adjustment(
+    schedule_id: int,
+    player_name: str,
+    current_user: User = Depends(require_admin),
+    session: AsyncSession = Depends(get_db),
+) -> SquadAdjustmentOut:
+    """移除单个成员的分析调整，使其回归未排表状态。"""
+    adj = await squad_adjustment_service.remove_member_adjustment(
+        session, current_user.guild_id, schedule_id, player_name
+    )
+    return SquadAdjustmentOut.model_validate(adj)

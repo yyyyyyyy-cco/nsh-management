@@ -35,7 +35,13 @@
       </div>
 
       <!-- 成员表：3 个子标签（间距收紧，表格上提） -->
-      <SquadMembersTabs :members="members" />
+      <SquadMembersTabs
+        :members="members"
+        :adjustments="adjustments"
+        :is-admin="isAdmin"
+        :squad-key="squadKey"
+        @remove-adjustment="$emit('removeAdjustment', $event)"
+      />
     </div>
   </el-dialog>
 
@@ -70,7 +76,19 @@ import {
   memberRatioBarOption,
 } from './squadCharts'
 
-const props = defineProps<{ name: string; squad?: SquadAnalysis }>()
+const props = defineProps<{
+  name: string
+  squad?: SquadAnalysis
+  /** 分析调整副本：成员名 → "category:team_index" */
+  adjustments?: Record<string, string>
+  isAdmin?: boolean
+  /** 当前小队的键（"category:team_index"） */
+  squadKey?: string
+}>()
+
+defineEmits<{
+  removeAdjustment: [playerName: string]
+}>()
 
 const visible = defineModel<boolean>({ required: true })
 

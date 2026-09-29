@@ -59,3 +59,19 @@ async def save_squad_adjustment(
     await session.commit()
     await session.refresh(adj)
     return adj
+
+
+async def remove_member_adjustment(
+    session: AsyncSession, guild_id: int, schedule_id: int, player_name: str,
+) -> SquadAdjustment:
+    """移除单个成员的分析调整映射，使其回归「未排表」状态。"""
+    adj = await get_squad_adjustment(session, guild_id, schedule_id)
+    name = (player_name or "").strip()
+    if not name or name not in adj.data:
+        raise SquadAdjustmentError(f"调整记录中不存在成员: {player_name}", status_code=404)
+    updated = {k: v for k, v in adj.data.items() if k != name}
+    adj.data = updated
+    session.add(adj)
+    await session.commit()
+    await session.refresh(adj)
+    return adj

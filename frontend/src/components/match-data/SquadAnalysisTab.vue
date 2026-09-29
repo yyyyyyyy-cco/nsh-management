@@ -25,7 +25,15 @@
             @open-compare="openCompare"
           />
 
-          <SquadDetailDialog v-model="detailVisible" :name="detailSquad" :squad="detailSquadData" />
+          <SquadDetailDialog
+            v-model="detailVisible"
+            :name="detailSquad"
+            :squad="detailSquadData"
+            :adjustments="adjustments"
+            :is-admin="auth.isAdmin"
+            :squad-key="detailSquadKey"
+            @remove-adjustment="removeMemberAdjustment"
+          />
           <SquadCompareDialog v-model="compareVisible" :squads="compareSelectedSquads" :names="compareSelectedNames" />
           <SquadAssignDialog
             v-model="adjustVisible"
@@ -46,7 +54,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { getSquadAnalysis } from '@/api/matchData'
-import { getSquadAdjustments, saveSquadAdjustments } from '@/api/squadAdjustments'
+import { getSquadAdjustments, removeSquadAdjustment, saveSquadAdjustments } from '@/api/squadAdjustments'
 import { useAuthStore } from '@/stores/auth'
 import type { SquadAnalysis, SquadIndicators, SquadMember, SquadTotals } from '@/types/matchData'
 
@@ -140,6 +148,12 @@ const unassignedMembers = computed(() => {
 
 const detailSquadData = computed(() => effectiveSquads.value.find((s) => s.squad_name === detailSquad.value))
 
+/** 详情弹窗对应小队的键（用于判定哪些成员是被调整进本队的） */
+const detailSquadKey = computed(() => {
+  const s = effectiveSquads.value.find((sq) => sq.squad_name === detailSquad.value)
+  return s ? `${s.category}:${s.team_index}` : ''
+})
+
 function openDetail(name: string) {
   detailSquad.value = name
   detailVisible.value = true
@@ -163,6 +177,26 @@ async function onAssignConfirm(names: string[], target: string) {
     /* 错误已由 http 拦截器提示 */
   } finally {
     adjustSaving.value = false
+  }
+}
+
+/** 移除单个成员的分析调整 */
+async function removeMemberAdjustment(playerName: string) {
+  try {
+    await ElMessageBox.confirm(
+      `确定取消「${playerName}」的分配？该成员将回到未排表组。`,
+      '取消分配',
+      { type: 'warning' },
+    )
+  } catch {
+    return
+  }
+  try {
+    const resp = await removeSquadAdjustment(props.scheduleId, playerName)
+    adjustments.value = resp.data ?? {}
+    ElMessage.success(`已取消「${playerName}」的分配`)
+  } catch {
+    /* 已提示 */
   }
 }
 

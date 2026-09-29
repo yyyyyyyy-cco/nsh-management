@@ -22,6 +22,11 @@
         <el-table-column prop="damage_taken" label="承伤" min-width="80" align="right" sortable>
           <template #default="{ row }">{{ fmtNum(row.damage_taken) }}</template>
         </el-table-column>
+        <el-table-column v-if="isAdmin" label="操作" width="90" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button v-if="isAdjustedIn(row)" link type="danger" size="small" @click="emit('removeAdjustment', row.player_name)">取消分配</el-button>
+          </template>
+        </el-table-column>
       </el-table>
     </el-tab-pane>
 
@@ -42,6 +47,11 @@
         </el-table-column>
         <el-table-column prop="fen_gu_rate" label="焚骨率" min-width="80" align="right" sortable>
           <template #default="{ row }">{{ row.fen_gu_rate.toFixed(2) }}<em class="unit">次/分</em></template>
+        </el-table-column>
+        <el-table-column v-if="isAdmin" label="操作" width="90" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button v-if="isAdjustedIn(row)" link type="danger" size="small" @click="emit('removeAdjustment', row.player_name)">取消分配</el-button>
+          </template>
         </el-table-column>
       </el-table>
     </el-tab-pane>
@@ -71,6 +81,11 @@
         <el-table-column prop="heal_ratio" label="治疗占比" min-width="80" align="right" sortable>
           <template #default="{ row }">{{ pct(row.heal_ratio) }}</template>
         </el-table-column>
+        <el-table-column v-if="isAdmin" label="操作" width="90" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button v-if="isAdjustedIn(row)" link type="danger" size="small" @click="emit('removeAdjustment', row.player_name)">取消分配</el-button>
+          </template>
+        </el-table-column>
       </el-table>
     </el-tab-pane>
   </el-tabs>
@@ -83,9 +98,26 @@ import type { SquadMember } from '@/types/matchData'
 
 import { fmtNum } from './analysis'
 
-defineProps<{ members: SquadMember[] }>()
+const props = defineProps<{
+  members: SquadMember[]
+  /** 分析调整副本：成员名 → "category:team_index" */
+  adjustments?: Record<string, string>
+  isAdmin?: boolean
+  /** 当前小队的键（"category:team_index"） */
+  squadKey?: string
+}>()
+
+const emit = defineEmits<{
+  removeAdjustment: [playerName: string]
+}>()
 
 const activeTab = ref('basic')
+
+/** 该成员是否是被手动分配进当前小队的（仅这类成员可取消分配） */
+function isAdjustedIn(row: SquadMember): boolean {
+  if (!props.squadKey || !props.adjustments) return false
+  return props.adjustments[row.player_name] === props.squadKey
+}
 
 function pct(v: number): string {
   return ((v || 0) * 100).toFixed(2) + '%'

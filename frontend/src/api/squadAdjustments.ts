@@ -18,3 +18,10 @@ export function saveSquadAdjustments(
 ): Promise<SquadAdjustments> {
   return http.put(`/schedules/${scheduleId}/squad-adjustments`, { data })
 }
+
+export function removeSquadAdjustment(
+  scheduleId: number,
+  playerName: string,
+): Promise<SquadAdjustments> {
+  return http.delete(`/schedules/${scheduleId}/squad-adjustments/${encodeURIComponent(playerName)}`)
+}
