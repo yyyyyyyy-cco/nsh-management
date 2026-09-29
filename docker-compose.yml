@@ -3,6 +3,9 @@ services:
     build: ./backend
     restart: unless-stopped
     env_file: .env
+    environment:
+      # 生产环境标识：启动时强制校验 SECRET_KEY 强度，弱密钥拒绝启动（见 backend/app/core/config.py）
+      APP_ENV: production
     volumes:
       - nsh-data:/app/data
       - nsh-logs:/app/logs

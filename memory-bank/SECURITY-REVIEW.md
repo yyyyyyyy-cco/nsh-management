@@ -29,7 +29,7 @@
 | 位置 | [user.py](backend/app/models/user.py#L17)、[init_db.py](backend/app/init_db.py#L53)、[config_service.py](backend/app/services/config_service.py#L149-186)、[config.py](backend/app/schemas/config.py#L39) |
 | 描述 | `users.plain_password` 字段明文存密码；`AccountOut` schema 含 `plain_password`，`GET /api/v1/config/accounts` 会把**所有账号明文密码返回给前端**；创建/更新账号、创建帮会均写入明文。 |
 | 影响 | 数据库泄露 = 全部账号密码泄露；任何管理员可通过接口直接读到本帮会所有账号明文密码（含开发者帮会体系下其他帮会权限）。 |
-| 已定方案 | **不删除数据库列**（用户决策：开发者需可查看）。接口按角色收窄：`list_accounts` 仅 `developer` 返回 `plain_password`，admin/member 置 None；前端密码列仅 `auth.isDeveloper` 显示，其余显示 "-"。残余风险：数据库文件本身仍含明文，依赖服务器与备份文件安全（M-7 修复后 `_backup` 不再随部署包上传）。 |
+| 已定方案 | **不删除数据库列**（用户决策：开发者需可查看）。接口按角色收窄：仅 `developer` 返回 `plain_password`，admin/member 置 None；前端密码列仅 `auth.isDeveloper` 显示，其余显示 "-"。**2026-09-28 补强**：脱敏由逐接口手工实现改为统一 `_build_account_out` 角色感知输出映射，覆盖 list/create/update/update_status 全部响应路径（原写接口缺口见 §十，已关闭）。残余风险：数据库文件本身仍含明文，依赖服务器与备份文件安全（M-7 修复后 `_backup` 不再随部署包上传）。 |
 
 ### S-2 成员 Excel 导入接口无任何文件限制
 | 项 | 内容 |
@@ -219,6 +219,7 @@
 - 帮会名、水印只用于识别来源，**不提供密码学防伪能力**；若需要防篡改验证，另行设计服务端签名与校验入口。
 - 不改动已接受的明文列保留、共享账号、localStorage、10 小时 Token 或登出不吊销策略。
 - **前次「明文密码仅 developer 返回已全面通过」结论不准确**：`accounts.py` 仅列表响应置空，创建/更新/状态更新响应仍直接序列化 AccountOut，可能向 admin 返回 plain_password。本项未列入已确认的 F-1～F-5；待用户确认后统一响应脱敏并覆盖回归，不能视为已修复。
+  **→ 2026-09-28 已关闭**：新增统一 `_build_account_out(account, current_user)` 角色感知输出映射（集中处理 guild_name 填充 + 非 developer 置空 plain_password），list/create/update/update_status 四路径全部改经该函数构造响应，消除逐接口手工脱敏覆盖缺口；developer 行为不变。
 
 ---
 
@@ -257,3 +258,15 @@
 - **覆盖路径**：玩家伤害/治疗散点、KDA 散点、小队成员 KDA、职业热力图、阵营职业堆叠、KDA 构成、帕累托、综合评分雷达与散点等自定义 formatter；普通 HTML 标签保持静态，ECharts 根据固定配色生成的 `marker` 保留原样。
 - **结构与兼容**：按工具文件行数限制抽出 `kdaScatterCharts.ts` 与 `paretoChart.ts`；原入口重导出函数，调用方接口不变。综合评分散点按实际元组位置读取姓名和职业。
 - **不包含**：未调整认证策略、明文列、localStorage、共享账号、后端 CSV 存储或本轮其他审查项；类型检查与构建不等于浏览器 XSS 执行验证。
+
+---
+
+## 十三、SECRET_KEY 生产启动门禁（C-2，2026-09-28）
+
+| 项 | 内容 |
+|---|---|
+| 问题 | `core/config.py` 原硬编码弱默认值 `dev-secret-key-change-in-production`，生产 `.env` 漏配或沿用模板占位值时，任何持有默认密钥者可伪造登录 Token |
+| 方案 | 启动时校验：生产环境（主判据 `APP_ENV=production/prod`，未声明时容器特征兜底）下弱密钥打印 FATAL 到 stderr 并 `sys.exit(1)`；开发环境仅 WARNING 放行，不影响本地开发与现有 .env |
+| 强度规则 | 弱集合（开发默认值 + 两处 .env.example 占位值）/ 长度 <32 / 含可猜片段（项目名、单词、年份 20xx 等黑名单）；≥64 字符纯十六进制串（`openssl rand -hex 32`）豁免恒通过 |
+| 部署联动 | `docker-compose.yml` backend 固定 `APP_ENV: production`（服务器侧需手动同步，见 DEPLOY.md §六）；`deploy.sh` 健康检查改为 backend 非 healthy 则非零退出 + 打印容器日志，消除「门禁拦截→整站不可用→仍报部署完成」假成功；排障与紧急回退见 DEPLOY.md §七 Q6 |
+| 实现位置 | `backend/app/core/config.py`（`_is_production` / `_secret_key_is_weak` / `_validate_secret_key`）、`docker-compose.yml`、`deploy.sh`、两处 `.env.example`、`DEPLOY.md`、`README.md` |

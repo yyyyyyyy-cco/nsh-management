@@ -17,6 +17,16 @@ from app.services.config_service import ConfigServiceError
 router = APIRouter(prefix="/config", tags=["系统配置"])
 
 
+def _build_account_out(account: User, current_user: User) -> AccountOut:
+    """统一构造账号响应：填充 guild_name + 角色感知脱敏 plain_password。"""
+    out = AccountOut.model_validate(account)
+    out.guild_name = account.guild.name if account.guild else None
+    # 安全：明文密码仅 developer 可见，admin/member 不可见
+    if current_user.role != "developer":
+        out.plain_password = None
+    return out
+
+
 # ========== 账号管理 ==========
 
 @router.get("/accounts", response_model=list[AccountOut])
@@ -26,15 +36,7 @@ async def list_accounts(
 ) -> list[AccountOut]:
     """获取账号列表（管理员）。"""
     accounts = await account_service.list_accounts(session, current_user.guild_id)
-    result = []
-    for a in accounts:
-        out = AccountOut.model_validate(a)
-        out.guild_name = a.guild.name if a.guild else None
-        # 安全：明文密码仅开发者可见，管理员/帮众不可见
-        if current_user.role != "developer":
-            out.plain_password = None
-        result.append(out)
-    return result
+    return [_build_account_out(a, current_user) for a in accounts]
 
 
 @router.post("/accounts", response_model=AccountOut)
@@ -55,9 +57,7 @@ async def create_account(
     account = await account_service.create_account(
         session, target_guild_id, body.username, body.password, body.role
     )
-    out = AccountOut.model_validate(account)
-    out.guild_name = account.guild.name if account.guild else None
-    return out
+    return _build_account_out(account, current_user)
 
 
 @router.put("/accounts/{user_id}", response_model=AccountOut)
@@ -71,9 +71,7 @@ async def update_account(
     account = await account_service.update_account(
         session, current_user.guild_id, user_id, body.username, body.password
     )
-    out = AccountOut.model_validate(account)
-    out.guild_name = account.guild.name if account.guild else None
-    return out
+    return _build_account_out(account, current_user)
 
 
 @router.put("/accounts/{user_id}/status", response_model=AccountOut)
@@ -91,9 +89,7 @@ async def update_account_status(
     account = await account_service.update_account_status(
         session, current_user.guild_id, user_id, body.status
     )
-    out = AccountOut.model_validate(account)
-    out.guild_name = account.guild.name if account.guild else None
-    return out
+    return _build_account_out(account, current_user)
 
 
 @router.delete("/accounts/{user_id}", response_model=dict)

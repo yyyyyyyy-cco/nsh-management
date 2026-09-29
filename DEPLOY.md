@@ -152,10 +152,30 @@ docker compose start backend
 
 | 键 | 用途 |
 |----|------|
-| `SECRET_KEY` | JWT 签名密钥（强随机） |
+| `SECRET_KEY` | JWT 签名密钥（强随机，`openssl rand -hex 32`） |
 | `DEVELOPER_PASSWORD` / `ADMIN_PASSWORD` / `MEMBER_PASSWORD` | 三角色密码（仅首次建库生效） |
 
 敏感内容，严禁写入任何入库文件；修改 `SECRET_KEY` 会使所有登录态失效。
+
+### 启动门禁（2026-09-28 新增）
+
+后端启动时校验 SECRET_KEY（`backend/app/core/config.py`）：**生产环境**（`APP_ENV=production`
+或容器特征兜底）下弱密钥（模板占位值、<32 字符、含项目名/单词/年份等可猜片段）
+将打印 `FATAL` 并拒绝启动；开发环境仅告警放行。推荐密钥为 `openssl rand -hex 32`
+输出的 64 位十六进制串（恒判定为强）。
+
+**部署前核对命令**（在服务器 `~/nsh-management` 目录执行）：
+
+```bash
+# 长度须 ≥32（推荐 64）
+awk -F= '/^SECRET_KEY=/{print length($2)}' .env
+# 不得为模板占位值（无输出即正常）
+grep -E '^SECRET_KEY=(please-change-me|your-secret-key|dev-secret-key)' .env
+```
+
+**服务器侧同步项（2026-09-28）**：`docker-compose.yml` 在 deploy.sh 排除清单中，本地已为
+backend 服务新增 `environment: APP_ENV: production`，**服务器侧需手动同步**（先备份）。同步前
+容器特征兜底（`/.dockerenv`）在 Docker 部署下仍生效，但显式声明可避免迁移 k8s/裸机时校验被静默跳过。
 
 ## 七、常见问题
 
@@ -186,6 +206,28 @@ CMD 启动即迁移，通常重启容器即可。
 ### Q5：SSH 连不上（超时）？
 
 检查云厂商安全组 22 端口源 IP 白名单；443 能通而 22 超时即为白名单问题。
+
+### Q6：backend 日志出现 `FATAL: 生产环境 SECRET_KEY ...`，容器反复重启？
+
+启动门禁拦截了弱密钥（见 §六），backend 退出 → frontend 因 `service_healthy` 不启动 →
+整站不可用（deploy.sh 健康检查已改为失败退出并打印日志，不会再报假成功）。
+
+**处置**：
+
+```bash
+cd ~/nsh-management
+cp .env .env.bak-$(date +%F)          # 先备份
+openssl rand -hex 32                   # 生成强密钥，替换 .env 中 SECRET_KEY
+docker compose up -d backend           # 重启后端（迁移自动执行）
+docker compose ps                      # 确认 healthy 后 frontend 会自动拉起
+```
+
+注意：更换 `SECRET_KEY` 会使所有已登录用户强制重登一次（预期内代价）。
+
+**紧急回退**（无法立即生成强密钥、需先恢复站点时）：在服务器 `docker-compose.yml` 的
+backend 服务临时设 `APP_ENV: development` 后 `docker compose up -d backend`，可跳过门禁
+恢复启动（仅容器特征兜底被覆盖时有效）；**事后必须换强密钥并改回 production**，
+回退期间旧密钥可被用于伪造 Token，属带风险运行。
 
 ## 八、与本地开发环境的差异对照
 

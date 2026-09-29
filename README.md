@@ -122,10 +122,14 @@ nsh-management/
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `SECRET_KEY` | JWT 签名密钥（生产必须修改） | `dev-secret-key-change-in-production` |
+| `SECRET_KEY` | JWT 签名密钥（生产必须修改；推荐 `openssl rand -hex 32`） | `dev-secret-key-change-in-production` |
+| `APP_ENV` | 运行环境标识（`production`/`prod` 或 `development`/`dev`/`test`；docker-compose.yml 已固定 production） | 未声明时以容器特征兜底 |
 | `DEVELOPER_PASSWORD` | 开发者密码（首次建库时生效） | - |
 | `ADMIN_PASSWORD` | 管理员密码（可选，不设置则不创建） | - |
 | `MEMBER_PASSWORD` | 帮众密码（可选，不设置则不创建） | - |
+
+> 安全门禁：容器/生产环境（`APP_ENV=production`）下，弱密钥（模板占位值、<32 字符、
+> 含项目名/单词/年份等可猜片段）将拒绝启动；本地开发仅告警放行。详见 `DEPLOY.md` §六。
 
 ## 许可证
 

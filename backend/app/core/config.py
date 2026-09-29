@@ -1,5 +1,7 @@
 """应用配置：环境变量优先，未设置时使用开发默认值。"""
 import os
+import re
+import sys
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -18,7 +20,9 @@ class Settings:
     API_PREFIX: str = "/api/v1"
 
     # 安全
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+    # 开发默认值：仅供本地开发使用，生产环境（APP_ENV=production 或容器特征兜底）启动时强制校验，见 _validate_secret_key
+    _DEV_SECRET_KEY = "dev-secret-key-change-in-production"
+    SECRET_KEY: str = os.getenv("SECRET_KEY", _DEV_SECRET_KEY)
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 10 * 60  # JWT 有效期 10 小时
 
@@ -40,3 +44,87 @@ class Settings:
 
 
 settings = Settings()
+
+# .env.example 模板中的占位密钥，与开发默认值一样均视为弱密钥
+_WEAK_SECRET_KEYS = frozenset({
+    Settings._DEV_SECRET_KEY,
+    "your-secret-key-change-this",
+    "please-change-me-with-openssl-rand-hex-32",
+})
+
+# 可猜片段黑名单（小写匹配）：拦截「长而可猜」的拼接式密钥。
+# 片段均含非十六进制字符；随机 hex 串另走豁免通道（见 _secret_key_is_weak）。
+_GUESSABLE_FRAGMENTS = frozenset({
+    "nsh", "management", "secret", "key", "change", "example", "please",
+    "password", "admin", "member", "developer", "guild", "league",
+    "qingshan", "banghui", "jwt", "token", "dev", "test", "prod",
+})
+_YEAR_PATTERN = re.compile(r"20\d{2}")
+_HEX_PATTERN = re.compile(r"[0-9a-f]+")
+
+
+def _secret_key_is_weak(key: str) -> bool:
+    """密钥强度判定：弱集合 / 长度 <32 / 含可猜片段或年份 → True。
+
+    豁免通道：≥64 字符的纯十六进制串（即 openssl rand -hex 32 及以上，熵 ≥256 bit）
+    恒判为强；否则年份模式 20\\d\\d 在随机 hex 中会偶然出现（单密钥概率约 20%），
+    导致误杀合法强密钥。
+    """
+    if key in _WEAK_SECRET_KEYS or len(key) < 32:
+        return True
+    lowered = key.lower()
+    if len(lowered) >= 64 and _HEX_PATTERN.fullmatch(lowered):
+        return False
+    return any(frag in lowered for frag in _GUESSABLE_FRAGMENTS) or bool(_YEAR_PATTERN.search(lowered))
+
+
+def _is_production() -> bool:
+    """判定是否运行在生产环境。
+
+    主判据为显式 APP_ENV 变量（docker-compose.yml 已固定 production）；
+    未声明时以容器特征兜底（k8s/podman/裸机无法命中兜底，故迁移时应显式设置 APP_ENV）。
+    """
+    app_env = os.getenv("APP_ENV", "").strip().lower()
+    if app_env in {"production", "prod"}:
+        return True
+    if app_env in {"development", "dev", "test"}:
+        return False
+    # 未声明 APP_ENV：容器特征兜底
+    if os.path.exists("/.dockerenv"):
+        return True
+    try:
+        with open("/proc/1/cgroup", encoding="utf-8") as f:
+            content = f.read()
+        return "docker" in content or "containerd" in content
+    except (OSError, UnicodeDecodeError):
+        # cgroup v2 主机上该文件常只有 "0::/"，判据可能失效，故上方 APP_ENV 为主
+        return False
+
+
+def _validate_secret_key() -> None:
+    """SECRET_KEY 安全校验：生产环境弱密钥拒绝启动，开发环境仅告警放行。
+
+    开发环境保持可用：允许未设置时使用默认值，不影响本地开发与现有 .env；
+    但弱密钥会打印 WARNING，避免生产判定 fail-open 时被静默跳过。
+    """
+    weak = _secret_key_is_weak(settings.SECRET_KEY)
+    if _is_production():
+        if weak:
+            print(
+                "FATAL: 生产环境 SECRET_KEY 未设置、仍为默认/占位值或强度不足\n"
+                "（要求：至少 32 字符，且不含项目名/单词/年份等可猜片段）。\n"
+                "请在部署 .env 文件中配置强随机密钥（生成命令：openssl rand -hex 32），\n"
+                "否则任何持有默认密钥的人都可伪造登录 Token。",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+    elif weak:
+        print(
+            "WARNING: 当前 SECRET_KEY 为弱密钥（开发默认值或可猜片段）。\n"
+            "本地开发可忽略；生产/容器部署前请用 openssl rand -hex 32 生成强随机密钥\n"
+            "并在 .env 中设置 APP_ENV=production（生产环境下弱密钥将拒绝启动）。",
+            file=sys.stderr,
+        )
+
+
+_validate_secret_key()
