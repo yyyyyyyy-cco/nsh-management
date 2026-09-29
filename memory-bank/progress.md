@@ -306,6 +306,7 @@ nsh-management/
 | 2026-09-28 | 小队分析模块新增单成员「取消分配」功能：后端 DELETE /schedules/{id}/squad-adjustments/{player_name} 端点 + 前端成员表操作列；修复「重置调整」按钮缺少 isAdmin 权限门控 | 数据分析 / 小队分析 |
 | 2026-09-28 | 新增代码审查与 UI 评估报告 memory-bank/code-ui-audit-2026-09.md | 文档/全栈审查 |
 | 2026-09-28 | 三个严重问题修复（code-ui-audit-2026-09.md C-1～C-3）：①accounts 响应统一脱敏——新增辅助函数 _build_account_out(account, current_user)，list/create/update/update_status 四条响应路径全部对非 developer 角色置空 plain_password（developer 仍可见，明文列按既定决策保留）；②config 生产弱密钥启动门禁——APP_ENV 主判据 + 容器特征兜底 + 弱片段/年份黑名单 + 64 位 hex 豁免，开发环境 fail-open 仅 WARNING；docker-compose backend 固定 APP_ENV=production；deploy.sh 健康检查失败改非零退出并打印容器日志；根与 backend .env.example、DEPLOY.md、README 补门禁与核对说明；security-review.md 同步（C-1 关闭 + C-2 门禁专节）；③element-plus 主按钮对比度与禁用态——实心主按钮文字改墨色 --ink-900（对比度达 AAA），:not(.is-plain):not(.is-text):not(.is-link) 收敛作用域，新增可辨禁用态；ui-style-guide.md §4.1 同步 | 系统配置 / 安全 / 部署 / UI |
+| 2026-09-28 | 清理误创建的 backend/nul 垃圾文件：非 cmd shell（Git Bash / Node 子进程等）中 `> nul` 重定向按普通文件名处理，把一次后端启动的 SECRET_KEY FATAL 报错写入了真实文件 backend/nul；删除该文件并在 .gitignore 增加 Windows 保留设备名 nul 忽略规则；ai-checklist §五 补充第 20 条 | 仓库配置、文档 |
 | 2026-09-28 | C-3 主按钮深色文字方案按用户美观偏好回退为白字+浅金渐变，对比度作为已知接受项；element-plus.css 恢复原样（移除 --ink-900 文字色与自定义禁用态），ui-style-guide §4.1 与审查报告同步 | UI / 文档 |
 
 ---

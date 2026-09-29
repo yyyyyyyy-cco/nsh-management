@@ -91,6 +91,8 @@ backend/scripts/smoke_test.py
 
 # 系统文件
 desktop.ini
+# Windows 保留设备名文件（POSIX 风格 shell 中 >nul 重定向误创建）
+nul
 
 # 部署脚本与 Nginx 配置（包含服务器 IP/域名/凭据，不提交）
 deploy.sh

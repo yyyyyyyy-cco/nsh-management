@@ -219,6 +219,7 @@ nsh-management/
 | 2026-09-24 | F01/F04 定向修复文档同步：security-review 新增 §十二输出边界与历史 XSS 结论更正；frontend/docs 补排表保存约定及人工回归清单，文档说明与目录注释同步；新增图表源码登记在 progress 的代码目录树，本索引不重复维护源码树 | security-review.md, frontend/docs/README.md, progress.md, ai-checklist.md |
 | 2026-09-28 | 新增 code-ui-audit-2026-09.md 审查报告并登记 | architecture.md, code-ui-audit-2026-09.md, progress.md |
 | 2026-09-28 | security-review.md / ui-style-guide.md 随严重问题修复同步更新（accounts 统一脱敏关闭 + 生产弱密钥启动门禁专节；主按钮墨色文字与禁用态规范），code-ui-audit-2026-09.md C-1～C-3 标注已修复 | security-review.md, ui-style-guide.md, code-ui-audit-2026-09.md |
+| 2026-09-28 | ai-checklist §五 新增遗漏模式 20（非 cmd shell 中 `> nul` 重定向误创建 nul 文件）；.gitignore 增加 Windows 保留设备名 nul 忽略规则，删除误创建的 backend/nul | ai-checklist.md, progress.md, .gitignore |
 
 ---
 

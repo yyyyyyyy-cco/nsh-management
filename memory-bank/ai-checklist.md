@@ -128,6 +128,7 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 | 17 | 并发/竞争类回归断言假设单一写者 | 「直接改名 vs 审核通过」并发用例断言「approved ⇒ 成员名 == 新 ID」，但审核通过后管理员再次直接改名是合法交错 → 间歇失败（实测 4 次 1 次失败），文档却据此声称「5 项全部通过」 | 断言业务不变量（无后续写入者才要求名称等于新 ID、改名必留已确认关联、失效后名称必为直接改名结果），不锁定最终值；并发用例定稿前多跑几次 |
 | 18 | 将 Vue 模板转义误当作所有 HTML 输出的保护 | ECharts 自定义 formatter 绕过模板，姓名/职业/阵营直接拼接仍可注入 HTML；详见 security-review §十二 | 沿数据流检查每个 HTML 输出入口，只转义动态文本；图表重构后核对所有同类 formatter，不改源数据或 Canvas 标签 |
 | 19 | 防抖保存与重载各自执行，旧快照覆盖未保存编辑 | 切回 Tab 会重载，自动保存到执行时才读当前状态；重载可能先覆盖编辑，再把旧内容保存回服务器 | 保存串行化并记录编辑版本；重载先保存，返回时校验请求序号与编辑版本；失败保留本地数据，导入及卸载前处理待保存任务，回归顺序见 frontend/docs |
+| 20 | 非 cmd shell 中 `> nul` 重定向误创建 nul 文件 | `nul` 在 cmd 中是空设备，但在 Git Bash / Node / Python 子进程等 POSIX 风格 shell 中按普通文件名处理 → 在 CWD（曾为 backend）生成真实文件 `backend/nul`；曾把一次后端 SECRET_KEY FATAL 报错写入其中并被误认为"文件被更改"，且因 Windows 保留名难以常规删除 | 跨 shell 的输出重定向统一写 `> /dev/null`（Git Bash 兼容），仅在 cmd 脚本（.bat）内使用 `>nul`；发现 nul 文件用 `del "\\?\<绝对路径>\nul"` 或 .NET `File.Delete` 删除（需 `\\?\` 前缀）；.gitignore 已加 nul 防御 |
 
 ---
 
