@@ -144,22 +144,29 @@ def self_test() -> int:
         models = parse_models(tp)
     if models.get("demo") != ["id", "name", "extra"]:
         failures.append(f"模型解析异常（关系属性应被排除）：{models.get('demo')}")
-    # 3) 双向漂移检出
+    # 3) 模型侧漂移检出（analyze 只比对**共同存在**的表）
     rows = {t: (a, b) for t, a, b in analyze(doc, models)}
     if rows.get("demo") != (["extra"], []):
         failures.append(f"模型有文档缺未检出：{rows.get('demo')}")
-    if rows.get("other") != ([], ["ghost"]):
-        failures.append(f"文档有模型缺未检出：{rows.get('other')}")
-    # 4) 只在一侧存在的表
+    # 4) 仅文档有的表**不进** analyze（由 tables_only_in_one 报告），其字段仍要被解析到
+    if "other" in rows:
+        failures.append("仅文档有的表不应出现在 analyze 结果中")
+    if doc.get("other") != ["id", "ghost"]:
+        failures.append(f"仅文档有的表字段未解析：{doc.get('other')}")
+    # 5) 文档侧漂移检出（构造共同表，文档多一个字段）
+    rows_d = {t: (a, b) for t, a, b in analyze({"demo": ["id", "name", "ghost"]}, models)}
+    if rows_d.get("demo") != ([], ["ghost"]):
+        failures.append(f"文档有模型缺未检出：{rows_d.get('demo')}")
+    # 6) 只在一侧存在的表
     mo, do = tables_only_in_one(doc, models)
-    if mo != ["model_only"] or do:
+    if mo != ["model_only"] or do != ["other"]:
         failures.append(f"单侧表检出异常：model_only={mo} doc_only={do}")
-    # 5) 一致时不误报
+    # 7) 一致时不误报
     rows2 = {t: (a, b) for t, a, b in analyze({"x": ["id"]}, {"x": ["id"]})}
     if rows2.get("x") != ([], []):
         failures.append(f"误报：{rows2.get('x')}")
 
-    total = 5
+    total = 7
     if failures:
         print("[schema-drift] 自检失败：")
         for f in failures:
