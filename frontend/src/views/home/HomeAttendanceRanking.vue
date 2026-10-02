@@ -32,7 +32,7 @@
             style="flex: 1"
           />
           <span class="rank-item__rate num" :style="{ color: profColor(m.main_profession) }">
-            {{ m.attendance_rate != null ? `${ratePercent(m.attendance_rate)}%` : '-' }}
+            {{ formatRatePercent(m.attendance_rate, 0) }}
           </span>
         </div>
       </template>
@@ -46,16 +46,12 @@ import { ArrowRight, Medal, UserFilled } from '@element-plus/icons-vue'
 
 import type { AttendanceRateItem } from '@/api/members'
 import { profColor } from '@/utils/profession'
+import { formatRatePercent } from '@/utils/attendance'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
 
 defineProps<{ showSkeleton: boolean; topAttendance: AttendanceRateItem[] }>()
 
 const router = useRouter()
-
-/** 出勤率小数（0~1）转百分数整数。 */
-function ratePercent(rate: number | null | undefined): number | string {
-  return rate != null ? Math.round(rate * 100) : '-'
-}
 </script>
 
 <style scoped src="./home-shared.css"></style>
