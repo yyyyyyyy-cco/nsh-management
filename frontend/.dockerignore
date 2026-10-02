@@ -1,5 +1,5 @@
 .git
-.claude
+.agent
 node_modules/
 dist/
 *.log

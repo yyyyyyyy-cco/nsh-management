@@ -6,11 +6,14 @@ A3 相关性：分路内 综合分 vs 主维贡献倍数 的排名相关性（�
 A4 钻空子检查：全场 TOP20 玩家是否本职维度确实突出（主维倍数>=1.5）
 A5 权重集中度：核心+次要占比（边际项合计不应超过 25%）
 """
-import sqlite3, sys, io, re, json
+import os, sqlite3, sys, io, re, json
 from collections import defaultdict
+from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-conn = sqlite3.connect(r'e:\code\@Cjy\nsh-management\backend\data\nsh-server-20260907.db')
+# 数据源：默认取 backend/data 下的服务器快照，可用环境变量 NSH_DB_PATH 覆盖（2026-10-02 移除硬编码绝对路径）
+DB_PATH = Path(os.environ.get("NSH_DB_PATH") or Path(__file__).resolve().parents[1] / "data" / "nsh-server-20260907.db")
+conn = sqlite3.connect(str(DB_PATH))
 conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 cur.execute("SELECT * FROM match_data")
@@ -71,7 +74,9 @@ for arch, grp in groups.items():
     MARG[arch] = set(marginal)
 
 # ===== A1 前端权重表零偏差校验 =====
-ts = open(r'e:\code\@Cjy\nsh-management\frontend\src\components\match-data\analysis.ts', encoding='utf-8').read()
+# 前端权重表来源：仓库内 analysis.ts，可用环境变量 NSH_ANALYSIS_TS 覆盖
+TS_PATH = Path(os.environ.get("NSH_ANALYSIS_TS") or Path(__file__).resolve().parents[2] / "frontend" / "src" / "components" / "match-data" / "analysis.ts")
+ts = TS_PATH.read_text(encoding='utf-8')
 m = re.search(r'PROFESSION_WEIGHTS[^=]*= (\{[\s\S]*?\n\})', ts)
 block = re.sub(r'(^|\n)\s*//[^\n]*', '', m.group(1))
 block = re.sub(r"(?m)^([ \t]*)([^'\"{}\s][^:'\"{}\n]*):", r"\1'\2':", block)

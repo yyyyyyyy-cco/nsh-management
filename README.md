@@ -85,38 +85,9 @@ docker compose up -d --build
 
 ## 项目结构
 
-```
-nsh-management/
-├── backend/                    # 后端（FastAPI）
-│   ├── app/
-│   │   ├── api/v1/             # API 路由
-│   │   ├── core/               # 配置、数据库、安全
-│   │   ├── models/             # SQLAlchemy 模型（12 表）
-│   │   ├── schemas/            # Pydantic Schema
-│   │   ├── services/           # 业务逻辑
-│   │   └── utils/              # 工具函数
-│   ├── alembic/                # 数据库迁移
-│   ├── Dockerfile
-│   └── requirements.txt
-├── frontend/                   # 前端（Vue 3）
-│   ├── src/
-│   │   ├── api/                # API 封装
-│   │   ├── components/         # 业务组件
-│   │   ├── views/              # 页面
-│   │   ├── composables/        # 组合式函数
-│   │   ├── layouts/            # 布局
-│   │   ├── stores/             # Pinia 状态
-│   │   ├── styles/             # 主题样式
-│   │   ├── types/              # TypeScript 类型
-│   │   ├── utils/              # 工具函数
-│   │   └── router/             # 路由
-│   ├── Dockerfile
-│   └── package.json
-├── docker-compose.yml
-├── .env.example
-├── DEPLOY.md
-└── start.bat                   # Windows 一键启动
-```
+> 代码目录树的**唯一权威源**是 [`memory-bank/progress.md`](memory-bank/progress.md)（`AGENTS.md` §2.1 约定「不复制，引用」）；
+> 文档索引与文档目录树见 [`memory-bank/architecture.md`](memory-bank/architecture.md)。
+> 本文件不再重复维护目录树，避免多份副本漂移（历史教训见 `memory-bank/ai-checklist.md`）。
 
 ## 环境变量
 

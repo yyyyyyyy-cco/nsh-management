@@ -6,11 +6,14 @@
   边际 0.5<=rs<1 且职业内非零占比>=50%（每项 0.05；运行时倍数封顶 2.0）
   正向权重归一化；重伤统一 -15×重伤倍数；轮内指标全组为 0 时权重摊给其余项
 """
-import sqlite3, sys, io
+import os, sqlite3, sys, io
 from collections import defaultdict, Counter
+from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-conn = sqlite3.connect(r'e:\code\@Cjy\nsh-management\backend\data\nsh-server-20260907.db')
+# 数据源：默认取 backend/data 下的服务器快照，可用环境变量 NSH_DB_PATH 覆盖（2026-10-02 移除硬编码绝对路径）
+DB_PATH = Path(os.environ.get("NSH_DB_PATH") or Path(__file__).resolve().parents[1] / "data" / "nsh-server-20260907.db")
+conn = sqlite3.connect(str(DB_PATH))
 conn.row_factory = sqlite3.Row
 cur = conn.cursor()
 cur.execute("SELECT * FROM match_data")

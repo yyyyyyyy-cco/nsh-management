@@ -45,29 +45,29 @@ nsh-management/
 ## 文档说明
 
 ### 1. 产品设计文档
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\design-document-v2.md`
+- **路径**：`memory-bank/design-document-v2.md`
 - **作用**：定义产品功能、用户角色（developer/admin/member）、权限、页面结构、API接口、数据库设计等，整合UI设计规范（浅色雅金风）
 - **状态**：当前唯一有效版本，开发以本文档为准
 - **更新时机**：需求变更、功能调整时更新
 
 ### 1.1 UI风格参考文档
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ui-style-guide.md`
+- **路径**：`memory-bank/ui-style-guide.md`
 - **作用**：定义「浅色雅金风（宣纸鎏金）」设计规范：色彩令牌、字体、组件规范、布局、动画、职业色映射；实现位置为 `frontend/src/styles/`（theme.css / element-plus.css / index.css）
 - **更新时机**：UI 风格调整、设计令牌变更时更新
 
 ### 1.2 UI优化方案文档
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ui-polish-plan.md`
+- **路径**：`memory-bank/ui-polish-plan.md`
 - **作用**：记录 UI 优化方案（P0-P3 共 11 项优化清单：视觉层次/交互反馈/细节打磨/微动效）、CSS 新增动画族规范、卡片层级规范、文件变更清单、验收标准（2026-09-18 全部完成：P0–P3 11 项 + §2.5 代码质量 2 项 + 3 项可选项——表格密度切换/空状态 SVG 插画/职业标签 hover 微光；最终规范见 ui-style-guide.md §10）
 - **前置文档**：`ui-style-guide.md`（权威视觉规范，本文档仅补充优化增量）
 - **更新时机**：优化项完成或方案调整时更新
 
 ### 2. 数据库设计文档
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\database-design.md`
+- **路径**：`memory-bank/database-design.md`
 - **作用**：定义全部数据表结构（12 表，含 squad_adjustments、operation_logs、member_game_id_requests）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.9（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计、游戏 ID 修改申请）
 - **更新时机**：表结构变更、业务规则调整时更新
 
 ### 3. 技术栈文档
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\tech-stack.md`
+- **路径**：`memory-bank/tech-stack.md`
 - **作用**：记录前后端技术选型（含 echarts 图表库）、项目结构、Docker Compose 部署方案、依赖包等
 - **更新时机**：技术栈变更、依赖升级时更新
 
@@ -92,72 +92,72 @@ nsh-management/
 - **更新时机**：提交规范调整时更新
 
 ### 7. 项目文档索引（本文档）
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\architecture.md`
+- **路径**：`memory-bank/architecture.md`
 - **作用**：整理项目所有文档的作用和目录，方便快速查找
 - **更新时机**：每次更新其他文档后必须同步更新本文档
 
 ### 8. 实施方案文档
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\implementation-plan.md`
+- **路径**：`memory-bank/implementation-plan.md`
 - **作用**：定义项目开发任务分解、模块依赖关系、开发阶段规划（2026-09-15 起转为历史规划存档，最新进度见 progress.md）
 - **更新时机**：开发计划调整时更新
 
 ### 9. 项目进度文档
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\progress.md`
+- **路径**：`memory-bank/progress.md`
 - **作用**：记录代码模块结构、开发进度、代码变更记录；当前阶段 7 已完成（功能增强与部署）
 - **更新时机**：每次更新代码后必须同步更新本文档
 
 ### 10. 后端模块开发文档
-- **路径**：`e:\code\@Cjy\nsh-management\backend\docs\README.md`
+- **路径**：`backend/docs/README.md`
 - **作用**：后端模块的需求说明、开发计划（全部 P0/P1/P2 已完成）、进度跟踪
 - **更新时机**：后端每个功能点完成时更新
 
 ### 11. 前端模块开发文档
-- **路径**：`e:\code\@Cjy\nsh-management\frontend\docs\README.md`
+- **路径**：`frontend/docs/README.md`
 - **作用**：前端模块的需求说明、功能清单、排表保存约定与人工回归清单；实际进度与验证结果以 progress.md 为准
 - **更新时机**：前端每个功能点完成时更新
 
 ### 12. 部署文档
-- **路径**：`e:\code\@Cjy\nsh-management\DEPLOY.md`
+- **路径**：`DEPLOY.md`
 - **作用**：Docker Compose 部署全流程：架构、环境变量、部署步骤、运维（日志/升级/备份/恢复）、常见问题
 - **更新时机**：部署配置（Dockerfile / nginx.conf / docker-compose.yml / .env 变量）变更时更新
 
 ### 13. 数据分析模块完整方案
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\data-analysis-complete.md`
+- **路径**：`memory-bank/data-analysis-complete.md`
 - **作用**：数据分析模块规格与实施记录（2026-09-15 瘦身归档）：CSV 结构与字段映射、小队结构、16 项衍生指标公式、开发方案、ECharts 图表规划、实施记录与口径确认
 - **更新时机**：数据分析模块功能调整时更新
 
 ### 14. 安全审查文档
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\security-review.md`
+- **路径**：`memory-bank/security-review.md`
 - **作用**：项目安全审查记录，涵盖认证、权限、数据安全等方面的审查结论与改进项（§一～九为初次全量审查；§十为用户隔离定向修复；§十一为改名关联安全决策；§十二为全项目审查 F01 图表 HTML 输出边界及历史结论更正）
 - **更新时机**：安全相关变更或审查时更新
 
 ### 15. AI 项目完整上下文文档
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ai-context.md`
+- **路径**：`memory-bank/ai-context.md`
 - **作用**：根目录 `AGENTS.md` 的完整扩展版，为 AI 助手提供项目全貌：功能模块、技术栈详情、编码规范、Git 工作流、文档体系、安全要点、已知待优化项
 - **更新时机**：项目架构、技术栈、规范发生重大变更时更新
 
 ### 16. AI 操作检查清单
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\ai-checklist.md`
+- **路径**：`memory-bank/ai-checklist.md`
 - **作用**：记录 AI 在本项目中犯过的错误和容易遗漏的联动点（版本号散落、文件重命名联动、目录树同步、.env 对齐等），每次修改前必读
 - **更新时机**：发现新的遗漏模式时补充
 
 ### 17. AI 开发指南（入口文档）
-- **路径**：`e:\code\@Cjy\nsh-management\AGENTS.md`
+- **路径**：`AGENTS.md`
 - **作用**：AI 入口文档（原 `CLAUDE.md`，2026-09-15 更名扩充）：项目简介、权威源映射、各文档维护时机、文档同步与进度追踪流程（自检清单）、代码/Git/安全摘要、AI 行为约定
 - **更新时机**：项目结构、规范或维护流程变更时更新
 
 ### 18. 成员战绩与战报实施方案
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\stats-report-plan.md`
+- **路径**：`memory-bank/stats-report-plan.md`
 - **作用**：成员详情战绩页（管理员独立页）与单场图文战报的实施方案（2026-09-17 已实施完成，待浏览器验收）：决策记录、交互设计、技术方案、文件清单、验证方案、二期规划
 - **更新时机**：方案调整或实施完成时更新
 
 ### 19. 游戏 ID 改名申请与战绩关联设计
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\design-game-id-change.md`
+- **路径**：`memory-bank/design-game-id-change.md`
 - **作用**：帮众提交游戏 ID 修改申请、管理员审核、通过后同步常驻库，以及个人战绩/成员详情新旧 ID 合并查询专项设计（2026-09-20 设计确认并实施完成，待浏览器验收；实施与验证状态见 progress.md）：背景决策、业务流程、API 合同、关联算法与冲突边界、权限事务、前端交互、验证方案
 - **更新时机**：功能调整或实施完成时更新
 
 ### 20. 代码审查与 UI 评估报告（2026-09）
-- **路径**：`e:\code\@Cjy\nsh-management\memory-bank\code-ui-audit-2026-09.md`
+- **路径**：`memory-bank/code-ui-audit-2026-09.md`
 - **作用**：2026-09-28 全项目深度审查结论快照，覆盖后端代码质量/安全/性能与前端 UI/UX 两大维度（严重 3 / 高 19 / 中 34 / 低 12 + 8 处规范文档缺陷），含建议整改顺序与优秀实践保护清单
 - **更新时机**：后续审查或整改验收时追加更新记录
 
@@ -228,6 +228,7 @@ nsh-management/
 | 2026-09-28 | security-review.md / ui-style-guide.md 随严重问题修复同步更新（accounts 统一脱敏关闭 + 生产弱密钥启动门禁专节；主按钮墨色文字与禁用态规范），code-ui-audit-2026-09.md C-1～C-3 标注已修复 | security-review.md, ui-style-guide.md, code-ui-audit-2026-09.md |
 | 2026-09-28 | ai-checklist §五 新增遗漏模式 20（非 cmd shell 中 `> nul` 重定向误创建 nul 文件）；.gitignore 增加 Windows 保留设备名 nul 忽略规则，删除误创建的 backend/nul | ai-checklist.md, progress.md, .gitignore |
 | 2026-10-02 | 新增项目合规化与工程完善计划（`.agent/plans/compliance-remediation-plan.md`，登记为本索引 §21 并补目录树 `.agent/plans/`）：以行业权威规范为基准的全仓静态审查结论与整改路线——42 项差距证据清单（含 3 项 P0 交付阻断项）、Wave 0～4 共 31 项任务与逐项验收命令、6 项待确认决策；本轮仅新增计划文档，未改动代码与配置 | compliance-remediation-plan.md, architecture.md, AGENTS.md, progress.md |
+| 2026-10-02 | Wave 0 文档一致性批次 1（合规化计划 W0-3/4/5/7）：①本索引 19 处「路径」条目由陈旧绝对路径 `e:\code\@Cjy\nsh-management\...` 改为仓库相对路径（`.agent/rules/code_rule.md` 2 处同步）；②`memory-bank/SECURITY-REVIEW.md` **实际**改名为 `security-review.md`（2026-08-26 曾记录改名但未落地，本次两步 `git mv` 落实，历史记录中的旧名按 §3.3 保留）；③`README.md` 删除复制的代码目录树，改为引用本索引与 `progress.md`；④`backend/.dockerignore`、`frontend/.dockerignore` 旧目录名 `.claude` → `.agent`；⑤3 个一次性分析脚本移除 4 处硬编码绝对路径（改由 `NSH_DB_PATH`/`NSH_ANALYSIS_TS` 覆盖）；⑥`analysis.ts` 计分口径脚本引用 v3 → v4 | architecture.md, code_rule.md, security-review.md, README.md, progress.md |
 
 ---
 

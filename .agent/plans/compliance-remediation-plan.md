@@ -103,7 +103,7 @@
 | F-03 | 出勤率口径散落 10 个文件（前端重复计算风险） | `Select-String 'attendance_rate|出勤率'`：`AttendanceRatePanel.vue` 19 处、`HomeView.vue` 5、`member_service.py` 5、`MemberDetailHeader.vue` 4 等 | 单一权威源（`AGENTS.md` §2.1） | W2-6 | P1 |
 | F-04 | `config.py` 导入期副作用（`mkdir` + 弱密钥 `sys.exit(1)`） | `backend/app/core/config.py:9-15,120,130` | PEP 8 / 可测试性 | W2-6 | P2 |
 | F-05 | 陈旧文件名引用：注释指向 `sim_contribution_v3_20260907.py`，实际只有 v4 | `frontend/src/components/match-data/analysis.ts:44`；`git ls-files backend/scripts` | `AGENTS.md` §3.3 第 6 条 | W0-5 | P2 |
-| F-06 | 3 个日期戳一次性脚本入库无用途说明、无运行时引用 | `git ls-files backend/scripts`（`audit_/derive_/sim_contribution_v4_20260907.py`） | 可维护性 | W0-5 | P3 |
+| F-06 | 3 个一次性分析脚本（v4）docstring 齐全，但路径硬编码到**旧仓库绝对位置** 4 处，且除被误引为 v3 外无任何引用 | `backend/scripts/*_v4_20260907.py`（docstring 完整）；`Select-String -CaseSensitive 'e:\code\@Cjy'` 命中 4 处；`analysis.ts:44` 误引 v3 | 可维护性 | W0-5 ✅（已修） | P3 |
 | F-07 | 复用逻辑偏重落在组件层（`components` 83 文件 13.7k 行 vs `utils` 3 文件 73 行） | 目录统计（`(Get-Content).Count` 口径） | Vue 风格指南（复用优先） | W2-6 | P3 |
 | **F-08** | **`frontend/Dockerfile` 依赖未入库的 `frontend/nginx.conf` → 全新克隆构建必失败** | `frontend/Dockerfile:11`；`git check-ignore -v` → `.gitignore:99`；`Test-Path frontend/nginx.conf` = False；仓库仅有 `frontend/nginx.conf.example` | SLSA v1.2（构建输入完整） | **W1-1** | **P0** |
 | **F-09** | **部署入口 `deploy.sh` 未入库且本地不存在** | `DEPLOY.md:54-63`；`git check-ignore -v` → `.gitignore:98` | SLSA v1.2 / 12-Factor V | **W1-2** | **P0** |
@@ -134,10 +134,10 @@
 | F-34 | 无监控告警（与 F-16 同源，治理视角） | 见 F-16 | SRE / 12-Factor XI | W3-1 | P2 |
 | F-35 | 无备份自动化与恢复演练（与 F-17 同源） | 见 F-17 | 运维基线 | W3-2 | P2 |
 | F-36 | `.qoder/plans/` 3 个 `.md` 已入库但未登记索引 | `git ls-files .qoder`；`grep qoder` 在 `AGENTS.md`/`architecture.md` 无命中 | `AGENTS.md` §2.2 | W0-6 | P2 |
-| F-37 | 陈旧绝对路径 `e:\code\@Cjy\...` 共 **23 处**（`architecture.md` 19、`progress.md` 2、`.agent/rules/code_rule.md` 2） | `Select-String 'e:\\code\\@Cjy'` 计数；`code_rule.md:20-21` | 文档可移植性 | W0-3 | P2 |
-| F-38 | 文件名大小写与引用不一致：索引内为 `memory-bank/SECURITY-REVIEW.md`，11 个文件按小写 `security-review.md` 引用，且 `architecture.md:196` 记录「已改名为小写」 | `git ls-files memory-bank`；`Select-String 'security-review\.md'` 命中 11 文件 | `AGENTS.md` §2.2（小写 kebab-case） | W0-4 | P1 |
-| F-39 | `.dockerignore` 残留旧目录名 `.claude` | `backend/.dockerignore:2`、`frontend/.dockerignore:2`（规则目录已改为 `.agent`） | `AGENTS.md` §3.3 第 6 条 | W0-5 | P2 |
-| F-40 | `README.md:88-119` 复制了代码目录树（权威源应仅 `progress.md`） | `README.md:88-119` vs `AGENTS.md:36` | 单一权威源 | W0-7 | P2 |
+| F-37 | 陈旧绝对路径：**活引用 25 处**——文档路径 21 处（`architecture.md` 19 + `.agent/rules/code_rule.md` 2）+ 3 个分析脚本硬编码 4 处（DB 快照与 analysis.ts）；另有 `progress.md` 2 处为历史记录中对同期**另一项目** `E:\code\@Cjy\B` 的引用（按 `AGENTS.md` §3.3「历史条目保留」处理）。原记录「23 处」系首次仅 grep `*.md` 且 `Select-String` 默认不区分大小写所致，已更正 | `Select-String -CaseSensitive 'e:\code\@Cjy'`；`code_rule.md:20-21`；`backend/scripts/*_v4_20260907.py` | 文档与代码可移植性 | W0-3 / W0-5 ✅（已修） | P2 |
+| F-38 | 文件名大小写与引用不一致：索引内为 `memory-bank/SECURITY-REVIEW.md`，11 个文件按小写 `security-review.md` 引用，且 `architecture.md:196` 记录「已改名为小写」（该记录早于实际落地） | `git ls-files memory-bank`；`Select-String 'security-review\.md'` 命中 11 文件 | `AGENTS.md` §2.2（小写 kebab-case） | W0-4 ✅（已修） | P1 |
+| F-39 | `.dockerignore` 残留旧目录名 `.claude` | `backend/.dockerignore:2`、`frontend/.dockerignore:2`（规则目录已改为 `.agent`） | `AGENTS.md` §3.3 第 6 条 | W0-5 ✅（已修） | P2 |
+| F-40 | `README.md:88-119` 复制了代码目录树（权威源应仅 `progress.md`） | `README.md:88-119` vs `AGENTS.md:36` | 单一权威源 | W0-7 ✅（已修） | P2 |
 | F-41 | 部署章权威源冲突：`tech-stack.md` 称「前端容器 80/443 HTTPS」「后端多阶段构建」「启动脚本 deploy.sh」 | `tech-stack.md:121-126`；`backend/Dockerfile:1-25` 实为单阶段；`deploy.sh` 不在库 | 单一权威源 | W0-8 | P1 |
 | F-42 | 引导文档不完整：`start.bat` 默认 `DB_MODE=prod` 指向生产快照 `nsh-server-20260907.db`，README 未提 | `start.bat` 前 25 行；`README.md:40-60` | 12-Factor III / 引导完整性 | W1-6 | P2 |
 
@@ -219,13 +219,13 @@
 
 | 任务 | 状态 | 完成日期 | 验证证据 | 关联提交 |
 |------|------|---------|---------|---------|
-| W0-1 新增 LICENSE | ⏳ 待开始 | | | |
+| W0-1 新增 LICENSE | ⛔ 阻塞 | | 阻塞项：需用户提供版权人名称/年份（见 §3.1 D-1） | — |
 | W0-2 .gitattributes / .editorconfig | ⏳ 待开始 | | | |
-| W0-3 清理绝对路径（23 处） | ⏳ 待开始 | | | |
-| W0-4 security-review 大小写 | ⏳ 待开始 | | | |
-| W0-5 陈旧引用与 .dockerignore | ⏳ 待开始 | | | |
+| W0-3 清理绝对路径（活引用 21 处） | ✅ 已完成 | 2026-10-02 | `Select-String -CaseSensitive 'e:\code\@Cjy'` 仅剩本计划自身证据行（§10 已说明计数口径修正）；`architecture.md` 19 处 + `code_rule.md` 2 处改为仓库相对路径，diff 逐行复核通过 | chore(repo): 统一路径引用与陈旧引用 |
+| W0-4 security-review 大小写 | ✅ 已完成 | 2026-10-02 | `git ls-files memory-bank` → `memory-bank/security-review.md`；两步 `git mv` exit 0；`ai-checklist` 警示的「改名文件自身自引用」已核查（L95 本就小写） | 同上 |
+| W0-5 陈旧引用与 .dockerignore | ✅ 已完成 | 2026-10-02 | `analysis.ts:44` v3→v4；两个 `.dockerignore` `.claude`→`.agent`；3 个分析脚本 4 处硬编码路径改由 `NSH_DB_PATH`/`NSH_ANALYSIS_TS` 覆盖；`python -m py_compile` 三脚本 exit 0 | 同上 |
 | W0-6 `.qoder` 登记或忽略 | ⏳ 待开始 | | | |
-| W0-7 README 目录树去重 | ⏳ 待开始 | | | |
+| W0-7 README 目录树去重 | ✅ 已完成 | 2026-10-02 | `git diff --stat README.md` = 35 行变更（删除 32 行树体，改为引用 `progress.md`/`architecture.md`） | 同上 |
 | W0-8 tech-stack 部署章对齐 | ⏳ 待开始 | | | |
 | W1-1 nginx.conf 入库 | ⏳ 待开始 | | | |
 | W1-2 deploy.sh.example | ⏳ 待开始 | | | |
@@ -315,3 +315,4 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/docs     # 生产
   - 仓库可见性、协作者规模、生产配置敏感度未知，对应 §3 D-1/D-5；
   - 行业规范版本以官方站点为准（ASVS 5.0.0、OWASP Top 10:2025、Keep a Changelog 1.1.0、SLSA v1.2 已于 2026-10-02 核对）。
 - **计数口径**：行数使用 `(Get-Content $f).Count`（含空行），与仓库既有文档的统计口径可能不同，故豁免清单中的登记行数与本计划实测值并列展示（见 F-02）。
+- **计数口径修正（2026-10-02）**：首次统计陈旧绝对路径时只检索 `*.md`，且 `Select-String` 默认**不区分大小写**，导致 ① 漏计 3 个分析脚本中的 4 处硬编码路径；② 误将 `progress.md` 中对同期另一项目 `E:\code\@Cjy\B` 的历史引用计入本仓库路径。§4 的 F-06/F-37 已按 `-CaseSensitive` + 全后缀复核结果更正。该项修正本身即为「审查结论必须可复核」的示范：凡计数结论都应记录所用命令与匹配选项。

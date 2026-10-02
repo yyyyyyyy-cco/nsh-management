@@ -1,5 +1,5 @@
 .git
-.claude
+.agent
 __pycache__/
 *.pyc
 .venv/
