@@ -100,8 +100,8 @@ def parse_exemptions() -> dict[str, int]:
 
 SELF_TEST_CASES: tuple[tuple[tuple, tuple[str | None, str | None], str], ...] = (
     ((( "a.py", 300, 300, "服务文件（Python）"), {}), (None, None), "恰好等于上限 → 通过（边界不报）"),
-    ((("a.py", 301, 300, "服务文件（Python）"), {"has_marker": False, "listed": False}), ("超限且未打标记", None), "超限 + 无标记 → 报错"),
-    ((("a.py", 301, 300, "服务文件（Python）"), {"has_marker": True, "listed": False}), ("已打标记但未登记", None), "有标记但未登记 → 报错"),
+    ((("a.py", 301, 300, "服务文件（Python）"), {"has_marker": False, "listed": False}), ("未打", None), "超限 + 无标记 → 报错"),
+    ((("a.py", 301, 300, "服务文件（Python）"), {"has_marker": True, "listed": False}), ("未登记", None), "有标记但未登记 → 报错"),
     ((("a.py", 301, 300, "服务文件（Python）"), {"has_marker": True, "listed": True, "registered": 280}), (None, None), "已登记且增长 <20% → 通过"),
     ((("a.py", 340, 300, "服务文件（Python）"), {"has_marker": True, "listed": True, "registered": 280}), (None, "重新评估"), "增长 ≥20% → 警告（不失败）"),
 )
