@@ -7,8 +7,10 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
-LOG_DIR = BASE_DIR / "logs"
+# 文件系统只读时 LOG_DIR 退化为 None（仅控制台输出），故类型显式允许 None
+LOG_DIR: Path | None = BASE_DIR / "logs"
 try:
+    assert LOG_DIR is not None  # 仅用于让类型检查通过；此处必然成立
     LOG_DIR.mkdir(parents=True, exist_ok=True)
 except OSError:
     # 文件系统只读时退化为仅控制台输出

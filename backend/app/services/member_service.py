@@ -86,7 +86,7 @@ async def list_members(
                 select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status)
             )
         ).all()
-        status_counts = dict(status_rows)
+        status_counts: dict[str, int] = {str(s): int(c) for s, c in status_rows}
         stats = {
             "formal_count": int(status_counts.get("formal", 0)),
             "substitute_count": int(status_counts.get("substitute", 0)),

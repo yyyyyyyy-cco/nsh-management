@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import require_admin, require_developer
 from app.core.database import get_db
 from app.models.user import User
+from app.models.guild import Guild
 from app.schemas.config import GuildCreate, GuildIconUpdate, GuildOut, GuildRename
 from app.services import guild_service
 from app.services.config_service import ConfigServiceError
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/config", tags=["系统配置"])
 async def list_guilds(
     current_user: User = Depends(require_developer),
     session: AsyncSession = Depends(get_db),
-) -> list[GuildOut]:
+) -> list[Guild]:
     """获取帮会列表（仅开发者）。"""
     return await guild_service.list_guilds(session)
 
@@ -28,7 +29,7 @@ async def create_guild(
     body: GuildCreate,
     current_user: User = Depends(require_developer),
     session: AsyncSession = Depends(get_db),
-) -> GuildOut:
+) -> Guild:
     """创建帮会，并自动生成管理员和帮众账号（初始密码由创建者指定，仅开发者）。"""
     return await guild_service.create_guild(session, body.name, body.admin_password, body.member_password)
 
@@ -50,7 +51,7 @@ async def rename_guild(
     body: GuildRename,
     current_user: User = Depends(require_developer),
     session: AsyncSession = Depends(get_db),
-) -> GuildOut:
+) -> Guild:
     """帮会更名（仅开发者）。"""
     guild = await guild_service.rename_guild(session, guild_id, body.name)
     return GuildOut.model_validate(guild)
@@ -62,7 +63,7 @@ async def update_guild_icon(
     body: GuildIconUpdate,
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
-) -> GuildOut:
+) -> Guild:
     """设置本帮会图标字（管理员，仅限自己所属帮会）。"""
     if current_user.guild_id != guild_id:
         raise ConfigServiceError("只能设置自己所属帮会的图标", 403)

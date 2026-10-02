@@ -59,7 +59,7 @@ async def init() -> None:
             print(f"开发者账号已存在：{DEVELOPER_USERNAME}")
 
         # 创建默认帮会（仅当需要创建 admin 或 member 时）
-        guild = None
+        guild: "Guild | None" = None
         if ADMIN_PASSWORD or MEMBER_PASSWORD:
             guild = (await session.execute(select(Guild).where(Guild.name == DEFAULT_GUILD_NAME))).scalar_one_or_none()
             if guild is None:
@@ -70,6 +70,7 @@ async def init() -> None:
 
         # 创建管理员账号（可选）
         if ADMIN_PASSWORD:
+            assert guild is not None  # mypy：上面的 if (ADMIN_PASSWORD or MEMBER_PASSWORD) 已赋值
             if (await session.execute(select(User).where(User.username == ADMIN_USERNAME))).scalar_one_or_none() is None:
                 session.add(
                     User(
@@ -84,6 +85,7 @@ async def init() -> None:
 
         # 创建帮众账号（可选）
         if MEMBER_PASSWORD:
+            assert guild is not None  # mypy：上面的 if (ADMIN_PASSWORD or MEMBER_PASSWORD) 已赋值
             if (await session.execute(select(User).where(User.username == MEMBER_USERNAME))).scalar_one_or_none() is None:
                 session.add(
                     User(

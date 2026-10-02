@@ -1,5 +1,7 @@
 """数据库连接：异步引擎、Session 工厂、ORM 基类。"""
 from sqlalchemy import event
+from collections.abc import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -38,7 +40,7 @@ if _is_sqlite(settings.DATABASE_URL):
         cursor.close()
 
 
-async def get_db() -> AsyncSession:
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """FastAPI 依赖：每个请求一个独立 Session。"""
     async with async_session_factory() as session:
         yield session
