@@ -621,6 +621,21 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 
 **结论** ✓：`tech-stack.md` 的部署段为**三行摘要** ✓（Docker / Docker Compose / Nginx ✓），**未包含**已被清理的失实描述 ✓（**未提**「前端 80/443 HTTPS」✓、**未提**「后端多阶段构建」✓）；仓库 compose 的 80/443 与 `nsh-net` 属**本地拓扑** ✓，与 `DEPLOY.md` 的**生产**描述**不冲突** ✓✓。
 
+
+#### CI 静态引用核对（2026-10-03，可复跑）
+
+> 目的：CI **尚未首跑**（J-1）——先静态核对「引用的东西是否都存在」，降低首跑风险。
+
+| 核对项 | 结果 |
+|--------|------|
+| `run:` 中的 `scripts/*.py|sh`（相对**所属工作目录**解析） | **0 缺失** |
+| `working-directory`（backend / frontend） | 均存在 |
+| `npm run` 脚本（build / lint / test） | 均在 `frontend/package.json` 定义 |
+| `python-version` / `node-version` | 3.11 / 20（与文档基线一致） |
+| `requirements*.txt` | 存在 |
+| actions 版本 | tag 固定（v4 / v5，属已记录的既定选择） |
+| **F-68 复验**：7 道门禁是否都跑 `--self-test` | **7/7 既有自检又有实跑** ✓ |
+
 ### 11.5 决策就绪包（批次 90，2026-10-03 实测事实）
 
 > 目的：把待决策项做成「**事实 → 选项 → 影响**」，使每项**一句话即可拍板**。全部事实均为本轮**实测**（文件行号可复核）。
