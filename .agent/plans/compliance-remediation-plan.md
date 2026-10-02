@@ -227,12 +227,12 @@
 | W0-6 `.qoder` 登记或忽略 | ✅ 已完成 | 2026-10-02 | 选择「登记」：`architecture.md` 目录树 + §22 + 更新记录三处登记，并标注「非项目权威文档、仅存档」 | docs(deploy): 对齐部署权威源与外部草案登记 |
 | W0-7 README 目录树去重 | ✅ 已完成 | 2026-10-02 | `git diff --stat README.md` = 35 行变更（删除 32 行树体，改为引用 `progress.md`/`architecture.md`） | chore(repo): 统一路径引用与陈旧引用 |
 | W0-8 tech-stack 部署章对齐 | ✅ 已完成 | 2026-10-02 | `tech-stack.md` §部署方案 重写为 `DEPLOY.md` 摘要 + 引用；`grep -n '多阶段' tech-stack.md` 仅剩前端一处（后端已改单阶段）；`docker-compose.yml` 顶部标注演示拓扑 | docs(deploy): 对齐部署权威源与外部草案登记 |
-| W1-1 nginx.conf 入库 | ⏳ 待开始 | | | |
-| W1-2 deploy.sh.example | ⏳ 待开始 | | | |
-| W1-3 配置漂移治理 | ⏳ 待开始 | | | |
-| W1-4 依赖锁定 | ⏳ 待开始 | | | |
-| W1-5 基础镜像升级 | ⏳ 待开始 | | | |
-| W1-6 README 引导补全 | ⏳ 待开始 | | | |
+| W1-1 nginx.conf 入库 | ✅ 已完成 | 2026-10-02 | `frontend/nginx.conf`（49 行，占位符版）入库；`.gitignore` 解除忽略（`git check-ignore` 未命中）；`nginx.conf.example` 收窄为边缘层模板（171→109 行）；两个 Dockerfile 的每个 `COPY` **上下文源**逐个核对存在（`COPY --from=build` 为多阶段来源，非上下文路径）。**未执行**：镜像实构建——本机 Docker 守护进程未运行（见下方备注） | fix(build): 入库 nginx.conf 与部署脚本模板 |
+| W1-2 deploy.sh.example | ✅ 已完成 | 2026-10-02 | 新增 `deploy.sh.example`（92 行）：占位符 + 路径锚定排除清单（含 2026-09-07 教训注释）+ `healthy` 轮询 + 域名入口 200 校验 + 失败非零退出并打印日志；`bash -n`（Git for Windows bash）**exit 0**；`DEPLOY.md §三` 补复制步骤与 nginx.conf 入库说明 | fix(build): 入库 nginx.conf 与部署脚本模板 |
+| W1-3 配置漂移治理 | ⏳ 待开始 | | 依赖决策 D-5（生产配置可否去敏入库）；未确认时按计划退化为 `scripts/check-config-drift.sh` diff 告警 | — |
+| W1-4 依赖锁定 | ⏳ 待开始 | | 推迟：本机 Python 为 3.14，与目标 3.11/3.13 不一致，锁文件须在目标版本环境生成，否则会写入不兼容标记 | — |
+| W1-5 基础镜像升级 | ⏳ 待开始 | | 现状已复核仍在：`node:18-alpine`、`python:3.11-slim`；升级需镜像构建验证，而本机 Docker 守护进程不可用，故推迟 | — |
+| W1-6 README 引导补全 | ✅ 已完成 | 2026-10-02 | README 新增「数据源模式（`DB_MODE`）」小节（prod 快照 / dev 本地库、缺失回退、`.db` 不入库）与 Docker 部署段的 `nginx.conf` 构建前置说明 | fix(build): 入库 nginx.conf 与部署脚本模板 |
 | W2-1 CI 工作流 | ⏳ 待开始 | | | |
 | W2-2 测试体系（pytest/Vitest） | ⏳ 待开始 | | | |
 | W2-3 lint/format/类型检查 | ⏳ 待开始 | | | |
@@ -252,6 +252,8 @@
 | W4-4 SECURITY/CONTRIBUTING/CoC | ⏳ 待开始 | | | |
 
 状态图例：⏳ 待开始 / 🔄 进行中 / ✅ 已完成 / ⛔ 阻塞（写明阻塞项与所需决策）
+
+> **环境备注（2026-10-02）**：本机 `docker --version` = 28.1.1，但**守护进程未运行**（`docker info` 无输出；`docker build` 报 `open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified`）。因此一切依赖镜像构建的验收（W1-1 的实构建、W1-5 的升级验证）在本环境**无法执行**；已改用「Dockerfile `COPY` 上下文源逐个存在性核对 + 配置入库状态 + `bash -n`」作为替代证据，真正的镜像构建门禁由 W2-1 的 CI 补齐。此外本机无 WSL/`sh`，`bash -n` 使用 Git for Windows 的 `C:\Program Files\Git\bin\bash.exe`。
 
 ---
 

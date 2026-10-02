@@ -62,6 +62,11 @@
 流程：本地 tar 打包（约 2.4M）→ scp 上传 → 服务器解压 → `docker compose up -d --build`
 → 健康检查。数据双卷不受影响，迁移自动执行。
 
+> **2026-10-02 补充（合规化计划 W1-1/W1-2）**：
+> - `deploy.sh` 本身不入库（含服务器信息），其**占位符模板已入库**为 `deploy.sh.example`——依据本节流程重建，含排除清单、路径锚定告警与非零退出的健康检查。新环境执行 `cp deploy.sh.example deploy.sh`，填写 `SERVER_IP` / `SERVER_USER` / `DOMAIN` 后使用。
+> - `frontend/nginx.conf`（**占位符版**）现已入库，作为 frontend 镜像的构建输入：此前该文件不在仓库内，导致全新克隆在 `COPY nginx.conf` 一步直接构建失败。它仍在下方排除清单内，**服务器版本不受影响**；两边漂移由本节「服务器配置类文件的变更规则」管理。
+> - `frontend/nginx.conf.example` 已收窄为**边缘层（B 段）模板**，内层（A 段）以 `frontend/nginx.conf` 为唯一副本，避免同一配置两处漂移。
+
 ### deploy.sh 打包排除清单（⚠️ 严禁移除）
 
 | 排除项 | 原因 |

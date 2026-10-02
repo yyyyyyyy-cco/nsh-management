@@ -1,70 +1,15 @@
-# ===== Nginx 配置模板（生产双层结构） =====
+# ===== 边缘反向代理模板（同机 nginx-proxy 容器的 conf.d/<域名>.conf） =====
+# 架构：**单层 TLS**（2026-09-15 改造；权威源 DEPLOY.md §二）
+#   · 本文件（B 段）= 边缘层：独占 TLS / 证书 / 限流 / 安全响应头 / HTTP→HTTPS 跳转 / 默认 server 兜底
+#   · A 段 = frontend 容器内层，已入库为 `frontend/nginx.conf`（镜像构建输入）。
+#     本文件**不再重复维护 A 段**——同一配置两处副本必然漂移（同类问题见合规化计划 F-08/F-40）。
 # 使用说明：
-# 1. 本项目生产环境为「边缘反向代理 + 容器内层 nginx」两层，本文件给出两层的模板：
-#    A 部分 = frontend 容器内层 nginx.conf（复制为 frontend/nginx.conf）
-#    B 部分 = 边缘反代 conf.d/<域名>.conf（部署在同机 nginx-proxy 容器）
-# 2. 将 YOUR_DOMAIN 替换为你的域名（如 example.com）
-# 3. 证书路径按实际情况修改（Let's Encrypt：/etc/letsencrypt/live/域名/）
-# 4. 限流参数与上传大小按需调整
-# 5. 职责边界：TLS / 证书 / 限流 / 安全响应头 / HTTP→HTTPS 跳转只写在 B（边缘层）；
-#    A（内层）只做静态资源 + SPA 回退 + 缓存头 + /api 反代，明文 80、不映射宿主端口
-# 详见 DEPLOY.md §二
+#   1. 将 YOUR_DOMAIN 替换为你的域名（如 example.com），YOUR_UPSTREAM 替换为实际容器名
+#   2. 证书路径按实际情况修改（Let's Encrypt：/etc/letsencrypt/live/域名/）
+#   3. 限流参数与上传大小按需调整；内层以 set_real_ip_from 识别真实 IP，边缘层必须覆盖而非追加 XFF
+#   4. 本文件不入部署包（deploy.sh 排除清单），服务器侧改动遵循 DEPLOY.md §三
+# 详见 DEPLOY.md §二（部署架构）
 
-# ============================================================
-# A. frontend 容器内层（仅容器网络可达，明文 80）
-# ============================================================
-server_tokens off;
-
-# 真实客户端 IP：边缘层经 X-Forwarded-For 透传，proxy-net 为可信来源
-set_real_ip_from 172.20.0.0/16;
-real_ip_header X-Forwarded-For;
-
-gzip on;
-gzip_comp_level 5;
-gzip_min_length 1024;
-gzip_vary on;
-gzip_types text/plain text/css text/javascript application/javascript application/json application/xml image/svg+xml;
-
-server {
-    listen 80;
-    listen [::]:80;
-    server_name YOUR_DOMAIN www.YOUR_DOMAIN;
-
-    root /usr/share/nginx/html;
-    index index.html;
-    client_max_body_size 20m;
-
-    location /assets/ {
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
-        try_files $uri =404;
-    }
-
-    location = /index.html {
-        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
-        add_header Pragma "no-cache" always;
-        add_header Expires "0" always;
-    }
-
-    # 客户端 IP 头部原样透传，勿用 $remote_addr / $proxy_add_x_forwarded_for 覆盖
-    location /api/ {
-        proxy_pass http://backend:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $http_x_real_ip;
-        proxy_set_header X-Forwarded-For $http_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 60s;
-    }
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-
-# ============================================================
-# B. 边缘反向代理（nginx-proxy 容器的 conf.d/YOUR_DOMAIN.conf）
-#    独占 TLS、证书、限流、安全响应头、HTTP→HTTPS 跳转、默认 server 兜底
-# ============================================================
 upstream YOUR_UPSTREAM {
     server nsh-management-frontend-1:80;
     keepalive 32;

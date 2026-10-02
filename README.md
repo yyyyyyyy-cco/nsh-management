@@ -67,6 +67,17 @@ start.bat
 | 管理员 | admin | admin123 |
 | 帮众 | member | member123 |
 
+### 数据源模式（`DB_MODE`，仅本地开发）
+
+`start.bat` 顶部通过 `DB_MODE` 切换本地启动所用数据库，**默认 `prod`**：
+
+| 模式 | 数据源 | 说明 |
+|------|--------|------|
+| `prod`（默认） | `backend\data\nsh-server-20260907.db` | 服务器数据**快照副本**，便于用真实数据调试；副本不存在时自动回退到 `dev`。本地的读写只作用于副本，**不会影响生产服务器** |
+| `dev` | `backend\data\nsh.db` | 本地开发库；首次启动自动初始化默认账号（见上表） |
+
+> 快照文件需从服务器导出后放入 `backend\data\`（`.gitignore` 已排除 `*.db`，不入库）。只想用本地库时，把 `start.bat` 中的 `set "DB_MODE=prod"` 改为 `dev`。
+
 ### Docker 部署
 
 ```bash
@@ -80,6 +91,9 @@ docker compose up -d --build
 # 3. 访问
 # http://your-server-ip
 ```
+
+> 前端镜像构建依赖仓库内的 `frontend/nginx.conf`（占位符版，2026-10-02 起入库）——该文件缺失时 `docker compose up -d --build` 会在 `COPY nginx.conf` 一步失败。生产服务器的实际 nginx 配置与之不同，按 [DEPLOY.md](DEPLOY.md) §三 单独维护（`deploy.sh` 排除清单仍排除该文件，避免本地占位符版覆盖服务器）。
+> 一键部署脚本模板为 `deploy.sh.example`（复制为 `deploy.sh` 并填写服务器占位符后使用）。
 
 详细部署文档见 [DEPLOY.md](DEPLOY.md)。
 
