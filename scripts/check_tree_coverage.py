@@ -21,10 +21,23 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 TREE = ROOT / "memory-bank" / "progress.md"
 TREE_LINE = re.compile(r"^\s*[\u2502\u251c\u2514]")
 SCOPE = ("scripts", "*.py")
+DOCS = ROOT / "memory-bank"
+DOC_INDEX = DOCS / "architecture.md"
 
 
 def python_files() -> list[str]:
     return sorted(p.name for p in (ROOT / "scripts").glob(SCOPE[1]))
+
+
+def doc_missing(docs: list[str], text: str) -> list[str]:
+    """文档视角：`memory-bank/*.md` 必须出现在**索引表行 / 树行**，
+    **排除更新记录行**（首格为日期）——子串判定会被记录行污染（ai-checklist 第 124 条）。
+    """
+    index = [l for l in text.split("\n")
+             if (l.startswith("|") and not re.match(r"^\|\s*\d{4}-\d{2}-\d{2}", l))
+             or TREE_LINE.match(l)]
+    joined = "\n".join(index)
+    return [d for d in docs if d not in joined]
 
 
 def tree_names(text: str) -> set[str]:
@@ -56,7 +69,11 @@ def self_test() -> int:
         failures.append("\u672a\u767b\u8bb0\u68c0\u51fa\u5f02\u5e38")
     if analyze(["a.py", "b.ts"], names):
         failures.append("\u8bef\u62a5")
-    total = 4
+    if doc_missing(["a.md"], "│   ├── a.md\n|更新记录 a.md|") != []:
+        failures.append("文档视角：树行已登记却报缺失")
+    if doc_missing(["b.md"], "| 2026-10-03 | 更新了 b.md |") != ["b.md"]:
+        failures.append("文档视角：记录行被误当登记")
+    total = 6
     if failures:
         print("[tree] \u81ea\u68c0\u5931\u8d25\uff1a")
         for f in failures:
@@ -87,7 +104,14 @@ def main() -> int:
             print(f"  - scripts/{f}")
     else:
         print("[tree] \u672a\u53d1\u73b0\u672a\u767b\u8bb0\u811a\u672c : PASS")
-    return 1 if (args.strict and missing) else 0
+    docs = sorted(p.name for p in DOCS.glob("*.md"))
+    dmiss = doc_missing(docs, DOC_INDEX.read_text(encoding="utf-8")) if DOC_INDEX.exists() else []
+    print(f"[tree] 文档视角：`memory-bank/*.md` 共 {len(docs)} 个，索引表/树行命中 {len(docs) - len(dmiss)} 个")
+    if dmiss:
+        print("[tree] **未登记到文档索引**（AGENTS §3.3 第 2/3 条）：")
+        for d in dmiss:
+            print(f"  - {d}")
+    return 1 if (args.strict and (missing or dmiss)) else 0
 
 
 if __name__ == "__main__":
