@@ -239,6 +239,7 @@ nsh-management/
 | 2026-10-02 | Wave 0 批次 2（合规化计划 W0-6/W0-8）：①`tech-stack.md` §部署方案 按 `DEPLOY.md` 权威源重写——删除「前端容器 80/443 HTTPS」「后端容器多阶段构建」「deploy.sh（Linux 一键部署）」等失实描述，改为单层 TLS 摘要 + 引用（不复制 DEPLOY 内容），并在 `docker-compose.yml` 顶部标注「本地/单机演示拓扑」；②`.qoder/plans/` 3 份外部工具草案登记为本索引 §22 并补目录树（明确标注非项目权威文档） | tech-stack.md, architecture.md, progress.md |
 | 2026-10-02 | Wave 0 批次 3（合规化计划 W0-2）：新增 `.gitattributes`（`* text=auto eol=lf`；`*.bat`/`*.cmd`/`*.ps1` 保持 CRLF；常见二进制标 `binary`）与 `.editorconfig`；配套执行 `git add --renormalize .` 归一存量换行（改造前实测 `i/crlf` 260 / `i/lf` 75），归一作为独立提交以便回溯 | .gitattributes, .editorconfig, architecture.md, progress.md |
 | 2026-10-02 | Wave 1 批次 1（合规化计划 W1-1/W1-2/W1-6，P0 交付链）：①`frontend/nginx.conf` 入库（占位符版构建输入）并解除 `.gitignore` 忽略，修复全新克隆 `COPY nginx.conf` 构建失败；②`frontend/nginx.conf.example` 收窄为边缘层模板（内层以 `nginx.conf` 为唯一副本）；③新增 `deploy.sh.example`（占位符 + 排除清单 + 非零退出健康检查），`DEPLOY.md §三` 同步说明；④`README.md` 补「数据源模式（DB_MODE）」与构建前置说明 | DEPLOY.md, README.md, nginx.conf, nginx.conf.example, deploy.sh.example, architecture.md, progress.md |
+| 2026-10-02 | ai-checklist §五 新增遗漏模式 21（静默命令须判 `$LASTEXITCODE`：`git check-ignore -q` 的 `[bool]` 判定恒为 False，曾误报 deploy.sh 失去忽略）与 22（计数结论必须记录匹配范围与大小写选项：F-37 首记 23 处实为活引用 25 处 + 历史 2 处） | ai-checklist.md, progress.md, architecture.md |
 
 ---
 
