@@ -69,8 +69,8 @@ const form = reactive({
   opponent: '',
   match_time: '',
   location: '',
-  rounds: 3,
-  result: 'pending',
+  rounds: 3 as number,
+  result: 'pending' as string,
   round_results: [] as string[],
 })
 

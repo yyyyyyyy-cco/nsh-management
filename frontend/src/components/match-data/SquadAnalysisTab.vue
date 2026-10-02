@@ -122,12 +122,12 @@ function rebuildSquadTotals(meta: SquadAnalysis, members: SquadMember[]): SquadA
   const totalKeys = ['kills', 'assists', 'player_damage', 'building_damage', 'healing', 'damage_taken', 'deaths', 'revives', 'fen_gu'] as const
   const totals: SquadTotals = { player_count: n } as SquadTotals
   for (const k of totalKeys) {
-    totals[k] = members.reduce((sum, m) => sum + (m[k]), 0)
+    totals[k] = members.reduce((sum, m) => sum + (m[k] as number), 0)
   }
   const indKeys = ['kda', 'dps', 'kpa_damage', 'damage_per_death', 'taken_per_death', 'healing_per_death', 'heal_conversion', 'revive_rate', 'fen_gu_rate'] as const
   const indicators: SquadIndicators = {} as SquadIndicators
   for (const k of indKeys) {
-    indicators[k] = n ? Math.round((members.reduce((sum, m) => sum + (m[k]), 0) / n) * 100) / 100 : 0
+    indicators[k] = n ? Math.round((members.reduce((sum, m) => sum + (m[k] as number), 0) / n) * 100) / 100 : 0
   }
   return { ...meta, members, totals, indicators }
 }
@@ -224,7 +224,7 @@ async function load() {
   try {
     const [data, adjResp] = await Promise.all([
       getSquadAnalysis(props.scheduleId, props.roundNo),
-      getSquadAdjustments(props.scheduleId).catch(() => ({ data: {} })),
+      getSquadAdjustments(props.scheduleId).catch(() => ({ data: {} as Record<string, string> })),
     ])
     if (seq !== loadSeq) return
     squads.value = data.squads

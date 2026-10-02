@@ -13,7 +13,7 @@ export function buildRadarOption(items: MatchData[], left: string, right: string
   const players = [pL, pR].filter(Boolean) as MatchData[]
   if (!players.length) return {}
   const maxOf = (key: 'kills' | 'assists' | 'player_damage' | 'healing' | 'damage_taken' | 'kda') => {
-    const vals = key === 'kda' ? items.map((r) => calcKDA(r)) : items.map((r) => r[key])
+    const vals = key === 'kda' ? items.map((r) => calcKDA(r)) : items.map((r) => r[key] as number)
     return Math.max(...vals, 1) * 1.15
   }
   const dims = [

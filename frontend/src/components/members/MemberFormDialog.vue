@@ -58,7 +58,7 @@ const form = reactive({
   name: '',
   main_profession: '',
   sub_profession: undefined as string | undefined,
-  status: 'formal',
+  status: 'formal' as 'formal' | 'substitute',
   remark: '',
 })
 

@@ -91,7 +91,7 @@ export function compareRadarOption(sel: SquadAnalysis[]) {
   for (const d of dims) d.max = 1
   for (const s of sel) {
     keys.forEach((k, i) => {
-      const v = s.indicators[k]
+      const v = s.indicators[k] as number
       if (v > dims[i].max) dims[i].max = v
     })
   }
@@ -113,7 +113,7 @@ export function compareRadarOption(sel: SquadAnalysis[]) {
         type: 'radar',
         data: sel.map((s, i) => ({
           name: s.squad_name,
-          value: keys.map((k) => s.indicators[k]),
+          value: keys.map((k) => s.indicators[k] as number),
           areaStyle: { opacity: 0.1 },
           lineStyle: { width: 2.5, color: COMPARE_COLORS[i % COMPARE_COLORS.length] },
           itemStyle: { color: COMPARE_COLORS[i % COMPARE_COLORS.length] },
@@ -140,8 +140,8 @@ export function buildCompareDiffRows(a: SquadAnalysis, b: SquadAnalysis) {
     'deaths',
   ]
   for (const k of totalKeys) {
-    const v1 = a.totals[k]
-    const v2 = b.totals[k]
+    const v1 = a.totals[k] as number
+    const v2 = b.totals[k] as number
     const diff = v1 - v2
     const base = Math.min(v1, v2)
     rows.push({
@@ -163,8 +163,8 @@ export function buildCompareDiffRows(a: SquadAnalysis, b: SquadAnalysis) {
     'heal_conversion',
   ]
   for (const k of indKeys) {
-    const v1 = a.indicators[k]
-    const v2 = b.indicators[k]
+    const v1 = a.indicators[k] as number
+    const v2 = b.indicators[k] as number
     const diff = +(v1 - v2).toFixed(2)
     const base = Math.min(v1, v2)
     const isDecimal = k === 'kda' || k === 'heal_conversion'
