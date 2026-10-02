@@ -3,6 +3,7 @@
 > 专为游戏帮会管理人员设计的一体化管理工具，涵盖成员管理、出勤考核、联赛排表、录屏审核和比赛数据分析等核心功能。
 
 > 📘 开发协作规范（分支/提交/发布/tag）见 [GIT-GUIDE.md](GIT-GUIDE.md)。
+> 📄 参与贡献与仓库政策：[CONTRIBUTING.md](CONTRIBUTING.md)（协作约定）· [SECURITY.md](SECURITY.md)（漏洞报告）· [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)（行为准则）· [CHANGELOG.md](CHANGELOG.md)（更新日志）。
 
 ## 功能特性
 

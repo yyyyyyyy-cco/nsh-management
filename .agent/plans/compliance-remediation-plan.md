@@ -121,9 +121,9 @@
 | F-21 | 规范声明双远端，实际仅 `origin` | `GIT-GUIDE.md:15,18,166-174,281` vs `git remote -v` | 规范一致性 | W3-6 | P2 |
 | F-22 | 制品版本与 tag 无联动（`frontend/package.json` 恒 `0.1.0`） | `frontend/package.json:4` | SemVer / 12-Factor V | W3-4 | P2 |
 | F-23 | README 声明 MIT 但无 `LICENSE` 文件 | `README.md:134-136`；`Test-Path LICENSE` = False | SPDX/MIT | W0-1 | P2 |
-| F-24 | 无 `CONTRIBUTING.md` | `Test-Path` = False（规范散落 `GIT-GUIDE.md`、`.agent/rules/`） | OpenSSF Scorecard | W4-4 | P3 |
-| F-25 | 无 `CHANGELOG.md`（`progress.md` 更新记录代偿） | `Test-Path` = False | Keep a Changelog 1.1.0 | W3-4 | P3 |
-| F-26 | 无公共 `SECURITY.md`（漏洞报告渠道） | `Test-Path` = False（内部 `SECURITY-REVIEW.md` 存在） | OpenSSF Scorecard | W4-4 | P3 |
+| F-24 | 无 `CONTRIBUTING.md` | `Test-Path` = False（规范散落 `GIT-GUIDE.md`、`.agent/rules/`） | OpenSSF Scorecard | **W4-4 ✅（2026-10-02 已补）** | P3 |
+| F-25 | 无 `CHANGELOG.md`（`progress.md` 更新记录代偿） | `Test-Path` = False | Keep a Changelog 1.1.0 | **W3-4 ✅（2026-10-02 已补）** | P3 |
+| F-26 | 无公共 `SECURITY.md`（漏洞报告渠道） | `Test-Path` = False（内部 `SECURITY-REVIEW.md` 存在） | OpenSSF Scorecard | **W4-4 ✅（2026-10-02 已补）** | P3 |
 | F-27 | 无测试框架；仅 7 个手工 `selfcheck_*.py`（依赖真实库、无 runner） | `git ls-files backend/scripts`；`requirements.txt` 无 pytest | 测试基线 | W2-2 | P1 |
 | F-28 | 前端零测试 | `frontend/package.json:6-11` 无 test 脚本 | Vue 风格指南（可测） | W2-2 | P2 |
 | F-29 | 后端无 lint/format/类型检查（无 `pyproject.toml`/`ruff.toml`/`.flake8`/`mypy.ini`） | `Test-Path` 全 False；`tech-stack.md:138` 自认未配置 | PEP 8 / PEP 484 | W2-3 | P2 |
@@ -245,13 +245,13 @@
 | W3-1 /health 与探活 | ⏳ 待开始 | | | |
 | W3-2 备份自动化与演练 | ⏳ 待开始 | | | |
 | W3-3 制品版本化与回滚 | ⏳ 待开始 | | | |
-| W3-4 CHANGELOG 与版本联动 | ⏳ 待开始 | | | |
+| W3-4 CHANGELOG 与版本联动 | 🔄 进行中 | 2026-10-02（CHANGELOG 部分） | `CHANGELOG.md` 已建立（Keep a Changelog 1.1.0 + SemVer 2.0.0）：`[未发布]` 段按新增/变更/修复/安全四类汇总本轮合规化改动；`[1.2.0] - 2026-10-02`、`[1.1.0] - 2026-09-16`、`[1.0.0] - 2026-08-27` 三段**依据 `git log <旧标签>..<新标签>` 归并并在文件内标注依据**（不逐条回溯）；比较链接指向真实仓库 URL（`github.com/yyyyyyyy-cco/nsh-management`）；文件内记录 `frontend/package.json` 版本 `0.1.0` 与标签 `v1.x` 不一致（对应 F-16）。**待办**：按 D-4 落地版本联动（调整 package.json 或改为运行时注入）并在 `GIT-GUIDE.md §8` 发布清单加入「更新 CHANGELOG」条目 | docs(changelog): 新增更新日志与社区政策文档 |
 | W3-5 分支治理 | ⏳ 待开始 | | | |
 | W3-6 远端策略落地 | ⏳ 待开始 | | | |
 | W4-1 关闭生产 API 文档 | ⏳ 待开始 | | | |
 | W4-2 ASVS/Top10 对照补审查 | ⏳ 待开始 | | | |
 | W4-3 CORS 外置与依赖审计 | ⏳ 待开始 | | | |
-| W4-4 SECURITY/CONTRIBUTING/CoC | ⏳ 待开始 | | | |
+| W4-4 SECURITY/CONTRIBUTING/CoC | ✅ 已完成 | 2026-10-02 | 按 D-1（公开仓库）补齐三份根文档：`SECURITY.md`（支持版本范围 / GitHub 私有安全公告为首选渠道 / 备用邮箱占位符 / 处理时限目标 / 已知接受风险指向 `security-review.md` 权威源）、`CONTRIBUTING.md`（协作约定摘要 + 权威源链接 + 与 `.github/workflows/ci.yml` 对应的本地门禁命令，**未复制**权威源内容）、`CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 官方简体中文译本逐字采用，保留 CC BY-SA 4.0 署名）。验证：三文件与 `CHANGELOG.md` 均入库、互相引用链接有效、`scripts/check_file_length.py` 通过。**未完成**：SECURITY.md 与 CoC 的备用联系邮箱为占位符（需用户提供后填写） | docs(changelog): 新增更新日志与社区政策文档 |
 
 状态图例：⏳ 待开始 / 🔄 进行中 / ✅ 已完成 / ⛔ 阻塞（写明阻塞项与所需决策）
 

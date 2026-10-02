@@ -36,8 +36,12 @@ nsh-management/
 ├── .qoder/
 │   └── plans/                    # 外部 AI 工具（Qoder）规划草案，**非项目权威文档**（仅存档，见 §22）
 ├── AGENTS.md                     # AI 开发指南：规范/文档维护/进度追踪（自动读取）
+├── CHANGELOG.md                  # 更新日志（Keep a Changelog 1.1.0）
+├── CODE_OF_CONDUCT.md            # 行为准则（Contributor Covenant 2.1）
+├── CONTRIBUTING.md               # 贡献指南（协作约定摘要 + 权威源链接）
 ├── DEPLOY.md                     # 部署文档（Docker Compose）
 ├── GIT-GUIDE.md                  # Git 管理规范
+├── SECURITY.md                   # 安全政策（漏洞报告渠道、支持版本范围）
 ├── .gitignore                    # Git忽略规则
 └── README.md                     # 项目说明
 ```
@@ -173,6 +177,30 @@ nsh-management/
 - **作用**：外部 AI 工具生成的规划草案**存档**。**不是项目权威文档**——其对应的功能（UI 优化收尾、游戏 ID 改名审批、超限文件拆分）均已在 `progress.md` 记录并完成；此处登记仅为满足「入库文档必须登记到本索引」（`AGENTS.md` §2.2）
 - **更新时机**：该目录新增或清理文件时更新；若不再使用该工具目录，可整体移出仓库（见合规化计划 F-36）
 
+### 23. 社区与流程文档（2026-10-02 按公开仓库标准补齐）
+
+- **路径**：`CHANGELOG.md`（仓库根目录）
+- **作用**：更新日志，遵循 Keep a Changelog 1.1.0 与 SemVer 2.0.0；`[未发布]` 段记录待发布变更，
+  历史版本段由 `git log` 归并（文件内标注归并依据）。**版本权威是 git 标签**，
+  `frontend/package.json` 版本号不一致问题待决策 D-4 处理
+- **更新时机**：每次发布前把 `[未发布]` 转为版本段；有面向使用者的变更时追加
+
+- **路径**：`CONTRIBUTING.md`（仓库根目录）
+- **作用**：贡献指南——协作约定与入口的**摘要 + 链接**（分支/提交/发布引用 `GIT-GUIDE.md`、
+  提交消息引用 `.agent/rules/git-commit-message.md`、行数与模块文档引用 `.agent/rules/`、
+  文档同步引用 `AGENTS.md` §3.3），并给出与 CI 对应的本地门禁命令
+- **更新时机**：协作流程或 CI 门禁变化时更新（不得复制权威源内容）
+
+- **路径**：`SECURITY.md`（仓库根目录）
+- **作用**：安全政策——支持的版本范围、漏洞报告渠道（GitHub 私有安全公告为**首选**，
+  备用邮箱为占位符待维护者填写）、处理时限目标、已知接受风险的**引用**（权威源 `memory-bank/security-review.md`）
+- **更新时机**：报告渠道、支持策略或合规口径变化时更新
+
+- **路径**：`CODE_OF_CONDUCT.md`（仓库根目录）
+- **作用**：行为准则，**逐字采用 Contributor Covenant 2.1 官方简体中文译本**
+  （CC BY-SA 4.0，随原文保留署名与链接；仅填写了举报联系方式）；原文最新为 3.0，升级列为后续可选项
+- **更新时机**：升级版本或调整举报渠道时更新
+
 ---
 
 ## 更新记录
@@ -251,6 +279,7 @@ nsh-management/
 | 2026-10-02 | Wave 2 批次 6（合规化计划 W2-2 前端部分）：新增 `frontend/vitest.config.ts` 与 4 个 spec（`utils/constants`、`utils/profession`、`utils/scheduleSort`、`match-data/analysis`，共 38 用例）；`package.json` 增 test/test:watch 脚本与 `vitest@3.2.7`+`jsdom` devDependencies；CI frontend job 增 `npm run test`；`tech-stack.md` 开发工具表同步（标注 vitest 须用 3.x 以匹配 vite 5） | vitest.config.ts, *.spec.ts, package.json, package-lock.json, ci.yml, tech-stack.md, compliance-remediation-plan.md, architecture.md, progress.md |
 | 2026-10-02 | Wave 2 批次 7（合规化计划 W2-6 部分）：新增 `frontend/src/utils/attendance.ts`（出勤率展示口径唯一来源：阈值常量、低出勤判定、进度条颜色、百分比格式化）与 `attendance.spec.ts`（6 用例）；`AttendanceRatePanel.vue` / `MemberDetailHeader.vue` / `HomeAttendanceRanking.vue` 共 7 处硬编码（阈值 4 处、格式化 3 处）及组件内本地 `ratePercent()` 改为引用该模块；计划 F-03 描述按复核结果更正（出勤率公式无重复实现，原表述过重） | attendance.ts, attendance.spec.ts, AttendanceRatePanel.vue, MemberDetailHeader.vue, HomeAttendanceRanking.vue, compliance-remediation-plan.md, architecture.md, progress.md |
 | 2026-10-02 | Wave 2 批次 8（合规化计划 W2-6 收尾，F-04）：弱密钥启动门禁由 `app/core/config.py` **导入期**移至应用启动期——新增 `InsecureSecretKeyError`、`FATAL_SECRET_KEY_MESSAGE`（原文逐字保留）、`WEAK_SECRET_KEY_WARNING`、`validate_secret_key()`（抛异常，可测）、`enforce_secret_key()`（打印 FATAL + 退出码 1）；`app/main.py` 新增 `startup_checks()` 并在 `on_startup` 中首先调用；`backend/tests/test_config_gate.py` 扩到 15 用例（含子进程回归：仅导入 config 不退出 / 调用门禁必拒绝启动）；修复 `tests/test_permissions.py` 未使用的 `unittest` 导入（`ruff check .` 曾因此报错） | config.py, main.py, test_config_gate.py, test_permissions.py, compliance-remediation-plan.md, architecture.md, progress.md |
+| 2026-10-02 | Wave 3 批次 1（合规化计划 W3-4 部分 / W4-4）：按公开仓库标准补齐 4 份根文档——`CHANGELOG.md`（Keep a Changelog 1.1.0；`[未发布]` 汇总本轮合规化改动，`v1.0.0/v1.1.0/v1.2.0` 由 `git log` 归并并标注依据；记录 `package.json` 版本不一致待 D-4）、`CONTRIBUTING.md`（摘要 + 权威源链接 + 与 CI 对应的本地门禁命令）、`SECURITY.md`（支持版本 / GitHub 私有报告渠道 / 处理时限目标 / 已知接受风险引用）、`CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 官方中文译本）；本索引新增 §23 与目录树条目，`AGENTS.md` §2.2 与 `README.md` 同步链接 | CHANGELOG.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, architecture.md, AGENTS.md, README.md, progress.md |
 
 ---
 

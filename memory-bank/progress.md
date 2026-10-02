@@ -35,7 +35,11 @@ nsh-management/
 │   ├── .dockerignore
 │   ├── entrypoint.sh          # 容器启动脚本
 │   ├── requirements.txt
-│   └── .venv/                 # 虚拟环境（Python 3.13）
+│   ├── requirements-dev.txt    # 开发/CI 依赖（ruff、pytest、httpx；含 PEP 263 编码声明）
+│   ├── pytest.ini             # pytest 配置（新用例 + 既有 selfcheck_*.py，内存库）
+│   ├── ruff.toml              # 后端静态检查配置（E4/E7/E9/F）
+│   ├── tests/                 # pytest 用例（conftest/support + 安全工具、弱密钥门禁、权限矩阵、姓名规范化）
+│   └── .venv/                 # 虚拟环境（本地目录，不入库）
 ├── frontend/                  # 前端项目（Vue3+TS+Vite）
 │   ├── src/
 │   │   ├── api/               # Axios 封装（http/auth/config/lineups/members/attendance/matchData/recording/schedules/squadAdjustments）
@@ -54,7 +58,7 @@ nsh-management/
 │   │   ├── stores/            # Pinia（auth）
 │   │   ├── styles/            # 浅色雅金风主题（theme.css 令牌 / element-plus.css 组件 / index.css 入口）
 │   │   ├── types/             # TS 类型定义（attendance/auth/config/lineup/matchData/member/recording/schedule）
-│   │   ├── utils/             # 工具函数（constants/scheduleSort）
+│   │   ├── utils/             # 工具函数（constants/profession/scheduleSort/attendance，含同名 *.spec.ts 单测）
 │   │   └── views/             # 页面
 │   │       ├── HomeView.vue           # 首页仪表盘（壳）+ home/ 卡片组件（HomeWelcome/HomeTodayBanner/HomeStatCards/HomeRecentSchedules/HomeProfessionOverview/HomeAttendanceRanking/HomeQuickActions + home-shared.css）
 │   │       ├── LoginView.vue          # 登录页（含锁定倒计时）
@@ -71,8 +75,12 @@ nsh-management/
 │   │           └── LeagueOverviewView.vue    # 帮众联赛总览
 │   ├── Dockerfile             # 前端容器镜像（多阶段构建）
 │   ├── .dockerignore
-│   ├── nginx.conf             # Nginx 配置（静态托管+API反代+SPA回退+HTTPS）
+│   ├── nginx.conf             # 内层反代配置（容器构建输入，占位符版；2026-10-02 起入库）
+│   ├── nginx.conf.example     # 边界层（边缘 Nginx：静态托管+HTTPS+限流）配置模板
 │   ├── docs/README.md         # 前端模块开发文档
+│   ├── eslint.config.js       # ESLint 扁平配置（vue flat/essential + typescript-eslint）
+│   ├── .prettierrc.json       # Prettier 约定（semi=false / singleQuote / printWidth 120）
+│   ├── vitest.config.ts       # Vitest 配置（jsdom，src/**/*.spec.ts）
 │   └── package.json
 ├── memory-bank/                # 项目文档
 │   ├── ai-context.md           # AI 项目完整上下文文档
@@ -97,13 +105,22 @@ nsh-management/
 │       ├── file-length-rule.md # 文件行数限制
 │       ├── function_rule.md    # 模块开发文档规则
 │       └── git-commit-message.md # Git 提交信息规范
+├── .editorconfig               # 编辑器统一约定（换行/缩进/编码）
+├── .gitattributes              # 换行策略与二进制标记（text=auto eol=lf，脚本与批处理为 crlf）
+├── .githooks/                  # 版本化 Git 钩子（commit-msg 提交消息校验，需 install_git_hooks.sh 启用）
+├── .github/                    # GitHub 平台配置（workflows/ci.yml、dependabot.yml、commit-msg-baseline）
+├── scripts/                    # 仓库级脚本（check_file_length / check_commit_msg / install_git_hooks）
 ├── AGENTS.md                   # AI 开发指南：规范/文档维护/进度追踪（自动读取）
 ├── start.bat                   # 一键启动脚本（前后端+首次建库）
-├── deploy.sh                   # Linux 部署脚本（Docker Compose 一键部署）
+├── deploy.sh.example           # Linux 部署脚本模板（复制为 deploy.sh 填写域名；deploy.sh 已被 .gitignore 忽略）
 ├── docker-compose.yml          # Docker Compose 编排（Nginx + FastAPI + SQLite 卷）
 ├── .env.example                # 部署环境变量模板（复制为 .env 填写）
 ├── DEPLOY.md                   # 部署文档（Docker Compose 全流程）
 ├── GIT-GUIDE.md                # Git 管理规范（分支/提交/发布/双远程）
+├── CHANGELOG.md                # 更新日志（Keep a Changelog 1.1.0）
+├── CODE_OF_CONDUCT.md          # 行为准则（Contributor Covenant 2.1 官方中文译本）
+├── CONTRIBUTING.md             # 贡献指南（摘要 + 权威源链接 + 本地门禁命令）
+├── SECURITY.md                 # 安全政策（报告渠道 / 支持版本 / 处理时限）
 ├── .gitignore                  # Git忽略规则
 └── README.md                   # 项目说明
 ```
@@ -327,6 +344,7 @@ nsh-management/
 | 2026-10-02 | Wave 2 批次 6（合规化计划 W2-2 前端部分，**前端测试体系**）：①新增 `frontend/vitest.config.ts`（jsdom 环境、`src/**/*.spec.ts`、与 `vite.config.ts` 分离以免测试配置进入生产构建）；②新增 4 个 spec、共 **38 个用例**——`utils/constants.spec.ts`（常量取值完整性 + resultLabel 未知值原样返回 + resultType 分支）、`utils/profession.spec.ts`（职业色回退主色、深浅底字色、色表覆盖 11 职业）、`utils/scheduleSort.spec.ts`（以「相对今天」构造用例使跨天稳定：绝对距离升序、同距离未来优先、同侧时间序、不改入参、空数组安全）、`match-data/analysis.spec.ts`（fmtNum 万位折算、pctStr 除零、calcKDA 辅助折算含铁衣恒辅助与零死亡分母下限、resolveArchetype 含潮光/鸿音分路与破塔 0.7 折算、computeScores 不变量：单条记录且同组死亡均值相同→85 分、**无死亡 deathMult=0 不扣分**、全零指标→0 分、权重按 wsum 归一为 1、total 降序、入参不被修改、同引用命中 WeakMap 缓存）；③`package.json` 增 `test`/`test:watch` 与 `vitest@^3.2.7`+`jsdom` devDependencies；CI frontend job 增 `npm run test`；`tech-stack.md` 开发工具表同步。验证：**`npm run test` → 38 passed（4 文件，1.73s）exit 0**；`npm run lint` 仍 0 error / 10 warning；`npm run build`（vue-tsc）通过。**过程发现**：①vitest 5.x 的 peer 要求 `vite ^6.4/^7/^8` 而项目固定 vite 5.4 → npm ERESOLVE，改用 vitest 3.2.7（依赖版本对齐的现实证据）；②首轮 4 条用例失败**全部是我自己的假设错误**——工厂默认 `profession:'铁衣'` 属辅助型、且实现为「无死亡则 deathMult=0 不扣分」（比 `analysis.ts` 文档注释更合理），故修正用例而非改代码。**未验证**：CI 上的运行（需 push）；`selfcheck_indicators.py` 未改造；组件级/接口级用例未写（httpx 已装待用） | 前端、测试、CI、文档 |
 | 2026-10-02 | Wave 2 批次 7（合规化计划 W2-6 部分，**出勤率口径收敛 + F-03 复核更正**）：①复核结论——出勤率**公式无重复实现**：唯一实现为 `backend/app/services/member_service.py:241`（`round(正常/(正常+请假), 4)`，无记录为 `null`，按出勤率升序且无记录排最后），前端 27 处 `attendance_rate` 命中全部是类型声明 / 读取 / 排序 / 展示，**并不重算**，原审计「口径散落 10 个文件」表述过重，已在计划 F-03 行更正并降级 P1→P2；②真实问题与修复——低出勤阈值 `0.5` 硬编码 4 处（`AttendanceRatePanel.vue` ×3、`MemberDetailHeader.vue` ×1）、百分比格式化 3 处且存在两种口径（`toFixed(1)` 与 `Math.round`）、另有组件内本地 `ratePercent()`；新增 `frontend/src/utils/attendance.ts`（`ATTENDANCE_LOW_THRESHOLD` / `isLowAttendance` / `attendanceProgressColor` / `formatRatePercent(rate, digits, fallback)`）作为前端唯一来源，**两种展示口径作为显式参数保留**（列表与详情 1 位小数、首页排行取整——属场景差异而非缺陷，已在模块注释与 spec 中写明并由用例守护）；③新增 `attendance.spec.ts` 6 用例（阈值边界 0.5 本身不告警、无记录不告警/回退文案、两种小数位、颜色分支）；④替换用脚本执行且**对每处替换断言期望命中次数**（4 / 3 / 1 全部匹配，避免静默失配），替换后逐行复核 diff。验证：**`npm run test` → 44 passed（5 文件，1.89s）exit 0**；`npm run lint` 0 error / 10 warning；`npm run build`（vue-tsc）exit 0。**未完成**：F-04（`config.py` 导入期副作用）待处理；展示口径改动未做浏览器验收（数值语义不变） | 前端、单一权威源、文档 |
 | 2026-10-02 | Wave 2 批次 8（合规化计划 W2-6 收尾，**F-04 修复**）：弱密钥启动门禁由 `app/core/config.py` **导入期**移至**应用启动期**。改造前的危害：`config.py` 模块级调用 `_validate_secret_key()`，而 `alembic/env.py`、测试收集、一次性脚本等非服务场景都会导入 config → 生产环境下仅 import 配置就被 `sys.exit(1)` 终止，且门禁本身无法被测试（既有用例只能覆盖纯判定函数）。改造后：`config.py` 新增 `InsecureSecretKeyError` 与文案常量（`FATAL_SECRET_KEY_MESSAGE` **原文逐字保留**、`WEAK_SECRET_KEY_WARNING`）、`validate_secret_key()`（生产弱密钥抛异常、开发仅告警、通过返回 None）、`enforce_secret_key()`（打印 FATAL + `sys.exit(1)`），并移除模块级调用；`app/main.py` 新增 `startup_checks()` 并在 `on_startup` 首要位置调用（先过门禁，再起审计日志清理任务）。目录创建（`DATA_DIR` / `LOG_DIR`）**刻意保留在导入期**——幂等、不中止进程，且被 `logging_config` 与 SQLite 路径在导入期依赖，理由写在 `config.py` 末尾。`backend/tests/test_config_gate.py` 由 9 → **15 用例**：子进程回归 2 条（生产弱密钥下**仅导入 config → exit 0 且无 FATAL**；调用 `enforce_secret_key()` → 非零退出 + FATAL 文案）、校验函数 4 条（生产弱密钥抛 `InsecureSecretKeyError` 且含 FATAL / 生产强密钥放行 / 开发弱密钥仅 WARNING / `enforce` 退出码为 1）、启动接线 2 条（需 FastAPI，本地缺依赖自动 skip，CI 执行）。**同时修掉一处将导致 CI 变红的既有问题**：`tests/test_permissions.py` 未使用的 `unittest` 导入（`ruff check .` 报 F401；第 7 轮「先跑 ruff、后写测试」的顺序导致当时未暴露），教训记入 ai-checklist 第 28 条。验证：`python -m ruff check .` → **All checks passed!**；`python -m compileall -q app scripts alembic` exit 0；`python -m pytest tests/test_config_gate.py tests/test_member_names.py` → **20 passed + 2 skipped**。**未验证**：需 FastAPI 的启动接线用例与全量后端套件（本地 3.14 装不了 pydantic-core；由 CI 3.11 覆盖）；uvicorn lifespan 路径下的具体退出码（推断为非零，未实跑容器） | 后端、安全、可测试性、CI |
+| 2026-10-02 | Wave 3 批次 1（合规化计划 W3-4 部分 / W4-4）**新增 4 份根文档**：`CHANGELOG.md`（Keep a Changelog 1.1.0；`[未发布]` 汇总本轮改动，v1.0.0/v1.1.0/v1.2.0 由 `git log` 归并并标注依据，比较链接用真实仓库 URL，记录 `package.json` 版本不一致待 D-4）、`CONTRIBUTING.md`（摘要 + 权威源链接 + 与 CI 对应的本地门禁命令）、`SECURITY.md`（支持版本 / GitHub 私有安全公告渠道 / 处理时限目标 / 已知接受风险引用权威源）、`CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 官方中文译本）；`AGENTS.md` §2.2、`architecture.md`（§23 + 目录树 + 更新记录）与 `README.md` 同步登记。**同时修正本文件代码目录树的滞后**（AGENTS.md §3.3 第 3 条要求两个目录树都检查）：补 `.editorconfig`、`.gitattributes`、`.githooks/`、`.github/`、`scripts/`、`backend/{pytest.ini,ruff.toml,requirements-dev.txt,tests/}`、`frontend/{eslint.config.js,.prettierrc.json,vitest.config.ts,nginx.conf.example}`；更正 `deploy.sh` → `deploy.sh.example`（可执行脚本已被忽略）、`nginx.conf`（内层反代，非边界层）、`utils/`（补 profession/attendance 与单测）三处失实说明 | CHANGELOG.md, CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md, AGENTS.md, README.md, architecture.md, progress.md |
 
 ---
 

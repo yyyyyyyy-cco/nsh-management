@@ -61,6 +61,10 @@
 | 代码 / 提交流程规则 | `.agent/rules/*.md` | 行数限制、模块文档、提交信息、项目规则 | 规范调整 |
 | 合规化整改计划 | `.agent/plans/compliance-remediation-plan.md` | 全仓合规差距清单（F-01～F-42）与 Wave 0～4 分波次整改路线、验收命令、授权边界 | 每完成一项整改任务 / 波次结束 / 决策变更 |
 | 部署文档 | `DEPLOY.md` | Docker Compose 部署全流程 | 部署配置变更 |
+| 更新日志 | `CHANGELOG.md` | 面向使用者的版本变更（Keep a Changelog 1.1.0） | 每次发布前 / 有使用者可见变更时 |
+| 贡献指南 | `CONTRIBUTING.md` | 协作约定摘要与权威源入口（环境、分支、门禁、PR） | 协作流程或 CI 门禁变化时 |
+| 安全政策 | `SECURITY.md` | 漏洞报告渠道、支持版本、处理时限（安全结论权威源仍为 security-review.md） | 报告渠道或支持策略变化时 |
+| 行为准则 | `CODE_OF_CONDUCT.md` | Contributor Covenant 2.1（官方中文译本） | 升级版本或调整举报渠道时 |
 
 注：memory-bank 文档统一小写 kebab-case 命名；新增文档必须登记到 `architecture.md`（说明 + 目录树 + 更新记录）。
 
