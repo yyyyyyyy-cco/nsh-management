@@ -34,22 +34,27 @@
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item v-if="auth.user?.role === 'member'" command="game-id-change">修改游戏 ID</el-dropdown-item>
+            <el-dropdown-item command="password">修改密码</el-dropdown-item>
             <el-dropdown-item command="logout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
     </div>
+
+    <!-- 自助改密：成功后所有旧令牌失效，故关闭对话框后由父组件登出并回登录页 -->
+    <PasswordChangeDialog v-model="showPasswordDialog" @changed="onPasswordChanged" />
   </header>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowDown, Expand, Fold, Menu, Rank } from '@element-plus/icons-vue'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { useAuthStore } from '@/stores/auth'
 import { useTableDensity } from '@/composables/useTableDensity'
+import PasswordChangeDialog from '@/components/account/PasswordChangeDialog.vue'
 
 defineProps<{ routeLoading: boolean; collapsed: boolean; isMobile: boolean }>()
 
@@ -80,7 +85,24 @@ async function onCommand(command: string | number | object) {
   }
   if (command === 'game-id-change') {
     router.push({ name: 'game-id-change' })
+    return
   }
+  if (command === 'password') {
+    showPasswordDialog.value = true
+  }
+}
+
+/** 弹层可见性（自助改密）。 */
+const showPasswordDialog = ref(false)
+
+/**
+ * 改密成功后的收尾：后端已使**所有旧令牌失效**（含本机），因此主动清除本地凭证并回登录页，
+ * 而不是等下一个请求 401 时被动登出。
+ */
+function onPasswordChanged() {
+  auth.clear()
+  ElMessage.success('密码已修改，请使用新密码重新登录')
+  router.push({ name: 'login' })
 }
 </script>
 

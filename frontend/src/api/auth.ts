@@ -19,3 +19,11 @@ export function getMe(): Promise<UserInfo> {
 export function logout(): Promise<{ message: string }> {
   return http.post('/auth/logout')
 }
+
+/** 自助修改口令（需提供当前口令）。成功后后端会使**所有旧令牌失效**，调用方需重新登录。 */
+export function changePassword(payload: {
+  current_password: string
+  new_password: string
+}): Promise<{ message: string }> {
+  return http.post('/auth/password', payload)
+}

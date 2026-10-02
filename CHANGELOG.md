@@ -35,7 +35,7 @@
 
 ### 新增
 
-- **自助修改口令**：新增 `POST /api/v1/auth/password`（需提供当前口令）；改密后**其他设备上的旧登录立即失效**。
+- **自助修改口令**：新增 `POST /api/v1/auth/password`（需提供当前口令），界面入口在右上角用户名菜单 →「修改密码」；改密后**其他设备上的旧登录立即失效**，当前会话也会回到登录页。
 
 - **备份与制品归档脚本模板**：`scripts/backup-db.sh.example`（SQLite 在线 backup API、默认 dry-run、生成后完整性校验、保留轮转）与 `scripts/release-archive.sh.example`（镜像 tar + 清单，版本权威为 git 标签）。
 - **依赖精确锁定**：`fastapi`/`python-multipart` 由范围约束改为 `==` 精确版本，并显式锁定传递引入的 `starlette`；新增 CI 门禁 `scripts/check_requirements_pins.py`。

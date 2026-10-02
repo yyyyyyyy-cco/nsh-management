@@ -30,10 +30,13 @@ http.interceptors.response.use(
   (response) => response.data,
   async (error) => {
     const status = error.response?.status
-    const isLoginRequest = String(error.config?.url ?? '').includes('/auth/login')
+    // 这两个接口的 401 表示**凭证本身不对**（登录失败 / 改密时当前密码错误），
+    // 不是「登录已过期」——若按过期处理会把用户强行登出并给出误导提示。
+    const url = String(error.config?.url ?? '')
+    const isCredentialCheck = url.includes('/auth/login') || url.includes('/auth/password')
 
     // 登录请求的错误（凭证错误、账号锁定、网络异常等）统一交由登录页展示
-    if (isLoginRequest) {
+    if (isCredentialCheck) {
       return Promise.reject(error)
     }
 
