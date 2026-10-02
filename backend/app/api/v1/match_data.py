@@ -40,7 +40,7 @@ async def import_csv(
         raise match_data_csv.MatchDataError("文件大小超过 5MB 限制")
 
     # 校验文件类型
-    if not file.filename.endswith(".csv"):
+    if not (file.filename or "").lower().endswith(".csv"):
         raise match_data_csv.MatchDataError("仅支持 CSV 文件")
 
     text = content.decode("utf-8-sig")  # 处理 BOM

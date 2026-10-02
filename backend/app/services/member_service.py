@@ -1,4 +1,5 @@
 """常驻库业务：CRUD、搜索筛选、出勤率统计。Excel 导入见 utils/excel_import.py。"""
+from typing import Any
 from sqlalchemy import Select, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -92,7 +93,7 @@ async def list_members(
             "substitute_count": int(status_counts.get("substitute", 0)),
         }
     # 排序（白名单字段防注入）：指定字段时按 asc/desc，否则默认按创建时间倒序
-    sortable = {
+    sortable: dict[str, Any] = {
         "name": Member.name,
         "main_profession": Member.main_profession,
         "status": Member.status,
@@ -119,7 +120,7 @@ async def export_members(
 ) -> list[Member]:
     """导出用：按列表同款筛选与排序拉取全量成员（不分页）。"""
     base = apply_filters(select(Member), guild_id, keyword, profession, status)
-    sortable = {
+    sortable: dict[str, Any] = {
         "name": Member.name,
         "main_profession": Member.main_profession,
         "status": Member.status,
