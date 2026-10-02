@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -38,7 +38,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         await self.session.flush()
         self.gid = guild.id
         self.schedule = Schedule(guild_id=self.gid, opponent="对手",
-                                 match_time=datetime.now(timezone.utc), rounds=1)
+                                 match_time=datetime.now(UTC), rounds=1)
         self.session.add(self.schedule)
         await self.session.flush()
         self.sid = self.schedule.id

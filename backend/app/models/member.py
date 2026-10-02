@@ -1,5 +1,5 @@
 """常驻库成员表。"""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,5 +18,5 @@ class Member(Base):
     status: Mapped[str] = mapped_column(String(16), default="formal", nullable=False, index=True)  # formal / substitute
     remark: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )

@@ -16,7 +16,7 @@ except ImportError as _exc:  # pragma: no cover - 无依赖环境（如 Python 3
 import json
 import sys
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -40,7 +40,7 @@ from app.schemas.member import MemberUpdate
 from app.services.member_service import update_member
 from app.services.player_identity_service import PlayerIdentityError
 
-BASE_TIME = datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
+BASE_TIME = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
 
 
 class MyStatsAliasTests(unittest.IsolatedAsyncioTestCase):

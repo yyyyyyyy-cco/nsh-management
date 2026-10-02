@@ -2,7 +2,7 @@
 
 设计依据：memory-bank/design-game-id-change.md（状态机 / 事务 / 冲突边界）。
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError, OperationalError
@@ -235,7 +235,7 @@ async def audit_request(
     old_game_id = record.old_game_id
     new_game_id = record.new_game_id
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     values = {
         "status": "approved" if data.action == "approve" else "rejected",
         "reviewer_id": reviewer.id,

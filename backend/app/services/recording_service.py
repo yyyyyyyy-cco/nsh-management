@@ -1,5 +1,5 @@
 """录屏审核业务：列表、提交、审核、批量审核、进度统计。"""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
@@ -207,7 +207,7 @@ async def approve_recording(
 
     recording.status = "approved"
     recording.review_remark = remark
-    recording.reviewed_at = datetime.now(timezone.utc)
+    recording.reviewed_at = datetime.now(UTC)
     await session.commit()
     await session.refresh(recording)
     return recording
@@ -228,7 +228,7 @@ async def reject_recording(
 
     recording.status = "rejected"
     recording.review_remark = remark
-    recording.reviewed_at = datetime.now(timezone.utc)
+    recording.reviewed_at = datetime.now(UTC)
     await session.commit()
     await session.refresh(recording)
     return recording
@@ -254,7 +254,7 @@ async def batch_approve(
         .all()
     )
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for recording in recordings:
         recording.status = "approved"
         recording.reviewed_at = now

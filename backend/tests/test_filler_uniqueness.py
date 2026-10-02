@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -31,7 +31,7 @@ class FillerUniquenessTest(unittest.IsolatedAsyncioTestCase):
         self.session.add(guild)
         await self.session.flush()
         schedule = Schedule(guild_id=guild.id, opponent="对手",
-                            match_time=datetime.now(timezone.utc), rounds=1)
+                            match_time=datetime.now(UTC), rounds=1)
         self.session.add(schedule)
         await self.session.flush()
         self.sid = schedule.id

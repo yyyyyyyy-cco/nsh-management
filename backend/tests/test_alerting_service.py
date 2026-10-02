@@ -5,7 +5,7 @@
 跳过是显式的（`skipUnless`），不会伪装成通过。策略层用例见 `test_alerting_policy.py`（无需依赖）。
 """
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 try:
@@ -39,7 +39,7 @@ class CountRecentErrorsTests(DbTestCase):
                 method="POST",
                 path="/api/v1/test",
                 level=level,
-                created_at=datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=minutes_ago),
+                created_at=datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=minutes_ago),
             )
         )
         await self.session.commit()
@@ -70,7 +70,7 @@ class RunAlertCheckTests(DbTestCase):
         self.factory = async_sessionmaker(self.engine, expire_on_commit=False)
 
     async def _seed_errors(self, count: int, minutes_ago: int = 1) -> None:
-        stamp = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=minutes_ago)
+        stamp = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=minutes_ago)
         for _ in range(count):
             self.session.add(
                 OperationLog(

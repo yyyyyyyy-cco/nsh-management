@@ -1,5 +1,5 @@
 """排表接口：读取排表（帮众可看）、保存排表（管理员）、候选池（管理员）。"""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -32,7 +32,7 @@ async def get_lineup(
     if lineup.id is None:
         lineup.id = 0
     if lineup.updated_at is None:
-        lineup.updated_at = datetime.now(timezone.utc)
+        lineup.updated_at = datetime.now(UTC)
     result = LineupOut.model_validate(lineup)
     # 仅规范化响应，不批量改写历史数据；与候选池保持同一补人姓名键。
     for team in result.data:

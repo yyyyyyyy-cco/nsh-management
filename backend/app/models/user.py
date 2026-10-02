@@ -1,5 +1,5 @@
 """账号表：每个帮会一个管理员账号 + 一个帮众共享账号。"""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
@@ -26,7 +26,7 @@ class User(Base):
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     token_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # 令牌吊销版本号（登出/改密自增）
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )
 
     guild: Mapped["Guild | None"] = relationship("Guild", foreign_keys=[guild_id], lazy="joined")

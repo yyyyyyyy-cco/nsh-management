@@ -1,5 +1,5 @@
 """赛程表：局数创建后不可修改，每局结果以 JSON 存储。"""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -21,5 +21,5 @@ class Schedule(Base):
     round_results: Mapped[list | None] = mapped_column(JSON, nullable=True)  # 每局结果，如 ["win","lose","pending"]
     profession_config: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # 单场职业配置覆盖 {职业: 目标人数}，NULL 沿用系统配置
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )

@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -33,9 +33,9 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         await self.session.flush()
         self.gid = guild.id
         self.s1 = Schedule(guild_id=self.gid, opponent="对手甲",
-                           match_time=datetime.now(timezone.utc), rounds=1)
+                           match_time=datetime.now(UTC), rounds=1)
         self.s2 = Schedule(guild_id=self.gid, opponent="对手乙",
-                           match_time=datetime.now(timezone.utc), rounds=1)
+                           match_time=datetime.now(UTC), rounds=1)
         self.session.add_all([self.s1, self.s2])
         await self.session.flush()
         self.rid = None

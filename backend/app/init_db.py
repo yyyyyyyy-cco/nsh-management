@@ -59,7 +59,7 @@ async def init() -> None:
             print(f"开发者账号已存在：{DEVELOPER_USERNAME}")
 
         # 创建默认帮会（仅当需要创建 admin 或 member 时）
-        guild: "Guild | None" = None
+        guild: Guild | None = None
         if ADMIN_PASSWORD or MEMBER_PASSWORD:
             guild = (await session.execute(select(Guild).where(Guild.name == DEFAULT_GUILD_NAME))).scalar_one_or_none()
             if guild is None:

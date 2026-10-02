@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -35,7 +35,7 @@ async def count_recent_errors(session: AsyncSession, window_minutes: int) -> int
 
     时间口径：数据库存 **UTC naive**（见 `app/schemas/common.py`），故窗口边界也按 UTC naive 计算。
     """
-    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=window_minutes)
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(minutes=window_minutes)
     result = await session.execute(
         select(func.count()).where(
             OperationLog.created_at >= cutoff,
@@ -54,7 +54,7 @@ async def run_alert_check(*, webhook_url: str | None = None, now: datetime | Non
     window = settings.ALERT_WINDOW_MINUTES
     threshold = settings.ALERT_ERROR_THRESHOLD
     url = settings.ALERT_WEBHOOK_URL if webhook_url is None else webhook_url
-    stamp = now or datetime.now(timezone.utc)
+    stamp = now or datetime.now(UTC)
 
     try:
         async with async_session_factory() as session:

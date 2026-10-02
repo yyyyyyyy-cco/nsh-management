@@ -26,7 +26,7 @@ class PasswordLengthTests(unittest.TestCase):
 
     def test_at_least_64_is_allowed(self):
         """6.2.9：至少允许 64 位（不能因为上限把长口令挡住）。"""
-        validate_password(("Ab3!" * 16))  # 64 位且非单一重复
+        validate_password("Ab3!" * 16)  # 64 位且非单一重复
 
     def test_maximum_is_accepted_and_beyond_rejected(self):
         long_ok = "A3" + "x" * (MAX_LENGTH - 2)

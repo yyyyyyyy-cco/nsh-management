@@ -9,7 +9,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 from sqlalchemy import func, select
@@ -37,7 +37,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         await self.session.flush()
         self.gid = guild.id
         self.schedule = Schedule(guild_id=self.gid, opponent="对手",
-                                 match_time=datetime.now(timezone.utc), rounds=2)
+                                 match_time=datetime.now(UTC), rounds=2)
         self.session.add(self.schedule)
         await self.session.commit()
 
@@ -86,7 +86,7 @@ class ScheduleRulesTest(_Base):
         self.assertEqual(settings.LOG_RETENTION_DAYS, 90, "默认保留天数应为 90（DEPLOY.md §四）")
 
     async def test_clear_old_logs_keeps_recent(self) -> None:
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        now = datetime.now(UTC).replace(tzinfo=None)
         self.session.add_all([
             OperationLog(username="u", module="other", action="update", method="PUT", path="/x",
                          level="info", created_at=now - timedelta(days=91)),

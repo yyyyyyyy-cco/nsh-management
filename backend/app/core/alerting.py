@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import urllib.request
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # 告警负载的字段集合（稳定契约，便于对接任意 webhook；改字段需同步测试）
 PAYLOAD_FIELDS = (
@@ -46,7 +46,7 @@ def decide_alert(count: int, threshold: int) -> bool:
 
 def build_payload(decision: AlertDecision, *, app_name: str, now: datetime | None = None) -> dict:
     """构造 webhook 负载（纯函数）。`detected_at` 为 UTC ISO 8601。"""
-    stamp = (now or datetime.now(timezone.utc)).isoformat()
+    stamp = (now or datetime.now(UTC)).isoformat()
     return {
         "app": app_name,
         "level": "error",

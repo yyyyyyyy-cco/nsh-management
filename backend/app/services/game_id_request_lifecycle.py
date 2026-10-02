@@ -3,7 +3,7 @@
 只依赖模型，不导入其他业务服务，避免循环依赖；辅助函数一律不自行 commit，
 由调用方（member_service / account_service / guild_service）统一提交或回滚。
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +17,7 @@ ADMIN_DIRECT_RENAME_REMARK = "管理员直接在常驻库改名（自动记录�
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 async def invalidate_pending_by_member(session: AsyncSession, member_id: int) -> None:

@@ -1,7 +1,7 @@
 """认证业务：密码校验、登录限流、令牌签发。"""
 import asyncio
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,7 +40,7 @@ _unknown_login_failures: dict[str, dict] = {}
 async def authenticate(session: AsyncSession, username: str, password: str) -> tuple[str, User]:
     """校验账号密码，返回 (access_token, user)。失败抛 AuthError。"""
     user = await get_user_by_username(session, username)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     if user is None:
         # 账号不存在：内存计数锁定，防止对不存在账号的暴力试探
         record = _unknown_login_failures.setdefault(username, {"failed_attempts": 0, "locked_until": None})
@@ -64,7 +64,7 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> t
     # SQLite 读回的 locked_until 丢失时区信息（naive），统一按 UTC 处理后再比较
     locked_until = user.locked_until
     if locked_until is not None and locked_until.tzinfo is None:
-        locked_until = locked_until.replace(tzinfo=timezone.utc)
+        locked_until = locked_until.replace(tzinfo=UTC)
     if locked_until and locked_until > now:
         seconds_left = max(1, int((locked_until - now).total_seconds()))
         minutes_left = max(1, math.ceil(seconds_left / 60))

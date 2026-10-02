@@ -8,7 +8,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -95,7 +95,7 @@ class StructureValidationThroughSaveTest(unittest.IsolatedAsyncioTestCase):
         self.session = self.maker()
         self.session.add(Guild(id=1, name="排表结构测试"))
         self.session.add(Schedule(id=1, guild_id=1, opponent="对手", rounds=1,
-                                  match_time=datetime.now(timezone.utc)))
+                                  match_time=datetime.now(UTC)))
         await self.session.commit()
 
     async def asyncTearDown(self) -> None:

@@ -7,7 +7,7 @@
 """
 import json
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest import mock
 
 from app.core.alerting import PAYLOAD_FIELDS, AlertDecision, build_payload, decide_alert, post_json
@@ -36,7 +36,7 @@ class BuildPayloadTests(unittest.TestCase):
     def test_payload_field_contract(self):
         decision = AlertDecision(count=25, threshold=20, window_minutes=30, triggered=True)
         payload = build_payload(
-            decision, app_name="测试应用", now=datetime(2026, 10, 2, 12, 0, tzinfo=timezone.utc)
+            decision, app_name="测试应用", now=datetime(2026, 10, 2, 12, 0, tzinfo=UTC)
         )
         self.assertEqual(set(payload), set(PAYLOAD_FIELDS))
         self.assertEqual(payload["app"], "测试应用")

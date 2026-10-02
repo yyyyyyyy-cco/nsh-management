@@ -2,7 +2,7 @@
 
 与正式排表（lineups）完全独立，修改仅作用于小队分析视图，不改变最终排表。
 """
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
@@ -18,7 +18,7 @@ class SquadAdjustment(Base):
     data: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)  # {player_name: "category:team_index"}
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
         nullable=False,
     )

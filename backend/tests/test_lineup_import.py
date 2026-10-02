@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
@@ -35,8 +35,8 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         self.session.add(guild)
         await self.session.flush()
         self.gid = guild.id
-        self.src = Schedule(guild_id=self.gid, opponent="来源", match_time=datetime.now(timezone.utc), rounds=1)
-        self.dst = Schedule(guild_id=self.gid, opponent="目标", match_time=datetime.now(timezone.utc), rounds=1)
+        self.src = Schedule(guild_id=self.gid, opponent="来源", match_time=datetime.now(UTC), rounds=1)
+        self.dst = Schedule(guild_id=self.gid, opponent="目标", match_time=datetime.now(UTC), rounds=1)
         self.session.add_all([self.src, self.dst])
         await self.session.flush()
 

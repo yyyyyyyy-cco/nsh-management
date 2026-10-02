@@ -4,7 +4,7 @@
 """
 import glob
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from math import ceil
 
 from PIL import Image, ImageDraw, ImageFont
@@ -87,7 +87,7 @@ def draw_members_png(members: list[Member], guild_name: str | None = None) -> by
     draw.rectangle([0, 0, WIDTH, 6], fill=GOLD_SOFT)
     title = guild_name or "常驻库成员表"
     draw.text((PADDING, 20), f"{title} · 常驻库", font=title_font, fill=INK)
-    date_text = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+    date_text = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
     stat_text = f"{len(members)} 人 · {len(groups)} 个职业 · {date_text}"
     stat_w = draw.textlength(stat_text, font=sub_font)
     draw.text((WIDTH - PADDING - stat_w, 30), stat_text, font=sub_font, fill=INK_SOFT)

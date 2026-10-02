@@ -3,7 +3,7 @@
 落库使用独立 session 且吞掉自身异常，保证日志失败不影响主流程。
 """
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -120,7 +120,7 @@ def _naive_utc(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     if dt.tzinfo is not None:
-        dt = dt.astimezone(timezone.utc)
+        dt = dt.astimezone(UTC)
     return dt.replace(tzinfo=None)
 
 
@@ -206,7 +206,7 @@ async def get_log_stats(session: AsyncSession) -> dict:
 async def clear_old_logs(days: int | None = None) -> int:
     """清理超过保留期的日志，返回删除条数（独立 session）。"""
     days = days or settings.LOG_RETENTION_DAYS
-    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days)
     try:
         async with async_session_factory() as session:
             result = await session.execute(delete(OperationLog).where(OperationLog.created_at < cutoff))

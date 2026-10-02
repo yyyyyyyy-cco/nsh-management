@@ -1,7 +1,7 @@
 """常驻库接口：成员 CRUD、搜索筛选、批量删除、Excel 导入/导出、出勤率统计。"""
 # 行数豁免（连续逻辑）：单资源薄路由（CRUD + 导入导出端点声明同质）｜登记见 .agent/rules/file-length-rule.md 豁免清单
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
 
@@ -133,7 +133,7 @@ async def export_members(
     guild = await session.get(Guild, current_user.guild_id) if current_user.guild_id else None
     guild_name = guild.name if guild else None
     content = await asyncio.to_thread(build_members_xlsx, members, guild_name, current_user.guild_id)
-    date_tag = datetime.now(timezone.utc).astimezone().strftime("%Y%m%d")
+    date_tag = datetime.now(UTC).astimezone().strftime("%Y%m%d")
     # ASCII fallback + RFC 5987 编码中文文件名（均携带帮会来源）
     filename = f"members_{current_user.guild_id}_{date_tag}.xlsx"
     quoted = quote(member_export_filename(guild_name, date_tag, "xlsx"))
@@ -165,7 +165,7 @@ async def export_image(
     guild = await session.get(Guild, current_user.guild_id) if current_user.guild_id else None
     # PIL 绘制与 PNG 编码为 CPU 密集操作，放线程池避免阻塞事件循环
     content = await asyncio.to_thread(draw_members_png, members, guild.name if guild else None)
-    date_tag = datetime.now(timezone.utc).astimezone().strftime("%Y%m%d")
+    date_tag = datetime.now(UTC).astimezone().strftime("%Y%m%d")
     quoted = quote(member_export_filename(guild.name if guild else None, date_tag, "png"))
     return Response(
         content=content,

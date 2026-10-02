@@ -9,7 +9,7 @@ FK 也未声明 ondelete="CASCADE"，故 ORM/DB 都不会级联）——删赛�
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -44,7 +44,7 @@ class ScheduleCascadeTest(unittest.TestCase):
                 session.add(guild)
                 await session.flush()
                 schedule = Schedule(guild_id=guild.id, opponent="对手",
-                                    match_time=datetime.now(timezone.utc), rounds=1)
+                                    match_time=datetime.now(UTC), rounds=1)
                 session.add(schedule)
                 await session.flush()
                 sid = schedule.id
@@ -97,7 +97,7 @@ class GuildCascadeTest(unittest.TestCase):
                 await session.flush()
                 gid = guild.id
                 schedule = Schedule(guild_id=gid, opponent="对手",
-                                    match_time=datetime.now(timezone.utc), rounds=1)
+                                    match_time=datetime.now(UTC), rounds=1)
                 session.add(schedule)
                 await session.flush()
                 sid = schedule.id
@@ -157,7 +157,7 @@ class MemberDetachTest(unittest.TestCase):
                 await session.flush()
                 mid = member.id
                 schedule = Schedule(guild_id=gid, opponent="对手",
-                                    match_time=datetime.now(timezone.utc), rounds=1)
+                                    match_time=datetime.now(UTC), rounds=1)
                 session.add(schedule)
                 await session.flush()
                 sid = schedule.id

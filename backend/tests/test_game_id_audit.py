@@ -10,7 +10,7 @@
 from __future__ import annotations
 
 import unittest
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -59,8 +59,8 @@ class _Base(unittest.IsolatedAsyncioTestCase):
             new_game_id=new,
             requester_username="member-shared",
             status="pending",
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
+            created_at=datetime.now(UTC),
+            updated_at=datetime.now(UTC),
         )
         self.session.add(req)
         await self.session.commit()

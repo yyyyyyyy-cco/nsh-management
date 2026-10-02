@@ -1,5 +1,5 @@
 """帮会表。"""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -14,5 +14,5 @@ class Guild(Base):
     name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     icon_char: Mapped[str | None] = mapped_column(String(4), nullable=True)  # 侧边栏折叠按钮显示的首字
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )

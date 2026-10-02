@@ -4,7 +4,7 @@
 说明：bcrypt 较慢（约 0.2-0.4s/次），故用例刻意只做必要次数的哈希。
 """
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 try:
     from jose import jwt
@@ -53,7 +53,7 @@ class AccessTokenTests(unittest.TestCase):
     def test_token_signed_with_other_secret_returns_none(self):
         forged = jwt.encode(
             {"sub": "1", "role": "developer", "ver": 0,
-             "exp": datetime.now(timezone.utc) + timedelta(minutes=5)},
+             "exp": datetime.now(UTC) + timedelta(minutes=5)},
             "attacker-secret",
             algorithm=settings.ALGORITHM,
         )
@@ -62,7 +62,7 @@ class AccessTokenTests(unittest.TestCase):
     def test_expired_token_returns_none(self):
         expired = jwt.encode(
             {"sub": "1", "role": "admin", "ver": 0,
-             "exp": datetime.now(timezone.utc) - timedelta(minutes=1)},
+             "exp": datetime.now(UTC) - timedelta(minutes=1)},
             settings.SECRET_KEY,
             algorithm=settings.ALGORITHM,
         )
