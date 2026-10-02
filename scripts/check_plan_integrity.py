@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""整改计划结构完整性门禁（`.agent/plans/compliance-remediation-plan.md`）。
+
+**为什么需要**：计划文档是本仓库合规工作的**唯一路线权威**，但它由多轮增量编辑而成——
+本轮之前的真实事故：给 §5 新增了任务 `W4-9` 却**忘了加 §7 进度行**，直到记录脚本的锚点报错才发现；
+同类风险还有 F 编号笔误、§5/§7 任务不一致、行内状态词写错。
+
+**检查项**（全部对计划文件本身解析，不做语义判断）：
+1. **唯一性**：§4 的 F 编号、§5 的任务编号、§7 的进度编号各自不得重复；
+2. **覆盖一致**：§5 的每个任务必须**恰好**有一条 §7 进度行；§7 的每条进度也必须在 §5 有对应任务；
+3. **引用有效**：§5/§7 行内出现的 `F-<数字>` 必须在 §4 中定义（防笔误）；
+4. **状态词合法**：§7 每条进度行必须含 ✅/🔄/⏳/⛔ 之一（或 `—`），否则视为格式漂移。
+
+用法：
+    python scripts/check_plan_integrity.py                # 校验
+    python scripts/check_plan_integrity.py --self-test    # 内置样例自检（不读文件）
+"""
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PLAN = ROOT / ".agent" / "plans" / "compliance-remediation-plan.md"
+
+# §5 任务行：`| W1-7 | 动作… |`（首格是纯编号）
+TASK_ROW = re.compile(r"^\| \*{0,2}(W\d+-\d+)\*{0,2} \| ", re.MULTILINE)
+# §7 进度行：`| W1-7 名称… |`（首格是「编号 空格 名称」）
+PROGRESS_ROW = re.compile(r"^\| \*{0,2}(W\d+-\d+)\*{0,2} (?!\|)", re.MULTILINE)
+FINDING_ROW = re.compile(r"^\| \*{0,2}(F-\d+)\*{0,2} \| ", re.MULTILINE)
+F_REF = re.compile(r"\bF-\d+\b")
+STATUS_MARKS = ("✅", "🔄", "⏳", "⛔")
+PROGRESS_LINE = re.compile(r"^\| W\d+-\d+ (?!\|).*$", re.MULTILINE)
+
+
+def duplicates(items: list[str]) -> list[str]:
+    seen: set[str] = set()
+    dups: set[str] = set()
+    for item in items:
+        if item in seen:
+            dups.add(item)
+        seen.add(item)
+    return sorted(dups)
+
+
+def analyze(text: str) -> list[str]:
+    """返回问题列表（空 = 通过）。自检与实跑共用本函数。"""
+    problems: list[str] = []
+    tasks = TASK_ROW.findall(text)
+    progress = PROGRESS_ROW.findall(text)
+    findings = FINDING_ROW.findall(text)
+
+    for label, ids in (("§4 发现编号", findings), ("§5 任务编号", tasks), ("§7 进度编号", progress)):
+        dups = duplicates(ids)
+        if dups:
+            problems.append(f"{label} 重复：{', '.join(dups)}")
+
+    missing_progress = sorted(set(tasks) - set(progress))
+    if missing_progress:
+        problems.append(f"§5 有任务但 §7 无进度行：{', '.join(missing_progress)}")
+    orphan_progress = sorted(set(progress) - set(tasks))
+    if orphan_progress:
+        problems.append(f"§7 有进度行但 §5 无任务：{', '.join(orphan_progress)}")
+
+    defined = set(findings)
+    for line in text.splitlines():
+        if not (line.startswith("| W") or line.startswith("| F-")):
+            continue
+        own_id = re.sub(r"\*", "", line.split("|")[1]).strip()  # 行自身的编号可能带加粗
+        for ref in F_REF.findall(line):
+            if ref not in defined and ref != own_id:
+                problems.append(f"引用了 §4 未定义的发现：{ref}（出现在：{line[:60]}…）")
+
+    for line in PROGRESS_LINE.findall(text):
+        if not any(mark in line for mark in STATUS_MARKS):
+            problems.append(f"§7 进度行缺少状态标记（{'/'.join(STATUS_MARKS)}）：{line[:60]}…")
+
+    return problems
+
+
+SELF_TEST_CASES: tuple[tuple[str, bool, str], ...] = (
+    # (样例文本, 是否应通过, 说明)
+    ("| F-01 | x |\n| W1-1 | a |\n| W1-1 名称 | ✅ 已完成 |\n| W1-2 | b |\n| W1-2 名称 | ⏳ 待开始 |\n", True, "正常：任务与进度一一对应"),
+    ("| W1-1 | a |\n", False, "§5 有任务但 §7 无进度行"),
+    ("| W1-1 名称 | ✅ 已完成 |\n", False, "§7 有进度但 §5 无任务"),
+    ("| W1-1 | a |\n| W1-1 名称 | ✅ |\n| W1-1 | b |\n", False, "§5 任务编号重复"),
+    ("| W1-1 | a |\n| W1-1 名称 | 已完成 |\n", False, "§7 缺状态标记（无 ✅/🔄/⏳/⛔）"),
+    ("| F-01 | x |\n| W1-1 | 见 F-99 |\n| W1-1 名称 | ✅ |\n", False, "引用了未定义的 F-99"),
+    ("| F-01 | x |\n| W1-1 | 见 F-01 |\n| W1-1 名称 | ✅ |\n", True, "引用已定义的 F-01"),
+    ("| **F-01** | x |\n| W1-1 | 见 F-01 |\n| W1-1 名称 | ✅ |\n", True, "§4 编号加粗（真实计划里的写法）"),
+)
+
+
+def run_self_test() -> int:
+    failures = 0
+    for text, should_pass, note in SELF_TEST_CASES:
+        problems = analyze(text)
+        ok = (not problems) == should_pass
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] {note}｜期望通过={should_pass}，问题={problems[:1]}")
+    total = len(SELF_TEST_CASES)
+    print(f"自检：{total - failures}/{total} 通过")
+    return 1 if failures else 0
+
+
+def main(argv: list[str]) -> int:
+    if "--self-test" in argv:
+        return run_self_test()
+
+    text = PLAN.read_text(encoding="utf-8")
+    problems = analyze(text)
+    tasks = TASK_ROW.findall(text)
+    progress = PROGRESS_ROW.findall(text)
+    findings = FINDING_ROW.findall(text)
+    print(f"[plan] 发现 {len(findings)} 条 / 任务 {len(tasks)} 条 / 进度 {len(progress)} 条")
+    if problems:
+        print("[plan] 结构问题：")
+        for item in problems:
+            print(f"  - {item}")
+        return 1
+    print("[plan] 结构一致性 : PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

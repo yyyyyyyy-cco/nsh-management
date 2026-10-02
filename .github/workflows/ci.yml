@@ -103,6 +103,10 @@ jobs:
         run: |
           python scripts/check_env_docs.py --self-test
           python scripts/check_env_docs.py
+      - name: 整改计划结构一致性（自检 + 实际文件）
+        run: |
+          python scripts/check_plan_integrity.py --self-test
+          python scripts/check_plan_integrity.py
       - name: 陈旧绝对路径（不得出现旧仓库位置）
         run: |
           set -e
