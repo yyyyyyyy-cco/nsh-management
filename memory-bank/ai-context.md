@@ -122,12 +122,12 @@ member（帮众）→ 绑定帮会，只读 + 有限操作
 
 ## 4. Git 工作流
 
-> **权威源**：`GIT-GUIDE.md`（完整分支策略、提交规范、版本发布、双远程同步）
+> **权威源**：`GIT-GUIDE.md`（完整分支策略、提交规范、版本发布、镜像远端同步（可选））
 
 - 分支：`main`（始终可发布）+ `feature/<功能名>` + `hotfix/<描述>`
 - 提交：`<type>(<scope>): <中文摘要>`，scope 必填
 - 合并：`--no-ff`
-- 双远程：`origin`（GitHub）+ `gitee`（Gitee）同步推送
+- 远端：`origin`（GitHub）为唯一权威远端；镜像（如 Gitee）可选
 
 ---
 

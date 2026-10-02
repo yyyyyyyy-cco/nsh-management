@@ -285,6 +285,8 @@ nsh-management/
 | 2026-10-02 | Wave 4 批次 3（合规化计划 W4-2）：`memory-bank/security-review.md` 新增 **§十五 暴露面清单与 OWASP 对照**（15.1 暴露面清单 / 15.2 Top 10:2025 条目级对照 / 15.3 ASVS 5.0.0 域级对照 / 15.4 新识别 6 项不足）；合规化计划新增差距 F-43~F-46 与任务 W4-5~W4-8（CSP 收紧、告警通道、威胁建模、ASVS 条目级核对） | security-review.md, compliance-remediation-plan.md, architecture.md, progress.md |
 | 2026-10-02 | ai-checklist §五 新增遗漏模式 30：同一文档存在多个同前缀表格时，「最后一行匹配 `| 前缀-`」的插入锚点会跨表命中（本轮合规化计划 §5 任务表与 §7 进度表各错一次，修正两轮）；校验正则亦需先自测正/负样本 | ai-checklist.md, compliance-remediation-plan.md, progress.md, architecture.md |
 | 2026-10-02 | Wave 3 批次 3（合规化计划 W3-2 / W3-3）：新增 `scripts/backup-db.sh.example`（SQLite 在线 backup API 自动化：默认 dry-run、生成后完整性校验、保留轮转、cron 示例）与 `scripts/release-archive.sh.example`（镜像 tar 归档 + 清单，版本权威为 git 标签，含标签/工作区核对）；`DEPLOY.md §五` 新增「自动化备份」（含 WAL 下直接 `cp` 丢数据的实测证据）与「恢复演练记录」小节，文件末尾新增 **§九 版本归档与回滚**（归档、回滚七步、数据库迁移不可逆警示、归档保留） | backup-db.sh.example, release-archive.sh.example, DEPLOY.md, compliance-remediation-plan.md, architecture.md, progress.md |
+| 2026-10-02 | Wave 3 批次 4（合规化计划 W3-6，决策 D-2）：`GIT-GUIDE.md` 远端策略由「双远程」改为 **「单远端 `origin` 为准 + 可选镜像」**（§1 仓库概览与策略段、§4.4 推送 main、§5.2 推送标签、§6「镜像远端（可选）」，必做/可选命令分列并给出配置镜像命令）；历史事实备注按 §3.4 保留不回改、仅调整结论句。同步权威源：`AGENTS.md §5`、`memory-bank/ai-context.md`、`memory-bank/progress.md` 代码树说明。同时按代码事实更正 `GIT-GUIDE.md §7.1`——原文把 `frontend/nginx.conf` 列为「禁止提交」，而该文件自 2026-10-02 起已入库（容器构建输入，占位符版）。`GIT-GUIDE.md §8` 发布检查清单新增三项（更新 CHANGELOG / **发布前**归档制品 / **发布前**数据库备份），与 `DEPLOY.md §九` 的发布纪律对齐；`AGENTS.md`、`ai-checklist.md`（新增第 31 条：追加式表格的尾部锚点会被自己的写入破坏）、合规化计划 §7 同步 | GIT-GUIDE.md, AGENTS.md, ai-context.md, ai-checklist.md, progress.md, compliance-remediation-plan.md, architecture.md |
+
 ---
 
 ## 使用说明

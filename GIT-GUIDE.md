@@ -1,6 +1,6 @@
 # 项目 Git 管理规范
 
-> 本文档用于指导 `nsh-management` 项目的日常 Git 使用，包括分支策略、提交规范、版本发布与双远程同步。
+> 本文档用于指导 `nsh-management` 项目的日常 Git 使用，包括分支策略、提交规范、版本发布与（可选的）镜像远端同步。
 > 适用对象：项目所有开发者。
 
 ---
@@ -12,11 +12,13 @@
 | 本地路径 | `nsh-management/` |
 | 默认分支 | `main` |
 | 远程 GitHub | `origin` → `https://github.com/yyyyyyyy-cco/nsh-management.git` |
-| 远程 Gitee | `gitee` → `https://gitee.com/Gypsophilaaa/nsh-management.git` |
+| 可选镜像远端 | `gitee` → `https://gitee.com/Gypsophilaaa/nsh-management.git`（**按需配置**，非发布前置条件） |
 | 当前版本标签 | `v1.2.0`（新增游戏 ID 改名审批与战绩关联、成员战绩页与单场图文战报） |
 
-> **双远程策略**：`origin`（GitHub）与 `gitee`（Gitee）互为镜像。任何推到 main 的提交和打出的 tag，都要**同步推送到两个远程**，避免仓库分叉。
-> **备注（2026-10-02）**：发布 `v1.2.0` 时本地检出 `git remote -v` **仅配置 `origin`**，无 `gitee` 远端，故该标签只推送到 GitHub；补齐 `gitee` 后需用 `git push gitee v1.2.0` 回补，恢复双远端一致。此处仅记录事实，双远程策略不变。
+> **远端策略（2026-10-02 起，对应决策 D-2）**：以 **`origin`（GitHub）为唯一权威远端**——提交与标签推送到 `origin` 即视为完成发布。
+> **可选镜像**：如需冗余，可另配镜像远端（示例 `gitee`）并同步推送；**镜像不是发布前置条件**，未配置时按单远端操作，不构成未完成项。
+> 配置镜像：`git remote add gitee https://gitee.com/Gypsophilaaa/nsh-management.git`；配置后应向镜像同步 `main` 与标签（命令见 §4.4 / §5.2）。
+> **备注（2026-10-02，事实记录不回改）**：发布 `v1.2.0` 时本地 `git remote -v` **仅配置 `origin`**，故该标签只推送到 GitHub。按当时「双远程」口径这是缺口；自本日起口径调整为「单远端为准 + 可选镜像」，若日后配置 `gitee`，可用 `git push gitee v1.2.0` 回补镜像一致性。
 
 ---
 
@@ -126,15 +128,17 @@ git pull                                    # 先同步远端最新
 git merge --no-ff feature/data-analysis -m "merge(feature): 合并数据分析模块到 main"
 ```
 
-### 4.4 推送并同步双远程
+### 4.4 推送 main（单远端为准；配置了镜像则一并同步）
 
 ```bash
-# 推送 main 到两个远程
+# 权威远端（必做）
 git push origin main
+
+# 可选镜像（仅在已配置镜像远端时执行；远端名以实际配置为准）
 git push gitee main
 ```
 
-> 日常开发中，功能分支可直接推到 `origin` 备份，但**最终合并结果必须同步到两个远程**。
+> 功能分支可直接推到 `origin` 备份；**合并结果必须推送到 `origin`**。配置了镜像远端时，再同步到镜像以保持一致。
 
 ---
 
@@ -164,14 +168,15 @@ git tag -n1
 > **为什么用附注标签（`-a`）**：携带打标签人、时间与说明信息，可校验，适合正式发布。
 > 轻量标签（`git tag v1.0.0`）只适合临时标记。
 
-### 5.2 推送标签到双远程
+### 5.2 推送标签（单远端为准；配置了镜像则一并同步）
 
 ```bash
-git push origin v1.0.1
-git push gitee v1.0.1
+git push origin v1.0.1        # 必做：正式发布以 origin 的标签为准
+git push gitee v1.0.1         # 可选镜像（仅在已配置镜像远端时）
+
 # 或一次性推送全部标签（慎用，会推送所有历史标签）
 git push origin --tags
-git push gitee --tags
+git push gitee --tags         # 可选镜像
 ```
 
 ### 5.3 发布后
@@ -228,13 +233,15 @@ git tag -d v1.0.0               # 删除本地标签
 git push origin :v1.0.0         # 删除远程标签（⚠️ 会删除正式版本标记）
 ```
 
-### 双远程同步
+### 镜像远端（可选）
 
 ```bash
-git pull origin main            # 拉取 GitHub
-git pull gitee main             # 拉取 Gitee
-git push origin main            # 推送 GitHub
-git push gitee main             # 推送 Gitee
+git pull origin main            # 权威远端：拉取
+git push origin main            # 权威远端：推送
+
+# 以下仅在已配置镜像远端时使用（示例远端名 gitee）
+git pull gitee main
+git push gitee main
 ```
 
 ---
@@ -248,11 +255,13 @@ git push gitee main             # 推送 Gitee
 | 内容 | 原因 |
 |------|------|
 | `.env` | 含 `SECRET_KEY` 等生产凭据，仅本地使用 |
-| `deploy.sh` / `frontend/nginx.conf` | 含服务器 IP、域名、凭据 |
+| `deploy.sh` | 含服务器 IP、域名、凭据（真实脚本不入库，模板为 `deploy.sh.example`） |
 | `*.tar.gz` / `*.zip` | 发布构建产物，不入源码 |
 | `_backup/` | 本地备份副本 |
 | `node_modules/` / `.venv/` | 依赖目录，用 `npm install` / `pip install` 还原 |
 | `*.db` / `*.sqlite` | 数据库文件，仅存在于本地运行环境 |
+
+> **变更说明（2026-10-02）**：`frontend/nginx.conf` 自 2026-10-02 起**已入库**——它是容器构建输入（占位符版，见 `frontend/nginx.conf.example` 的边界层模板），不再属于「禁止提交」清单；服务器上的实际 Nginx 配置仍不入库。
 
 ### 7.2 检查是否误提交
 
@@ -275,11 +284,14 @@ git ls-files | findstr /i "\.env tar.gz"     # Windows：检查是否跟踪了�
 发布新版本前逐项确认：
 
 - [ ] `main` 工作区干净（`git status` 无未提交改动）
-- [ ] 功能已合入 `main`，且与 `origin`、`gitee` 同步（`git pull` 无更新）
+- [ ] 功能已合入 `main`，且与 `origin` 同步（`git pull` 无更新；配置了镜像远端时再与镜像同步）
 - [ ] 数据库迁移已生成（`alembic revision`）并测试通过
 - [ ] 前后端构建通过
+- [ ] 更新 `CHANGELOG.md`：把 `[未发布]` 段转为 `[x.y.z] - YYYY-MM-DD`（Keep a Changelog 1.1.0，版本权威为 git 标签）
+- [ ] **发布前**归档制品：`DRY_RUN=0 ./scripts/release-archive.sh vX.Y.Z`（镜像 tar + 清单，见 `DEPLOY.md §九`）
+- [ ] **发布前**做数据库备份：`DRY_RUN=0 ./scripts/backup-db.sh`（迁移不可逆，回滚需配套备份，见 `DEPLOY.md §五/§九`）
 - [ ] 打标签：`git tag -a vX.Y.Z -m "release: ..."`
-- [ ] 推送标签到双远程：`git push origin vX.Y.Z && git push gitee vX.Y.Z`
+- [ ] 推送标签：`git push origin vX.Y.Z`（配置了镜像远端时另 `git push gitee vX.Y.Z`）
 - [ ] 按 [DEPLOY.md](DEPLOY.md) 完成部署，线上验证通过
 
 ---

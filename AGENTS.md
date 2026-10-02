@@ -104,7 +104,7 @@
 
 ## 5. Git 规范（摘要）
 
-- 分支：`main`（始终可发布）+ `feature/<功能名>` + `hotfix/<描述>`；合并用 `--no-ff`；双远程 `origin`（GitHub）+ `gitee`
+- 分支：`main`（始终可发布）+ `feature/<功能名>` + `hotfix/<描述>`；合并用 `--no-ff`；远端 `origin`（GitHub）为唯一权威远端，镜像（如 Gitee）可选（决策 D-2）
 - 提交格式：`<type>(<scope>): <中文摘要>`，scope 必填（详见 `GIT-GUIDE.md`）
 - **未经用户允许，禁止执行 git 提交或删除操作**
 
