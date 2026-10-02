@@ -12,7 +12,7 @@
 覆盖：文档示例值的 16 项衍生指标、死亡为 0 的边界、辅助型加权（铁衣/神相）、阵营汇总、三个响应模型。
 权威源：`memory-bank/data-analysis-complete.md`（指标口径）、`app/services/match_data_stats.py`（实现）。
 """
-# 行数豁免（连续逻辑）：衍生指标自检（unittest 用例类）：用例共享同一指标样本与断言辅助｜登记见 .agent/rules/file-length-rule.md 豁免清单
+# 行数豁免（连续逻辑）：详情见 .agent/rules/file-length-rule.md 豁免清单
 
 # ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2）----
 import unittest as _unittest

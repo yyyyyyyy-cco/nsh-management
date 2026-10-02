@@ -3,7 +3,7 @@
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_game_id_requests_concurrency.py
 说明：不使用共享单连接内存库，避免"伪并发"；所有数据写入系统临时目录的独立库文件。
 """
-# 行数豁免（连续逻辑）：并发回归：隔离临时 SQLite + 独立连接，事务与唯一约束验证不可分｜登记见 .agent/rules/file-length-rule.md 豁免清单
+# 行数豁免（连续逻辑）：详情见 .agent/rules/file-length-rule.md 豁免清单
 
 # ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
 import unittest as _unittest
