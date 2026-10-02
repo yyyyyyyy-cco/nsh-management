@@ -1,15 +1,10 @@
 #!/usr/bin/env python
-"""前后端字段一致性核对（报告型，默认不失败）。
+"""前后端字段一致性核对（报告型，默认不失败）——按关注点拆分后的**主入口**。
 
-用途：把 `frontend/src/types/*.ts` 的 interface 字段与后端 **Pydantic 模型（含继承链）** 的字段对账，
-发现「前端声明了、后端输出模型不提供」的字段（最危险：读空值）以及「后端提供、前端未声明」的字段
-（可能只是暂未使用，仅提示）。
-
-约定：
-- **报告型**：默认始终 exit 0；加 `--strict` 时存在「仅前端有」的漂移则 exit 1。
-- 配对表 `PAIRS` 为**人工维护**：前端接口名 → 后端模型名候选（可多选，取并集）。
-- 行式解析（按行取 `    field:`），**不用跨行正则**——2026-10-03 首版曾因 `):\\s*` 吃掉换行与缩进，
-  导致**每个类的第一个字段**永远解析不到、把 `id` 全部误报为漂移（见 ai-checklist 第 102 条）。
+职责收窄为「字段漂移」（前端声明了、后端输出模型不提供）；空值契约与请求侧必填已拆到
+`check_nullability.py` / `check_request_required.py`（可单独运行），共用配对表见 `_pairs.py`。
+本文件保留原输出格式与前缀，并**聚合**两个子模块的自检用例。
+约定：报告型（默认 exit 0；`--strict` 存在漂移或任一子风险时 exit 1）。
 """
 from __future__ import annotations
 
@@ -18,29 +13,13 @@ import pathlib
 import re
 import sys
 
+import check_nullability
+import check_request_required
+from _pairs import PAIRS
+
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FE_TYPES = ROOT / "frontend" / "src" / "types"
 BE_SCHEMAS = ROOT / "backend" / "app" / "schemas"
-
-# 前端接口名 → 后端 Pydantic 模型名（取并集；人工维护）
-PAIRS: dict[str, list[str]] = {
-    "MemberInfo": ["MemberOut"],
-    "AttendanceRecord": ["AttendanceRecordOut"],
-    "LineupInfo": ["LineupOut"],
-    "LineupSlot": ["LineupSlot"],
-    "LineupTeam": ["LineupTeam"],
-    "ScheduleInfo": ["ScheduleOut"],
-    "Recording": ["RecordingOut"],
-    "MatchData": ["MatchDataOut"],
-    "ProfessionConfig": ["ProfessionConfigOut"],
-    "Account": ["AccountOut"],
-    "Guild": ["GuildOut"],
-    "OperationLog": ["OperationLogOut"],
-    "GameIdRequestItem": ["GameIdRequestMemberOut"],
-    "UserInfo": ["UserOut"],
-    "LogStats": ["LogStatsOut"],
-    "WeeklyErrorItem": ["WeeklyErrorItem"],
-}
 
 
 def parse_ts_interfaces(text: str) -> dict[str, list[str]]:
@@ -61,12 +40,8 @@ def parse_ts_interfaces(text: str) -> dict[str, list[str]]:
 
 
 def parse_py_models(text: str) -> dict[str, tuple[list[str], list[str]]]:
-    """行式解析 Pydantic 模型：返回 {类名: (直接字段, 基类)}。
-
-    行式解析保证**第一个字段**不会被漏掉（首版跨行正则的教训）。
-    """
+    """行式解析 Pydantic 模型 -> {类名: (直接字段, 基类)}；行式可保证首个字段不被漏掉。"""
     out: dict[str, tuple[list[str], list[str]]] = {}
-    lines = text.split("\n")
     cur: str | None = None
     fields: list[str] = []
     bases: list[str] = []
@@ -75,7 +50,7 @@ def parse_py_models(text: str) -> dict[str, tuple[list[str], list[str]]]:
         if cur:
             out[cur] = (fields[:], bases[:])
 
-    for line in lines:
+    for line in text.split("\n"):
         m = re.match(r"class (\w+)\s*\(([^)]*)\)\s*:", line)
         if m:
             flush()
@@ -141,224 +116,32 @@ def _load() -> tuple[dict[str, list[str]], dict[str, tuple[list[str], list[str]]
     return fe, be
 
 
-# ---------------- 空值契约（2026-10-03，F-101 扩展） ----------------
-def ts_fields_with_nullable(text: str) -> dict[str, dict[str, dict]]:
-    """{接口: {字段: {"optional": bool, "nullable": bool}}}（TS 侧）"""
-    out: dict[str, dict[str, dict]] = {}
-    for m in re.finditer(r"export interface (\w+)\s*(?:extends\s+[\w,\s]+)?\{([^}]*)\}", text):
-        name, body = m.group(1), m.group(2)
-        fields: dict[str, dict] = {}
-        for line in body.split("\n"):
-            s = line.strip()
-            if not s or s.startswith(("//", "/*", "*")):
-                continue
-            fm = re.match(r"([A-Za-z_]\w*)(\??)\s*:\s*(.+?)\s*$", s)
-            if not fm:
-                continue
-            fields[fm.group(1)] = {"optional": fm.group(2) == "?", "nullable": "null" in fm.group(3)}
-        out[name] = fields
-    return out
-
-
-def py_nullable(text: str) -> dict[str, dict[str, bool]]:
-    """{模型: {字段: 是否可空}}（`X | None` / `Optional[X]`；行式）"""
-    out: dict[str, dict[str, bool]] = {}
-    cur, fields = None, {}
-    for line in text.split("\n"):
-        m = re.match(r"class (\w+)\s*\(", line)
-        if m:
-            if cur:
-                out[cur] = fields
-            cur, fields = m.group(1), {}
-            continue
-        if cur is None:
-            continue
-        if line and not line.startswith((" ", "\t")):
-            out[cur] = fields
-            cur, fields = None, {}
-            continue
-        fm = re.match(r"\s{4}([a-z_]\w*)\s*:\s*(.+)", line)
-        if fm:
-            fields[fm.group(1)] = bool(re.search(r"\|\s*None|Optional\[", fm.group(2)))
-    if cur:
-        out[cur] = fields
-    return out
-
-
-def nullability_risks(fe_nullable: dict[str, dict[str, dict]], be_null: dict[str, dict[str, bool]],
-                      pairs: dict[str, list[str]] | None = None) -> list[tuple[str, str, str]]:
-    """返回 [(接口, 字段, 说明)]：**后端可空但前端既非 null 又非可选**（UI 收到 null 会崩）。"""
-    risks = []
-    for fe_name, be_names in sorted((pairs if pairs is not None else PAIRS).items()):
-        if fe_name not in fe_nullable:
-            continue
-        for fname, info in fe_nullable[fe_name].items():
-            for n in be_names:
-                if n in be_null and fname in be_null[n]:
-                    if be_null[n][fname] and not info["nullable"] and not info["optional"]:
-                        risks.append((fe_name, fname, f"后端 {n} 可空，前端非 null 且非可选"))
-                    break
-    return risks
-
-
-# ---------------- 请求侧必填（2026-10-03，F-102 扩展） ----------------
-# 前端类型名 → 后端请求模型名（人工维护；*Update 类全可选，配对后天然通过）
-PAIRS_REQ: dict[str, list[str]] = {
-    "SchedulePayload": ["ScheduleCreate"],
-    "GuildCreateRequest": ["GuildCreate"],
-    "AccountCreateRequest": ["AccountCreate"],
-    "AccountUpdateRequest": ["AccountUpdate"],
-    "AccountStatusUpdateRequest": ["AccountStatusUpdate"],
-    "GameIdRequestItem": ["GameIdRequestMemberOut"],
-    "GameIdRequestMemberPage": ["GameIdRequestMemberPage"],
-}
-
-
-def py_required(text: str) -> dict[str, dict[str, bool]]:
-    """{模型: {字段: 是否必填}}。
-
-    必填判定（**修正版**）：无 `=` 默认值，或默认值是 `Field(..., ...)`（可跨行）。
-    首版脚本用 `"Field(...)" in typ` 判断 ✗ —— `Field(...,` 不含完整 `Field(...)` ✗，
-    会把必填字段误判为可选（见 ai-checklist 第 111 条 ①）。
-    """
-    out: dict[str, dict[str, bool]] = {}
-    lines = text.split("\n")
-    cur: str | None = None
-    fields: dict[str, bool] = {}
-    pending: str | None = None  # 跨行的 Field(...) 续行
-    for line in lines:
-        cm = re.match(r"class (\w+)\s*\(", line)
-        if cm:
-            if cur:
-                out[cur] = fields
-            cur, fields, pending = cm.group(1), {}, None
-            continue
-        if cur is None:
-            continue
-        if line and not line.startswith((" ", "\t")):
-            out[cur] = fields
-            cur, fields, pending = None, {}, None
-            continue
-        fm = re.match(r"\s{4}([a-z_]\w*)\s*:\s*(.+)", line)
-        if fm:
-            name, typ = fm.group(1), fm.group(2)
-            if "=" not in typ:
-                fields[name] = True
-            elif re.search(r"=\s*Field\(\s*\.\.\.", typ):  # search 而非 match：typ 以类型名开头，match 会锚定失败
-                fields[name] = True
-            else:
-                fields[name] = False
-            pending = name if (typ.rstrip().endswith(("Field(", ",")) or typ.count("(") > typ.count(")")) else None
-            continue
-        if pending and re.match(r"\s{4,}", line) and "..." in line:
-            fields[pending] = True
-            pending = None
-    if cur:
-        out[cur] = fields
-    return out
-
-
-def ts_optional(text: str) -> dict[str, dict[str, bool]]:
-    """{接口: {字段: 是否带 `?`}}"""
-    out: dict[str, dict[str, bool]] = {}
-    for m2 in re.finditer(r"export interface (\w+)\s*(?:extends\s+[\w,\s]+)?\{([^}]*)\}", text):
-        name, body = m2.group(1), m2.group(2)
-        fields: dict[str, bool] = {}
-        for line in body.split("\n"):
-            s = line.strip()
-            if not s or s.startswith(("//", "/*", "*")):
-                continue
-            fm = re.match(r"([A-Za-z_]\w*)(\??)\s*:", s)
-            if fm:
-                fields[fm.group(1)] = fm.group(2) == "?"
-        out[name] = fields
-    return out
-
-
-def required_risks(fe_opt: dict[str, dict[str, bool]], be_req: dict[str, dict[str, bool]],
-                   pairs: dict[str, list[str]] | None = None) -> list[tuple[str, str, str]]:
-    """返回 [(前端接口, 字段, 说明)]：**后端必填但前端标了 `?`**（前端可漏传 -> 422）。"""
-    risks = []
-    for fe_name, be_names in sorted((pairs if pairs is not None else PAIRS_REQ).items()):
-        if fe_name not in fe_opt:
-            continue
-        for fname, optional in fe_opt[fe_name].items():
-            for n in be_names:
-                if n in be_req and fname in be_req[n]:
-                    if be_req[n][fname] and optional:
-                        risks.append((fe_name, fname, f"后端 {n} 必填，前端标为可选"))
-                    break
-    return risks
-
-
-# ---------------- 自检 ----------------
-SELFTEST_PY = '''
-class Parent(BaseModel):
-    id: int
-
-
-class ChildOut(Parent):
-    name: str
-    remark: str | None = None
-'''
-SELFTEST_TS = '''
-export interface Child {
-  id: number
-  name: string
-}
-export interface Kid {
-  id: number
-  ghost: string
-}
-'''
+SELFTEST_PY = 'class Parent(BaseModel):\n    id: int\n\n\nclass ChildOut(Parent):\n    name: str\n    remark: str | None = None\n'
+SELFTEST_TS = 'export interface Child {\n  id: number\n  name: string\n}\nexport interface Kid {\n  id: number\n  ghost: string\n}\n'
 
 
 def self_test() -> int:
-    failures = []
+    """5 项漂移用例 + 聚合两个子模块用例（空值 3 / 请求 3）。"""
+    failures: list[str] = []
     models = parse_py_models(SELFTEST_PY)
-    # 1) 第一个字段必须被解析到（首版 bug 的回归）
-    if models.get("ChildOut", ([], []))[0] != ["name", "remark"]:
-        failures.append(f"首个字段解析异常：{models.get('ChildOut')}")
-    # 2) 继承解析
-    if resolve("ChildOut", models) != {"id", "name", "remark"}:
-        failures.append(f"继承解析异常：{resolve('ChildOut', models)}")
-    # 3) TS 解析（含可选 ?）
-    ts = parse_ts_interfaces(SELFTEST_TS)
-    if ts.get("Child") != ["id", "name"]:
-        failures.append(f"TS 解析异常：{ts.get('Child')}")
-    # 4) 漂移检出：Kid.ghost 后端没有
-    fe = dict(ts)
+    checks = [
+        (models.get("ChildOut", ([], []))[0] == ["name", "remark"], f"首个字段解析异常：{models.get('ChildOut')}"),
+        (resolve("ChildOut", models) == {"id", "name", "remark"}, f"继承解析异常：{resolve('ChildOut', models)}"),
+        (parse_ts_interfaces(SELFTEST_TS).get("Child") == ["id", "name"], "TS 解析异常"),
+    ]
+    for ok, msg in checks:
+        if not ok:
+            failures.append(msg)
+    fe = dict(parse_ts_interfaces(SELFTEST_TS))
     test_pairs = {"Child": ["ChildOut"], "Kid": ["ChildOut"]}
-    res = {(n, tuple(only_fe)) for n, only_fe, _ in analyze(fe, models, test_pairs) if n == "Kid"}
-    if res != {("Kid", ("ghost",))}:
-        failures.append(f"漂移检出异常：{res}")
-    # 5) 无漂移不误报
-    res2 = {(n, tuple(only_fe)) for n, only_fe, _ in analyze(fe, models, test_pairs) if n == "Child"}
-    if res2 != {("Child", ())}:
-        failures.append(f"误报：{res2}")
-    # 6) 空值契约：后端可空 + 前端非空 -> 风险
-    r6 = nullability_risks({"A": {"x": {"optional": False, "nullable": False}}}, {"M": {"x": True}},
-                           {"A": ["M"]})
-    if r6 != [("A", "x", "后端 M 可空，前端非 null 且非可选")]:
-        failures.append(f"空值风险未检出：{r6}")
-    # 7) 前端标了 | null 或 ? -> 不算风险
-    if nullability_risks({"A": {"x": {"optional": False, "nullable": True}}}, {"M": {"x": True}}, {"A": ["M"]}):
-        failures.append("前端 nullable 被误报")
-    if nullability_risks({"A": {"x": {"optional": True, "nullable": False}}}, {"M": {"x": True}}, {"A": ["M"]}):
-        failures.append("前端 optional 被误报")
-    # 8) 请求侧：后端必填 + 前端 ? -> 风险（注意 Field(..., 跨行也要判为必填）
-    py_src = 'class M(BaseModel):\n    a: str = Field(..., min_length=1)\n    b: str | None = None\n    c: int\n'
-    req = py_required(py_src)
-    if req.get("M") != {"a": True, "b": False, "c": True}:
-        failures.append(f"必填判定异常（Field(..., 应判必填）：{req.get('M')}")
-    r8 = required_risks({"A": {"a": True}}, req, {"A": ["M"]})
-    if r8 != [("A", "a", "后端 M 必填，前端标为可选")]:
-        failures.append(f"请求侧风险未检出：{r8}")
-    # 9) 前端非可选 + 后端必填 -> 不算风险
-    if required_risks({"A": {"a": False}}, req, {"A": ["M"]}):
-        failures.append("请求侧无反例失败")
-
-    total = 10
+    rows = {(n, tuple(only_fe)) for n, only_fe, _ in analyze(fe, models, test_pairs)}
+    if ("Kid", ("ghost",)) not in rows:
+        failures.append(f"漂移检出异常：{rows}")
+    if ("Child", ()) not in rows:
+        failures.append(f"误报：{rows}")
+    failures += [f"（空值契约）{f}" for f in check_nullability.self_test_cases()]
+    failures += [f"（请求侧必填）{f}" for f in check_request_required.self_test_cases()]
+    total = 5 + check_nullability.CASE_COUNT + check_request_required.CASE_COUNT
     if failures:
         print("[type-drift] 自检失败：")
         for f in failures:
@@ -376,7 +159,6 @@ def main() -> int:
     if args.self_test:
         return self_test()
 
-    # 自检也要看 PAIRS 是否仍指向存在的模型
     fe, be = _load()
     stale = [f"{k}->{n}" for k, names in PAIRS.items() for n in names if n not in be]
     if stale:
@@ -385,24 +167,12 @@ def main() -> int:
     rows = analyze(fe, be)
     drift = [(n, only_fe) for n, only_fe, _ in rows if only_fe]
 
-    # 空值契约（F-101）
-    fe_null: dict[str, dict[str, dict]] = {}
-    for p in sorted(FE_TYPES.glob("*.ts")):
-        fe_null.update(ts_fields_with_nullable(p.read_text(encoding="utf-8")))
-    be_null: dict[str, dict[str, bool]] = {}
-    for p in sorted(BE_SCHEMAS.glob("*.py")):
-        be_null.update(py_nullable(p.read_text(encoding="utf-8")))
-    null_risks = nullability_risks(fe_null, be_null)
+    fe_null, be_null = check_nullability._load()
+    null_risks = check_nullability.nullability_risks(fe_null, be_null)
     print(f"[type-drift] 空值契约：**后端可空但前端非空** {len(null_risks)} 条")
 
-    # 请求侧必填（F-102）
-    fe_opt: dict[str, dict[str, bool]] = {}
-    for p in sorted(FE_TYPES.glob("*.ts")):
-        fe_opt.update(ts_optional(p.read_text(encoding="utf-8")))
-    be_req: dict[str, dict[str, bool]] = {}
-    for p in sorted(BE_SCHEMAS.glob("*.py")):
-        be_req.update(py_required(p.read_text(encoding="utf-8")))
-    req_risks = required_risks(fe_opt, be_req)
+    fe_opt, be_req = check_request_required._load()
+    req_risks = check_request_required.required_risks(fe_opt, be_req)
     print(f"[type-drift] 请求侧必填：**后端必填但前端可选** {len(req_risks)} 条")
     for fe_name, fname, why in req_risks:
         print(f"  - {fe_name}.{fname}：{why}")
