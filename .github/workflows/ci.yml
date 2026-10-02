@@ -15,7 +15,7 @@
 #   - repo-hygiene 末尾另含 3 个**报告型**对账步骤（check_type_drift / check_api_paths / check_schema_drift，F-92~F-95）：均为「自检 + 严格模式」，带 continue-on-error —— 漂移只在页面告警，不阻断流水线
 #   - commit-msg 作业校验基线之后的每个提交（基线文件 .github/commit-msg-baseline）
 #   - docker-build 为双镜像构建护栏（F-08 回归）
-#   仍未接入：mypy（见计划 W2-14）；Node/Python 基座版本待 W1-5/W1-7 统一后同步
+#   mypy 已接入为**报告型**步骤（`python -m mypy app`；余量 59 条受 J-3 权限口径影响，见 W2-14）；Node/Python 基座版本待 W1-5/W1-7 统一后同步
 name: CI
 
 on:
