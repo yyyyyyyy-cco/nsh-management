@@ -1,0 +1,118 @@
+# ===== CI 门禁（合规化计划 W2-1） =====
+# 设计原则：每个 job 都是「当前仓库真实能通过」的检查，不引入必然失败的步骤。
+#
+# job 说明：
+#   backend       语法编译 + 迁移可用性（空库升级到 head）+ 应用可导入（含启动门禁）
+#   frontend      npm ci + vue-tsc 类型检查 + vite 构建（与前端镜像构建同源）
+#   repo-hygiene  行数规则脚本 + 陈旧绝对路径 + 换行归一（W0-2/W2-5 的回归护栏）
+#   docker-build  双镜像构建 —— 这一项正是 F-08（frontend/Dockerfile COPY nginx.conf 缺失）的回归护栏
+#
+# 后续扩展：
+#   - W2-2 把 backend/scripts/selfcheck_*.py 迁为 pytest 用例后，在 backend job 追加 `python -m pytest -q`
+#   - W2-3 引入 ruff/mypy/eslint 后，把静态检查步骤加进对应 job（先以 warn 起步再收紧）
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: 后端（编译 / 迁移 / 导入）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      # 显式声明开发环境，避免依赖 /.dockerenv 兜底判定；密钥用 64 位十六进制（满足启动门禁，仅用于 CI）
+      APP_ENV: development
+      SECRET_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      DATABASE_URL: sqlite+aiosqlite:///./ci.db
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"   # 与 backend/Dockerfile 基座一致；W1-5 统一版本后同步
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+      - name: 语法编译（app / scripts / alembic）
+        run: python -m compileall -q app scripts alembic
+      - name: 迁移可用性（空库升级到 head）
+        run: alembic upgrade head
+      - name: 应用可导入（同时验证启动门禁不误杀）
+        run: python -c "import app.main; print('app.main 导入成功')"
+
+  frontend:
+    name: 前端（类型检查 / 构建）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: 安装依赖（按 lockfile）
+        run: npm ci --no-audit --no-fund
+      - name: 类型检查 + 生产构建
+        run: npm run build
+
+  repo-hygiene:
+    name: 仓库卫生（行数 / 路径 / 换行）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 文件行数规则（标记 + 登记双重校验）
+        run: python scripts/check_file_length.py
+      - name: 陈旧绝对路径（不得出现旧仓库位置）
+        run: |
+          set -e
+          # 模式串拆开书写：避免本步骤自身的字面量命中自己
+          OLD_PREFIX='e:\code\@Cjy'
+          OLD_REPO="${OLD_PREFIX}\\nsh-management"
+          if grep -rn \
+              --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist \
+              --include='*.md' --include='*.py' --include='*.ts' --include='*.vue' \
+              --include='*.yml' --include='*.json' --include='*.sh' --include='*.bat' \
+              -F "$OLD_REPO" . ; then
+            echo "::error::发现指向旧仓库位置的绝对路径，请改为仓库相对路径（合规化计划 F-37）"
+            echo "::notice::引用历史旧路径时请写作 e:\\code\\@Cjy\\... 省略号形式，以便本门禁保持严格"
+            exit 1
+          fi
+          echo "未发现陈旧绝对路径"
+      - name: 换行归一（索引中不应有 CRLF）
+        run: |
+          set -e
+          bad=$(git ls-files --eol | awk '$1=="i/crlf"' | wc -l)
+          echo "索引中 CRLF 文件数：$bad"
+          if [ "$bad" -ne 0 ]; then
+            echo "::error::有 $bad 个文本文件以 CRLF 入库；检查 .gitattributes 并执行 git add --renormalize ."
+            exit 1
+          fi
+
+  docker-build:
+    name: 镜像构建（后端 + 前端）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 后端镜像
+        run: docker build -t nsh-backend:ci backend
+      - name: 前端镜像（F-08 回归护栏：COPY nginx.conf）
+        run: docker build -t nsh-frontend:ci frontend

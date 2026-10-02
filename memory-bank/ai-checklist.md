@@ -131,6 +131,7 @@ grep -r "旧文件名" --include="*.md" --include="*.sh" --include="*.bat"
 | 20 | 非 cmd shell 中 `> nul` 重定向误创建 nul 文件 | `nul` 在 cmd 中是空设备，但在 Git Bash / Node / Python 子进程等 POSIX 风格 shell 中按普通文件名处理 → 在 CWD（曾为 backend）生成真实文件 `backend/nul`；曾把一次后端 SECRET_KEY FATAL 报错写入其中并被误认为"文件被更改"，且因 Windows 保留名难以常规删除 | 跨 shell 的输出重定向统一写 `> /dev/null`（Git Bash 兼容），仅在 cmd 脚本（.bat）内使用 `>nul`；发现 nul 文件用 `del "\\?\<绝对路径>\nul"` 或 .NET `File.Delete` 删除（需 `\\?\` 前缀）；.gitignore 已加 nul 防御 |
 | 21 | 用命令**输出**而非**退出码**判定静默命令（`git check-ignore -q` 等） | PowerShell 中 `[bool](git check-ignore -q path)` 或 `if(git check-ignore -q path)` 取的是 stdout——`-q` 时恒为空 → 恒为 `False`，与是否命中规则无关。2026-10-02 据此误报「`deploy.sh` 不再被忽略」（实际仍由 `.gitignore:98` 忽略，属错误结论；同一批 `-q` 判定全部不可信） | 静默命令一律判退出码：`git check-ignore -q p; if($LASTEXITCODE -eq 0){…}`；或直接用 `git check-ignore -v p` 查看命中的规则行。审查/验收类结论必须用可复现手段二次确认，并记录所用命令与判定依据 |
 | 22 | 计数类结论未记录匹配范围与大小写选项 | 统计「陈旧绝对路径」时只 grep `*.md` 且 `Select-String` 默认不区分大小写 → 漏计 3 个 `.py` 脚本中的 4 处硬编码路径，并把历史记录里**另一项目**的路径计入本仓库（`F-37` 首次记为 23 处，实为活引用 25 处 + 历史 2 处） | 计数结论必须写明命令、匹配范围与选项（`-CaseSensitive`／`--` 分隔的 glob 列表），并在得出「已清零」结论前用不同手段（如按扩展名分桶、`-v` 明细）复核一次；详见 `.agent/plans/compliance-remediation-plan.md` §10 |
+| 23 | 门禁的检测模式串被**其自身文件与文档**命中（新门禁首发即红） | W2-1 的 CI 检查以 `grep -F` 拦截旧仓库绝对路径，但 workflow 自身、两条更新记录、以及**描述该门禁的文档**都含该字面量 → 首次运行必然失败（实测：先被更新记录命中 2 处，修好后又被本计划的说明段本身命中） | ① 门禁模式串在脚本内**拆开拼接**（`PREFIX='e:\code\@Cjy'` + `"${PREFIX}\\nsh-management"`），使字面量在文件内不连续；② 文档/记录中引用此类字面量统一用省略号形式（本项目约定 `e:\code\@Cjy\...`）；③ 新门禁上线前必须在本机对全仓实跑，双向确认「现状通过 + 注入违例后失败」——只验证「能报错」或只验证「能通过」都不够 |
 
 ---
 

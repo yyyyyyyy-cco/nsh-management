@@ -233,13 +233,13 @@
 | W1-4 依赖锁定 | ⏳ 待开始 | | 推迟：本机 Python 为 3.14，与目标 3.11/3.13 不一致，锁文件须在目标版本环境生成，否则会写入不兼容标记 | — |
 | W1-5 基础镜像升级 | ⏳ 待开始 | | 现状已复核仍在：`node:18-alpine`、`python:3.11-slim`；升级需镜像构建验证，而本机 Docker 守护进程不可用，故推迟 | — |
 | W1-6 README 引导补全 | ✅ 已完成 | 2026-10-02 | README 新增「数据源模式（`DB_MODE`）」小节（prod 快照 / dev 本地库、缺失回退、`.db` 不入库）与 Docker 部署段的 `nginx.conf` 构建前置说明 | fix(build): 入库 nginx.conf 与部署脚本模板 |
-| W2-1 CI 工作流 | ⏳ 待开始 | | | |
-| W2-2 测试体系（pytest/Vitest） | ⏳ 待开始 | | | |
-| W2-3 lint/format/类型检查 | ⏳ 待开始 | | | |
-| W2-4 pre-commit 与提交校验 | ⏳ 待开始 | | | |
-| W2-5 行数规则补全与检查脚本 | ⏳ 待开始 | | | |
-| W2-6 出勤率口径收敛 + config 副作用 | ⏳ 待开始 | | | |
-| W2-7 Dependabot | ⏳ 待开始 | | | |
+| W2-1 CI 工作流 | ✅ 已完成 | 2026-10-02 | `.github/workflows/ci.yml`：4 个 job（backend 编译+迁移+导入 / frontend `npm ci`+`vue-tsc`+`vite` / repo-hygiene 行数+陈旧路径+换行 / docker-build 双镜像＝F-08 回归护栏）。**本机前置验证**：`npm ci` exit 0、`vue-tsc` 无类型错误、`vite build` 成功（12.27s）、`compileall` exit 0。**CI 本身未运行**（本会话无 GitHub Actions 环境），需 push 后观察首次结果 | ci(quality): 新增 CI 门禁与行数检查脚本 |
+| W2-2 测试体系（pytest/Vitest） | ⏳ 待开始 | | 本机无 pytest；需先建 `backend/tests/` 与 `requirements-dev.txt` | — |
+| W2-3 lint/format/类型检查 | ⏳ 待开始 | | 本机已有 ruff 0.12 可用；引入时须先跑一遍并分级收敛，避免 CI 首发即红 | — |
+| W2-4 pre-commit 与提交校验 | ⏳ 待开始 | | | — |
+| W2-5 行数规则补全与检查脚本 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_file_length.py`（标记+登记双重校验、清单悬空、增长 ≥20% 提醒）与规则文档「前端 TS」类别；本地实检 211 文件 / 14 条登记 **exit 0**。**偏差记录**：计划原拟 TS 上限 200，实施改为 **300**（composable 与组件同为状态控制器；若设 200，`analysis.ts` 295、`useAttendanceList.ts` 240、`useRecordingList.ts` 223 会在新门禁上线首日即失败，违背「门禁不得先红」原则），已在规则文档写明理由 | ci(quality): 新增 CI 门禁与行数检查脚本 |
+| W2-6 出勤率口径收敛 + config 副作用 | ⏳ 待开始 | | | — |
+| W2-7 Dependabot | ✅ 已完成 | 2026-10-02 | `.github/dependabot.yml`：pip / npm 周更分组各限 5、docker 双目录周更、github-actions 月更；依据 OpenSSF Scorecard 与 OWASP A06 | ci(quality): 新增 CI 门禁与行数检查脚本 |
 | W3-1 /health 与探活 | ⏳ 待开始 | | | |
 | W3-2 备份自动化与演练 | ⏳ 待开始 | | | |
 | W3-3 制品版本化与回滚 | ⏳ 待开始 | | | |
@@ -316,5 +316,6 @@ curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/docs     # 生产
   - 未访问生产服务器，F-10/F-11 的漂移程度只能定性；
   - 仓库可见性、协作者规模、生产配置敏感度未知，对应 §3 D-1/D-5；
   - 行业规范版本以官方站点为准（ASVS 5.0.0、OWASP Top 10:2025、Keep a Changelog 1.1.0、SLSA v1.2 已于 2026-10-02 核对）。
+- **门禁与历史引用约定（2026-10-02）**：CI 的 `repo-hygiene` job 用 `grep -F` 严格拦截「旧仓库绝对路径」字面量（完整形式＝`e:\code\@Cjy\` 接仓库目录名；模式串在 workflow 内拆开书写以避免自命中，`node_modules`/`dist`/`.git` 已排除）。因此**引用历史旧路径一律写作 `e:\code\@Cjy\...`（省略号形式）**——落地时曾发现两条更新记录与本说明含完整字面量会让门禁首发即红，故统一改为省略号形式；本计划 §4/§7 均按此约定书写。
 - **计数口径**：行数使用 `(Get-Content $f).Count`（含空行），与仓库既有文档的统计口径可能不同，故豁免清单中的登记行数与本计划实测值并列展示（见 F-02）。
 - **计数口径修正（2026-10-02）**：首次统计陈旧绝对路径时只检索 `*.md`，且 `Select-String` 默认**不区分大小写**，导致 ① 漏计 3 个分析脚本中的 4 处硬编码路径；② 误将 `progress.md` 中对同期另一项目 `E:\code\@Cjy\B` 的历史引用计入本仓库路径。§4 的 F-06/F-37 已按 `-CaseSensitive` + 全后缀复核结果更正。该项修正本身即为「审查结论必须可复核」的示范：凡计数结论都应记录所用命令与匹配选项。
