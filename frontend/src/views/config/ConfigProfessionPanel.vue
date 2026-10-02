@@ -16,7 +16,7 @@
             <i class="prof-dot" :style="{ background: profColor(row.profession) }" />
             {{ row.profession }}
           </span>
-          <el-input-number v-model="row.target_count" :min="0" :max="999" size="small" class="cfg-num" />
+          <el-input-number aria-label="目标人数" v-model="row.target_count" :min="0" :max="999" size="small" class="cfg-num" />
         </div>
         <el-input
           v-model="row.remark"
