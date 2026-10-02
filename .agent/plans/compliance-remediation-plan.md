@@ -166,6 +166,7 @@
 | F-66 | **§8 回归命令清单未随实现回填，且含过时/不可运行的命令**：缺 `npm run lint`、`npm run test`、`check_commit_msg.py`、`check_doc_refs.py`；`docker compose build` 注释仍写「当前会因缺 nginx.conf 失败」（W1-2 已补齐）；`python -m pytest -q`/`ruff check .` 仍标「W2-2/W2-3 之后」；`mypy app` **从未引入**（tech-stack 明写「尚未引入」）→ 清单里躺着跑不通的命令 | `.agent/plans/compliance-remediation-plan.md` | **已修（2026-10-03）**：补齐缺失项（含 `check_doc_refs.py` 标注**仅报告**）、删除过时说明、声明 §8 为**权威清单**（CONTRIBUTING 与 CI 同款）、登记 `mypy` 未引入 | P3 |
 | F-67 | **「记录在案的待办」没有登记为任务**：`W2-3` 完成说明含「待收紧：E501 / `ruff format` / `I`·`UP`·`B` / vue `flat/recommended` / Prettier 一次性格式化；后端 mypy 尚未引入」，`F-29` 指向的 W2-3 已 ✅ 且注明「mypy 除外」，但全仓**没有**承接这些剩余项的任务 → 计划作为合规台账出现「已知未做但不在清单」的缺口 | `.agent/plans/compliance-remediation-plan.md` | **已补登记（2026-10-03）**：新增 **W2-14**（§5/§7 成对）承接全部剩余项 | P3 |
 | F-68 | **CI 与文档不一致 + 过时注释**：`repo-hygiene` 里 7 道门禁中**只有 `check_file_length` 未跑 `--self-test`**（其余 6 道 + `check_commit_msg` 均跑 ✓，而计划 §8/§11.4 与 CONTRIBUTING 写的都是「自检 + 实跑」两步）→ 该门禁的 9/9 内置自检**从未在 CI 执行**；`ci.yml` 头部仍保留「后续扩展：W2-2 之后加 pytest / W2-3 之后加 ruff·mypy·eslint」的**已满足前置条件**的设想 | `.github/workflows/ci.yml` | **已修（2026-10-03）**：补 `--self-test`（并本地等价复跑通过 ✓）；过时注释改为**现状说明**（含「仍未接入：mypy（W2-14）」「Node/Python 基座待 W1-5/W1-7 统一」）| P3 |
+| F-69 | **（自查工具覆盖缺口）文档引用存活核对未覆盖两端模块开发文档**：`check_doc_refs.py` 的 `SCAN` 只含 根目录 6 个文档 + `memory-bank/` + `.agent/plans|rules`，**遗漏 `backend/docs/README.md` 与 `frontend/docs/README.md`** （`AGENTS §2.2` 明确它们是「各端功能清单与进度」文档）| `scripts/check_doc_refs.py` | **已修（2026-10-03）**：`SCAN` 补入两个 docs/README；实测其引用**全部存活**（4 + 5 条，0 失效）| P3 |
 
 ---
 

@@ -27,6 +27,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 SCAN = [
     "AGENTS.md", "README.md", "DEPLOY.md", "CONTRIBUTING.md", "SECURITY.md", "CHANGELOG.md",
+    # 2026-10-03 补：两端的模块开发文档此前未被覆盖（本轮核对发现盲区，实测引用全部存活：4 + 5 条）
+    "backend/docs/README.md", "frontend/docs/README.md",
 ]
 SCAN_DIRS = ["memory-bank", ".agent/plans", ".agent/rules"]
 

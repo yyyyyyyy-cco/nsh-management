@@ -320,6 +320,8 @@ nsh-management/
 | 2026-10-03 | 批次 40（**F-67 台账缺口** + 机会式扫描**未发现新缺陷**）：补齐 W2-3 遗留项的任务登记——新增 **W2-14**（lint/format/类型检查收紧：vue `flat/recommended` + Prettier 一次性格式化、ruff `I`/`UP`/`B`/`E501`/`format`、评估引入 `mypy`）；同轮三个候选经核实**全为检测器误报**（模块 docstring 判据漏了编码声明行、CHANGELOG 中文标题属有意翻译、AGENTS 对 `.agent/rules/*.md` 用通配）；教训记入 ai-checklist 第 75 条 | compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 41（**F-68**：CI 静态审计）：`ci.yml` 补齐 `check_file_length --self-test`（此前 7 道门禁中唯一未跑自检的一道）并本地等价复跑通过；把过时的「后续扩展（W2-2/W2-3 之后…）」注释改写为**现状说明**（含仍未接入的 mypy=W2-14、基座版本=W1-5/W1-7）；确认 `check_doc_refs.py` 未被接入 CI（刻意保持仅报告）；教训记入 ai-checklist 第 76 条 | .github/workflows/ci.yml, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 42（新角落扫描**未发现真缺陷**；补验 CI 未跑步骤）：确认 `*.db`/`data/` 未被跟踪**且历史从未提交** ✓、`.gitattributes` 覆盖二进制且索引 **0 CRLF** ✓、两份 `.dockerignore` 与 Dockerfile 自洽（含 `--from=build` 语义）✓、`entrypoint.sh` 由 Dockerfile `chmod +x` 兜底 ✓；本地补验并回填 §11.1：`alembic upgrade head`（**12 张业务表** ✓）、`app.main` 导入 ✓、**生产弱密钥启动门禁经真实 lifespan 拒绝启动** ✓；四个自查误报（含启动期/导入期测法陷阱）记入 ai-checklist 第 77 条 | compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | 批次 43（**F-69** 自查工具覆盖缺口 + 提交规则链一致性核对）：`check_doc_refs.py` 的 `SCAN` 补入 `backend/docs/README.md`/`frontend/docs/README.md`（此前遗漏），补后重跑确认其引用 **4 + 5 条全部存活** ✓；逐条核对【权威源 `.agent/rules/git-commit-message.md` ↔ 执行者 `check_commit_msg.py`】：10 个 type、scope 必填、摘要 ≤50、至少一个中文、禁用短语、放行前缀**全部一致** ✓；教训记入 ai-checklist 第 78 条 | scripts/check_doc_refs.py, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 
 
 
