@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ===== 后端开发/CI 专用依赖 =====
 # 说明：运行时代码**不得** import 本文件中的包；生产镜像只安装 requirements.txt。
 # 安装：pip install -r requirements-dev.txt
@@ -6,3 +7,5 @@
 -r requirements.txt
 
 ruff==0.12.0   # 静态检查（2026-10-02 引入，合规化计划 W2-3）
+pytest==9.1.1  # 测试框架（W2-2；配置见 backend/pytest.ini）
+httpx==0.28.1  # 备用：FastAPI TestClient 依赖（W2-2 已装未用，后续接口级用例使用）

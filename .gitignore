@@ -104,3 +104,9 @@ deploy.sh
 # ===== finesse 设计构建记录（本地记忆，每次构建重写，不提交） =====
 .finesse/
 
+
+# ===== 本地临时与构建中间产物（工具在工作区根目录产生，禁止入库） =====
+# 2026-10-02 教训：git add -A 曾把 pip 解包目录与临时 venv 一并提交（见 ai-checklist 第 27 条）
+.tmp-*/
+pip-metadata-*/
+pip-unpack-*/

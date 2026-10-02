@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+# 说明：本文件含中文注释，必须保留上方编码声明（PEP 263）——pip 读取 requirements
+# 文件时会按 PEP 263 / BOM / 本地 locale 依次判断编码；中文 Windows（cp936）无 BOM 时
+# 会以 gbk 解码失败（UnicodeDecodeError），导致 README 的安装步骤直接报错。
 fastapi>=0.115.0
 uvicorn[standard]==0.27.1
 sqlalchemy==2.0.36

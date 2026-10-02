@@ -59,6 +59,18 @@ cd ..
 start.bat
 ```
 
+> **安装排错（2026-10-02 补充）**：若 `pip install` 报 SSL 证书错误（企业代理/自签证书环境），可改用与镜像构建相同的镜像源：
+> `pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com`。
+> 另注意：`requirements.txt` 与 `requirements-dev.txt` 首行声明了 `# -*- coding: utf-8 -*-`——文件含中文注释，中文 Windows（cp936）下 pip 缺少编码声明会解码失败（`UnicodeDecodeError`），**新增内容时请勿删除该行**。
+
+### 后端测试与静态检查
+
+```bash
+cd backend
+python -m pytest     # 新用例（backend/tests/）+ 既有 selfcheck_*.py；全部使用内存库
+ruff check .         # 静态检查（配置见 backend/ruff.toml）
+```
+
 启动后访问 http://localhost:5173，首次启动会自动初始化默认账号：
 
 | 角色 | 用户名 | 密码 |

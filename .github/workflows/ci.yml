@@ -56,6 +56,12 @@ jobs:
         run: alembic upgrade head
       - name: 应用可导入（同时验证启动门禁不误杀）
         run: python -c "import app.main; print('app.main 导入成功')"
+      - name: 测试套件（pytest：新用例 + 既有 selfcheck）
+        env:
+          # 测试使用内存库，不依赖 data/ 下的库文件；显式声明避免落到真实路径
+          # 注意：值必须以引号包裹——纯标量以「:」结尾（如 :memory:）会被 YAML 当作映射值指示符
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+        run: python -m pytest
 
   frontend:
     name: 前端（类型检查 / 构建）
