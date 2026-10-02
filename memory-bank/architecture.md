@@ -351,6 +351,8 @@ nsh-management/
 
 | 2026-10-03 | Wave 1 批次 30（合规化计划 **W1-8 收口**）：用 GitHub Advisory API 逐包核对**全部依赖公告**——后端 12 个固定依赖**受影响 0 条** ✓（Pillow 78 条公告修复版均 ≤12.3.0、starlette 最新上限 <1.3.1、python-jose critical 修复于 3.4.0）；前端 19 包运行期 0 条、开发期 6 条（vite/esbuild/vitest，**dev-only**，`vite.config.ts` 未设 `host` → 默认仅绑 localhost ✓ 已缓解）；`security-review.md` 新增 §14.8 全量核对表；登记 **F-59 / W1-13**（前端工具链跨大版本升级）；教训记入 ai-checklist 第 65 条 | security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 
+| 2026-10-03 | Wave 1 批次 31（合规化计划 **W1-13**，收口 **F-59**）：前端工具链升级——`vite` 5.4.21 → **6.4.3**、`esbuild` → **0.25.12**（随 vite 依赖）、`vitest` 3.2.7 → **4.1.11**；升级后逐包复核公告：**6 条中 5 条清除**，剩余 1 条（esbuild）经 API `withdrawn_at` **实证为上游已撤回**；回归证据 build exit 0 / test 60 passed / lint 0 error；`CONTRIBUTING.md` 补充换源指引；教训记入 ai-checklist 第 66 条 | frontend/package.json, frontend/package-lock.json, CONTRIBUTING.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 ## 使用说明
 
 1. **开发前**：阅读本文档了解项目结构，然后按需阅读具体文档

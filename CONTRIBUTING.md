@@ -22,6 +22,14 @@
 
 ## 环境准备
 
+> **依赖拉取超时时先换源（2026-10-03 实测）**：本机（中国网络）访问上游源可能超时——`pip` 可用清华源、`npm` 可用 `npmmirror`。**按命令传参即可，不要改全局配置，也不要把镜像写进仓库文件**：
+>
+> ```bash
+> pip install -r backend/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+> npm ci --prefix frontend --registry https://registry.npmmirror.com
+> ```
+
+
 启动命令与默认账号见 [`README.md`](README.md) 的「快速开始」。要点：
 
 - **后端 Python 3.11～3.13**：Python 3.14 目前无法安装依赖（`pydantic-core` 无对应 wheel），

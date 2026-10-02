@@ -315,19 +315,17 @@
 | openpyxl | 3.1.5 | 1 条 | 0 ✓ | XXE 修复于 2.4.2 |
 | aiosqlite / alembic / bcrypt | — | 0 条 | 0 ✓ | 无公开公告 |
 
-**前端 19 个包：运行期依赖 0 条受影响** ✓；**开发期工具链 6 条**（全部 dev-only，见下）：
+**前端 19 个包：运行期依赖 0 条受影响** ✓；**开发期工具链 6 条已在 W1-13 处置（2026-10-03）**：
+选择**最小修复版本**而非直接跳最新大版本——`vite` 5.4.21 → **6.4.3**（3 条公告的修复版即 6.4.2/6.4.3 ✓，且它自带 `esbuild ^0.25.0`）、
+`esbuild` 0.21.5 → **0.25.12**、`vitest` 3.2.7 → **4.1.11**（该公告的修复版即 4.1.11 ✓）；
+升级后逐包**复核**（同一 API 对新版本再查一次）：`vite` / `vitest` / `vue` / `axios` / `element-plus` / `echarts` / `@vitejs/plugin-vue` **均 0 条** ✓，
+**仅 `esbuild 0.25.12` 仍被 API 列出一条** `GHSA-gv7w-rqvm-qjhr`（范围 `>= 0.17.0, < 0.28.1`）——经 API 实证
+**该公告 `withdrawn_at` 非空（上游已撤回）** ✗，故不作为风险处置（如需消除需 vite 7 + esbuild 0.28，收益不足）。
+**升级后的完整回归**：`npm run build`（vue-tsc + vite）exit 0、`npm run test` **60 passed / 7 文件 exit 0**、`npm run lint` **0 error**。
 
-| 依赖 | 本地版本 | 公告 | 修复版 | 为何判为 dev-only |
-|------|---------|------|--------|------------------|
-| vite | 5.4.21 | `GHSA-fx2h-pf6j-xcff` [high] `server.fs.deny` 绕过（Windows 备用路径）；`GHSA-v6wh-96g9-6wx3` [medium] launch-editor NTLMv2 泄露（Windows UNC）；`GHSA-4w7w-66w2-5vf9` [medium] 优化依赖 `.map` 路径穿越 | 6.4.3 / 6.4.2 | 均作用于 **`vite dev` 服务器**，且前两条**仅 Windows**；生产只交付构建产物 `dist/` |
-| esbuild | 0.21.5 | `GHSA-67mh-4wv8-2f99` [medium] dev server 可被任意站点读取响应；另 1 条**上游已撤回** | 0.25.0 | 同上，**dev server** 场景 |
-| vitest | 3.2.7 | `GHSA-82fw-gwwq-j7x9` [medium] `@vitest/mocker` 重定向 mock 的路径穿越 | 4.1.11 | **测试运行时**，需运行不可信 mock 配置 |
-
-**缓解措施（配置级证据，非口头承诺）**：`frontend/vite.config.ts` 的 `server` 仅设 `port` 与 `proxy`，
-**未设 `host`** → Vite 默认只绑 `localhost` ✓，故上述 dev-server 类公告在默认开发流程下不可达；
-`preview` 同样默认仅本地 ✓。**仍登记 W1-13**：规划 `vite 6/7 + @vitejs/plugin-vue 6 + esbuild ≥0.25` 的
-跨大版本升级（含全量回归），以彻底消除这 6 条——**不冒然升级**是因为跨大版本会牵动构建/插件/测试链，
-必须带完整回归证据。
+**安装源（与 §14.x 的 pip 同类问题，2026-10-03 实测）**：本机 `registry.npmjs.org` **超时**，而**清华镜像 `registry.npmmirror.com` 可达** →
+升级时按命令传 `--registry https://registry.npmmirror.com` 完成安装（**不改全局 npm 配置**，也不把镜像写进仓库 `.npmrc`）；
+`pip` 同理（见 §14.7 与本轮环境记录）。
 
 **本轮同时发现（测试缺口，已收口）**：`app/utils/image_export.py` 的导出路径此前**无任何测试覆盖**（`tests/` 检索 `image_export`/`draw_members_png` 为空），故升级当时只有**导入级 + 字体加载**证据。
 **2026-10-03 已补（W1-11 / 收口 F-56）**：新增 `backend/tests/test_image_export.py`（6 个用例，0.30s）——断言 PNG 合法性、宽度恒定、高度按实现公式独立重算、空列表不抛异常、正式/替补/副职业分支、人数上限守卫；全量 pytest 由 **158 → 164 passed**（+6）、84 subtests、exit 0；`ruff` 通过。有意保留的覆盖边界：恰好 800 人的成功路径未执行（约 26MB 位图、耗时不可控）。
