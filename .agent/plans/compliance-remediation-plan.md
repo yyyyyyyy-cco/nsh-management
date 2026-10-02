@@ -164,6 +164,7 @@
 | W0-6 | `.qoder/plans/` 三文档登记入 `architecture.md` **或** 加 `.gitignore` 排除（二选一） | `architecture.md` 或 `.gitignore` | 命令 3 | — | 低 | S |
 | W0-7 | 删除 `README.md` 中复制的目录树，改为引用 `progress.md` | `README.md` | 命令 3 | — | 低 | S |
 | W0-8 | 按 `DEPLOY.md:19-52` 重写 `tech-stack.md §部署方案`（删除「前端容器 80/443 HTTPS」「后端多阶段构建」等失实描述），并在 `docker-compose.yml` 顶部标注「本地/单机演示拓扑」 | `tech-stack.md`、`docker-compose.yml` 注释 | 命令 3 | — | 低 | M |
+| W0-9 | **（2026-10-02 新增）** 环境变量文档联动门禁：`scripts/check_env_docs.py` —— 校验「代码 `os.getenv` 读取的变量」与「`.env.example` 文档化的条目」一致（AGENTS §3.3 第 7 条固化）；注释掉的示例条目也算已文档化，行内注释不误判 | `backend/app/**`、`.env.example`、`.github/workflows/ci.yml` | 命令 9 + CI `repo-hygiene` | W0-2 | 低：门禁本身有 11 条自检 | S |
 
 ### Wave 1 —— 交付链路可复现（解除 P0）
 
@@ -238,6 +239,7 @@
 | W0-6 `.qoder` 登记或忽略 | ✅ 已完成 | 2026-10-02 | 选择「登记」：`architecture.md` 目录树 + §22 + 更新记录三处登记，并标注「非项目权威文档、仅存档」 | docs(deploy): 对齐部署权威源与外部草案登记 |
 | W0-7 README 目录树去重 | ✅ 已完成 | 2026-10-02 | `git diff --stat README.md` = 35 行变更（删除 32 行树体，改为引用 `progress.md`/`architecture.md`） | chore(repo): 统一路径引用与陈旧引用 |
 | W0-8 tech-stack 部署章对齐 | ✅ 已完成 | 2026-10-02 | `tech-stack.md` §部署方案 重写为 `DEPLOY.md` 摘要 + 引用；`grep -n '多阶段' tech-stack.md` 仅剩前端一处（后端已改单阶段）；`docker-compose.yml` 顶部标注演示拓扑 | docs(deploy): 对齐部署权威源与外部草案登记 |
+| W0-9 环境变量文档联动 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_env_docs.py`（含 11 条内置自检）：扫描 `backend/app/**/*.py` 的 `os.getenv("KEY")` 与 `.env.example` 的条目（`KEY=` 或注释 `# KEY=`），**代码会读但未文档化的变量即失败**；反向（文档有、代码未用）只提示。**实跑发现并修复 7 个缺口**：`DEBUG`、`DATABASE_URL`、`LOG_RETENTION_DAYS`、`DEVELOPER_USERNAME`、`ADMIN_USERNAME`、`MEMBER_USERNAME`、`DEFAULT_GUILD_NAME`（此前部署者只能读源码才知道这些键）——已按「运行时」与「首次初始化账号」两组补入 `.env.example`；门禁接入 CI `repo-hygiene` job（自检 + 实跑）。自检同时暴露并修正门禁自身一个问题：整行注释里的 `os.getenv` 会被误统计（现按第一个 `#` 截断） | chore(config): 补全环境变量文档并新增联动门禁 |
 | W1-1 nginx.conf 入库 | ✅ 已完成 | 2026-10-02 | `frontend/nginx.conf`（49 行，占位符版）入库；`.gitignore` 解除忽略（`git check-ignore` 未命中）；`nginx.conf.example` 收窄为边缘层模板（171→109 行）；两个 Dockerfile 的每个 `COPY` **上下文源**逐个核对存在（`COPY --from=build` 为多阶段来源，非上下文路径）。**未执行**：镜像实构建——本机 Docker 守护进程未运行（见下方备注） | fix(build): 入库 nginx.conf 与部署脚本模板 |
 | W1-2 deploy.sh.example | ✅ 已完成 | 2026-10-02 | 新增 `deploy.sh.example`（92 行）：占位符 + 路径锚定排除清单（含 2026-09-07 教训注释）+ `healthy` 轮询 + 域名入口 200 校验 + 失败非零退出并打印日志；`bash -n`（Git for Windows bash）**exit 0**；`DEPLOY.md §三` 补复制步骤与 nginx.conf 入库说明 | fix(build): 入库 nginx.conf 与部署脚本模板 |
 | W1-3 配置漂移治理 | ⏳ 待开始 | | 依赖决策 D-5（生产配置可否去敏入库）；未确认时按计划退化为 `scripts/check-config-drift.sh` diff 告警 | — |
