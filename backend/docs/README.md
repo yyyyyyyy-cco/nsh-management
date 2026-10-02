@@ -9,7 +9,7 @@
 - 多帮会数据隔离（guild_id），每个帮会一个管理员账号 + 一个帮众共享账号
 - JWT 认证 + 角色权限控制（developer/admin/member）
 - 登录限流（5 次失败锁定 5 分钟）
-- 全部业务规则按 database-design.md v1.8 落表
+- 全部业务规则按 database-design.md v1.9 落表
 
 ### 用户场景
 - 开发者：创建帮会、派发账号、删除帮会、全局管理
@@ -143,7 +143,7 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_gam
 | 2026-08-26 | 数据分析 API 增强（16 项衍生指标/阵营对比/小队分析接口）、移除 HTML 报告导出，文档对齐 |
 | 2026-08-26 | 新增分析调整 API（squad_adjustments），文档全面对齐（developer 角色、表数 10、迁移数 9、v1.6 引用） |
 | 2026-09-15 | 补人姓名规范化修复（出勤与排表姓名匹配统一去首尾空白，新增 utils/member_names 与 services/lineup_attendance，重名冲突显式报错） |
-| 2026-09-15 | 文档失实项修正：表数 10→11、迁移数 13→14、database-design 引用 v1.6→v1.8、帮众场景按代码校正、补个人战绩/系统日志模块、移除「保存考勤」失实表述 |
+| 2026-09-15 | 文档失实项修正：表数 10→11、迁移数 13→14、database-design 引用 v1.6→v1.9、帮众场景按代码校正、补个人战绩/系统日志模块、移除「保存考勤」失实表述 |
 | 2026-09-17 | 登记规划中功能：成员详情接口 GET /members/{member_id}（P1，方案见 stats-report-plan.md） |
 | 2026-09-17 | 成员详情接口实施完成（GET /members/{member_id}，require_admin，注册于全部具体路径之后防路由捕获） |
 | 2026-09-18 | 修复登录响应丢失 guild_icon：User 模型补 guild_icon property（与 guild_name 对称），UserOut.model_validate 序列化恢复正常（修复前登录后切换账号图标显示为空，/me 手动构造路径正常） |

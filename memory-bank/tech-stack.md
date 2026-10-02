@@ -148,7 +148,7 @@
 
 ```
 前端：Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia
-后端：Python 3.13 + FastAPI + SQLAlchemy + SQLite
+后端：Python 3.11 + FastAPI + SQLAlchemy + SQLite
 部署：Docker + Docker Compose + Nginx
 ```
 

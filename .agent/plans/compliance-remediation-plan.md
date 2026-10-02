@@ -200,6 +200,7 @@
 | W2-7 | 新增 `.github/dependabot.yml`（pip + npm，周更，分组） | `.github/dependabot.yml` | 命令 6 | — | 低 | S |
 | W2-9 | 整改计划**结构一致性门禁**：校验 §4/§5/§7 的编号唯一性、任务↔进度**一一对应**、行内 `F-xx` 引用有定义、§7 行状态词合法（本轮真实事故：给 §5 加了任务却漏加 §7 进度行，直到记录脚本锚点报错才发现） | `scripts/check_plan_integrity.py`、`.github/workflows/ci.yml` | 门禁自检 + 实跑 | W2-2 | 低 | S |
 | W2-10 | 陈旧绝对路径检查**落地为本地可跑门禁**：原实现只写在 CI YAML（bash `grep -F`），本地无法执行，本轮手搓临时检查时模式串用成「旧前缀」而非 CI 实际拦截的「旧前缀 + 仓库名」完整形式，产生 9 处假阳性 | `scripts/check_stale_paths.py`、`.github/workflows/ci.yml`、本计划 §8 | 门禁自检 + 实跑 | W2-9 | 低 | S |
+| W2-11 | **文档数字/版本一致性门禁**（AGENTS §3.3 第 5 条的固化）：校验「N 张表」「N 个 Alembic 迁移」「database-design vX.Y」三类声明——真值取自**代码**（`models/__tablename__` 计数、`alembic/versions` 文件数、该文档自身版本），并要求所有当前态声明彼此一致；历史更新记录行（日期开头）不参与判定 | `scripts/check_doc_numbers.py`、`.github/workflows/ci.yml`、本计划 §8 | 门禁自检 + 实跑 | W2-10 | 低 | S |
 | **W2-8** | **（2026-10-02 实测新增）** 修复 10 处 `vue/no-mutating-props`：子组件直接变更 props（`query` / `compareChecked` / `filters`），涉及 `match-data/SquadCardsGrid.vue`、`members/MemberTablePanel.vue`、`members/MemberToolbar.vue`、`logs/LogFilterBar.vue`；改为 `emit` 更新 + 父组件 `v-model`，同步解除 ESLint 中该规则的 warn 降级 | 上述 4 个组件及其父组件、`frontend/eslint.config.js` | 命令 6 | — | 中：属行为改动，需浏览器验收 | M |
 
 ### Wave 3 —— 运维与发布
@@ -274,6 +275,7 @@
 | W2-8 修复 props 变更债（10 处） | ⏳ 待开始 | | 实测清单（ESLint warn 输出）：`match-data/SquadCardsGrid.vue:32`（compareChecked）、`members/MemberTablePanel.vue:78,79`（query）、`members/MemberToolbar.vue:5,13,16`（query）、`logs/LogFilterBar.vue:4,10,18,21`（filters）；修法为 emit 更新 + 父组件 v-model，完成后解除 `frontend/eslint.config.js` 中的 warn 降级 | — |
 | W2-9 整改计划结构一致性门禁 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_plan_integrity.py`（8 条内置自检）：①编号唯一性（§4 发现 / §5 任务 / §7 进度各自不得重复）；②**任务↔进度一一对应**（§5 有任务必有 §7 行、§7 有行必有 §5 任务）；③行内 `F-xx` 引用必须在 §4 有定义；④§7 行必须含 ✅/🔄/⏳/⛔ 状态标记。已接入 CI `repo-hygiene`（先自检再实跑）。**实战价值已兑现两次**：其一，最初版本正则不认**加粗编号**（计划里 `| **F-08** |`、`| **W2-8** |`），报出「§7 有进度但 §5 无任务：W2-8」——我据此**误给 §5 补了一行**，修好正则后门禁立刻报「§5 任务编号重复：W2-8」（那行本来就有，见 ai-checklist 第 42 条）；其二，修好后实跑即为 PASS（52 发现 / 42 任务 / 42 进度一一对应），并把 §8 回归命令补齐 | ci(quality): 新增整改计划结构一致性门禁 |
 | W2-10 陈旧绝对路径门禁脚本化 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_stale_paths.py`（5 条自检，纯标准库，只扫描 git 跟踪文件）：拦截「旧前缀 + 仓库名」的**完整字面量**，约定允许的省略号形式不拦截；CI 的内联 grep 与 §8 组 1 的本地命令**都改为调用该脚本**，使本地与 CI 口径完全一致。**动机**：该检查原先只在 CI 里，本地跑不了——本轮我手搓临时检查时把模式串写成「旧前缀」，9 处**省略号形式的说明性引用**被误报为违规（复核后确认仓库对 CI 模式 **0 命中**，因此未据此改动任何文档——第二次靠「先验证检测器」避免改错文档）。验证：自检 5/5；实跑扫描 353 个跟踪文件 0 命中 PASS | ci(quality): 陈旧绝对路径检查落地为本地可跑门禁并补验收清点 |
+| W2-11 文档数字/版本一致性门禁 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_doc_numbers.py`（8 条自检）：真值取自代码——模型 `__tablename__` 计数、`alembic/versions` 文件数、`database-design.md` 自身版本；校验各文档**当前态**声明（`N 张表`/`N 个 Alembic 迁移`/`database-design vX.Y`）彼此一致且与真值相符，日期开头的更新记录行按 §3.4 排除。**产出两处旧值并修正**：（a）`backend/docs/README.md` 引用 `database-design v1.9`（实际 v1.9）——**人工普查没发现，是门禁上线后抓到的**；（b）`memory-bank/tech-stack.md` 摘要行仍写 `Python 3.13`（同文件正文已按代码事实写 3.11）——人工普查发现，门禁不覆盖（Python 版本声明含「3.11–3.13 可用」等范围写法，机器判定易假阳性，故暂不纳入）。训练要点：**人工 grep 与门禁不是重复劳动**（各抓到一处）。验证：自检 8/8；实跑 PASS（真值 12 表 / 15 迁移 / v1.9，扫描全部当前态行）| ci(quality): 新增文档数字/版本一致性门禁并修正两处旧值 |
 | W3-1 /health 与探活 | ✅ 已完成 | 2026-10-02 | 新增 `backend/app/api/v1/health.py`：`GET /health`——数据库可查询 → `200 {status:ok,database:ok}`；库不可用 → `503 {status:degraded,database:error}`（**刻意不抛 500**：否则对外表现为「应用崩溃」而非「依赖不可用」）。`docker-compose.yml` 的 healthcheck 由根路径 `http://127.0.0.1:8000/` 改探 `/health`（原方案只能证明进程存活，数据库挂掉仍报健康）；同一端点另挂 `/api/v1/health`，经既有 `/api/*` 反代对外可达，供外部 uptime 探活（不需要时可在边缘 Nginx 拦掉）。`DEPLOY.md §二` 新增「健康检查与在线 API 文档」小节（含 backend 无宿主端口映射时的手动探活命令）。验证：`pytest tests/test_health.py` → **5 passed**（200/503 语义 + 双路径路由可达 + 文档开关子进程断言）；全量 **93 passed + 67 subtests passed（27.90s）**。**待办**：`/version` 端点未加（与 D-4 版本联动耦合）；`app.on_event("startup")` 已被 FastAPI 弃用，迁移 lifespan 列为后续 | feat(ops): 新增健康检查端点并关闭生产 API 文档 |
 | W3-2 备份自动化与演练 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/backup-db.sh.example`：把 `DEPLOY.md §五` 的「方式一（SQLite 在线 backup API）」自动化——**默认 dry-run**（`DRY_RUN=1` 只打印命令）、快照先在容器内生成并执行 `PRAGMA integrity_check`（**校验通过才拷出**，避免把坏库当备份）、产物 `nsh-YYYYmmdd-HHMMSS.db` 默认保留 30 天、cron 示例写在脚本头部；`DEPLOY.md §五` 新增「自动化备份」与「恢复演练记录（每季一次）」两小节（含演练要求与模板首行）。**实证设计理由**（本机 Python 3.14 实测）：WAL 模式且连接打开时，直接复制主库文件得到的副本报 `no such table: t`（表结构与数据仍在 `-wal` 中），而 backup API 快照读到 2000 行且 `integrity_check = ok`——该对比已写入 §五，作为「禁止直接 cp」⚠️ 警告的依据。验证：`bash -n` exit 0；dry-run 实跑 exit 0；非法参数路径 non-zero。**未验证**：`DRY_RUN=0` 真实全流程（需 Docker 守护进程与命名卷，本机不可用）；恢复演练本身未执行 | feat(ops): 新增备份与归档脚本模板并补齐回滚章节 |
 | W3-3 制品版本化与回滚 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/release-archive.sh.example`：本项目**不使用镜像仓库**，故以带版本号的 tar 归档（`docker save`）+ `nsh-<version>.manifest.txt`（记录版本 / 提交号 / 镜像引用 / 归档时间）。**版本权威为 git 标签**：脚本校验 `vX.Y.Z` 格式、核对标签是否存在、工作区是否干净（不满足时**告警而非静默通过**）。`DEPLOY.md` 新增 **§九 版本归档与回滚**：9.1 发布前归档；9.2 回滚七步（停服 → `docker load` → 打 compose 期望的本地 tag → `up -d` → `ps` 需 healthy → 入口 200）；**9.3 数据库迁移不可逆警示**——容器每次启动执行 `alembic upgrade head` 且只前进不回退，若版本含破坏性迁移则**仅回滚镜像会与库不兼容**，必须先用 W3-2 的备份回退数据库；并把「先归档 + 先备份，再 `up -d --build`」写成发布纪律；9.4 归档保留建议。**实现位置偏差（如实记录）**：计划原文提到改 `deploy.sh.example`，实际另建独立脚本——`deploy.sh` 含服务器专属内容且已被忽略，把归档职责拆开更清晰。验证：`bash -n` exit 0；dry-run 实跑 exit 0 且正确识别标签 `v1.2.0` 与当前提交；非法版本号返回 **2**（双向验证）。**未验证**：真实 `docker save` / `docker load` 全流程（需 Docker 守护进程，本机不可用） | feat(ops): 新增备份与归档脚本模板并补齐回滚章节 |
@@ -342,6 +344,7 @@ python scripts/check_requirements_pins.py --self-test && python scripts/check_re
 python scripts/check_env_docs.py --self-test && python scripts/check_env_docs.py
 python scripts/check_plan_integrity.py --self-test && python scripts/check_plan_integrity.py   # 计划 §4/§5/§7 结构一致性
 python scripts/check_stale_paths.py --self-test && python scripts/check_stale_paths.py   # 陈旧绝对路径（原仅在 CI 内联）
+python scripts/check_doc_numbers.py --self-test && python scripts/check_doc_numbers.py   # 文档数字/版本一致性
 ```
 
 ---
@@ -392,6 +395,7 @@ python scripts/check_stale_paths.py --self-test && python scripts/check_stale_pa
 | 门禁 3 环境变量文档 | `check_env_docs.py` | PASS（自检 11/11；17/17 已文档化） |
 | 门禁 4 计划结构 | `check_plan_integrity.py` | PASS（自检 8/8；任务↔进度一一对应） |
 | 门禁 5 陈旧绝对路径 | `check_stale_paths.py` | PASS（自检 5/5；扫描 353 个跟踪文件 0 命中） |
+| 门禁 6 文档数字/版本一致性 | `check_doc_numbers.py` | PASS（自检 8/8；真值 12 表 / 15 迁移 / v1.9，扫描全部当前态行） |
 | 仓库卫生 | `git status --porcelain` / `git ls-files --eol` | 工作区干净；索引无 CRLF（`i/lf`） |
 
 ### 9.2 本机**不可执行**（环境所限，非失败）
