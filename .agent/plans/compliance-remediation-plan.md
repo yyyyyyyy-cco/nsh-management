@@ -603,6 +603,23 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 
 **通用纪律** ✓：任何一项在本清单执行后，**必须**把结果回填到 §11.1 / §11.2（或对应任务行的证据列），并注明日期与命令；**未执行就不得改写为已验证** ✓。
 
+
+#### 部署事实对账（2026-10-03，可复跑）
+
+> **先确认比对对象** ✓：仓库内 `docker-compose.yml` 是**本地/单机**拓扑；服务器版本**不同**（见 `DEPLOY.md` 的变更规则与 §八对照表）。
+
+| 事实 | 权威来源 | 现值 |
+|------|---------|------|
+| 服务 | 仓库 `docker-compose.yml`（本地） | `['backend', 'frontend']` ✓ |
+| 卷 / 网络 | 同上 | `volumes=['nsh-data', 'nsh-logs']` ✓、`networks=['nsh-net']` ✓ |
+| 宿主端口（**本地**） | 同上 | `['80:80', '443:443']` ✓（**生产不映射宿主端口** ✓，见 `DEPLOY.md`） |
+| 前端容器内监听 | `frontend/nginx.conf` + `Dockerfile` | `['80', '[::]:80']` ✓ / `EXPOSE 80` ✓ |
+| 后端容器内监听 | `backend/Dockerfile` | `EXPOSE 8000` ✓ |
+| 健康检查 | `docker-compose.yml` | 探 `/health` ✓ |
+| 多阶段构建 | 两个 `Dockerfile` | 前端 **是**（`node:18-alpine AS build` → `nginx:alpine` ✓）；后端 **否** ✓ |
+
+**结论** ✓：`tech-stack.md` 的部署段为**三行摘要** ✓（Docker / Docker Compose / Nginx ✓），**未包含**已被清理的失实描述 ✓（**未提**「前端 80/443 HTTPS」✓、**未提**「后端多阶段构建」✓）；仓库 compose 的 80/443 与 `nsh-net` 属**本地拓扑** ✓，与 `DEPLOY.md` 的**生产**描述**不冲突** ✓✓。
+
 ### 11.5 决策就绪包（批次 90，2026-10-03 实测事实）
 
 > 目的：把待决策项做成「**事实 → 选项 → 影响**」，使每项**一句话即可拍板**。全部事实均为本轮**实测**（文件行号可复核）。
