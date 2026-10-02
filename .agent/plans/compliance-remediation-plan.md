@@ -1,0 +1,317 @@
+# 项目合规化与工程完善计划
+
+> 本文档面向「刚从 Git 拉取的全新检出」，以行业权威规范为基准，逐条列出仓库当前的不合规项与整改路线。
+> 存放位置遵循 `AGENTS.md` §2.2「新增文档必须登记到 `architecture.md`」：本文档已登记为 `architecture.md` 文档说明 §21，并在其目录树与更新记录中登记。
+
+| 项 | 值 |
+|----|----|
+| 文档版本 | v1.1（2026-10-02 记录决策确认，见 §3.1） |
+| 创建日期 | 2026-10-02 |
+| 适用基线 | 分支 `main`，提交 `2a2b081`（标签 `v1.2.0` → `e8d33ba`） |
+| 依据来源 | 本轮对全仓的**只读静态审查**（文件读取 + 内容检索 + Git 元数据），未运行构建/测试、未访问生产服务器 |
+| 维护规则 | 每完成一项任务即更新 §7 进度表；波次结束或决策变更时更新本表版本号与 `architecture.md` 更新记录 |
+
+---
+
+## 1. 背景与目标
+
+### 1.1 背景
+
+本仓库为全新克隆。经静态审查确认，项目**业务代码质量与文档治理意识高于同类中小型项目平均水平**（分层清晰、权限集中、审计与门禁齐备、文档有权威源映射），但**交付链路（构建/部署/发布）存在阻断级缺陷**：仓库内的构建输入不完整，生产配置完全在仓库之外，无 CI、无自动化测试、无回滚手段。
+
+### 1.2 目标（Definition of Done）
+
+| 编号 | 完成定义 | 可验证方式 |
+|------|---------|-----------|
+| D1 | 全新克隆可复现本地开发与双镜像构建 | 干净目录执行 `docker compose build` 成功（§8 命令 4） |
+| D2 | 生产部署链路可从仓库复现 | 仓库内含配置模板；`DEPLOY.md` 无「只能改服务器」的隐式前置（§8 命令 5） |
+| D3 | 每次推送有 CI 门禁 | GitHub Actions 绿：类型检查 + 构建 + 测试 + 镜像构建（§8 命令 6） |
+| D4 | 发布可回滚 | 制品按版本标识 + `DEPLOY.md` 有回滚章节（§8 命令 7） |
+| D5 | 合规文件齐备 | `LICENSE`/`CHANGELOG.md`/`SECURITY.md`/`CONTRIBUTING.md` 按 §3 D-1 决策确定的范围齐备 |
+| D6 | 文档满足自身规范 | 全仓小写 kebab-case、无陈旧绝对路径、无重复权威源、全部登记入索引 |
+| D7 | 每项改动可验证 | 每项任务在 §5 附带「验收命令」，在 §7 记录验证证据 |
+
+### 1.3 不在本次范围
+
+- 业务功能新增与 UI 调整（本计划只做合规化与工程效能，不改业务语义）
+- 数据库表结构变更（无必要，`alembic` 版本链完整：12 张表 / 15 个迁移，head `o9p0q1r2s3t4`）
+- 生产服务器上的直接操作（须先经 §3 决策与 §6 授权，并遵循「先备份 → 改 → 验证」流程）
+
+---
+
+## 2. 依据的行业权威规范
+
+> 「本项目适用条款」为实施时应引用的范围；ASVS 的具体条目号在任务实施时按 `v5.0.0-<章>.<节>.<条>` 格式引用（官方建议带版本前缀引用）。
+
+| 规范 | 版本 / 来源 | 本项目适用条款 | 用于 |
+|------|------------|---------------|------|
+| Semantic Versioning | 2.0.0（[semver.org](https://semver.org/spec/v2.0.0.html)） | 版本号与 tag 名称一致（现为 `vX.Y.Z`，已合规） | 发布、F-22 |
+| Conventional Commits | 1.0.0（[conventionalcommits.org](https://www.conventionalcommits.org/en/v1.0.0/)） | `<type>(<scope>): <subject>`，与 `.agent/rules/git-commit-message.md` 一致 | 提交规范、F-32 |
+| Keep a Changelog | 1.1.0（[keepachangelog.com](https://keepachangelog.com/en/1.1.0/)） | `CHANGELOG.md` 结构、`Unreleased` 段、Added/Changed/Fixed/Security 分类 | F-25、W3-4 |
+| OWASP ASVS | **5.0.0**（官方页标注最新稳定版；[owasp.org/projects/asvs](https://owasp.org/projects/asvs)） | 配置（V13/V14）、认证（V6）、会话（V7）、访问控制（V8）、日志与错误处理（V16）章节级对照 | 安全核查、W4-2 |
+| OWASP Top 10 | **2025**（[top10.owasp.org](https://top10.owasp.org/)） | A01 访问控制失效、A02 配置错误、A05 注入、A09 日志与告警失效 | 安全核查、W4-2 |
+| SLSA | v1.2（[slsa.dev/spec/v1.2](https://slsa.dev/spec/v1.2/)） | 构建可复现、来源可追溯（provenance）——本项目对应「镜像由仓库输入构建」 | 供应链、F-08/F-09/F-15 |
+| OpenSSF Scorecard | 自评清单（[github.com/ossf/scorecard](https://github.com/ossf/scorecard)） | 分支保护、依赖更新、CI、许可、安全策略、代码审查 | 仓库治理总checklist |
+| The Twelve-Factor App | [12factor.net](https://12factor.net/) | III 配置外置、V 构建/发布/运行分离、XI 日志作为事件流 | 部署、F-10/F-19 |
+| CIS Docker Benchmark | [cisecurity.org](https://www.cisecurity.org/benchmark/docker) | 非 root 运行、镜像最小化、健康检查、资源限制、不嵌密钥 | 容器、F-14/F-16 |
+| PEP 8 / PEP 484 / PEP 621 | [peps.python.org](https://peps.python.org/) | 代码风格、类型注解、`pyproject.toml` 元数据与依赖声明 | 后端、F-15/F-29 |
+| Vue 官方风格指南 | 优先级 A/B（[vuejs.org/style-guide](https://vuejs.org/style-guide/)） | 组件命名多单词、单文件组件块顺序、props 细节 | 前端、F-30 |
+| EditorConfig | [editorconfig.org](https://editorconfig.org/) | 缩进与换行统一（仓库当前无 `.editorconfig`） | F-31 |
+| Git `.gitattributes` | [git-scm.com/docs/gitattributes](https://git-scm.com/docs/gitattributes) | `text=auto` + `eol` 归一（官方建议避免混合换行） | F-31 |
+| MIT License（SPDX: MIT） | [opensource.org](https://opensource.org/license/mit) | 声明与文件一致（README 已声明 MIT，缺文件） | F-23 |
+| Contributor Covenant | 2.1（[contributor-covenant.org](https://www.contributor-covenant.org/version/2/1/code_of_conduct/)） | 社区行为准则（按 §3 D-1 决策启用） | F-24 |
+| ADR（架构决策记录） | Nygard, 2011 | 关键决策留痕（本项目可复用 `architecture.md` 更新记录承担，**暂不引入**） | 治理（可选） |
+
+> 判定范围说明：以上为**行业通行做法**，本项目的对齐程度见 §4；凡仓库内无依据的推断均不写入结论。
+
+---
+
+## 3. 关键决策（**开工前需用户确认**）
+
+| 编号 | 决策项 | 选项 | 默认建议 | 阻塞的任务 |
+|------|--------|------|---------|-----------|
+| D-1 | 仓库可见性（public / private） | public / private | 未确认前不建 `CONTRIBUTING.md`/`CODE_OF_CONDUCT.md`，先做 `LICENSE` | W0-1、W4-4 |
+| D-2 | 远端策略 | ①补配 `gitee` 镜像 ②改规范为「单远端 + 可选镜像」 | ②：仓库无协作者证据，`GIT-GUIDE.md:15,18,281` 的强制双远端与事实不符 | W3-6 |
+| D-3 | 授权范围 | ①允许本会话执行 `git commit` ②允许删除 3 个已合并远端分支 | 均需显式授权（`AGENTS.md` §5：未经允许禁止提交或删除） | 全部任务 |
+| D-4 | 版本联动 | ①`frontend/package.json` 与 tag 联动 ②保持独立 | ①：否则制品无法反查版本（当前恒 `0.1.0`） | W3-4 |
+| D-5 | 生产配置可否去敏入库 | ①可（入库 `.example`）②不可（只出 diff 告警脚本） | 需你判断敏感度；不过至少应做 ② | W1-3 |
+| D-6 | 换行归一 | ①一次 `renormalize` 提交（触达约 260 文件 diff）②仅记录不改 | ①：混合换行已产生过实际困扰（`progress.md` 2026-09-24 记录「按 cr-at-eol 口径检查差异空白」） | W0-2 |
+
+### 3.1 决策确认记录（2026-10-02）
+
+| 编号 | 确认结果 | 影响 |
+|------|---------|------|
+| D-1 | **公开仓库**：按公开标准补齐 `LICENSE` + `CONTRIBUTING.md` + `SECURITY.md` + `CODE_OF_CONDUCT.md` | W0-1、W4-4 全量执行；`LICENSE` 版权人名称**待用户提供**（未提供前 W0-1 阻塞） |
+| D-2 | **改规范为「单远端 + 可选镜像」**：更新 `GIT-GUIDE.md` §1/§5.2/§8 及 `README.md`/`DEPLOY.md` 相关表述 | W3-6 按此执行，不再要求强制 `gitee` 推送 |
+| D-3 | **允许执行 `git commit`**（限本地提交；不含推送、不含删除远端分支/标签） | 各任务按「一次一个主题」提交；推送与远端操作仍需逐次授权 |
+| D-6 | **执行换行归一**：新增 `.gitattributes` 后单独提交 `git add --renormalize .` | W0-2 全量执行；归一提交必须独立、不与逻辑改动混合 |
+| D-4 | 待确认 | 不阻塞 Wave 0；W3-4 前需确认 |
+| D-5 | 待确认 | 不阻塞 Wave 0；W1-3 前需确认（未确认时 W1-3 退化为仅出 diff 告警脚本） |
+
+**执行节奏（2026-10-02 确认）**：用户先评审本计划，评审通过后由 **Wave 0** 开始逐项执行；每项任务完成后更新 §7 进度表并留下验证证据。
+
+---
+
+## 4. 差距清单（42 项，证据 → 规范 → 波次）
+
+> 严重度：**P0** 阻断级 / **P1** 高 / **P2** 中 / **P3** 低。
+
+| # | 差距 | 证据（文件:行 / 命令结论） | 对应规范 | 波次 | 严重度 |
+|---|------|--------------------------|---------|------|--------|
+| F-01 | 行数规则未覆盖 `.ts` composable 与 `components/*.ts` | `.agent/rules/file-length-rule.md:8-13`；实测 `lineupBoard.ts` 484 行、`analysis.ts` 295、`useAttendanceList.ts` 240、`useRecordingList.ts` 223 | PEP 8 精神 + 项目自有规则 | W2-5 | P2 |
+| F-02 | 行数豁免自评化、无复核；豁免文件持续增长 | `file-length-rule.md:45,57-59,61-78` vs 实测：`LineupEditor.vue` 1029→**1062**、`lineupBoard.ts` 431→484、`reportData.ts` 327→358 | 同上 | W2-5 | P2 |
+| F-03 | 出勤率口径散落 10 个文件（前端重复计算风险） | `Select-String 'attendance_rate|出勤率'`：`AttendanceRatePanel.vue` 19 处、`HomeView.vue` 5、`member_service.py` 5、`MemberDetailHeader.vue` 4 等 | 单一权威源（`AGENTS.md` §2.1） | W2-6 | P1 |
+| F-04 | `config.py` 导入期副作用（`mkdir` + 弱密钥 `sys.exit(1)`） | `backend/app/core/config.py:9-15,120,130` | PEP 8 / 可测试性 | W2-6 | P2 |
+| F-05 | 陈旧文件名引用：注释指向 `sim_contribution_v3_20260907.py`，实际只有 v4 | `frontend/src/components/match-data/analysis.ts:44`；`git ls-files backend/scripts` | `AGENTS.md` §3.3 第 6 条 | W0-5 | P2 |
+| F-06 | 3 个日期戳一次性脚本入库无用途说明、无运行时引用 | `git ls-files backend/scripts`（`audit_/derive_/sim_contribution_v4_20260907.py`） | 可维护性 | W0-5 | P3 |
+| F-07 | 复用逻辑偏重落在组件层（`components` 83 文件 13.7k 行 vs `utils` 3 文件 73 行） | 目录统计（`(Get-Content).Count` 口径） | Vue 风格指南（复用优先） | W2-6 | P3 |
+| **F-08** | **`frontend/Dockerfile` 依赖未入库的 `frontend/nginx.conf` → 全新克隆构建必失败** | `frontend/Dockerfile:11`；`git check-ignore -v` → `.gitignore:99`；`Test-Path frontend/nginx.conf` = False；仓库仅有 `frontend/nginx.conf.example` | SLSA v1.2（构建输入完整） | **W1-1** | **P0** |
+| **F-09** | **部署入口 `deploy.sh` 未入库且本地不存在** | `DEPLOY.md:54-63`；`git check-ignore -v` → `.gitignore:98` | SLSA v1.2 / 12-Factor V | **W1-2** | **P0** |
+| **F-10** | **配置漂移被制度化且无检测**：`deploy.sh` 排除 `docker-compose.yml`/`Dockerfile`/`nginx.conf`/`entrypoint.sh`/`alembic.ini`，这些「只能直接在服务器改」 | `DEPLOY.md:65-70,77-84`；服务器项目目录非 git 仓库（`DEPLOY.md:12`） | 12-Factor III / SLSA | **W1-3** | **P0** |
+| **F-11** | **仓库 `docker-compose.yml` 描述的是已废弃拓扑**（映射 80/443 + 挂证书），与 `DEPLOY.md` 单层 TLS 冲突；`tech-stack.md` 架构图同样过时 | `docker-compose.yml:32-37` vs `DEPLOY.md:19-52` vs `tech-stack.md:96-126` | 单一权威源 | **W1-3** | **P0** |
+| F-12 | 无回滚方案；镜像无 tag/digest | `DEPLOY.md` 八节无回滚章节（仅 §七 Q6 应急绕过门禁） | DORA 回滚能力 | W3-3 | P1 |
+| F-13 | 无 CI；类型检查在镜像构建被跳过且无替代门禁 | `frontend/Dockerfile:6`；`Test-Path .github` = False | Scorecard / CIS | W2-1 | P1 |
+| F-14 | 基础镜像 `node:18-alpine`（Node 18 已 EOL）与 `python:3.11-slim`（文档声明 3.13，共 8 处） | `frontend/Dockerfile:1`、`backend/Dockerfile:1`、`README.md:34`、`tech-stack.md:36,57,161`、`ai-context.md:65`、`AGENTS.md:12` | CIS Docker / PEP | W1-5 | P1 |
+| F-15 | 依赖未全量锁定（`fastapi>=0.115.0`、`python-multipart>=0.0.18`），无哈希；`tech-stack.md:55` 却称「实际锁定版本」 | `backend/requirements.txt:1,9`、`tech-stack.md:55` | PEP 621 / SLSA | W1-4 | P1 |
+| F-16 | 无 `/health`、`/metrics`、错误追踪；健康检查直接探根路径 `/` | 全仓 `grep '/health|/metrics|prometheus|sentry'` 无命中；`docker-compose.yml:22-27` | 12-Factor XI / SRE | W3-1 | P2 |
+| F-17 | 备份/恢复全手工，无自动化、无演练记录 | `DEPLOY.md:120-149`；全仓无备份脚本命中 | 运维基线 | W3-2 | P2 |
+| F-18 | 生产默认暴露 `/docs`、`/redoc`、`/openapi.json`，且安全审查未覆盖 | `backend/app/main.py:36`（未设 `docs_url`）；`SECURITY-REVIEW.md` 无 `/docs|openapi|redoc` 命中 | OWASP Top 10:2025 A02 | W4-1 | P1 |
+| F-19 | `CORS_ORIGINS` 硬编码，未外置 | `backend/app/core/config.py:36` | 12-Factor III | W4-3 | P3 |
+| F-20 | 3 个已合并远端分支未清理，且命名违反自家规范（大写、非连字符） | `git branch -r --merged`（`Data-analysis`/`UI-design`/`member-panel`，落后 main 65/50/54）；`GIT-GUIDE.md:35` | Scorecard（分支卫生） | W3-5 | P2 |
+| F-21 | 规范声明双远端，实际仅 `origin` | `GIT-GUIDE.md:15,18,166-174,281` vs `git remote -v` | 规范一致性 | W3-6 | P2 |
+| F-22 | 制品版本与 tag 无联动（`frontend/package.json` 恒 `0.1.0`） | `frontend/package.json:4` | SemVer / 12-Factor V | W3-4 | P2 |
+| F-23 | README 声明 MIT 但无 `LICENSE` 文件 | `README.md:134-136`；`Test-Path LICENSE` = False | SPDX/MIT | W0-1 | P2 |
+| F-24 | 无 `CONTRIBUTING.md` | `Test-Path` = False（规范散落 `GIT-GUIDE.md`、`.agent/rules/`） | OpenSSF Scorecard | W4-4 | P3 |
+| F-25 | 无 `CHANGELOG.md`（`progress.md` 更新记录代偿） | `Test-Path` = False | Keep a Changelog 1.1.0 | W3-4 | P3 |
+| F-26 | 无公共 `SECURITY.md`（漏洞报告渠道） | `Test-Path` = False（内部 `SECURITY-REVIEW.md` 存在） | OpenSSF Scorecard | W4-4 | P3 |
+| F-27 | 无测试框架；仅 7 个手工 `selfcheck_*.py`（依赖真实库、无 runner） | `git ls-files backend/scripts`；`requirements.txt` 无 pytest | 测试基线 | W2-2 | P1 |
+| F-28 | 前端零测试 | `frontend/package.json:6-11` 无 test 脚本 | Vue 风格指南（可测） | W2-2 | P2 |
+| F-29 | 后端无 lint/format/类型检查（无 `pyproject.toml`/`ruff.toml`/`.flake8`/`mypy.ini`） | `Test-Path` 全 False；`tech-stack.md:138` 自认未配置 | PEP 8 / PEP 484 | W2-3 | P2 |
+| F-30 | 前端无 ESLint/Prettier（仅 `vue-tsc`） | 无相关配置文件 | Vue 风格指南 | W2-3 | P2 |
+| F-31 | 无 `.gitattributes`/`.editorconfig`；`git ls-files --eol` = **CRLF 260 / LF 74** 混合 | `git ls-files --eol` 统计；`progress.md:302` 记「按 cr-at-eol 口径检查差异空白」 | Git 官方 / EditorConfig | W0-2 | P1 |
+| F-32 | 无 pre-commit / commit-msg 钩子（规范靠自觉） | 无 `.pre-commit-config.yaml`；`package.json` 无 husky | Conventional Commits | W2-4 | P3 |
+| F-33 | 无依赖更新自动化（Dependabot/Renovate） | `.github` 不存在 | Scorecard / OWASP A06 | W2-7 | P2 |
+| F-34 | 无监控告警（与 F-16 同源，治理视角） | 见 F-16 | SRE / 12-Factor XI | W3-1 | P2 |
+| F-35 | 无备份自动化与恢复演练（与 F-17 同源） | 见 F-17 | 运维基线 | W3-2 | P2 |
+| F-36 | `.qoder/plans/` 3 个 `.md` 已入库但未登记索引 | `git ls-files .qoder`；`grep qoder` 在 `AGENTS.md`/`architecture.md` 无命中 | `AGENTS.md` §2.2 | W0-6 | P2 |
+| F-37 | 陈旧绝对路径 `e:\code\@Cjy\...` 共 **23 处**（`architecture.md` 19、`progress.md` 2、`.agent/rules/code_rule.md` 2） | `Select-String 'e:\\code\\@Cjy'` 计数；`code_rule.md:20-21` | 文档可移植性 | W0-3 | P2 |
+| F-38 | 文件名大小写与引用不一致：索引内为 `memory-bank/SECURITY-REVIEW.md`，11 个文件按小写 `security-review.md` 引用，且 `architecture.md:196` 记录「已改名为小写」 | `git ls-files memory-bank`；`Select-String 'security-review\.md'` 命中 11 文件 | `AGENTS.md` §2.2（小写 kebab-case） | W0-4 | P1 |
+| F-39 | `.dockerignore` 残留旧目录名 `.claude` | `backend/.dockerignore:2`、`frontend/.dockerignore:2`（规则目录已改为 `.agent`） | `AGENTS.md` §3.3 第 6 条 | W0-5 | P2 |
+| F-40 | `README.md:88-119` 复制了代码目录树（权威源应仅 `progress.md`） | `README.md:88-119` vs `AGENTS.md:36` | 单一权威源 | W0-7 | P2 |
+| F-41 | 部署章权威源冲突：`tech-stack.md` 称「前端容器 80/443 HTTPS」「后端多阶段构建」「启动脚本 deploy.sh」 | `tech-stack.md:121-126`；`backend/Dockerfile:1-25` 实为单阶段；`deploy.sh` 不在库 | 单一权威源 | W0-8 | P1 |
+| F-42 | 引导文档不完整：`start.bat` 默认 `DB_MODE=prod` 指向生产快照 `nsh-server-20260907.db`，README 未提 | `start.bat` 前 25 行；`README.md:40-60` | 12-Factor III / 引导完整性 | W1-6 | P2 |
+
+---
+
+## 5. 分波次执行计划
+
+> 每项任务含：动作 / 涉及文件 / 验收命令（编号见 §8）/ 依赖 / 风险与回滚 / 估算（S ≤ 0.5h，M ≤ 2h，L > 2h）。
+
+### Wave 0 —— 仓库与文档一致性（不改变运行行为，零风险）
+
+| 任务 | 动作 | 涉及文件 | 验收 | 依赖 | 风险/回滚 | 估算 |
+|------|------|---------|------|------|----------|------|
+| W0-1 | 新增 MIT `LICENSE`（与 `README.md:136` 声明一致，年份与版权人按 D-1 确认） | `LICENSE` | 命令 1 | D-1 | 低；`git rm` 回滚 | S |
+| W0-2 | 新增 `.gitattributes`（`text=auto` + 选定 eol）与 `.editorconfig`；如需归一则单独提交 `git add --renormalize .` | `.gitattributes`、`.editorconfig`、全仓 | 命令 2 | D-6 | 中：归一 diff 巨大 → 独立提交便于回滚 | M |
+| W0-3 | 清除 23 处陈旧绝对路径，改为仓库相对路径 | `memory-bank/architecture.md`、`memory-bank/progress.md`、`.agent/rules/code_rule.md` | 命令 3 | — | 低 | S |
+| W0-4 | `memory-bank/SECURITY-REVIEW.md` → `security-review.md`（Windows 需两步 `git mv`），核对 11 处引用 | 同上 + 引用方 | 命令 3 | — | 低；需在区分大小写环境复核 | S |
+| W0-5 | 修正 `analysis.ts:44` 的 v3→v4 引用；给 3 个日期戳脚本加用途说明（或移入 `backend/scripts/archive/`）；清理两处 `.dockerignore` 的 `.claude` | `analysis.ts`、`backend/scripts/*`、两个 `.dockerignore` | 命令 3 | — | 低 | S |
+| W0-6 | `.qoder/plans/` 三文档登记入 `architecture.md` **或** 加 `.gitignore` 排除（二选一） | `architecture.md` 或 `.gitignore` | 命令 3 | — | 低 | S |
+| W0-7 | 删除 `README.md` 中复制的目录树，改为引用 `progress.md` | `README.md` | 命令 3 | — | 低 | S |
+| W0-8 | 按 `DEPLOY.md:19-52` 重写 `tech-stack.md §部署方案`（删除「前端容器 80/443 HTTPS」「后端多阶段构建」等失实描述），并在 `docker-compose.yml` 顶部标注「本地/单机演示拓扑」 | `tech-stack.md`、`docker-compose.yml` 注释 | 命令 3 | — | 低 | M |
+
+### Wave 1 —— 交付链路可复现（解除 P0）
+
+| 任务 | 动作 | 涉及文件 | 验收 | 依赖 | 风险/回滚 | 估算 |
+|------|------|---------|------|------|----------|------|
+| W1-1 | 将 `nginx.conf.example` 的 A 段落为入库的 `frontend/nginx.conf`（保留占位符，B 段留在 `.example` 供边缘层使用）；`.gitignore` 移除 `frontend/nginx.conf` 并说明「服务器实际文件另有其版本，入库版仅保证构建可复现」 | `frontend/nginx.conf`、`.gitignore`、`frontend/nginx.conf.example`、`DEPLOY.md` | 命令 4 | — | 低；注意与服务器版差异需记录 | M |
+| W1-2 | 新增 `deploy.sh.example`（含打包排除清单、路径锚定告警、健康检查失败即非零退出），`DEPLOY.md §三` 补「复制为 `deploy.sh` 并填占位符」 | `deploy.sh.example`、`DEPLOY.md` | 命令 5 | — | 低；不覆盖现有 `deploy.sh` | M |
+| W1-3 | ①`docker-compose.yml` 顶部注释定性；②按 D-5 把服务器侧 `docker-compose.yml`/`nginx-proxy` conf 去敏后入库为模板，或提供 `scripts/check-config-drift.sh` | `docker-compose.yml`、`deploy/server/*.example`、`scripts/` | 命令 5 | D-5 | 中；服务器不改动，仅新增模板 | L |
+| W1-4 | 后端依赖全量锁定：`pip-compile --generate-hashes` 或 `uv lock`；同步修正 `tech-stack.md:55` 表述 | `backend/requirements*.txt`、`pyproject.toml`（可选）、`tech-stack.md` | 命令 6 | — | 中；锁定后需重建镜像验证 | M |
+| W1-5 | 基础镜像升级：`node:22-alpine`、`python:3.13-slim`；统一 8 处文档版本声明 | 两个 `Dockerfile`、`README.md`、`tech-stack.md`、`AGENTS.md`、`ai-context.md` | 命令 4 | — | 中：升级可能暴露兼容问题 → 逐镜像验证 | M |
+| W1-6 | `README.md` 补「构建前置（复制 nginx.conf）」与「数据源模式（`DB_MODE`）」小节；快照文件名改为可配置 | `README.md`、`start.bat` | 命令 1 | — | 低 | S |
+
+### Wave 2 —— 质量门禁
+
+| 任务 | 动作 | 涉及文件 | 验收 | 依赖 | 风险/回滚 | 估算 |
+|------|------|---------|------|------|----------|------|
+| W2-1 | 新增 `.github/workflows/ci.yml`：前端 `npm ci && npm run build`；后端 `compileall` + `alembic upgrade head`（临时库）+ selfcheck；双镜像 `docker build` | `.github/workflows/ci.yml` | 命令 6 | D-3 | 低 | M |
+| W2-2 | 把 7 个 `selfcheck_*.py` 迁为 pytest 用例（内存 SQLite 优先），保留脚本作为入口；前端引入 Vitest（先覆盖 composables 纯函数） | `backend/tests/**`、`backend/requirements-dev.txt`、`frontend/src/**/*.spec.ts`、`frontend/package.json` | 命令 6 | — | 中：迁移需保持断言等价 | L |
+| W2-3 | 后端 `ruff`（lint+format）+ `mypy`（渐进）；前端 `eslint` + `prettier`（vue preset） | `pyproject.toml`、`ruff.toml`、`.eslintrc`/`eslint.config.js`、`.prettierrc`、`package.json` | 命令 6 | — | 中；首轮会有大量告警 → 按目录分批收敛 | L |
+| W2-4 | `pre-commit`（ruff/eslint/行数检查）+ commit-msg 校验（Conventional Commits，中文摘要 ≤50 字符） | `.pre-commit-config.yaml`、`scripts/check-commit-msg.*` | 命令 6 | — | 低 | M |
+| W2-5 | `file-length-rule.md` 补 `.ts` 类别上限（建议 200）；豁免清单增「复核日期」列并要求超限 >1.5 倍强制重评；把行数检查脚本化进 CI | `.agent/rules/file-length-rule.md`、`scripts/check-file-length.*` | 命令 6 | — | 低 | M |
+| W2-6 | 出勤率口径收敛为后端唯一实现、前端仅展示；`config.py` 导入期副作用改为显式启动校验（保留 fail-closed） | `member_service.py`、`AttendanceRatePanel.vue` 等、`core/config.py`、`main.py` | 命令 6 | — | 中：涉及业务口径，需口径对齐说明 | L |
+| W2-7 | 新增 `.github/dependabot.yml`（pip + npm，周更，分组） | `.github/dependabot.yml` | 命令 6 | — | 低 | S |
+
+### Wave 3 —— 运维与发布
+
+| 任务 | 动作 | 涉及文件 | 验收 | 依赖 | 风险/回滚 | 估算 |
+|------|------|---------|------|------|----------|------|
+| W3-1 | 新增 `GET /health`（含 DB ping）与可选 `/version`；compose 健康检查改探 `/health`；接入 uptime 探活 | `backend/app/main.py`、`backend/app/api/v1/health.py`、`docker-compose.yml` | 命令 7 | — | 低 | M |
+| W3-2 | 备份自动化脚本（调用 SQLite backup API）+ 服务器 cron 示例 + 每季恢复演练记录模板 | `scripts/backup-db.sh.example`、`DEPLOY.md §五` | 命令 7 | D-3/D-5 | 低；脚本默认 dry-run | M |
+| W3-3 | 发布制品版本化（镜像打 `vX.Y.Z` 或 tar 存档命名）+ `DEPLOY.md` 新增「§回滚」章节（停服→切版本→`up -d`→验证） | `DEPLOY.md`、`deploy.sh.example` | 命令 7 | W1-2 | 中：回滚演练需在非生产先验证 | M |
+| W3-4 | 新增 `CHANGELOG.md`（Keep a Changelog 1.1.0：`Unreleased` + Added/Changed/Fixed/Security，按 `v1.0.0/v1.1.0/v1.2.0` 回填）；按 D-4 决定是否联动 `package.json` 版本 | `CHANGELOG.md`、`frontend/package.json`、`GIT-GUIDE.md §8` | 命令 1 | D-4 | 低 | M |
+| W3-5 | 清理 3 个已合并远端分支；在 `GIT-GUIDE.md §2.2` 增「合并即删」条目 | 远端（需授权）、`GIT-GUIDE.md` | 命令 1 | D-3 | 中：仅删已合并分支，删除前逐支核对 `--merged` | S |
+| W3-6 | 按 D-2 落地单/双远端：改 `GIT-GUIDE.md:15,18,166-174,281` 与 `README`/`DEPLOY.md` 相关表述，或补配 `gitee` 并验证推送 | `GIT-GUIDE.md` 等 | 命令 1 | D-2 | 低 | S |
+
+### Wave 4 —— 安全加固与审查补全
+
+| 任务 | 动作 | 涉及文件 | 验收 | 依赖 | 风险/回滚 | 估算 |
+|------|------|---------|------|------|----------|------|
+| W4-1 | 生产关闭 `/docs`、`/redoc`、`/openapi.json`（`docs_url=None` 等，条件由 `DEBUG`/`APP_ENV` 决定）；本地保留 | `backend/app/main.py`、`core/config.py` | 命令 6 | — | 低；需确认开发者无依赖在线文档 | S |
+| W4-2 | `SECURITY-REVIEW.md` 新增「暴露面清单」小节，按 OWASP ASVS 5.0.0（配置/认证/会话/访问控制/日志）与 Top 10:2025 条目逐项对照并标注结论 | `memory-bank/security-review.md`、`architecture.md` | 命令 3 | W0-4 | 低 | L |
+| W4-3 | `CORS_ORIGINS` 外置为环境变量；执行前端与后端依赖漏洞审计（`npm audit` / `pip-audit`）并记录结论 | `core/config.py`、`.env.example`、`memory-bank/security-review.md` | 命令 6 | — | 中：升级依赖需回归 | M |
+| W4-4 | 按 D-1 决策补 `SECURITY.md`/`CONTRIBUTING.md`/`CODE_OF_CONDUCT.md`（引用规范而非复制既有内容） | 根目录文件 | 命令 1 | D-1 | 低 | M |
+
+---
+
+## 6. 变更纪律与授权边界
+
+1. **提交纪律**：一次一个主题提交，信息遵循 `.agent/rules/git-commit-message.md`（`<type>(<scope>): <中文摘要 ≤50 字符>`，类型限 `feat/fix/docs/style/refactor/perf/test/chore/ci`）。
+2. **授权边界**（沿用 `AGENTS.md` §5）：`git commit`、删除分支/标签、远端与服务器操作、`renormalize` 大批量 diff —— **均须先取得用户许可**（见 §3 D-3）。
+3. **文档同步**（`AGENTS.md` §3.3）：改代码 → 同步 `progress.md`（目录树 / 模块表 / 更新记录）；新增或改名文档 → 同步 `architecture.md` 三项（说明 / 目录树 / 更新记录）；受影响的权威源（`database-design.md`/`tech-stack.md`/`design-document-v2.md`）一并更新。
+4. **验证纪律**：每项任务完成必须留下**可复现的验证证据**（命令 + 输出结论），写入 §7 进度表；不允许「改完即算完成」。
+5. **服务器侧改动**：一律「先备份（`*.bak-日期`）→ 改 → 重建镜像 → 验证」，并在 `DEPLOY.md` 留下同步记录（沿用 2026-09-11/09-15 既有做法）。
+
+---
+
+## 7. 进度跟踪表
+
+| 任务 | 状态 | 完成日期 | 验证证据 | 关联提交 |
+|------|------|---------|---------|---------|
+| W0-1 新增 LICENSE | ⏳ 待开始 | | | |
+| W0-2 .gitattributes / .editorconfig | ⏳ 待开始 | | | |
+| W0-3 清理绝对路径（23 处） | ⏳ 待开始 | | | |
+| W0-4 security-review 大小写 | ⏳ 待开始 | | | |
+| W0-5 陈旧引用与 .dockerignore | ⏳ 待开始 | | | |
+| W0-6 `.qoder` 登记或忽略 | ⏳ 待开始 | | | |
+| W0-7 README 目录树去重 | ⏳ 待开始 | | | |
+| W0-8 tech-stack 部署章对齐 | ⏳ 待开始 | | | |
+| W1-1 nginx.conf 入库 | ⏳ 待开始 | | | |
+| W1-2 deploy.sh.example | ⏳ 待开始 | | | |
+| W1-3 配置漂移治理 | ⏳ 待开始 | | | |
+| W1-4 依赖锁定 | ⏳ 待开始 | | | |
+| W1-5 基础镜像升级 | ⏳ 待开始 | | | |
+| W1-6 README 引导补全 | ⏳ 待开始 | | | |
+| W2-1 CI 工作流 | ⏳ 待开始 | | | |
+| W2-2 测试体系（pytest/Vitest） | ⏳ 待开始 | | | |
+| W2-3 lint/format/类型检查 | ⏳ 待开始 | | | |
+| W2-4 pre-commit 与提交校验 | ⏳ 待开始 | | | |
+| W2-5 行数规则补全与检查脚本 | ⏳ 待开始 | | | |
+| W2-6 出勤率口径收敛 + config 副作用 | ⏳ 待开始 | | | |
+| W2-7 Dependabot | ⏳ 待开始 | | | |
+| W3-1 /health 与探活 | ⏳ 待开始 | | | |
+| W3-2 备份自动化与演练 | ⏳ 待开始 | | | |
+| W3-3 制品版本化与回滚 | ⏳ 待开始 | | | |
+| W3-4 CHANGELOG 与版本联动 | ⏳ 待开始 | | | |
+| W3-5 分支治理 | ⏳ 待开始 | | | |
+| W3-6 远端策略落地 | ⏳ 待开始 | | | |
+| W4-1 关闭生产 API 文档 | ⏳ 待开始 | | | |
+| W4-2 ASVS/Top10 对照补审查 | ⏳ 待开始 | | | |
+| W4-3 CORS 外置与依赖审计 | ⏳ 待开始 | | | |
+| W4-4 SECURITY/CONTRIBUTING/CoC | ⏳ 待开始 | | | |
+
+状态图例：⏳ 待开始 / 🔄 进行中 / ✅ 已完成 / ⛔ 阻塞（写明阻塞项与所需决策）
+
+---
+
+## 8. 回归命令清单
+
+> 以下命令为本计划的验收依据；实施时逐条执行并记录输出结论。
+
+```bash
+# 1. 仓库卫生与文档一致性
+git status --porcelain                          # 期望：干净
+git ls-files --eol | awk '{print $1}' | sort | uniq -c   # 期望：单一 eol
+grep -rn 'e:\\code\\@Cjy' --include='*.md' .    # 期望：无输出
+git ls-files memory-bank | grep -i security     # 期望：全小写 security-review.md
+
+# 2. 换行归一后复核
+git diff --stat                                 # 期望：归一提交单独成组
+
+# 3. 文档引用与索引一致性
+grep -rn 'security-review\.md' --include='*.md' memory-bank | wc -l   # 引用数应与实体匹配
+
+# 4. 前端构建（含类型检查）与镜像构建
+cd frontend && npm ci && npm run build
+docker compose build                            # 期望：双镜像构建成功（当前会因缺 nginx.conf 失败）
+
+# 5. 部署链路
+bash -n deploy.sh.example                       # 语法检查
+grep -n 'nginx.conf' DEPLOY.md README.md        # 期望：说明构建前置
+
+# 6. 后端门禁与测试
+cd backend && python -m compileall -q app
+alembic upgrade head                            # 临时库
+python -m pytest -q                             # W2-2 之后
+ruff check . && mypy app                        # W2-3 之后
+
+# 7. 运行时验证
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/health   # 期望 200
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/docs     # 生产期望 404
+```
+
+---
+
+## 9. 风险登记
+
+| 风险 | 触发条件 | 影响 | 缓解 |
+|------|---------|------|------|
+| 换行归一整仓 diff 淹没代码评审 | 执行 W0-2 归一 | PR 不可读 | 独立提交、单独 review、不与逻辑改动混合 |
+| 基础镜像升级引入不兼容 | W1-5 升 Node 22 / Python 3.13 | 构建或运行失败 | 先本地双镜像构建 + 冒烟，再进 CI；保留旧 Dockerfile 于分支 |
+| 依赖全量锁定后装不出（旧版本被 yank） | W1-4 | CI 失败 | 锁定时立即跑 CI；必要时回退到范围约束并记录 |
+| 打包排除清单被误改导致覆盖服务器配置 | 触碰 `deploy.sh.example` | 生产宕机 | 保留 `DEPLOY.md:65-75` 的「严禁移除 + 路径锚定」警示原文 |
+| 回滚演练影响生产 | W3-3 | 短时不可用 | 先在非生产环境演练，生产侧选低峰窗口 |
+| 删分支/改远端误操作 | W3-5/W3-6 | 丢历史引用 | 删前 `git branch -r --merged` 逐支核对；保留 reflog；需显式授权 |
+
+---
+
+## 10. 附：审查方法与限制
+
+- **方法**：静态只读审查（文件读取、内容检索、目录枚举、Git 元数据），覆盖 338 个跟踪文件、27 份 Markdown 文档、2 个 Dockerfile、1 个 compose、110 个后端 `.py`、164 个前端 `.vue/.ts`。
+- **限制**：
+  - 未运行构建、类型检查、测试与迁移（`npm run build`/`pytest`/`alembic upgrade` 均未执行），故 F-13/F-27/F-29/F-30 的「是否已通过」属**待验证**；
+  - 未访问生产服务器，F-10/F-11 的漂移程度只能定性；
+  - 仓库可见性、协作者规模、生产配置敏感度未知，对应 §3 D-1/D-5；
+  - 行业规范版本以官方站点为准（ASVS 5.0.0、OWASP Top 10:2025、Keep a Changelog 1.1.0、SLSA v1.2 已于 2026-10-02 核对）。
+- **计数口径**：行数使用 `(Get-Content $f).Count`（含空行），与仓库既有文档的统计口径可能不同，故豁免清单中的登记行数与本计划实测值并列展示（见 F-02）。

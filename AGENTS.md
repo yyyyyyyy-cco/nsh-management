@@ -59,6 +59,7 @@
 | AI 检查清单 | `memory-bank/ai-checklist.md` | 历史教训、易漏点、专项检查 | 发现新易错模式时 |
 | 后端 / 前端开发文档 | `backend/docs/README.md`、`frontend/docs/README.md` | 各端功能清单与进度 | 各端功能点完成 |
 | 代码 / 提交流程规则 | `.agent/rules/*.md` | 行数限制、模块文档、提交信息、项目规则 | 规范调整 |
+| 合规化整改计划 | `.agent/plans/compliance-remediation-plan.md` | 全仓合规差距清单（F-01～F-42）与 Wave 0～4 分波次整改路线、验收命令、授权边界 | 每完成一项整改任务 / 波次结束 / 决策变更 |
 | 部署文档 | `DEPLOY.md` | Docker Compose 部署全流程 | 部署配置变更 |
 
 注：memory-bank 文档统一小写 kebab-case 命名；新增文档必须登记到 `architecture.md`（说明 + 目录树 + 更新记录）。

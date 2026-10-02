@@ -6,7 +6,9 @@
 nsh-management/
 ├── .agent/
 │   ├── docs/                         # 内部样例（比赛 CSV 入库；Excel 分析表仅本地）
-│   ── rules/                        # AI 编码规则（已入库）
+│   ├── plans/                        # 规划/整改类文档
+│   │   └── compliance-remediation-plan.md   # 项目合规化与工程完善计划
+│   └── rules/                        # AI 编码规则（已入库）
 │       ├── code_rule.md              # 项目规则
 │       ├── file-length-rule.md       # 代码文件长度规则
 │       ├── function_rule.md          # 模块开发文档规则
@@ -159,6 +161,11 @@ nsh-management/
 - **作用**：2026-09-28 全项目深度审查结论快照，覆盖后端代码质量/安全/性能与前端 UI/UX 两大维度（严重 3 / 高 19 / 中 34 / 低 12 + 8 处规范文档缺陷），含建议整改顺序与优秀实践保护清单
 - **更新时机**：后续审查或整改验收时追加更新记录
 
+### 21. 项目合规化与工程完善计划
+- **路径**：`.agent/plans/compliance-remediation-plan.md`（仓库相对路径：该计划 W0-3 将统一清理其余条目的陈旧绝对路径，见其 F-37）
+- **作用**：面向「全新克隆」的合规整改路线图：以行业权威规范为基准（SemVer 2.0.0 / Conventional Commits 1.0.0 / Keep a Changelog 1.1.0 / OWASP ASVS 5.0.0 / OWASP Top 10:2025 / SLSA v1.2 / 12-Factor / CIS Docker Benchmark 等），逐条列出 42 项差距（F-01～F-42，含文件行号级证据）、Wave 0～4 共 31 项任务（动作 / 验收命令 / 依赖 / 风险回滚 / 估算）、回归命令清单与需用户确认的 6 项决策（D-1～D-6）
+- **更新时机**：每完成一项任务更新其 §7 进度表；波次结束、决策变更或验收结论变化时更新
+
 ---
 
 ## 更新记录
@@ -220,6 +227,7 @@ nsh-management/
 | 2026-09-28 | 新增 code-ui-audit-2026-09.md 审查报告并登记 | architecture.md, code-ui-audit-2026-09.md, progress.md |
 | 2026-09-28 | security-review.md / ui-style-guide.md 随严重问题修复同步更新（accounts 统一脱敏关闭 + 生产弱密钥启动门禁专节；主按钮墨色文字与禁用态规范），code-ui-audit-2026-09.md C-1～C-3 标注已修复 | security-review.md, ui-style-guide.md, code-ui-audit-2026-09.md |
 | 2026-09-28 | ai-checklist §五 新增遗漏模式 20（非 cmd shell 中 `> nul` 重定向误创建 nul 文件）；.gitignore 增加 Windows 保留设备名 nul 忽略规则，删除误创建的 backend/nul | ai-checklist.md, progress.md, .gitignore |
+| 2026-10-02 | 新增项目合规化与工程完善计划（`.agent/plans/compliance-remediation-plan.md`，登记为本索引 §21 并补目录树 `.agent/plans/`）：以行业权威规范为基准的全仓静态审查结论与整改路线——42 项差距证据清单（含 3 项 P0 交付阻断项）、Wave 0～4 共 31 项任务与逐项验收命令、6 项待确认决策；本轮仅新增计划文档，未改动代码与配置 | compliance-remediation-plan.md, architecture.md, AGENTS.md, progress.md |
 
 ---
 
