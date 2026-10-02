@@ -47,6 +47,17 @@ NOT_PATH = re.compile(
 )
 
 
+# 历史记录行（更新记录表 / 时间戳行）不作为引用来源：
+# 它们记录的是**当时的**事实，常含旧文件名、旧路径、一次性脚本名等，扫进来只会制造噪声。
+# 口径与 check_doc_numbers.py「已排除日期开头的更新记录行」一致（2026-10-03 补）。
+_HIST_ROW = re.compile(r"^\|\s*\d{4}-\d{2}-\d{2}\s*\||^\s*[-*]?\s*\d{4}-\d{2}-\d{2}\s*[:：|]")
+
+
+def strip_history_rows(text: str) -> str:
+    """剔除历史记录行（纯函数）：保留行数以便行号仍可对应原文件。"""
+    return "\n".join("" if _HIST_ROW.match(line) else line for line in text.split("\n"))
+
+
 def extract_refs(text: str) -> list[tuple[str, int | None, int | None]]:
     """从文档文本抽取 (路径, 起始行, 结束行)。纯函数。"""
     out: list[tuple[str, int | None, int | None]] = []
@@ -114,6 +125,7 @@ SELF_TESTS = (
     ("见 `/openapi.json` 与 `/app/data/nsh.db`。", 0, "API 路由/容器路径不是仓库文件"),
     ("见 `GIT-GUIDE.md:15,18,281`。", 1, "逗号行号仍能抽出路径"),
     ("见 `.env.example`。", 1, "以点开头的隐藏文件也是路径（曾因 lstrip 误剥导致误判）"),
+    ("| 2026-10-03 | 修了 `old/ghost.py` |", 0, "带日期的历史记录行不作为引用来源"),
     ("见 `.gitignore` 这类无扩展名文件。", 0, "无扩展名的文件名不在覆盖范围（已知限制）"),
 )
 
@@ -181,7 +193,7 @@ def main(argv: list[str]) -> int:
         docs += sorted((ROOT / d).glob("*.md"))
     total_ok = total_missing = total_amb = total_bad = 0
     for doc in docs:
-        refs = extract_refs(doc.read_text(encoding="utf-8"))
+        refs = extract_refs(strip_history_rows(doc.read_text(encoding="utf-8")))
         ok, missing, amb, bad = check_refs(refs, exists, line_count)
         total_ok += len(ok)
         total_missing += len(missing)
