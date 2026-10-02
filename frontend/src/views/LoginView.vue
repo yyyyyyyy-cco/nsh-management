@@ -13,10 +13,10 @@
         <div class="brand-line" />
       </div>
       <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="onSubmit">
-        <el-form-item prop="username">
+        <el-form-item prop="username" aria-label="用户名">
           <el-input v-model="form.username" placeholder="用户名" :prefix-icon="User" :disabled="locked" @input="errorMsg = ''" />
         </el-form-item>
-        <el-form-item prop="password">
+        <el-form-item prop="password" aria-label="密码">
           <el-input v-model="form.password" type="password" placeholder="密码" show-password :prefix-icon="Lock" :disabled="locked" @input="errorMsg = ''" />
         </el-form-item>
         <el-alert
