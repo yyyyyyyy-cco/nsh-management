@@ -168,6 +168,7 @@
 | F-68 | **CI 与文档不一致 + 过时注释**：`repo-hygiene` 里 7 道门禁中**只有 `check_file_length` 未跑 `--self-test`**（其余 6 道 + `check_commit_msg` 均跑 ✓，而计划 §8/§11.4 与 CONTRIBUTING 写的都是「自检 + 实跑」两步）→ 该门禁的 9/9 内置自检**从未在 CI 执行**；`ci.yml` 头部仍保留「后续扩展：W2-2 之后加 pytest / W2-3 之后加 ruff·mypy·eslint」的**已满足前置条件**的设想 | `.github/workflows/ci.yml` | **已修（2026-10-03）**：补 `--self-test`（并本地等价复跑通过 ✓）；过时注释改为**现状说明**（含「仍未接入：mypy（W2-14）」「Node/Python 基座待 W1-5/W1-7 统一」）| P3 |
 | F-69 | **（自查工具覆盖缺口）文档引用存活核对未覆盖两端模块开发文档**：`check_doc_refs.py` 的 `SCAN` 只含 根目录 6 个文档 + `memory-bank/` + `.agent/plans|rules`，**遗漏 `backend/docs/README.md` 与 `frontend/docs/README.md`** （`AGENTS §2.2` 明确它们是「各端功能清单与进度」文档）| `scripts/check_doc_refs.py` | **已修（2026-10-03）**：`SCAN` 补入两个 docs/README；实测其引用**全部存活**（4 + 5 条，0 失效）| P3 |
 | F-70 | **文档引用核对未排除「历史记录行」**：`check_doc_refs.py` 把 `progress.md`/`architecture.md` 等**带日期的更新记录行**也当引用来源 → 记录里的旧路径、一次性脚本名等被计为「缺失」，使噪声随记录增长而上升（实测补两个 docs/README 后缺失 44 → **65**，其中新增文档贡献 **0**，其余 21 全来自历史记录文字）| `scripts/check_doc_refs.py` | **已修（2026-10-03）**：新增 `strip_history_rows()`（口径与 `check_doc_numbers` 的「排除日期开头的更新记录行」一致）| P3 |
+| F-71 | **进度权威口径自相矛盾**：`AGENTS §3.4` 规定「唯一进度权威 `progress.md`，其他文档不复制进度」，但 `§2.2` 又把两份开发文档描述为「各端功能清单**与进度** ✗」；两文档事实上各自维护 `## 进度跟踪`（`当前状态`/`已完成`/`进行中`/`待开始`，含 27 与 34 行勾选），且 `backend/docs/README.md` 未提及 `progress.md` | `AGENTS.md`、`backend/docs/README.md`、`frontend/docs/README.md` | **已修（2026-10-03）**：`§2.2` 单元格改为「功能清单与**功能点勾选清单**（阶段完成度/模块状态以 `progress.md` 为准）」；两文档进度跟踪节顶部加**权威口径说明** | P3 |
 
 ---
 
@@ -384,7 +385,8 @@ npm run build                                   # vue-tsc 类型检查 + vite �
 docker compose build                            # 期望：双镜像构建成功（frontend/nginx.conf 已于 W1-2 补齐）
 
 # 5. 部署链路
-bash -n deploy.sh.example                       # 语法检查
+# 注意：本机 bash 不在 PATH（Windows），须用 Git for Windows 的显式路径
+"C:/Program Files/Git/bin/bash.exe" -n deploy.sh.example    # 语法检查（另三个脚本同法：scripts/backup-db.sh.example、scripts/release-archive.sh.example、.githooks/commit-msg）
 grep -n 'nginx.conf' DEPLOY.md README.md        # 期望：说明构建前置
 
 # 6. 后端门禁与测试

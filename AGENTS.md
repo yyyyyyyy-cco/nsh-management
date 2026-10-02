@@ -57,7 +57,7 @@
 | 安全审查 | `memory-bank/security-review.md` | 审查结论、修复决策记录 | 安全相关变更 |
 | AI 上下文 | `memory-bank/ai-context.md` | 项目全貌速查（本文件扩展版） | 架构 / 规范重大变更 |
 | AI 检查清单 | `memory-bank/ai-checklist.md` | 历史教训、易漏点、专项检查 | 发现新易错模式时 |
-| 后端 / 前端开发文档 | `backend/docs/README.md`、`frontend/docs/README.md` | 各端功能清单与进度 | 各端功能点完成 |
+| 后端 / 前端开发文档 | `backend/docs/README.md`、`frontend/docs/README.md` | 各端功能清单与**功能点勾选清单**（阶段完成度 / 模块状态以 `progress.md` 为准，见 §3.4） | 各端功能点完成 |
 | 代码 / 提交流程规则 | `.agent/rules/*.md` | 行数限制、模块文档、提交信息、项目规则 | 规范调整 |
 | 合规化整改计划 | `.agent/plans/compliance-remediation-plan.md` | 全仓合规差距清单（F 编号持续追加）与分波次整改路线、验收命令、授权边界 | 每完成一项整改任务 / 波次结束 / 决策变更 |
 | 部署文档 | `DEPLOY.md` | Docker Compose 部署全流程 | 部署配置变更 |
