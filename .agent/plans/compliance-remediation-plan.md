@@ -149,7 +149,7 @@
 | **F-49** | **容器降权不完整（2026-10-02 更正，仅前端成立）**：`frontend/Dockerfile` 创建了 `appuser/appgroup` 并 chown 了 `/usr/share/nginx/html`、`/var/cache/nginx`、`/var/log/nginx`、`/var/run/nginx.pid`，**却从未 `USER appuser`** → nginx 实际以 root 运行（准备非 root 的痕迹在，接线没做）。**原结论「后端也以 root 运行」有误**：`backend/entrypoint.sh` 第 9 行 `exec gosu appuser "$@"` 已把权限降为 appuser，`backend/Dockerfile` 亦安装 gosu 并注释说明（证据：两文件逐行核对）。 | `frontend/Dockerfile`、`frontend/nginx.conf`（`listen 80` 需改非特权端口）、`docker-compose.yml`/`DEPLOY.md §二`（上游端口联动） | **W1-9（范围已收窄为前端）**；改 `USER` 属加固增强（CIS Docker 4.1） | P2 |
 | F-50 | **授权失败的读操作未审计**：审计中间件只覆盖写方法，GET 的 403 不落库（ASVS 16.3.2） | `app/main.py` `AUDIT_METHODS` | **W4-9 ✅（2026-10-02 已修复：读方法+带凭证+401/403 也留痕）** | P2 |
 | F-51 | **审计详情未转义换行/控制字符**（ASVS 16.4.1 日志注入面） | `app/services/log_service.py` | **W4-9 ✅（2026-10-02 已修复：控制字符转义 + 端到端回归）** | P2 |
-| F-52 | **口令策略偏离 ASVS**（**2026-10-02 更正**：原判「可设 1 位口令」有误——schema 层已有 `min_length=8`；实为：强制字母+数字**违反 6.2.5**、无上下文词表、**策略零测试**、无泄露口令集比对） | `app/schemas/config.py`、`app/core/password_policy.py` | **W4-10 ✅（2026-10-02 已修复；6.2.12 泄露口令比对为取舍）** | P1 |
+| F-52 | **口令策略偏离 ASVS**（**2026-10-02 更正**：原判「可设 1 位口令」有误——schema 层已有 `min_length=8`；实为：强制字母+数字**违反 6.2.5**、无上下文词表、**策略零测试**、无泄露口令集比对） | `app/schemas/config.py`、`app/core/password_policy.py` | **W4-10 ✅（2026-10-02 已修复；6.2.12 泄露口令比对为取舍）（残留判定：6.2.4、6.2.12）** | P1 |
 | F-53 | **无用户自助改密；管理员重置时可直接设定新口令**（ASVS 6.2.2/6.2.3/6.4.6） | `app/api/v1/auth.py`、`app/services/auth_service.py` | **W4-10 🔄（自助改密已实现；6.4.6 管理端设定口令仍为取舍）** | P2 |
 | F-54 | **前后端口令口径分叉（本轮规范复核发现）**：后端按 ASVS 6.2.5 放开字符组成后，`ConfigGuildPanel.vue` 仍内联「必须同时含字母和数字」的校验，**前端会拦住纯字母/纯数字口令而 API 会接受**（属用户可见不一致；schema 描述文案也仍写旧规则） | `frontend/src/views/config/ConfigGuildPanel.vue`、`backend/app/schemas/config.py` | **W4-12 ✅（2026-10-02 已修复）** | P2 |
 
@@ -234,6 +234,7 @@
 | W4-13 | **容器与拓扑声明核实**（只读复核）：`frontend/nginx.conf`（内层）与 `frontend/nginx.conf.example`（边缘模板）职责是否重复、compose 声明与 `DEPLOY.md §二` 是否矛盾、`.gitignore` 对 `nginx.conf` 的处理 | `frontend/Dockerfile`、`backend/{Dockerfile,entrypoint.sh}`、`docker-compose.yml`、`DEPLOY.md`、`.gitignore` | 只读核对 + 门禁复跑 | W1-9 | 低 | S |
 | W4-14 | **威胁模型与部署声明逐条复核**：用代码核对 `security-review.md §十六`（STRIDE）的「现有控制」数字与 `DEPLOY.md §二` 关于内层 Nginx 的四项声明；发现过时即改 | `memory-bank/security-review.md`、`frontend/nginx.conf`、`backend/app/utils/{image_export,excel_import}.py`、`backend/app/schemas/recording.py` | 只读核对 + 门禁复跑 | W4-13 | 低 | S |
 | W4-15 | **ASVS 判定行抽样复核**：`§17.1~§17.8` 的结论是本会话最早产出的一批（错误率最高），抽样核对「引用 F 编号 / 写「未做」」的判定行，发现修复漂移即更正 | `memory-bank/security-review.md` | 只读核对 + 门禁复跑 | W4-14 | 中：抽样而非全量，未抽到的行仍可能有漂移 | M |
+| W4-16 | **「已修复但判定未更新」检查**：从计划 §4 取已修复的 `F-<n>`，扫描 `security-review.md §17` 判定行，判定非 ✅ 却引用已修复编号即报告；计划行可用「（残留判定：…）」显式豁免未做部分 | `scripts/check_verdict_sync.py`、`.github/workflows/ci.yml`、本计划 §8 | 门禁自检 + 严格模式 | W4-15 | 低 | S |
 
 ---
 
@@ -301,6 +302,7 @@
 | W4-13 容器与拓扑声明核实 | ✅ 已完成（只读复核） | 2026-10-02 | ①**`nginx.conf` vs `nginx.conf.example` 无重复**：两个文件**职责不同且各自写明**——前者是 frontend 容器**内层**（静态资源 + SPA 回退 + 缓存头 + `/api` 反代，明文 :80），是镜像构建输入；后者是**边缘** nginx-proxy 模板（TLS/限流/安全头/默认 server 444），不入部署包，且其头部明确「本文件**不再重复维护内层段**——同一配置两处副本必然漂移」。实测差异 162 行中**无内层指令副本**（无 `server_tokens`/`gzip`/`set_real_ip_from` 等）✓ ②**compose 与 `DEPLOY.md §二` 的差异是设计意图**：仓库内 compose 是**本地/单机演示拓扑**（frontend 映射宿主 80/443 并挂卷挂证书），生产服务器使用**单层 TLS**（frontend 无宿主端口、不挂证书），两者的区别写在 compose 文件头与 §二正文 ✓ ——因此**不新增「compose 必须等于 §二」的门禁**（会把设计意图判成缺陷）。③`.gitignore` 第 99 行是**注释**（说明 `frontend/nginx.conf` 自 2026-10-02 入库），无残留忽略规则 ✓（F-08 修复无副作用）。④**更正一条我自己的旧结论 F-49**：本轮逐行核对 `backend/Dockerfile` 与 `backend/entrypoint.sh`，发现后端**已降权**（`exec gosu appuser "$@"` + chown 卷目录），原结论「后端也以 root 运行」**有误**；前端成立（建了 appuser、chown 了 html/cache/log/pid，但**无 `USER`**）→ W1-9 范围已收窄为**前端**（含监听非特权端口与 compose/DEPLOY 联动，需 Docker 验证）。教训记入 ai-checklist 第 51 条（容器降权要看 entrypoint/exec 全链路，不能只 grep Dockerfile） | docs(security): 更正容器降权结论并登记三项已核实一致项 |
 | W4-14 威胁模型与部署声明复核 | ✅ 已完成（只读复核） | 2026-10-02 | ①**`DEPLOY.md §二` 对内层 Nginx 的四项声明全部为真**（逐行核对 `frontend/nginx.conf`）：gzip ✓、`/assets/` 一年 `immutable` ✓、`location = /index.html` 三头 `no-store` ✓、`client_max_body_size 20m` ✓；另 `index.html` 内嵌 meta 缓存标签也与 §二 描述一致 ✓；XFF 为原样透传（未用 `$remote_addr`/`$proxy_add_x_forwarded_for` 覆盖）✓。②**§十六「现有控制」抽查 6 条，数字全对**：长图 800 人上限（`MAX_IMAGE_MEMBERS = 800`）✓、Excel 导入 5000 行（`MAX_IMPORT_ROWS = 5000`）与 5MB（`MAX_FILE_SIZE`）✓、录屏链接 `pattern=r"^https?://"` ✓、日志保留读 `settings.LOG_RETENTION_DAYS` ✓、登录限流 5 次 / 5 分钟（`LOGIN_MAX_FAILURES = 5` / `LOGIN_LOCK_MINUTES = 5`）✓、`plain_password` 按角色脱敏 ✓。③**抓到一条过时的「残余风险」并更正**：STRIDE 第 4 行的「无口令复杂度要求、无 MFA」——口令策略已于 W4-10（2026-10-02）实施（`app/core/password_policy.py`），故改为「**无 MFA**」并在现有控制里补上口令策略；同步更正 16.3 的「残余风险」与「建议」两处。**这条属于「修复完成后忘了回头改风险清单」**——高风险位置是把「残余风险/待决策」写成清单的地方。④教训记入 ai-checklist 第 52 条 | docs(security): 更正威胁模型中过时的口令策略声明并登记复核结果 |
 | W4-15 ASVS 判定行抽样复核 | ✅ 已完成（抽样） | 2026-10-02 | **抽样口径（诚实声明）**：§17 共 124 条判定，本轮抽 **8 条**——优先挑「引用 F 编号」或「写着未做/未落库/未转义」的行（修复漂移最可能藏在这里），再抽 5 条 ✅ 行做反向验证。**产出三处过时判定并更正**：①`13.3.2` 原判 ❌「容器实际以 root 运行」——继承自 F-49 的旧结论，后端实为 `gosu` 降权 → 改判 **🟡 部分**（仅前端）；②`16.3.2` 原判 🟡「授权失败的读操作未落库（F-50）」——F-50 已于 W4-9 修复 → **✅ 满足**；③`16.4.1` 原判 🟡「未对换行/控制字符转义（F-51）」——F-51 已修复 → **✅ 满足**。**✅ 行反向验证**：`autoindex` 在两份 nginx 配置中均不存在 ✓、边缘配置 `server_tokens off`（L63，与引用行号一致）✓、两份 `.dockerignore` 均排除 `.git` ✓、`selfcheck_security_fixes.py` 含跨帮会拦截用例 ✓、`DEBUG` 默认 false ✓ —— 5 条全部为真。统计按更正重算为 **54✅ / 28🟡 / 14❌ / 28⚪（124 条）**。**结论**：§17 判定表的失效模式是**「修复落地后没回头改判定」**（至此同类已累计 5 处：6.2.1/6.2.5 在 W4-10 更正，13.3.2/16.3.2/16.4.1 本轮更正）——因此约定规则：**判定行引用的 F 编号一旦标记为已修复，必须重访该行**。教训记入 ai-checklist 第 54 条 | docs(security): 更正 ASVS 三处过时判定并按抽样复核重算统计 |
+| W4-16 判定与修复状态同步检查 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_verdict_sync.py`（自检 **10 条**，纯标准库；`analyze()` 为纯函数便于历史验证）：从计划 §4 解析已修复的 `F-<n>`，扫描 `security-review.md §17` 判定行，**判定非 ✅ 却引用已修复编号**即报告；`--strict` 有发现即 exit 1。**假阳性处理**：首轮报 `6.2.4`/`6.2.12`（引用 F-52，而 F-52 的「泄露口令集比对」本就未做=取舍）——没有用模糊启发式，而是引入**显式豁免标记**「（残留判定：6.2.4、6.2.12）」（已标注在 F-52 行）。**真实历史反向验证**：喂入 `HEAD~1` 的计划与审查文档，**精确报出第 38 轮修掉的 `16.3.2`/`16.4.1`**，且 `13.3.2` 未被误报（F-49 为「范围收窄」而非「已修复」→ 规则正确不报）。**过程缺陷**：豁免标记最初被自己的 `[:80]` 截断吃掉 → 检查仍误报；已修并补「标记在 80 字符之外」的回归样例。**上线纪律**：接线脚本内先跑 `--strict`，exit 0 才继续接门禁与提交 | ci(quality): 新增「已修复但判定未更新」检查并接为第 7 道门禁 |
 | W4-9 审计与日志加固 | ✅ 已完成 | 2026-10-02 | ①**F-50 读接口拒绝留痕**：审计中间件对「非写方法 + 携带 Authorization + 401/403」也落库（匿名 401 不记，避免探测刷日志）；**该路径改为 `await` 落库**——授权失败属罕见路径，且审计不应在进程崩溃时丢失；写操作热路径仍 `create_task`。②**F-51 控制字符转义**：`log_service.escape_control` 把换行/制表等转成 `\x0a` 形态的可见转义，应用于 `username`/`path`/`ip` 与 `sanitize_detail` 的字符串分支（原先该分支只截断不转义）。新增 `backend/tests/test_audit_denials.py`（6 用例，文件库 + stdlib sqlite3 断言）：失效令牌读 401 留痕、帮众读管理员接口 403 留痕（含用户名）、匿名 401 不留痕、写请求拒绝只落一条、含换行用户名落库无真实换行、转义函数本体。**完整基线 140 passed + 74 subtests、exit 0、0 warnings**（该模块与接口级模块连跑 3 次均绿，验证竞态已消除）| feat(security): 审计覆盖带凭证的拒绝请求并转义日志控制字符 |
 
 状态图例：⏳ 待开始 / 🔄 进行中 / ✅ 已完成 / ⛔ 阻塞（写明阻塞项与所需决策）
@@ -353,6 +355,7 @@ python scripts/check_env_docs.py --self-test && python scripts/check_env_docs.py
 python scripts/check_plan_integrity.py --self-test && python scripts/check_plan_integrity.py   # 计划 §4/§5/§7 结构一致性
 python scripts/check_stale_paths.py --self-test && python scripts/check_stale_paths.py   # 陈旧绝对路径（原仅在 CI 内联）
 python scripts/check_doc_numbers.py --self-test && python scripts/check_doc_numbers.py   # 文档数字/版本一致性
+python scripts/check_verdict_sync.py --self-test && python scripts/check_verdict_sync.py --strict   # 判定与修复状态同步
 ```
 
 ---
@@ -404,6 +407,7 @@ python scripts/check_doc_numbers.py --self-test && python scripts/check_doc_numb
 | 门禁 4 计划结构 | `check_plan_integrity.py` | PASS（自检 8/8；任务↔进度一一对应） |
 | 门禁 5 陈旧绝对路径 | `check_stale_paths.py` | PASS（自检 5/5；扫描 353 个跟踪文件 0 命中） |
 | 门禁 6 文档数字/版本一致性 | `check_doc_numbers.py` | PASS（自检 8/8；真值 12 表 / 15 迁移 / v1.9，扫描全部当前态行） |
+| 门禁 7 判定与修复状态同步 | `check_verdict_sync.py` | PASS（自检全通过；严格模式 0 处） |
 | 仓库卫生 | `git status --porcelain` / `git ls-files --eol` | 工作区干净；索引无 CRLF（`i/lf`） |
 
 ### 9.2 本机**不可执行**（环境所限，非失败）

@@ -111,6 +111,10 @@ jobs:
         run: |
           python scripts/check_doc_numbers.py --self-test
           python scripts/check_doc_numbers.py
+      - name: 判定与修复状态同步（自检 + 严格模式）
+        run: |
+          python scripts/check_verdict_sync.py --self-test
+          python scripts/check_verdict_sync.py --strict
       - name: 陈旧绝对路径（不得出现旧仓库位置）
         run: |
           python scripts/check_stale_paths.py --self-test
