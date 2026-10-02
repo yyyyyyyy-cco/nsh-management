@@ -129,6 +129,7 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_gam
 |------|----------|
 | 2026-08-06 | 初始化文档 |
 | 2026-08-06 | 阶段一完成：基础框架 + 认证模块，冒烟测试通过 |
+| `app/models/` | SQLAlchemy 模型（12 张表） | 表结构权威源见 `database-design.md` |
 | 2026-08-07 | 常驻库模块完成（CRUD/筛选/导入/出勤率），测试通过 |
 | 2026-08-11 | 联赛日程模块完成（CRUD/级联创建与删除），测试通过 |
 | 2026-08-11 | 出勤库模块完成（导入/补人/状态/保存），术语”客人”改为”补人” |

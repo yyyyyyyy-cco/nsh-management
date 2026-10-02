@@ -215,6 +215,7 @@
 | F-115 | **`.gitignore` 未覆盖证书与私钥**（`*.pem`/`*.key`/`*.p12`/`*.pfx`/`*.jks`）：实测 `git check-ignore --no-index server.pem` 与 `private.key` 均**未命中** ✗ —— 误放一份私钥/证书即会入库；`DEPLOY.md §二` 已声明证书只存在于宿主机、不入仓库。 | `.gitignore` | **已修复（2026-10-03）**：补 5 条规则并加注释；验证规则生效且**未命中任何已跟踪文件**（不误伤）。 | **P3** |
 | F-116 | **构建产物被跟踪却又命中忽略规则**：`frontend/tsconfig.node.tsbuildinfo` 已在版本库中，而 `.gitignore` 的 `*.tsbuildinfo` 又将其忽略 → 状态自相矛盾（后续改动既不显示也不易被注意）。| `.gitignore`、`frontend/` | **待用户授权**：清除需 `git rm --cached frontend/tsconfig.node.tsbuildinfo`（属**删除**操作，按 `AGENTS §5` 须经用户允许）→ 授权后执行并复跑 `npm run build` 验证重建。 | **P3** |
 | F-117 | **（建议级，非规范强制）缺少 PR 模板 / Issue 模板 / `CODEOWNERS`**：`.github/` 现仅有 `workflows/ci.yml`、`dependabot.yml`、`commit-msg-baseline`；三项均为 **GitHub 社区档案的推荐项**，本项目所引用的规范（Contributor Covenant 2.1 / SLSA v1.2 / OWASP ASVS 5.0 等）**并未强制要求** → 故**不判为不合规**，仅作为完善建议。 | `.github/**` | **待用户决定**：若要补齐，最小内容为 ①PR 模板（说明「已跑 7 道门禁 + 自检」、关联 F 编号、截图要求）②Issue 模板（复现步骤/期望/实际/环境）③`CODEOWNERS`（默认指 `@<维护者>`，会启用自动评审请求）。**注意**：`CODEOWNERS` 与模板会改变仓库协作流程（影响面：GitHub 侧行为），故不擅自添加。 | **P3** |
+| F-118 | **`.agent/rules/function_rule.md` 与仓库实际文档结构脱节**：规则要求「每个功能模块都必须有独立的开发文档」并给出 `模块名称/docs/README.md` 目录树，且写明「未按要求创建或更新文档的模块，不允许合并到主分支」；而仓库已按 `AGENTS §2.1/§2.2` 收敛为**两份按端文档**（`backend/docs/README.md`、`frontend/docs/README.md`，含功能清单 + 勾选清单）→ 按规则字面，多数模块都不合规 ✗，构成**规则与实践的治理级不一致**。| `.agent/rules/function_rule.md`、`backend/docs/README.md`、`frontend/docs/README.md` | **待用户决定**：方案①（推荐）按 `AGENTS §3.2`「以实际为准修正文档」把规则改为「**按端**维护一份开发文档，模块以小节/条目标注」；方案②按规则字面补 17 个模块目录 README（成本高，且与 §2.1 权威源收敛相冲突）。本轮已先行补齐 `backend/models`、`frontend/assets` 两处条目缺口 ✓。| **P3** |
 
 ---
 
@@ -706,6 +707,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | **F-112(b)** 2 处无 `label` 的 `el-form-item` | 需人工判定是否为**非字段布局**用法 ✓ | 若为字段则补 `label` 或 `aria-label` ✓；若为布局则加注释说明 ✓ | 单文件 `git revert` ✓ | 自动检查无法区分“布局用法”与“漏标签” ✗，保留为已知项 ✓ |
 | **F-73 收尾** 是否收紧读取类接口 | 现状：矩阵已**按代码对齐** ✓（`出勤表查看` / `排表总览查看` 改为帮众 ✅、补「读取类接口口径」说明 ✓）；实现为 `get_current_user` ✓，`security-review.md` **§14.10** 已记差异与处置 ✓ | 若要收紧：把读取类接口改回 `require_admin`/矩阵原口径 ✓（影响帮众的只读体验 ✓） | 单独一次变更 + 回滚简单 ✓（纯鉴权改动 ✓） | 不收紧则保持现状（已文档化为口径 ✓），帮众可读各项只读数据 ✓ |
 | **F-117 协作文件是否补齐**（建议级） | 缺 PR 模板 / Issue 模板 / CODEOWNERS；**非规范强制** | 最小内容已备（见 F-117） | GitHub 协作流程会变化 | 删除对应文件即回退 | 不补则维持现状，功能与合规均不受影响 |
+| **F-118 模块文档规则是否改写** | 规则要求每模块独立 README，实际已收敛为两份按端文档 | 方案①改规则与现状一致（推荐）；方案②补 17 份模块 README | 改规则影响全仓文档约定 | 还原规则原文即回退 | 不改则规则字面与现状长期不一致 |
 
 ### 11.6 决策执行预案（选定后立即执行的动作与验证）
 
