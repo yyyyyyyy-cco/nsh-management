@@ -1,24 +1,8 @@
 #!/usr/bin/env python3 -*- coding: utf-8 -*-
-"""文件行数规则检查（CI 门禁）。
+"""文件行数上限校验（CI repo-hygiene 与本地可跑）。
 
-规则权威源：`.agent/rules/file-length-rule.md`
-用法：
-    python scripts/check_file_length.py                # 校验
-    python scripts/check_file_length.py --self-test    # 内置样例自检（不读文件）
-退出码：0 = 通过（可含警告）；1 = 存在违规
-
-检查内容：
-1. 超限文件必须**同时**满足「① 文件头带 `行数豁免` 标记」与「② 已登记到规则文档的豁免清单」，
-   缺任一项即失败（规则原文：新增豁免必须登记，不得只打标记）；
-2. 豁免清单中登记的每个文件都必须存在（防止改名/删除后清单悬空）；
-3. 豁免文件相对**登记行数**增长 ≥20% 时输出「需重新评估」警告（规则要求豁免文件再增长时重评）。
-
-设计说明：
-- 上限与分类必须与规则文档表格保持一致，改规则时同步修改下方 LIMITS；
-- 只做静态统计，不修改任何文件；
-- 判定逻辑抽成纯函数 `judge()` / `parse_exemption_line()`，供 `--self-test` 复用
-  （2026-10-02 补：此前本门禁**没有**自检模式，而计划 §8/§9 已按「自检 + 实跑」两步书写，
-  属文档与实现不一致；现补齐，5 道门禁口径一致）。
+规则与豁免机制见权威源 `.agent/rules/file-length-rule.md`（§2.1 单一权威源，本文不复制）。
+上限与分类必须与该文档表格保持一致；自检：`python scripts/check_file_length.py --self-test`。
 """
 from __future__ import annotations
 
@@ -40,6 +24,7 @@ LIMITS: list[tuple[str, str, int, str]] = [
     ("frontend/src", "*.ts", 300, "前端 TS（composable / 组件内逻辑）"),
     ("backend/app/services", "*.py", 300, "服务文件（Python）"),
     ("backend/app/api", "*.py", 150, "路由文件"),
+    ("scripts", "*.py", 200, "检查脚本"),
 ]
 
 # 豁免清单行：`| \`path/to/file\` | 123 | ...`（含 `/` 才算文件路径，避免命中表头或说明行）
@@ -129,7 +114,9 @@ def run_self_test() -> int:
         failed += 0 if ok else 1
         print(f"[{'PASS' if ok else 'FAIL'}] {note}｜got={got}")
 
-    total = len(SELF_TEST_CASES) + 4
+    if not any(lbl == "检查脚本" for *_, lbl in LIMITS):
+        failures.append("LIMITS 未包含「检查脚本」类别（scripts/*.py 未被扫描）")
+    total = len(SELF_TEST_CASES) + 5
     print(f"自检：{total - failed}/{total} 通过")
     return 1 if failed else 0
 

@@ -15,6 +15,7 @@
     python scripts/check_doc_refs.py                 # 报告模式（有缺失即 exit 1）
     python scripts/check_doc_refs.py --self-test     # 内置样例自检
 """
+# 行数豁免（连续逻辑）：检查脚本围绕单一关注点（拆分会引入跨模块状态转发），登记见 .agent/rules/file-length-rule.md 豁免清单
 
 import re
 import subprocess

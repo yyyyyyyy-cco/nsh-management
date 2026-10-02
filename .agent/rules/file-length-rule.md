@@ -12,6 +12,7 @@ trigger: always_on
 | 服务文件（Python） | 100-200行 | 300行 |
 | 工具函数文件（`utils/` 下的 py / ts） | 50-150行 | 200行 |
 | 路由文件（Python `api/`） | 50-100行 | 150行 |
+| 检查脚本（`scripts/` 下的 py） | 100-150行 | 200行 |
 
 > **2026-10-02 补充（合规化计划 W2-5）**：新增「前端 TS（composable / 组件内逻辑）」类别。此前规则只覆盖 Vue / Python 服务 / 工具 / 路由四类，`frontend/src/**/*.ts`（composable、组件内聚合逻辑）**无上限可依**——实测 `lineupBoard.ts` 484 行等文件既不受限也不在豁免清单内，导致「规则 100% 合规」的度量失真。该类文件性质与 Vue 组件同为「状态控制器」，故沿用 300 行；`frontend/src/utils/**/*.ts` 仍按工具函数 200 行执行。
 
@@ -79,6 +80,9 @@ utils/
 | `frontend/src/components/match-data/OverviewTab.vue` | 301 | 单场比赛数据总览面板（统计卡 / 占比条 / 阵营卡 / 图表区同源） |
 | `backend/app/api/v1/members.py` | 188 | 单资源薄路由（CRUD + 导入导出端点声明同质） |
 | `backend/app/api/v1/attendance.py` | 173 | 单资源薄路由（列表操作 + 导入端点声明同质） |
+| `scripts/check_doc_numbers.py` | 211 | 检查脚本：单一关注点（与主体、其它检查项互不依赖），拆分会引入跨模块状态转发 |
+| `scripts/check_doc_refs.py` | 230 | 检查脚本：单一关注点（与主体、其它检查项互不依赖），拆分会引入跨模块状态转发 |
+| `scripts/check_schema_drift.py` | 209 | 检查脚本：单一关注点（与主体、其它检查项互不依赖），拆分会引入跨模块状态转发 |
 
 ### 自动检查（CI 门禁）
 
