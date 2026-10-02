@@ -153,8 +153,8 @@ def self_test() -> int:
         failures.append("仅文档有的表不应出现在 analyze 结果中")
     if doc.get("other") != ["id", "ghost"]:
         failures.append(f"仅文档有的表字段未解析：{doc.get('other')}")
-    # 5) 文档侧漂移检出（构造共同表，文档多一个字段）
-    rows_d = {t: (a, b) for t, a, b in analyze({"demo": ["id", "name", "ghost"]}, models)}
+    # 5) 文档侧漂移检出：文档 = 模型字段 + ghost（同一批字段上只多一个，才只体现一个方向）
+    rows_d = {t: (a, b) for t, a, b in analyze({"demo": models["demo"] + ["ghost"]}, models)}
     if rows_d.get("demo") != ([], ["ghost"]):
         failures.append(f"文档有模型缺未检出：{rows_d.get('demo')}")
     # 6) 只在一侧存在的表
