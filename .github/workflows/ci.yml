@@ -109,20 +109,9 @@ jobs:
           python scripts/check_plan_integrity.py
       - name: 陈旧绝对路径（不得出现旧仓库位置）
         run: |
-          set -e
-          # 模式串拆开书写：避免本步骤自身的字面量命中自己
-          OLD_PREFIX='e:\code\@Cjy'
-          OLD_REPO="${OLD_PREFIX}\\nsh-management"
-          if grep -rn \
-              --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist \
-              --include='*.md' --include='*.py' --include='*.ts' --include='*.vue' \
-              --include='*.yml' --include='*.json' --include='*.sh' --include='*.bat' \
-              -F "$OLD_REPO" . ; then
-            echo "::error::发现指向旧仓库位置的绝对路径，请改为仓库相对路径（合规化计划 F-37）"
-            echo "::notice::引用历史旧路径时请写作 e:\\code\\@Cjy\\... 省略号形式，以便本门禁保持严格"
-            exit 1
-          fi
-          echo "未发现陈旧绝对路径"
+          python scripts/check_stale_paths.py --self-test
+          python scripts/check_stale_paths.py
+
       - name: 换行归一（索引中不应有 CRLF）
         run: |
           set -e
