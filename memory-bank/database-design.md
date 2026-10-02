@@ -73,7 +73,8 @@ operation_logs（操作审计日志）          guild_id（可空）
 | name | TEXT | NOT NULL, UNIQUE | 帮会名称 |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
 
-### 2.2 users — 账号表
+### 2.2 users
+| icon_char | TEXT | NULL, 最多 4 字符 | 侧边栏折叠按钮显示的首字（迁移 g1h2i3j4k5l6） | — 账号表
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
@@ -86,6 +87,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 | status | TEXT | NOT NULL, default 'active' | `active` 启用 / `disabled` 禁用 |
 | failed_attempts | INTEGER | NOT NULL, default 0 | 连续登录失败次数 |
 | locked_until | DATETIME | NULL | 锁定截止时间（限流） |
+| token_version | INTEGER | NOT NULL, default 0 | 令牌吊销版本号：登出/改密时自增，旧 Token 立即失效（迁移 h2i3j4k5l6m7） |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
 
 索引：`guild_id`。
@@ -192,6 +194,7 @@ JSON 结构示例：
 | member_name | TEXT | NOT NULL | 姓名快照 |
 | round_number | INTEGER | NOT NULL, CHECK 1-3 | 第几局 |
 | url | TEXT | NULL | 录屏链接（提交前为空） |
+| note | TEXT | NULL | 帮众备注（帮众提交；展示层对帮众脱敏，仅管理员可见）（迁移 l6m7n8o9p0q1） |
 | status | TEXT | NOT NULL, default 'pending' | `pending` 待审核 / `approved` 已通过 / `rejected` 已驳回 |
 | review_remark | TEXT | NULL | 审核备注 |
 | reviewed_at | DATETIME | NULL | 审核时间 |
@@ -207,7 +210,8 @@ JSON 结构示例：
 |------|------|------|------|
 | id | INTEGER | PK, AUTOINCREMENT | 主键 |
 | schedule_id | INTEGER | NOT NULL, FK → schedules.id | 所属赛程 |
-| player_name | TEXT | NOT NULL | 玩家名字 |
+| player_name
+| round_no | INTEGER | NOT NULL, default 1 | 第几局（1~rounds）；历史数据归为第 1 局（迁移 f6a7b8c9d0e1） | | TEXT | NOT NULL | 玩家名字 |
 | profession | TEXT | NULL | 职业 |
 | camp | TEXT | NOT NULL | 阵营（CSV 区块标题，第一块为己方） |
 | kills | INTEGER | NOT NULL, default 0 | 击败数（击败+清泉合计，见 §3.5） |
@@ -226,7 +230,7 @@ JSON 结构示例：
 | extra_data | TEXT (JSON) | NULL | 预留：后续 CSV 新增列 |
 | created_at | DATETIME | NOT NULL, default now | 导入时间 |
 
-索引：`schedule_id`。
+索引：`schedule_id`、`round_no`。
 业务规则：CSV 导入 5MB 上限；一局一表，重新导入同局数据即覆盖该局全部记录（不保留历史）；列映射与解析见 §3.5。
 
 ### 2.10 squad_adjustments — 分析调整表
@@ -366,4 +370,5 @@ JSON 结构示例：
 | 2026-09-15 | v1.7：术语统一（客人→补人）；CSV 样例引用路径更正为 `.agent/docs`（.claude→.agent 改名）；§3.6 帮众操作归属校正（出勤/排表 Tab 仅管理员，帮众经录屏列表归属） |
 | 2026-09-15 | v1.8：补全 operation_logs 操作审计日志表（§1.2 表清单 + §2.11 字段级设计），表数 10 张更新为 11 张 |
 | 2026-09-20 | v1.9：新增 member_game_id_requests 游戏 ID 修改申请表（§1.2 表清单 + §2.12 字段/约束/生命周期），表数 11 张更新为 12 张；approved 记录兼作战绩新旧 ID 关联来源（Alembic 迁移 o9p0q1r2s3t4） |
-| 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |
+| 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录
+| 2026-10-03 | v1.9 补记（**无结构变更，仅补齐文档**）：补登 **5 个已由迁移引入但未记录的列**——`guilds.icon_char`（g1h2i3j4k5l6）、`users.token_version`（h2i3j4k5l6m7）、`match_data.round_no`（f6a7b8c9d0e1）、`schedules.profession_config`（j4k5l6m7n8o9）、`recordings.note`（l6m7n8o9p0q1）；并补 `match_data` 的 `round_no` 索引说明。来源：以 `backend/app/models/**` 与 `backend/alembic/versions/**` 为准逐列核对 |（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |
