@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """整改计划结构完整性门禁（`.agent/plans/compliance-remediation-plan.md`）。
 
 **为什么需要**：计划文档是本仓库合规工作的**唯一路线权威**，但它由多轮增量编辑而成——
@@ -14,7 +12,7 @@
 5. **引用有效（记录内）**：`memory-bank/architecture.md` 与 `memory-bank/progress.md` 的变更记录里
    出现的 `F-<数字>` 也必须在 §4 有定义。
 
-   第 5 条只认**计划自己的补零编号**（`F-\d{2,}`）：`security-review.md` 另有 `F-1`…`F-5` 体系，
+   第 5 条只认**计划自己的补零编号**（`两位及以上数字`）：`security-review.md` 另有 `F-1`…`F-5` 体系，
    其记录中的引用（如「security-review §十 F-1～F-5」）不属本门禁范围，故豁免。
 
    第 5 条是 2026-10-03 新增：此前事故——我在"更正越界修改"时以旧版本重建了计划文件，
@@ -90,10 +88,12 @@ def analyze(text: str, records: tuple[tuple[str, str], ...] = ()) -> list[str]:
         problems.append(f"§7 有进度行但 §5 无任务：{', '.join(orphan_progress)}")
 
     defined = set(findings)
+    # 作用域**刻意只含** | W / | F- 开头的行：2026-10-03 实测把范围放宽到全部行时，
+    # §2 的规范表（如 `v1.2`、`PEP 621` 等文本）会产生**假阳性** ✗，故保持收窄。
     for line in text.splitlines():
         if not (line.startswith("| W") or line.startswith("| F-")):
             continue
-        own_id = re.sub(r"\*", "", line.split("|")[1]).strip()  # 行自身的编号可能带加粗
+        own_id = re.sub(r"\*", "", line.split("|")[1]).strip()
         for ref in F_REF.findall(line):
             if ref not in defined and ref != own_id:
                 problems.append(f"引用了 §4 未定义的发现：{ref}（出现在：{line[:60]}…）")
