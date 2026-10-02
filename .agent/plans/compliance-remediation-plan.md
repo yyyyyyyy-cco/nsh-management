@@ -628,19 +628,20 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 → **均为可静态完成的改动** ✓，但**运行期验证仍需 Docker/CI** ✗（见 §11.7）。
 
 
-### 11.9 其余检查器的解析方式复核（2026-10-03，供"是否也需要 AST 化"决策）
+### 11.9 其余检查器的解析方式与工具选择复核（2026-10-03 实测，修正先前的过度断言）
 
-| 检查器 | 后端/模型侧解析方式 | 是否需要 AST 化 |
-|--------|------------------|----------------|
-| `check_api_paths` | **已 AST 化** ✓（本轮，零硬编码 ✓，结果与旧版等价 ✓） | 已完成 ✓ |
-| `check_schema_drift` | 见下（本轮实测） | 待判定 |
-| `check_doc_refs` | 见下（本轮实测） | 待判定 |
-| `check_type_drift` | 见下（本轮实测） | 待判定 |
-| `check_schema_drift` | import ast=False；re 调用 4 次；AST 用法=[] | 需 AST 化（当前纯正则） |
-| `check_doc_refs` | import ast=False；re 调用 3 次；AST 用法=[] | 需 AST 化（当前纯正则） |
-| `check_type_drift` | import ast=False；re 调用 12 次；AST 用法=[] | 需 AST 化（当前纯正则） |
-| `check_schema_vs_db` | import ast=False；re 调用 0 次；AST 用法=[] | 需 AST 化（当前纯正则） |
-| `check_doc_numbers` | import ast=False；re 调用 5 次；AST 用法=[] | 需 AST 化（当前纯正则） |
+> 修正说明 ✗✓：先前把五个检查器一律标为「需 AST 化」是**过度断言** ✓ —— 是否该用 AST 取决于**它解析什么** ✓：
+> 解析 **Python 源码** → AST 更稳 ✓；解析 **Markdown** → 正则恰当 ✓；做 **DB 内省** → 不解析源码，AST 无关 ✓。
+> 证据：脚本内 `import ast` 与 `re.*` 调用计数、以及被读取的文件常量（见下）✓。
+
+| 检查器 | 解析对象（实测） | 工具选择结论 | 行动 |
+|--------|----------------|-------------|------|
+| `check_api_paths` | Python 路由解析 + TS 调用 | **已 AST 化** ✓（零硬编码 ✓，结果与旧版等价 81/77/0/4 ✓） | 已完成 ✓ |
+| `check_schema_drift` | 文档表格 + 模型/迁移（import ast=False） | 文档侧保持正则 ✓；**模型侧可考虑 AST** ✓（若当前按行取列名） | 按需 |
+| `check_doc_refs` | Markdown 文档（import ast=False） | **正则是恰当工具** ✓（Markdown 无 AST ✓），保持现状 ✓ | 按需 |
+| `check_type_drift` | TS interface + Python 模型（import ast=False） | **Python 模型侧值得 AST 化** ✓（最可能的假阳性来源 ✓） | 按需 |
+| `check_schema_vs_db` | DB/迁移内省 + 文档表格比对（import ast=False） | 无需解析源码 -> **AST 无关** ✓（re 调用 0 次 ✓） | 按需 |
+| `check_doc_numbers` | Markdown 文档（import ast=False） | **正则是恰当工具** ✓（Markdown 无 AST ✓），保持现状 ✓ | 按需 |
 ### 11.4 一键复跑顺序
 
 ```bash
