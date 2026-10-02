@@ -7,7 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.security import create_access_token, verify_password
+from app.core.password_policy import validate_password
+from app.core.security import create_access_token, hash_password, verify_password
 from app.models.user import User
 
 
@@ -92,3 +93,25 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> t
 
     token = create_access_token(user.id, user.role, user.token_version)
     return token, user
+
+
+async def change_own_password(
+    session: AsyncSession, user: User, current_password: str, new_password: str
+) -> None:
+    """用户自助修改口令（ASVS 5.0.0 6.2.2 / 6.2.3；对应差距 F-53）。
+
+    要点：①**必须提供当前口令**并通过 bcrypt 校验；②新口令过策略校验（含「不得含登录名」）；
+    ③修改成功后 `token_version += 1`，使**其他会话的旧令牌立即失效**（ASVS 7.4.3）；
+    ④顺带清空失败计数与锁定，避免改密后仍被旧锁定拦住。
+    """
+    if not await asyncio.to_thread(verify_password, current_password, user.password_hash):
+        raise AuthError("当前密码不正确")
+    if new_password == current_password:
+        raise AuthError("新密码不能与当前密码相同")
+    validate_password(new_password, username=user.username)
+    user.password_hash = await asyncio.to_thread(hash_password, new_password)
+    user.plain_password = new_password  # 与既有行为一致：明文仅 developer 可见，见 accounts.py 脱敏
+    user.token_version += 1
+    user.failed_attempts = 0
+    user.locked_until = None
+    await session.commit()

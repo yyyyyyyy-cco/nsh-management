@@ -1,22 +1,23 @@
 """系统配置 Pydantic Schema。"""
-import re
-
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.password_policy import validate_password
 from app.schemas.common import UtcDatetime
 
 
 def _validate_password_complexity(value: str) -> str:
-    """密码复杂度校验：必须同时包含字母和数字（长度由 Field 约束）。
-    注：不用 Field(pattern=...) 是因为 pydantic-core 的 Rust 正则不支持 look-ahead。
+    """口令策略校验（实现见 `app/core/password_policy.py`）。
+
+    2026-10-02（合规化计划 W4-10 / ASVS 5.0.0）：**删除了原「必须同时含字母和数字」的规则**——
+    该规则违反 6.2.5（不得限制字符组成）；改为「长度 8–128 + 弱口令/上下文词表 + 不含登录名 + 非单一重复字符」，
+    纯字母/纯数字/纯符号口令都允许。函数名保留以免改动调用点。
     """
-    if not re.search(r"[A-Za-z]", value) or not re.search(r"\d", value):
-        raise ValueError("密码需同时包含字母和数字")
+    validate_password(value)
     return value
 
 
 def _validate_password_optional(value: str | None) -> str | None:
-    """可选密码字段的复杂度校验（None 直接放行）。"""
+    """可选口令字段的策略校验（None 直接放行）。"""
     if value is None:
         return value
     return _validate_password_complexity(value)
@@ -67,7 +68,7 @@ class AccountCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=64, description="登录名")
     password: str = Field(
         ..., min_length=8, max_length=128,
-        description="密码（8-128 位，需含字母和数字）",
+        description="密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
     role: str = Field("member", description="角色：admin/member")
     guild_id: int | None = Field(None, ge=1, description="目标帮会ID（开发者创建时必传，管理员仅限本帮会）")
@@ -80,7 +81,7 @@ class AccountUpdate(BaseModel):
     username: str | None = Field(None, min_length=3, max_length=64, description="登录名")
     password: str | None = Field(
         None, min_length=8, max_length=128,
-        description="密码（8-128 位，需含字母和数字）",
+        description="密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
 
     _password_complexity = field_validator("password")(_validate_password_optional)

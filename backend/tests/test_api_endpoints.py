@@ -19,15 +19,17 @@
 """
 from __future__ import annotations
 
-import asyncio
+import pathlib
+import tempfile
 import unittest
 from unittest import mock
 
 try:
     import sqlalchemy  # noqa: F401
     from fastapi.testclient import TestClient
-    from sqlalchemy import select
+    from sqlalchemy import create_engine
     from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    from sqlalchemy.pool import NullPool
 
     import app.main as main_module
     from app.api.v1 import health as health_module
@@ -45,60 +47,69 @@ except ImportError as exc:  # pragma: no cover — 无依赖环境
 
 PASSWORD = "pw-for-tests-123"
 LOGIN = f"{settings.API_PREFIX}/auth/login"
+PASSWORD_CHANGE = f"{settings.API_PREFIX}/auth/password"
 ME = f"{settings.API_PREFIX}/auth/me"
 MEMBERS = f"{settings.API_PREFIX}/members"
 DEVELOPER_LOGS = f"{settings.API_PREFIX}/developer/logs"
 
 
 class ApiEndpointTestCase(unittest.TestCase):
-    """类级共享一个内存库；每个用例独立客户端与依赖覆盖。"""
+    """类级共享一个**临时文件库**（不是内存库，原因见下），每个用例独立客户端与依赖覆盖。"""
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.engine = create_async_engine("sqlite+aiosqlite:///:memory:")
-        cls.factory = async_sessionmaker(cls.engine, expire_on_commit=False)
-        asyncio.run(cls._prepare_db())
+        # 为什么用文件库而不是 `:memory:`：TestClient 的请求可能在**新的事件循环**里执行，
+        # 而 aiosqlite 的 `:memory:` 是 per-connection 的——新连接就是**空库**（本轮实测大面积
+        # `no such table: users`）。文件库让任何连接都能看到同一份带表的数据。
+        tmp_root = pathlib.Path(__file__).resolve().parents[2] / ".git" / "tmp"
+        tmp_root.mkdir(parents=True, exist_ok=True)
+        cls._tmp = tempfile.TemporaryDirectory(dir=tmp_root, ignore_cleanup_errors=True)
+        cls.db_file = pathlib.Path(cls._tmp.name) / "api-endpoints.db"
+
+        engine = create_engine(f"sqlite:///{cls.db_file}")  # 同步引擎：建表与播种不需要事件循环
+        Base.metadata.create_all(engine)
+        with engine.begin() as conn:
+            conn.execute(Guild.__table__.insert().values(id=1, name="测试帮会"))
+            for uid, username, role, guild_id in (
+                (1, "a_admin", "admin", 1),
+                (2, "a_member", "member", 1),
+                (3, "a_dev", "developer", None),
+                (4, "a_lockee", "admin", 1),
+                (5, "a_self", "member", 1),
+                (6, "a_weak", "member", 1),  # 弱口令用例专用：其口令不被其它用例修改
+            ):
+                conn.execute(
+                    User.__table__.insert().values(
+                        id=uid, username=username, role=role, guild_id=guild_id,
+                        password_hash=hash_password(PASSWORD), status="active", token_version=0,
+                    )
+                )
+        engine.dispose()
 
     @classmethod
     def tearDownClass(cls) -> None:
-        asyncio.run(cls.engine.dispose())
-
-    @classmethod
-    async def _prepare_db(cls) -> None:
-        async with cls.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        async with cls.factory() as session:
-            session.add(Guild(id=1, name="测试帮会"))
-            session.add_all(
-                [
-                    User(id=1, username="a_admin", role="admin", guild_id=1,
-                         password_hash=hash_password(PASSWORD), status="active", token_version=0),
-                    User(id=2, username="a_member", role="member", guild_id=1,
-                         password_hash=hash_password(PASSWORD), status="active", token_version=0),
-                    User(id=3, username="a_dev", role="developer", guild_id=None,
-                         password_hash=hash_password(PASSWORD), status="active", token_version=0),
-                    User(id=4, username="a_lockee", role="admin", guild_id=1,
-                         password_hash=hash_password(PASSWORD), status="active", token_version=0),
-                ]
-            )
-            await session.commit()
+        cls._tmp.cleanup()
 
     def setUp(self) -> None:
+        # 用例隔离靠**专用账号**，不靠「清库状态」（见类文档：跨事件循环的库访问不可靠）。
         auth_service._unknown_login_failures.clear()
-        # 用例必须与执行顺序无关：类级共享内存库，而锁定状态（failed_attempts / locked_until）是
-        # **持久化在库里的**——不清零时，先跑的锁定用例会把后跑的用例一并锁死（本轮实测：字母序更早的
-        # test_locked_account_… 把 test_login_wrong_password_… 的“还可尝试 N 次”断言打成了“已锁定”）。
-        asyncio.run(self._reset_lock_state())
+
+        def fresh_factory():
+            """每次调用新建引擎**并返回 session**（跨事件循环安全；NullPool 用完即关）。"""
+            return async_sessionmaker(
+                create_async_engine(f"sqlite+aiosqlite:///{self.db_file}", poolclass=NullPool),
+                expire_on_commit=False,
+            )()
 
         async def _override_get_db():
-            async with self.factory() as session:
+            async with fresh_factory() as session:
                 yield session
 
         app.dependency_overrides[get_db] = _override_get_db
         self._patches = [
-            mock.patch.object(log_service, "async_session_factory", self.factory),
-            mock.patch.object(main_module, "async_session_factory", self.factory),
-            mock.patch.object(health_module, "async_session_factory", self.factory),
+            mock.patch.object(log_service, "async_session_factory", fresh_factory),
+            mock.patch.object(main_module, "async_session_factory", fresh_factory),
+            mock.patch.object(health_module, "async_session_factory", fresh_factory),
         ]
         for patch in self._patches:
             patch.start()
@@ -122,23 +133,6 @@ class ApiEndpointTestCase(unittest.TestCase):
     def _login(self, username: str, password: str):
         return self.client.post(LOGIN, json={"username": username, "password": password})
 
-    async def _bump_token_version(self, user_id: int) -> None:
-        async with self.factory() as session:
-            user = await session.get(User, user_id)
-            user.token_version += 1
-            await session.commit()
-
-    async def _reset_lock_state(self) -> None:
-        """清零种子账号的登录失败计数、锁定时间与令牌版本，保证用例与执行顺序无关。
-
-        （令牌版本也会被吊销用例 +1，同样必须还原，否则后续用例拿 version=0 的令牌一律 401。）
-        """
-        async with self.factory() as session:
-            for user in (await session.execute(select(User))).scalars():
-                user.failed_attempts = 0
-                user.locked_until = None
-                user.token_version = 0
-            await session.commit()
 
     # ---------- 登录 ----------
     def test_login_success_returns_token(self):
@@ -169,10 +163,13 @@ class ApiEndpointTestCase(unittest.TestCase):
         self.assertGreater(locked_body["data"]["remaining_seconds"], 0)
 
     def test_locked_account_rejects_even_correct_password(self):
-        """锁定的核心价值：此后**正确密码也进不来**（否则锁定形同虚设）。"""
+        """锁定的核心价值：此后**正确密码也进不来**（否则锁定形同虚设）。
+
+        用 a_member（本用例专用账号）而非与上一个锁定用例共用 a_lockee——共享账号会按字母序互相污染。
+        """
         for _ in range(5):
-            self._login("a_lockee", "wrong-password")
-        resp = self._login("a_lockee", PASSWORD)
+            self._login("a_member", "wrong-password")
+        resp = self._login("a_member", PASSWORD)
         self.assertEqual(resp.status_code, 401)
         self.assertIn("已锁定", resp.json()["message"])
 
@@ -190,9 +187,20 @@ class ApiEndpointTestCase(unittest.TestCase):
         self.assertEqual(self.client.get(ME, headers=self._auth("not-a-jwt")).status_code, 401)
 
     def test_token_version_bump_invalidates_old_token(self):
-        token = self._token(1, "admin", version=0)
+        """管理员重置口令会 `token_version += 1` → 该账号**旧令牌立即失效**（ASVS 7.4.3）。
+
+        用专用账号 a_dev（developer）以避免与其他用例共享账号；版本提升**经接口**完成，
+        不在同步上下文里直连异步库。
+        """
+        token = self._token(3, "developer", version=0)
         self.assertEqual(self.client.get(ME, headers=self._auth(token)).status_code, 200)
-        asyncio.run(self._bump_token_version(1))
+
+        reset = self.client.put(
+            f"{settings.API_PREFIX}/config/accounts/3",
+            json={"password": "reset-Passw0rd-2026"},
+            headers=self._auth(token),
+        )
+        self.assertEqual(reset.status_code, 200, reset.text)
         self.assertEqual(self.client.get(ME, headers=self._auth(token)).status_code, 401)
 
     def test_member_forbidden_on_admin_and_developer_endpoints(self):
@@ -208,6 +216,70 @@ class ApiEndpointTestCase(unittest.TestCase):
         resp = self.client.get(DEVELOPER_LOGS, headers=self._auth(token))
         self.assertEqual(resp.status_code, 403)
         self.assertIn("仅开发者", resp.json()["message"])
+
+    # ---------- 口令策略与自助改密（W4-10 / ASVS 6.2.2、6.2.3、6.2.5、6.2.11） ----------
+    def test_self_service_password_change_invalidates_old_token(self):
+        """自助改密：须提供当前口令；成功后旧令牌立即失效，新口令可登录。"""
+        token = self._token(5, "member")
+        new_password = "fresh-Passw0rd-2026"
+        resp = self.client.post(
+            PASSWORD_CHANGE,
+            json={"current_password": PASSWORD, "new_password": new_password},
+            headers=self._auth(token),
+        )
+        self.assertEqual(resp.status_code, 200, resp.text)
+
+        # 旧令牌失效：改密使 token_version +1（ASVS 7.4.3）
+        self.assertEqual(self.client.get(ME, headers=self._auth(token)).status_code, 401)
+        # 新口令可登录
+        login = self._login("a_self", new_password)
+        self.assertEqual(login.status_code, 200, login.text)
+
+    def test_password_change_requires_correct_current_password(self):
+        token = self._token(5, "member")
+        resp = self.client.post(
+            PASSWORD_CHANGE,
+            json={"current_password": "not-the-password", "new_password": "fresh-Passw0rd-2026"},
+            headers=self._auth(token),
+        )
+        self.assertEqual(resp.status_code, 401)
+        self.assertIn("当前密码不正确", resp.json()["message"])
+
+    def test_password_change_requires_authentication(self):
+        resp = self.client.post(
+            PASSWORD_CHANGE, json={"current_password": PASSWORD, "new_password": "fresh-Passw0rd-2026"}
+        )
+        self.assertEqual(resp.status_code, 401)
+
+    def test_weak_new_password_is_rejected(self):
+        # 用 a_weak（专用账号）：自助改密用例会改掉 a_self 的口令并提升其 token_version，
+        # 共享账号会让本用例拿到 401（依赖先于 body 校验）而不是期望的 422。
+        token = self._token(6, "member")
+        for weak in ("short1", "password"):
+            with self.subTest(weak=weak):
+                resp = self.client.post(
+                    PASSWORD_CHANGE,
+                    json={"current_password": PASSWORD, "new_password": weak},
+                    headers=self._auth(token),
+                )
+                self.assertEqual(resp.status_code, 422, resp.text)
+
+    def test_admin_create_account_accepts_composition_free_password(self):
+        """ASVS 6.2.5：纯字母口令必须被接受（本轮删除「必须含字母和数字」规则的端到端证据）。"""
+        admin = self._token(1, "admin")
+        ok = self.client.post(
+            f"{settings.API_PREFIX}/config/accounts",
+            json={"username": "newbie01", "password": "abcdefgh"},
+            headers=self._auth(admin),
+        )
+        self.assertEqual(ok.status_code, 200, ok.text)
+
+        weak = self.client.post(
+            f"{settings.API_PREFIX}/config/accounts",
+            json={"username": "newbie02", "password": "12345678"},
+            headers=self._auth(admin),
+        )
+        self.assertEqual(weak.status_code, 422, weak.text)
 
     # ---------- CORS 与健康检查 ----------
     def test_cors_preflight_allows_dev_origin_and_rejects_unknown(self):
