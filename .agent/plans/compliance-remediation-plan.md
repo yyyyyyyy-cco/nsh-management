@@ -466,16 +466,27 @@ python scripts/check_doc_refs.py --self-test     # 文档引用存活核对（�
 python scripts/check_doc_refs.py                 # **仅报告，非门禁**：误报率高（故意的「不存在」引用），见 §7 W4-22
 ```
 
+```bash
+# 10. 部署侧配置漂移（D-5 回退方案；零外部依赖，需 bash 4 及以上）
+bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；默认只掩码敏感键名的值
+```
+
 > **权威口径**：本 §8 是回归命令的权威清单；`CONTRIBUTING.md` 与 CI `repo-hygiene` 应与其保持一致（同一批命令）。
 > 已知不可运行项：`mypy` **尚未引入**（见 `memory-bank/tech-stack.md` 开发工具表）；如需引入按 W2-3 附录执行。
 
 ---
+### 8.1 报告型检查器清单（**不阻断 CI**）
+
+> 本表列出「可运行但不阻断」的检查器；**表中数字为早期批次实测**，最新结论以 §11.16（行为验证台账）为准。
+
+| 项 | 命令 | 说明 |
+|----|------|------|
 | 脚本语法 | `"C:\Program Files\Git\bin\bash.exe" -n scripts/*.sh.example scripts/install_git_hooks.sh` | 三个脚本均 exit 0（静态语法校验；本机无 `bash` 于 PATH，须用 Git bash 绝对路径） |
 | 前后端字段一致性 | `python scripts/check_type_drift.py`（**仅报告**；`--strict` 有漂移则非零退出） | 16 对模型对齐、无「前端声明但后端不提供」字段；**空值契约风险 0 条**（自检 10/10）；**已接入 CI（不阻断）** |
 | 前端调用 ↔ 后端路由 | `python scripts/check_api_paths.py`（**仅报告**；`--strict` 有失配则非零退出） | 后端 81 条路由 vs 前端 77 个唯一调用，无「前端调用但后端无此路由」（自检 10/10）；**已接入 CI（不阻断）** |
 | 数据库权威源 ↔ 模型 | `python scripts/check_schema_drift.py`（**仅报告**；`--strict` 有不一致则非零退出） | 文档 12 张表 vs 模型 12 张表、字段完全一致（自检 7/7）；**已接入 CI（不阻断）** |
-| 文档 ↔ 真实迁移产物 | `python scripts/check_schema_vs_db.py`（**仅报告**；`--strict` 有漂移非零、迁移环境不可用返回 2） | 文档 12 张表 vs 迁移产物 12 张表、逐表逐列一致（自检 6/6） |；**已接入 CI（不阻断）** |
-| 17 | `bash scripts/check-config-drift.sh.example [--strict] [<srv> <repo> ...]` | 服务器与仓库配置漂移告警（D-5 回退方案；敏感值掩码 ✓）| 部署前检查 |
+| 文档 ↔ 真实迁移产物 | `python scripts/check_schema_vs_db.py`（**仅报告**；`--strict` 有漂移非零、迁移环境不可用返回 2） | 文档 12 张表 vs 迁移产物 12 张表、逐表逐列一致（自检 6/6） |
+| 配置漂移告警 | `bash scripts/check-config-drift.sh.example [--strict] [<srv> <repo> ...]` | 服务器与仓库配置漂移告警（D-5 回退方案；敏感值掩码；零外部依赖）；详见 §7 W1-3 与 `DEPLOY.md` |
 
 ## 9. 风险登记
 
