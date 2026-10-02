@@ -15,6 +15,14 @@ except OSError:
     LOG_DIR = None
 
 
+def _parse_cors_origins(raw: str) -> list[str]:
+    """解析 CORS 白名单（合规化计划 W4-3）：逗号分隔，去除首尾空白与空项。
+
+    空字符串返回空列表，由调用方决定回退值——这样「未配置」与「配置为空」语义一致。
+    """
+    return [item for item in (part.strip() for part in raw.split(",")) if item]
+
+
 class Settings:
     APP_NAME: str = "轻衫都会用的帮会联赛管理系统"
     API_PREFIX: str = "/api/v1"
@@ -33,8 +41,12 @@ class Settings:
     # 数据库
     DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{DATA_DIR / 'nsh.db'}")
 
-    # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    # CORS（W4-3：外置为环境变量 CORS_ORIGINS，逗号分隔）
+    # 默认值只覆盖本地开发（Vite 5173）。生产部署由 Nginx **同源**反代 /api，浏览器不触发跨域，
+    # 通常无需设置；仅当 API 被跨域直接调用（独立前端域名 / 第三方调用）时才需显式配置。
+    # 安全提示：不要配置为 `*`——本项目 `allow_credentials=True`，通配会放宽浏览器侧凭证策略。
+    _DEV_CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
+    CORS_ORIGINS: list[str] = _parse_cors_origins(os.getenv("CORS_ORIGINS", "")) or list(_DEV_CORS_ORIGINS)
 
     # 登录限流
     LOGIN_MAX_FAILURES: int = 5

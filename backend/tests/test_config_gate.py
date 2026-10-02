@@ -17,6 +17,7 @@ from unittest import mock
 from app.core.config import (
     InsecureSecretKeyError,
     _is_production,
+    _parse_cors_origins,
     _secret_key_is_weak,
     api_docs_enabled,
     enforce_secret_key,
@@ -199,3 +200,55 @@ class ApiDocsVisibilityTests(unittest.TestCase):
         for app_env in ("development", "dev", "test"):
             with self.subTest(app_env=app_env), mock.patch.dict(os.environ, {"APP_ENV": app_env}):
                 self.assertTrue(api_docs_enabled())
+
+
+class CorsOriginsConfigTests(unittest.TestCase):
+    """CORS 白名单外置（W4-3）：解析规则 + 端到端生效。
+
+    值在 import 时固化，故生效性必须用**子进程**验证（同进程改环境无效）。
+    """
+
+    def _origins_in_subprocess(self, cors_value: str | None) -> str:
+        env = {
+            k: v
+            for k, v in os.environ.items()
+            if k not in {"APP_ENV", "SECRET_KEY", "CORS_ORIGINS"}
+        }
+        if cors_value is not None:
+            env["CORS_ORIGINS"] = cors_value
+        env["PYTHONIOENCODING"] = "utf-8"
+        code = "from app.core.config import settings; print('|'.join(settings.CORS_ORIGINS))"
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            cwd=BACKEND_ROOT,
+            env=env,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            timeout=120,
+        )
+        self.assertEqual(proc.returncode, 0, f"导入配置失败：{proc.stderr}")
+        return proc.stdout.strip()
+
+    def test_parse_trims_and_drops_empty_items(self):
+        self.assertEqual(
+            _parse_cors_origins(" https://a.example , https://b.example ,"),
+            ["https://a.example", "https://b.example"],
+        )
+        self.assertEqual(_parse_cors_origins(""), [])
+        self.assertEqual(_parse_cors_origins(" , , "), [])
+
+    def test_parse_single_origin_without_separator(self):
+        self.assertEqual(_parse_cors_origins("https://a.example"), ["https://a.example"])
+
+    def test_env_var_applies_end_to_end(self):
+        self.assertEqual(
+            self._origins_in_subprocess("https://a.example, https://b.example "),
+            "https://a.example|https://b.example",
+        )
+
+    def test_default_is_local_dev_when_unset(self):
+        self.assertEqual(
+            self._origins_in_subprocess(None),
+            "http://localhost:5173|http://127.0.0.1:5173",
+        )

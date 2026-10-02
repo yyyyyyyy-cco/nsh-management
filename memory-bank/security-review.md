@@ -269,4 +269,52 @@
 | 方案 | 启动时校验：生产环境（主判据 `APP_ENV=production/prod`，未声明时容器特征兜底）下弱密钥打印 FATAL 到 stderr 并 `sys.exit(1)`；开发环境仅 WARNING 放行，不影响本地开发与现有 .env |
 | 强度规则 | 弱集合（开发默认值 + 两处 .env.example 占位值）/ 长度 <32 / 含可猜片段（项目名、单词、年份 20xx 等黑名单）；≥64 字符纯十六进制串（`openssl rand -hex 32`）豁免恒通过 |
 | 部署联动 | `docker-compose.yml` backend 固定 `APP_ENV: production`（服务器侧需手动同步，见 DEPLOY.md §六）；`deploy.sh` 健康检查改为 backend 非 healthy 则非零退出 + 打印容器日志，消除「门禁拦截→整站不可用→仍报部署完成」假成功；排障与紧急回退见 DEPLOY.md §七 Q6 |
-| 实现位置 | `backend/app/core/config.py`（`_is_production` / `_secret_key_is_weak` / `_validate_secret_key`）、`docker-compose.yml`、`deploy.sh`、两处 `.env.example`、`DEPLOY.md`、`README.md` |
+| 实现位置 | `backend/app/core/config.py`（`_is_production` / `_secret_key_is_weak` / `validate_secret_key` / `enforce_secret_key`，2026-10-02 起门禁由**导入期**改为**应用启动期**，执行点移至 `backend/app/main.py` 的 `startup_checks()`）、`docker-compose.yml`、`deploy.sh`、两处 `.env.example`、`DEPLOY.md`、`README.md` |
+
+---
+
+## 十四、依赖漏洞审计（W4-3，2026-10-02）
+
+审计工具与命令（结论来自实时公告库，非纸面推断）：
+
+| 端 | 命令 | 审计对象 |
+|----|------|----------|
+| 前端 | `npm audit --json`（工作目录 `frontend/`） | `package-lock.json` 全量依赖树 |
+| 后端 | `pip-audit -r backend/requirements.txt`（隔离环境安装 pip-audit，**不安装**业务依赖） | `requirements.txt` 解析出的依赖集 |
+
+### 前端：7 项 → 4 项（已消除 1 个 high）
+
+| 项 | 严重度 | 处置 |
+|----|--------|------|
+| `nanoid <3.3.18`（GHSA-2v37-7h3g-55p8） | **high** | ✅ **已修复**：`npm audit fix`（非破坏性，仅改 `package-lock.json`）；回归 `npm run lint`（0 error）/ `npm run test`（44 passed）/ `npm run build` 全绿 |
+| `vite 5.4.x`：优化依赖 `.map` 路径穿越；`launch-editor` 在 Windows 经 UNC 路径泄露 NTLMv2 哈希 | **high** | ⏳ 待升级：修复版本为 `vite@8`（**semver-major**），并连带 `vitest 3→5` 与 `@vitejs/plugin-vue` / `unplugin-vue-components` 兼容性回归 |
+| `esbuild`（随 vite）：开发服务器可被任意网站探测并读取响应 | moderate | ⏳ 随 vite 升级消解 |
+| `vitest 3.2.7` + `@vitest/mocker`：重定向 mock 可致任意文件读取 | moderate | ⏳ 待升级 `vitest@5`（major） |
+
+**可达性判定（生产）**：以上四项均属**开发/构建工具链**（dev server、测试 runner），不进入生产运行时
+——生产由 Nginx 托管已构建的静态资源、`/api` 同源反代，仓库内没有任何对外提供 vite/vitest 服务的进程。
+故**生产暴露面不受影响**；风险集中在「开发者本机 dev server 被恶意网页访问」这一场景。
+
+### 后端：2 个包命中公告
+
+| 包 | 命中 | 可达性判定（依据本项目代码） |
+|----|------|------------------------------|
+| `pillow 11.1.0` | 多条 PYSEC（修复版本 12.1.1～12.3.0，跨大版本） | **不可达**：Pillow 仅用于**生成**图片（`backend/app/utils/image_export.py` 只用 `Image.new` / `ImageDraw`），全仓**无 `Image.open`**，即从不解析外部图片；漏洞面位于解码器 |
+| `ecdsa 0.19.2` | `PYSEC-2026-1325`（公告未给出修复版本） | **不可达**：`ecdsa` 由 `python-jose[cryptography]==3.3.0` 间接引入，仅在 ECDSA 算法路径使用；本项目 `ALGORITHM = "HS256"`，签发与校验均只传该算法（见 `core/security.py:24,30`） |
+
+### 结论与后续项（均需回归，本次**不**直接升级）
+
+1. **vite 8 + vitest 5 升级通道**：一次性升级并回归 `npm run lint` / `npm run test` / `npm run build` + 浏览器验收
+   （回归面含路由分包预取与 unplugin 自动导入）。
+2. **Pillow 12.x 升级**：需验证 `image_export.py` 的生成结果（字体与布局），回归
+   `backend/scripts/selfcheck_member_exports.py`。
+3. **`python-jose` → `PyJWT` 评估**：`python-jose` 维护活跃度低且携带本项目用不到的 `ecdsa` 依赖；
+   迁移成本可控（仅 HS256），属依赖收敛而非漏洞驱动。
+4. **是否把依赖审计接入 CI** 待定：需要容忍「开发工具链漏洞、生产不可达」的既有噪音，或采用分级阈值；
+   当前结论以本文件记录为准，未接入门禁。
+
+### CORS 白名单外置（同属 W4-3）
+
+`CORS_ORIGINS` 由硬编码改为环境变量（逗号分隔，解析见 `core/config.py` 的 `_parse_cors_origins`），
+默认值仅本地开发来源。生产由 Nginx **同源**反代 `/api`，浏览器不触发跨域，通常无需配置；
+**禁止配置为 `*`**——本项目 `allow_credentials=True`，通配会放宽浏览器侧凭证策略。

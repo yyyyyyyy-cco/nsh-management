@@ -116,7 +116,7 @@
 | F-16 | 无 `/health`、`/metrics`、错误追踪；健康检查直接探根路径 `/` | 全仓 `grep '/health|/metrics|prometheus|sentry'` 无命中；`docker-compose.yml:22-27` | 12-Factor XI / SRE | W3-1 | P2 |
 | F-17 | 备份/恢复全手工，无自动化、无演练记录 | `DEPLOY.md:120-149`；全仓无备份脚本命中 | 运维基线 | W3-2 | P2 |
 | F-18 | 生产默认暴露 `/docs`、`/redoc`、`/openapi.json`，且安全审查未覆盖 | `backend/app/main.py:36`（未设 `docs_url`）；`SECURITY-REVIEW.md` 无 `/docs|openapi|redoc` 命中 | OWASP Top 10:2025 A02 | **W4-1 ✅（2026-10-02 已关闭）** | P1 |
-| F-19 | `CORS_ORIGINS` 硬编码，未外置 | `backend/app/core/config.py:36` | 12-Factor III | W4-3 | P3 |
+| F-19 | `CORS_ORIGINS` 硬编码，未外置 | `backend/app/core/config.py:36` | 12-Factor III | **W4-3 ✅（2026-10-02 已外置）** | P3 |
 | F-20 | 3 个已合并远端分支未清理，且命名违反自家规范（大写、非连字符） | `git branch -r --merged`（`Data-analysis`/`UI-design`/`member-panel`，落后 main 65/50/54）；`GIT-GUIDE.md:35` | Scorecard（分支卫生） | W3-5 | P2 |
 | F-21 | 规范声明双远端，实际仅 `origin` | `GIT-GUIDE.md:15,18,166-174,281` vs `git remote -v` | 规范一致性 | W3-6 | P2 |
 | F-22 | 制品版本与 tag 无联动（`frontend/package.json` 恒 `0.1.0`） | `frontend/package.json:4` | SemVer / 12-Factor V | W3-4 | P2 |
@@ -250,7 +250,7 @@
 | W3-6 远端策略落地 | ⏳ 待开始 | | | |
 | W4-1 关闭生产 API 文档 | ✅ 已完成 | 2026-10-02 | `core/config.py` 新增 `api_docs_enabled()`（生产 False / 开发 True，复用既有 `_is_production()`）；`app/main.py` 按该开关设置 `docs_url` / `redoc_url` / `openapi_url`（生产为 `None` → 404），本地开发保留。**未采用 `DEBUG` 作判据**：`DEBUG` 控制异常详情脱敏，与「部署环境」语义不同，用 `APP_ENV`/容器特征更贴合本任务原意。验证（子进程断言，因开关在 import 时求值）：`APP_ENV=production|prod` → 三者均 `None`；`development` → `/docs`、`/redoc`、`/openapi.json` 均在。文档同步 `DEPLOY.md §二`。`security-review.md` 的 ASVS/Top10 逐项对照仍由 W4-2 完成 | feat(ops): 新增健康检查端点并关闭生产 API 文档 |
 | W4-2 ASVS/Top10 对照补审查 | ⏳ 待开始 | | | |
-| W4-3 CORS 外置与依赖审计 | ⏳ 待开始 | | | |
+| W4-3 CORS 外置与依赖审计 | ✅ 已完成 | 2026-10-02 | ①**CORS 外置**（F-19）：`core/config.py` 新增 `_parse_cors_origins()`（逗号分隔、去空白与空项）与 `CORS_ORIGINS` 环境变量（未设置回退本地开发来源）；`.env.example` 与 `DEPLOY.md §六` 同步说明（生产由 Nginx **同源**反代，通常无需配置；**禁止 `*`**，因 `allow_credentials=True`）。②**依赖审计结论**写入 `memory-bank/security-review.md` §十四——前端 `npm audit`：初始 7 项（4 high）→ 非破坏性修复后 **4 项（1 high）**（`nanoid` high 已消除；lockfile 变更后 lint 0 error / test 44 passed / build exit 0）；剩余 `vite 5.4`(high)、`esbuild`(mod)、`vitest 3`(mod)、`@vitest/mocker`(mod) 均需 semver-major（vite 8 / vitest 5），**可达性判定：全部属开发/构建工具链，生产运行时（Nginx 静态资源 + 同源反代）不受影响**；后端 `pip-audit`：`pillow 11.1.0`（多条 PYSEC）与 `ecdsa 0.19.2`（PYSEC-2026-1325）——**均不可达**（全仓无 `Image.open`，Pillow 只用 `Image.new`/`ImageDraw` 生成图片；`ecdsa` 仅服务 ECDSA 而本项目 `ALGORITHM=HS256`）。③后续项（需回归，本次不升级）：vite8+vitest5 升级通道、Pillow 12.x + 图像导出回归、`python-jose`→`PyJWT` 评估、依赖审计是否接入 CI。验证：`ruff check .` All checks passed（另按 CI pin `ruff==0.12.0` 复核）；`compileall` exit 0；`pytest tests/test_config_gate.py tests/test_member_names.py` 全通过（新增 4 条 CORS 用例，含子进程端到端生效断言） | chore(deps): 外置 CORS 白名单并完成依赖漏洞审计 |
 | W4-4 SECURITY/CONTRIBUTING/CoC | ✅ 已完成 | 2026-10-02 | 按 D-1（公开仓库）补齐三份根文档：`SECURITY.md`（支持版本范围 / GitHub 私有安全公告为首选渠道 / 备用邮箱占位符 / 处理时限目标 / 已知接受风险指向 `security-review.md` 权威源）、`CONTRIBUTING.md`（协作约定摘要 + 权威源链接 + 与 `.github/workflows/ci.yml` 对应的本地门禁命令，**未复制**权威源内容）、`CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 官方简体中文译本逐字采用，保留 CC BY-SA 4.0 署名）。验证：三文件与 `CHANGELOG.md` 均入库、互相引用链接有效、`scripts/check_file_length.py` 通过。**未完成**：SECURITY.md 与 CoC 的备用联系邮箱为占位符（需用户提供后填写） | docs(changelog): 新增更新日志与社区政策文档 |
 
 状态图例：⏳ 待开始 / 🔄 进行中 / ✅ 已完成 / ⛔ 阻塞（写明阻塞项与所需决策）
