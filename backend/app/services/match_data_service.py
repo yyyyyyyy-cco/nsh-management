@@ -109,7 +109,7 @@ async def list_match_data(
     records = list((await session.execute(stmt)).scalars().all())
 
     # 计算阵营统计
-    camps = {}
+    camps: dict[str, dict[str, int]] = {}
     for r in records:
         if r.camp not in camps:
             camps[r.camp] = {
@@ -212,7 +212,7 @@ async def get_squad_analysis(
     for r in records:
         if (r.player_name or "").strip() in name_to_squad:
             camp_hits[r.camp] = camp_hits.get(r.camp, 0) + 1
-    our_camp = max(camp_hits, key=camp_hits.get) if camp_hits else (records[0].camp if records else None)
+    our_camp = max(camp_hits, key=lambda c: camp_hits[c]) if camp_hits else (records[0].camp if records else None)
     if our_camp is not None:
         records = [r for r in records if r.camp == our_camp]
 

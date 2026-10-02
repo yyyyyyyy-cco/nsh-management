@@ -1,6 +1,7 @@
 """排表接口：读取排表（帮众可看）、保存排表（管理员）、候选池（管理员）。"""
 from datetime import datetime, timezone
 
+from typing import Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -62,7 +63,7 @@ async def list_candidates(
     schedule_id: int,
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
-) -> list[LineupCandidateOut]:
+) -> list[dict[str, Any]]:
     return await lineup_service.candidate_pool(session, current_user.guild_id, schedule_id)
 
 
@@ -71,7 +72,7 @@ async def list_history(
     schedule_id: int,
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
-) -> list[LineupHistoryOut]:
+) -> list[dict[str, Any]]:
     return await lineup_service.list_lineup_history(session, current_user.guild_id, schedule_id)
 
 

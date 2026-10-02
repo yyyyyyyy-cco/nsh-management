@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 from urllib.parse import quote
 
+from typing import Any
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -178,7 +179,7 @@ async def profession_stats(
     formal_only: bool = Query(False, description="仅统计状态为正式的成员（缺少职业提示用）"),
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
-) -> list[ProfessionStat]:
+) -> list[dict[str, Any]]:
     """职业分布统计（首页仪表盘用，聚合查询）。"""
     return await member_service.profession_stats(session, current_user.guild_id, formal_only)
 
@@ -187,7 +188,7 @@ async def profession_stats(
 async def attendance_rate(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_db),
-) -> list[AttendanceRateItem]:
+) -> list[dict[str, Any]]:
     return await member_service.attendance_rate(session, current_user.guild_id)
 
 
