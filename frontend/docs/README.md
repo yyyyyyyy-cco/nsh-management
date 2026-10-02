@@ -150,6 +150,19 @@ npm --prefix frontend run build:only -- --emptyOutDir=false
 ### 下一步计划
 测试与优化：补充 E2E 测试、性能优化、无障碍适配
 
+
+### 代码结构（模块目录）
+
+| 目录 | 说明 |
+|------|------|
+| `src/api/` | 后端接口封装 |
+| `src/components/` | 可复用组件 |
+| `src/views/` | 页面视图 |
+| `src/composables/` | 组合式函数 |
+| `src/stores/` | Pinia 状态 |
+| `src/router/` | 路由 |
+| `src/assets/` | 静态资源（图片/SVG 等），无业务逻辑 |
+
 ### 更新记录
 | 日期 | 更新内容 |
 |------|----------|
@@ -197,4 +210,3 @@ npm --prefix frontend run build:only -- --emptyOutDir=false
 | 2026-09-24 | 帮众首页重设计（用户反馈录屏待办块太大、内容没深度）：弃双栏改全宽纵排（焦点卡：日期块+比赛信息+操作+底部鎏金条）；录屏待办由粗进度条改紧凑逐局胶囊 + 未交齐名单（悬停完整名单）+ 驳回人数；快捷操作整行四格、图标统一浅金；vue-tsc + vite build:only 通过（无浏览器验收） |
 | 2026-09-24 | 帮众首页内容重设计（用户确认方向「帮会战绩看板」）：战绩统计卡 4 张（已赛场次/近5场战绩/局胜率/录屏完成）+ 最近比赛结果列表 + 数据亮点（MVP/数据之王，复用战报同源 buildReportData）+ 录屏待办一行状态条；删除比赛焦点卡；vue-tsc + vite build:only 通过（无浏览器验收） |
 | 2026-10-02 | 新增自助改密入口（AppHeader 菜单 + `components/account/PasswordChangeDialog.vue` + `utils/passwordForm.ts`）；修正帮会初始口令校验的前端口径（原强制「含字母和数字」，与后端 ASVS 6.2.5 策略不一致，差距 F-54）；`vitest.config.ts` 补 `@vitejs/plugin-vue` 后组件级用例可运行；`npm run test` 60 passed / 7 文件，lint 0 error，build exit 0 |
-| `src/assets/` | 静态资源（图片/SVG 等），无业务逻辑 | — |
