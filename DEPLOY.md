@@ -124,6 +124,21 @@
 `up -d` 不重建时旧版仍在）。
 
 ## 四、日志系统
+### 逐层日志清单（2026-10-02 新增，对应 ASVS 16.1.1）
+
+> 本表是**"哪一层记什么、存在哪、留多久、怎么查"的唯一落点**；日志配置的实现证据见括号内文件。
+
+| 层 | 记录内容 | 载体 / 位置 | 格式与级别 | 留存 | 检索方式 |
+|----|---------|------------|-----------|------|---------|
+| 边缘 `nginx-proxy` | 访问日志（含 429 限流）、错误日志 | 宿主 nginx 的 access/error 文件（服务器侧维护，**不在本仓库**） | nginx 默认 combined / error | 由服务器 logrotate 决定 | 服务器上 `tail`/`grep`；本仓库不含该层配置 |
+| 内层 `frontend`（nginx） | 静态资源与 `/api` 回源访问、错误 | 容器 `/var/log/nginx/*.log`（`frontend/Dockerfile` 已 chown 给 `appuser`） | nginx 默认 | 随容器生命周期（未挂卷） | `docker compose logs frontend`、`docker compose exec frontend tail -f /var/log/nginx/access.log` |
+| `backend` 应用日志 | 应用与 uvicorn 日志（`setup_logging()` 统一接管，`uvicorn*` 日志器 propagate 到根） | ①容器 stdout；②卷 `nsh-logs` → `/app/logs/app.log` | `%(asctime)s [%(levelname)s] %(name)s: %(message)s`；级别 = `DEBUG` 时 DEBUG，否则 INFO（`backend/app/core/logging_config.py`） | 单文件 10MB × 5 轮转（约 60MB 上限） | `docker compose logs -f backend`、`docker compose exec backend tail -f /app/logs/app.log` |
+| **审计表** `operation_logs` | 结构化审计：user/role/guild、module/action、method/path/status、detail（已脱敏与转义）、ip、created_at | SQLite `nsh-data` 卷内 `nsh.db` | 表结构（`backend/app/models/operation_log.py`）；写入方＝审计中间件 | `LOG_RETENTION_DAYS`（默认 **90** 天），服务启动时清理更早记录（`services/log_service.py`） | 开发者角色「系统日志」页面检索；或 SQL 直查 |
+| 告警通道 | 错误率超阈值时的 **WARNING** 日志（**不静默**）+ 可选 webhook POST JSON | 容器 stdout + 外部 webhook | WARNING | 同 backend 日志 | `docker compose logs backend | grep 告警`；webhook 侧记录 |
+
+**边界**：日志**未外发到独立系统**（同机 SQLite + stdout，ASVS 16.4.3 仍为 ❌，属单机自托管取舍）；日志**无防篡改**（16.4.2 ❌，developer 可清理，清理动作自身入审计）。
+
+
 
 | 层 | 位置 | 说明 |
 |----|------|------|
