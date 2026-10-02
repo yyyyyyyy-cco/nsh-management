@@ -246,6 +246,7 @@ nsh-management/
 | 2026-10-02 | Wave 2 批次 3（合规化计划 W2-4）：提交消息自动校验落地——`scripts/check_commit_msg.py`（15 条内置用例、BOM 容错）、`.githooks/commit-msg` 与 `scripts/install_git_hooks.sh`（零依赖 `core.hooksPath` 方案）、`.github/commit-msg-baseline` 与 CI `commit-msg` job（仅校验基线之后的提交，历史不追溯）；`.agent/rules/git-commit-message.md` 补 `merge` 类型与「自动校验」小节 | check_commit_msg.py, commit-msg, install_git_hooks.sh, commit-msg-baseline, ci.yml, git-commit-message.md, progress.md, architecture.md |
 | 2026-10-02 | ai-checklist §五 新增遗漏模式 25：PowerShell 向原生程序传文本会注入 BOM、重编码并隐式用空格拼接数组（实测导致 10 个合规提交被判违规的假阴性）；附「传文本优先走文件、管道须设无 BOM 编码、校验器容错 BOM」处置约定 | ai-checklist.md, progress.md, architecture.md |
 | 2026-10-02 | Wave 2 批次 4（合规化计划 W2-2 后端部分）：新增 `backend/pytest.ini` 与 `backend/tests/`（conftest、support、4 个测试模块），`python -m pytest` 可同时收集新用例与既有 6 个 `selfcheck_*.py`；`backend/requirements.txt`/`requirements-dev.txt` 补 PEP 263 编码声明（修复中文 Windows 下 pip 解码失败）；CI backend job 增 pytest 步骤；`README.md`（测试与排错）与 `tech-stack.md`（开发工具、依赖权威源）同步 | pytest.ini, tests/, requirements.txt, requirements-dev.txt, ci.yml, README.md, tech-stack.md, architecture.md, progress.md |
+| 2026-10-02 | ai-checklist §五 新增遗漏模式 27：`git add -A` 会把工具在仓库根目录产生的临时目录（`pip-metadata-*/`、`pip-unpack-*/`、`.tmp-venv*/`）一并提交；`.gitignore` 已增补相应忽略规则；误提交且未推送时以删目录 + `git rm -r --cached` + `--amend` 修正（本次提交已由 55 文件修正为 17 文件） | ai-checklist.md, .gitignore, progress.md, architecture.md |
 
 ---
 
