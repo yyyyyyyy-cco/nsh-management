@@ -3,6 +3,15 @@
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_game_id_requests_concurrency.py
 说明：不使用共享单连接内存库，避免"伪并发"；所有数据写入系统临时目录的独立库文件。
 """
+# ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
+import unittest as _unittest
+
+try:  # noqa: SIM105
+    import fastapi  # noqa: F401
+    import sqlalchemy  # noqa: F401
+except ImportError as _exc:  # pragma: no cover - 无依赖环境（如 Python 3.14 装不上 pydantic-core）
+    raise _unittest.SkipTest(f"缺少运行依赖（FastAPI/SQLAlchemy），跳过本模块：{_exc}") from _exc
+
 import asyncio
 import sys
 import tempfile

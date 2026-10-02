@@ -385,8 +385,8 @@ CSP（`default-src 'self'` + `frame-ancestors 'self'`）、`X-XSS-Protection`（
 
 1. **CSP 过宽**：`script-src` 含 `unsafe-inline`/`unsafe-eval`（`frontend/nginx.conf.example:71`），削弱 XSS 防护。
    收紧需先评估 Element Plus / 内联脚本依赖，改为外部脚本 + nonce/hash。
-2. **无告警通道**（A09 alerting 部分）：审计日志已落库，但异常/错误率上升无人被通知。建议接入 webhook 或
-   在日志界面增加阈值提示。
+2. **无告警通道**（A09 alerting 部分）——**已于 2026-10-02 修复（W4-6）**：新增后台告警循环（`app/core/alerting.py` 纯策略 + `app/services/alert_service.py` 查库与编排），最近 30 分钟内 `level=error` 达 20 条即触发；**未配置 webhook 时也写 WARNING 日志（不静默）**，配置 `ALERT_WEBHOOK_URL` 后 POST JSON（标准库发送，无新依赖）；同一窗口内去重，阈值为 0 可禁用。
+   环境变量与运维说明见 `DEPLOY.md §四/§六` 与 `.env.example`。
 3. **供应链完整性**：依赖无哈希锁定、无 SBOM、镜像未签名（A03/A08，与计划 W1-4 依赖锁定、SLSA L2 相关）。
 4. **无威胁建模记录**（A06）：权限矩阵与数据流已有设计文档，但缺 STRIDE/攻击面分析留痕。
 5. **ASVS 条目级核对未做**：本轮为域级对照；条目级需按官方 JSON/CSV 逐条标注（编号格式 `v5.0.0-x.y.z`）。

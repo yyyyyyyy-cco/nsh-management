@@ -3,6 +3,15 @@
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_game_id_requests.py
 覆盖：角色矩阵 / 租户隔离 / 参数边界 / 重复待审 / 审核事务 / 失效联动 / 删除关联 / 响应脱敏。
 """
+# ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
+import unittest as _unittest
+
+try:  # noqa: SIM105
+    import fastapi  # noqa: F401
+    import sqlalchemy  # noqa: F401
+except ImportError as _exc:  # pragma: no cover - 无依赖环境（如 Python 3.14 装不上 pydantic-core）
+    raise _unittest.SkipTest(f"缺少运行依赖（FastAPI/SQLAlchemy），跳过本模块：{_exc}") from _exc
+
 import json
 import sys
 import unittest

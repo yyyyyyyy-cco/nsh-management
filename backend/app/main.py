@@ -17,7 +17,7 @@ from app.core.logging_config import setup_logging
 from app.core.security import decode_access_token
 from app.core.database import async_session_factory
 from app.models.user import User
-from app.services import log_service
+from app.services import alert_service, log_service
 from app.services.attendance_service import AttendanceServiceError
 from app.services.auth_service import AuthError
 from app.services.config_service import ConfigServiceError
@@ -161,9 +161,25 @@ def startup_checks() -> None:
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    """启动：先过安全门禁，再启动后台日志清理（启动即清一次，此后每 24 小时一次）。"""
+    """启动：先过安全门禁，再启动后台日志清理与错误率告警循环。"""
     startup_checks()
     app.state.log_cleanup_task = asyncio.create_task(_log_cleanup_loop())
+    app.state.alert_task = asyncio.create_task(_alert_loop())
+
+
+async def _alert_loop() -> None:
+    """错误率告警循环（W4-6）：启动即检查一次，之后每 `ALERT_CHECK_INTERVAL_MINUTES` 分钟一次。
+
+    判定与通知策略见 `app/core/alerting.py` 与 `app/services/alert_service.py`；
+    未配置 `ALERT_WEBHOOK_URL` 时仅写 WARNING 日志（不静默）。
+    """
+    interval = max(settings.ALERT_CHECK_INTERVAL_MINUTES, 1) * 60
+    while True:
+        try:
+            await alert_service.run_alert_check()
+        except Exception:  # noqa: BLE001 — 告警循环自身异常不得终止进程
+            logger.exception("错误率告警检查失败")
+        await asyncio.sleep(interval)
 
 
 async def _log_cleanup_loop() -> None:

@@ -131,6 +131,7 @@
 | 审计日志 | SQLite 表 `operation_logs`（库内） | 所有写操作（POST/PUT/DELETE/PATCH）+ 5xx 错误自动落库；登录成功/失败手动埋点；detail 已脱敏（password/token 等不落库） |
 | 页面查看 | 站点侧边栏「系统日志」（仅开发者账号） | 概览统计（今日操作/错误、近 7 天错误分布，北京时间口径）+ 筛选分页 + 清理 |
 | 保留策略 | 审计日志默认保留 **90 天**，启动时自动清理过期记录；页面亦可手动清理（操作本身会被审计） |
+| 错误率告警 | 后台循环（启动即查一次，之后每 `ALERT_CHECK_INTERVAL_MINUTES` 分钟，默认 15）：最近 `ALERT_WINDOW_MINUTES`（默认 30）分钟内 `level=error` 达 `ALERT_ERROR_THRESHOLD`（默认 20）条 → 写 **WARNING** 日志并（若配置 `ALERT_WEBHOOK_URL`）POST JSON 到 webhook；同一窗口内不重复通知（进程内去重）。阈值为 0 表示禁用。**未配置 webhook 时告警仍会写日志**，不静默 |
 
 运维排查路径：页面看审计 → `docker compose logs -f backend` 看实时控制台 →
 `/app/logs/app.log` 看历史文件日志。
@@ -195,6 +196,7 @@ docker compose start backend
 | `SECRET_KEY` | JWT 签名密钥（强随机，`openssl rand -hex 32`） |
 | `DEVELOPER_PASSWORD` / `ADMIN_PASSWORD` / `MEMBER_PASSWORD` | 三角色密码（仅首次建库生效） |
 | `CORS_ORIGINS` | 允许的跨域来源（逗号分隔，可选）。默认值仅本地开发来源；生产由 Nginx **同源**反代 `/api`，通常**无需设置**；仅当 API 被跨域直连时显式列出。**不要填 `*`**（本项目 `allow_credentials=True`） |
+| `ALERT_WEBHOOK_URL` | 错误率告警的 webhook 地址（可选）。**未配置时仍会在容器日志写 WARNING**（不静默）；阈值 / 窗口 / 检查间隔分别为 `ALERT_ERROR_THRESHOLD`（默认 20）/ `ALERT_WINDOW_MINUTES`（30）/ `ALERT_CHECK_INTERVAL_MINUTES`（15），阈值为 0 表示禁用 |
 
 敏感内容，严禁写入任何入库文件；修改 `SECRET_KEY` 会使所有登录态失效。
 

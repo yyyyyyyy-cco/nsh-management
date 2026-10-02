@@ -55,6 +55,13 @@ class Settings:
     # 日志
     LOG_RETENTION_DAYS: int = int(os.getenv("LOG_RETENTION_DAYS", "90"))
 
+    # 告警（合规化计划 W4-6 / F-44）：错误率阈值触发通知
+    # 未配置 ALERT_WEBHOOK_URL 时**仅写 WARNING 日志**（不静默）；阈值 <=0 表示禁用告警。
+    ALERT_ERROR_THRESHOLD: int = int(os.getenv("ALERT_ERROR_THRESHOLD", "20"))
+    ALERT_WINDOW_MINUTES: int = int(os.getenv("ALERT_WINDOW_MINUTES", "30"))
+    ALERT_CHECK_INTERVAL_MINUTES: int = int(os.getenv("ALERT_CHECK_INTERVAL_MINUTES", "15"))
+    ALERT_WEBHOOK_URL: str = os.getenv("ALERT_WEBHOOK_URL", "")
+
 
 settings = Settings()
 

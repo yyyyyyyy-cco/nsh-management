@@ -3,6 +3,15 @@
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_migration_game_id.py
 校验：迁移链完整、member_game_id_requests 表与索引/部分唯一索引真实落库、downgrade 可回退。
 """
+# ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
+import unittest as _unittest
+
+try:  # noqa: SIM105
+    import fastapi  # noqa: F401
+    import sqlalchemy  # noqa: F401
+except ImportError as _exc:  # pragma: no cover - 无依赖环境（如 Python 3.14 装不上 pydantic-core）
+    raise _unittest.SkipTest(f"缺少运行依赖（FastAPI/SQLAlchemy），跳过本模块：{_exc}") from _exc
+
 import os
 import sqlite3
 import subprocess
