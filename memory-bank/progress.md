@@ -525,6 +525,7 @@ nsh-management/
 | 2026-10-03 | 批次 192（W2-14 ② 收官）：①E501 与 ruff format 合并执行；format 重排 123 文件、迁移豁免、超限 42->4。②收尾：脚本追加 E501 豁免、2 处代码行 f-string 用 noqa、1 处 docstring 长行折行。③验收 ruff check 与 format --check 双全绿、pytest 266+89、mypy 59 不变。④观察：E501 按显示宽度计；noqa 对 docstring/字符串内无效。⑤两次按行号定位出错（未提交即被拦下），改按宽度扫描；新增清单第 146 条 |
 | 2026-10-03 | 批次 192 附记：①格式化使该服务 296->301 越界（门禁正确）；文件呈规则冲突。②处置：仅关闭其格式化（[format].exclude，仍受 lint）+ 单列 E501 豁免（写明原因）；未给门禁加豁免。③验证 ruff/format/行数/pytest/mypy 全通过；scripts 未被门禁检查与 F-107 吻合 |
 | 2026-10-03 | 批次 193（W2-14 ① 落地）：①前端早已是业界正确组合（flat/essential + skip-formatting + Prettier），① 只剩跑一次 Prettier。②prettier --write src/ 重排 175 文件；.prettierignore 增 5 条（格式化会越界者，仍受 ESLint）。③验收 format:check/lint/test 69-8/build/行数门禁 全绿。④有意不引入 flat/recommended 排版规则（与 Prettier 冲突），已记录；⑤两次路径基准出错被断言拦下；新增清单第 147 条 |
+| 2026-10-03 | 批次 194（W2-14 ③ 度量）：①临时启用 recommendedTypeChecked 实测 151 problems，但含配置导致的解析错误 -> 真实规则命中约 40 条（no-floating-promises 16、no-unnecessary-type-assertion 10 等）。②临时配置哈希校验还原、lint 回到 0（零残留）。③结论：先修 projectService 接线取真实计数，再按行为中性子集优先分批纳入。④新增清单第 148 条 |
 
 
 
