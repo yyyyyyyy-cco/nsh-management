@@ -65,6 +65,7 @@
 | 贡献指南 | `CONTRIBUTING.md` | 协作约定摘要与权威源入口（环境、分支、门禁、PR） | 协作流程或 CI 门禁变化时 |
 | 安全政策 | `SECURITY.md` | 漏洞报告渠道、支持版本、处理时限（安全结论权威源仍为 security-review.md） | 报告渠道或支持策略变化时 |
 | 行为准则 | `CODE_OF_CONDUCT.md` | Contributor Covenant 2.1（官方中文译本） | 升级版本或调整举报渠道时 |
+| 代码审查与 UI 评估快照 | `memory-bank/code-ui-audit-2026-09.md` | 2026-09 代码审查与 UI 评估结论快照（**非权威源**；结论以 `security-review.md` / `ui-style-guide.md` 为准） | 不维护（快照存档） |
 
 注：memory-bank 文档统一小写 kebab-case 命名；新增文档必须登记到 `architecture.md`（说明 + 目录树 + 更新记录）。
 
