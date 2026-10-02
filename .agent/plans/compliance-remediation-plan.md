@@ -743,8 +743,10 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | `check_api_paths` | 前端新增一个后端不存在的调用 | **exit 1** ✓ | 检出该路由缺失 ✓（注：探针路径因我加了前缀而出现**双重前缀** ✗，不影响检出 ✓） |
 | `check_doc_refs` | 文档引用不存在的文件 | **exit 1** ✓ | **定向断言** ✓：`[missing]` 58 → **59** ✓，输出含 `__probe_missing.py` ✓（排除存量噪声后可归因 ✓） |
 | `check_tree_coverage` | 新增未登记的 `scripts/__probe_tmp.py` | **exit 1** ✓ | 检出**未登记脚本** ✓（18 个文件 / 命中 17 ✓） |
+| `check_nullability` | `AttendanceRecord.member_id` 前端去掉 `?`/`| null`（后端 `AttendanceRecordOut.member_id: int | None` ✓）| **exit 1** ✓✔ | **定向命中** ✓：`AttendanceRecord.member_id：后端 AttendanceRecordOut 可空，前端非 null 且非可选` ✓ |
+| `check_request_required` | `GameIdRequestItem.id` 前端改为 `id?` | **本轮未触发** ✗ | 定向=False ✗；**原因未查明** ✗ —— 下一步：直接 **instrument 其解析器**（打印 `py_required()` / `ts_optional()` 的实际视图 ✓），**不再盲试** ✗ |
 
-**进度** ✓：**4/8 报告型检查器已行为验证** ✓；未验证 ✗：`check_schema_drift` / `check_schema_vs_db` / `check_nullability` / `check_request_required` ✓（下一批 ✓）。
+**进度** ✓：**5/8 报告型检查器已行为验证** ✓（类型漂移 ✓ / API 路由 ✓ / 目录树 ✓ / 文档引用 ✓ / 空值契约 ✓）；**未完成** ✗：`check_request_required`（**本轮未触发，原因未查明** ✗）、`check_schema_drift` / `check_schema_vs_db`（**本轮未覆盖** ✗）。**不得将本节读作“8/8”** ✗。
 
 ### 11.4 一键复跑顺序
 
