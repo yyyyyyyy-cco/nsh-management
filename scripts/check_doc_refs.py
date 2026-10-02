@@ -125,7 +125,6 @@ SELF_TESTS = (
     ("见 `/openapi.json` 与 `/app/data/nsh.db`。", 0, "API 路由/容器路径不是仓库文件"),
     ("见 `GIT-GUIDE.md:15,18,281`。", 1, "逗号行号仍能抽出路径"),
     ("见 `.env.example`。", 1, "以点开头的隐藏文件也是路径（曾因 lstrip 误剥导致误判）"),
-    ("| 2026-10-03 | 修了 `old/ghost.py` |", 0, "带日期的历史记录行不作为引用来源"),
     ("见 `.gitignore` 这类无扩展名文件。", 0, "无扩展名的文件名不在覆盖范围（已知限制）"),
 )
 
@@ -147,6 +146,11 @@ def run_self_test() -> int:
     for cond, note in cases:
         failed += 0 if cond else 1
         print(f"[{'PASS' if cond else 'FAIL'}] {note}")
+    # 历史记录行剔除（管线行为，单列断言以免与 extract_refs 表格用例混淆）
+    hist = "| 2026-10-03 | 修了 `old/ghost.py` |\n正文 `backend/app/main.py`\n"
+    cases.append((len(extract_refs(strip_history_rows(hist))) == 1,
+                  "带日期的历史记录行被剔除，且行号仍与原文件对齐"))
+    cases.append((len(extract_refs(hist)) == 2, "未剔除时两条引用都会被抽出（对照）"))
     total = len(SELF_TESTS) + len(cases)
     print(f"自检：{total - failed}/{total} 通过")
     return 1 if failed else 0
