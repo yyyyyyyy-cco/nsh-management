@@ -64,8 +64,12 @@ npm run lint                                        # ESLint（要求 0 error）
 npm run test                                        # Vitest
 npm run build                                       # vue-tsc 类型检查 + 生产构建
 
-# 仓库根目录
-python scripts/check_file_length.py                 # 文件行数门禁（含豁免登记校验）
+# 仓库根目录——5 道门禁与 CI `repo-hygiene` 完全一致（都支持 `--self-test`，建议先自检再实跑）
+python scripts/check_file_length.py --self-test && python scripts/check_file_length.py
+python scripts/check_requirements_pins.py --self-test && python scripts/check_requirements_pins.py
+python scripts/check_env_docs.py --self-test && python scripts/check_env_docs.py
+python scripts/check_plan_integrity.py --self-test && python scripts/check_plan_integrity.py
+python scripts/check_stale_paths.py --self-test && python scripts/check_stale_paths.py
 ```
 
 注意：

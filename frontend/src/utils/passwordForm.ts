@@ -24,11 +24,11 @@ export function requiredError(value: string, label: string): string | null {
   return value ? null : `请输入${label}`
 }
 
-export function lengthError(value: string): string | null {
+export function lengthError(value: string, label = '新密码'): string | null {
   if (!value) return null
   return value.length >= PASSWORD_MIN_LENGTH && value.length <= PASSWORD_MAX_LENGTH
     ? null
-    : `新密码长度需为 ${PASSWORD_MIN_LENGTH}–${PASSWORD_MAX_LENGTH} 位`
+    : `${label}长度需为 ${PASSWORD_MIN_LENGTH}–${PASSWORD_MAX_LENGTH} 位`
 }
 
 export function sameAsCurrentError(value: string, current: string): string | null {

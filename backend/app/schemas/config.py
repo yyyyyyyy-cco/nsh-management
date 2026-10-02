@@ -107,11 +107,11 @@ class GuildCreate(BaseModel):
     name: str = Field(..., min_length=2, max_length=64, description="帮会名称")
     admin_password: str = Field(
         ..., min_length=8, max_length=128,
-        description="管理员初始密码（8-128 位，需含字母和数字）",
+        description="管理员初始密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
     member_password: str = Field(
         ..., min_length=8, max_length=128,
-        description="帮众初始密码（8-128 位，需含字母和数字）",
+        description="帮众初始密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
 
     _validate_admin_password = field_validator("admin_password")(_validate_password_complexity)

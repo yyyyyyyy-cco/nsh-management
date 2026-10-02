@@ -29,12 +29,12 @@
         <el-input v-model="guildForm.name" placeholder="请输入帮会名称" />
       </el-form-item>
       <el-form-item label="管理员密码" prop="admin_password">
-        <el-input v-model="guildForm.admin_password" type="password" show-password placeholder="8-128 位，需含字母和数字" />
+        <el-input v-model="guildForm.admin_password" type="password" show-password placeholder="8-128 位，不得为常见弱口令" />
       </el-form-item>
       <el-form-item label="帮众密码" prop="member_password">
-        <el-input v-model="guildForm.member_password" type="password" show-password placeholder="8-128 位，需含字母和数字" />
+        <el-input v-model="guildForm.member_password" type="password" show-password placeholder="8-128 位，不得为常见弱口令" />
       </el-form-item>
-      <p class="dialog-tip">将自动创建该帮会的管理员账号和帮众账号。密码保存后无法回查，请妥善保管，忘记可用重置密码功能。初始密码需为 8-128 位且包含字母和数字。</p>
+      <p class="dialog-tip">将自动创建该帮会的管理员账号和帮众账号。密码保存后无法回查，请妥善保管，忘记可用重置密码功能。初始密码需为 8-128 位且不得为常见弱口令（**不限制字符组成**）。</p>
     </el-form>
     <template #footer>
       <el-button @click="guildDialogVisible = false">取消</el-button>
@@ -62,6 +62,8 @@ import type { FormInstance, FormItemRule, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import dayjs from 'dayjs'
 
+import { lengthError, requiredError } from '@/utils/passwordForm'
+
 import { createGuild, deleteGuild, getGuilds, renameGuild } from '@/api/config'
 import type { Guild } from '@/types/config'
 
@@ -75,17 +77,16 @@ const guildDialogVisible = ref(false)
 const guildFormRef = ref<FormInstance>()
 const guildForm = ref({ name: '', admin_password: '', member_password: '' })
 
-/** 密码校验：8-128 位且同时包含字母和数字（与后端一致） */
+/** 初始密码校验：复用与服务端同源的纯函数——**只校验长度，不限制字符组成**（ASVS 5.0.0 6.2.5）。
+ * 2026-10-02 修复：此处原先内联了「必须同时含字母和数字」的规则，而后端已按 ASVS 放开组成限制，
+ * 造成「前端拦、后端收」的口径分叉（差距 F-54）；现改为调用 `utils/passwordForm` 的共用谓词。
+ * 弱口令词表不做前端复制（口径只维护在服务端，见 AGENTS §2.1），违规由后端 422 反馈。
+ */
 const passwordValidator: FormItemRule['validator'] = (_rule, value: string, callback) => {
-  if (!value) {
-    callback(new Error('请输入初始密码'))
-  } else if (value.length < 8 || value.length > 128) {
-    callback(new Error('密码长度需为 8-128 位'))
-  } else if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) {
-    callback(new Error('密码需同时包含字母和数字'))
-  } else {
-    callback()
-  }
+  const text = String(value ?? '')
+  const message = requiredError(text, '初始密码') ?? lengthError(text, '初始密码')
+  if (message) callback(new Error(message))
+  else callback()
 }
 const guildRules: FormRules = {
   name: [
