@@ -42,47 +42,45 @@
 
 ## [未发布]
 
-合规化整改（依据 `.agent/plans/compliance-remediation-plan.md`；Wave 0～2 已完成，Wave 3～4 进行中）。
+合规化整改带来的**使用者可见变更**（整改进度见 `memory-bank/progress.md`；差距清单见
+`.agent/plans/compliance-remediation-plan.md`）。条目按**使用者影响**归并，非逐提交罗列。
 
 ### 新增
 
-- **测试体系**：后端 `backend/pytest.ini` 与 `backend/tests/`（安全工具、生产弱密钥启动门禁、
-  权限依赖矩阵、姓名规范化）；既有 6 个 `backend/scripts/selfcheck_*.py` 一并纳入 pytest 收集。
-  前端 Vitest（`frontend/vitest.config.ts`）与 4 个测试文件（业务常量、职业色、赛程排序、评分与聚合分析）。
-- **静态检查与 CI 门禁**：后端 Ruff（`backend/ruff.toml`）、前端 ESLint 10 + Prettier 3（扁平配置）、
-  `.github/workflows/ci.yml`（后端 / 前端 / 仓库卫生 / 提交消息 / 镜像构建 5 个 job）、
-  `.github/dependabot.yml`、`.githooks/commit-msg` 提交消息校验与 `scripts/check_commit_msg.py`、
-  `scripts/check_file_length.py` 行数门禁。
-- **仓库规范文件**：`.gitattributes`（换行与二进制策略）、`.editorconfig`、`backend/requirements-dev.txt`、
-  `scripts/install_git_hooks.sh`。
-- **部署模板**：`frontend/nginx.conf`（内层反代，入库）、`deploy.sh.example`（占位符模板）。
-- **前端单一来源工具**：`frontend/src/utils/attendance.ts`（出勤率阈值、低出勤判定、百分比格式化）。
+- **自助修改密码**：前端新增入口，后端新增 `POST /auth/password`；口令策略按 ASVS 5.0.0 校正
+  （只校验长度与黑名单，**不再强制"字母 + 数字"组合**），改密后**旧登录立即失效**（`token_version` 自增）。
+- **健康检查端点** `GET /health`（含数据库连通性；数据库不可用时返回 503），供容器 healthcheck 与监控使用；
+  生产环境（`APP_ENV=production`）同时**关闭** `/docs`、`/redoc`、`/openapi.json`。
+- **错误率告警**：最近 N 分钟内 `level=error` 审计日志达到阈值即触发；未配置 `ALERT_WEBHOOK_URL` 时
+  **仍写 WARNING 日志**（不静默）。
+- **运维模板**：`scripts/backup-db.sh.example`（SQLite 在线 backup API + `PRAGMA integrity_check`，默认 dry-run）、
+  `scripts/release-archive.sh.example`（按版本号归档镜像与清单），并在 `DEPLOY.md` 补齐**回滚/归档**流程。
+- **测试与静态检查**：后端 `pytest`（含生产弱密钥门禁、权限矩阵、姓名规范化等用例）、前端 Vitest；
+  后端 Ruff、前端 ESLint + Prettier，以及 CI 工作流与提交消息校验钩子。
 
 ### 变更
 
-- **部署**：`frontend/nginx.conf.example` 收敛为**边界层**模板，内层反代拆到入库的 `frontend/nginx.conf`；
-  `deploy.sh` 改为 `deploy.sh.example`（占位符 + 路径锚定排除 + 健康检查与域名校验，非零退出）。
-- **文档**：`README.md` 明确支持的 Python 版本（3.11～3.13，3.14 因 `pydantic-core` 无 wheel 不可用）
-  并补充 pip 镜像与编码排错；`docker-compose.yml` 标注为本地/单机演示拓扑。
-- 代码树与文档索引改为引用 `memory-bank/progress.md` / `memory-bank/architecture.md` 权威源，不再复制。
+- **前端工具链升级**：`vite` 6.4.3、`vitest` 4.1.11（清除 dev 工具链公告），Node 侧要求 `^18 || ^20 || >=22`。
+- **依赖升级**：`python-jose` 3.5.0；`bcrypt` 4.3.0（**移除未维护的 passlib**，改为直连调用）；
+  生产弱密钥门禁由**导入期**改为**应用启动期**（`startup_checks()`），运维可见文案与"拒绝启动"语义不变。
+- **Nginx 收紧**：内层 `frontend/nginx.conf` 对 `/assets/` 增加**静态资源扩展名白名单**（其余一律 404）；
+  边界层模板 `nginx.conf.example` 将 CSP `connect-src` 收窄为 `'self'`，并停用 `X-XSS-Protection`。
+- **口令口径统一**：帮会面板初始口令校验与后端一致（前端不再拦截纯字母/纯数字口令）。
+- **仓库规范**：`.gitattributes` 换行与二进制策略、`.editorconfig`、`.githooks/commit-msg` 提交消息校验。
 
 ### 修复
 
-- `backend/requirements.txt`、`backend/requirements-dev.txt`：补 PEP 263 编码声明
-  （`# -*- coding: utf-8 -*-`），**修复中文 Windows（cp936）下 `pip install -r requirements.txt`
-  因 gbk 解码失败而中断**——该命令正是 `README.md` 的安装第一步。
-- `backend/scripts/audit_weights_v4_*.py`、`derive_weights_v4_*.py`、`sim_contribution_weights_v4_*.py`：
-  移除硬编码的 `e:\code\@Cjy\...` 绝对路径，改为环境变量（`NSH_DB_PATH`、`NSH_ANALYSIS_TS`）与相对路径。
-- `backend/app/models/user.py`：修复 F821（`Guild` 改为 `TYPE_CHECKING` 相对导入）。
-- 前端 `lineupBoard.ts`：新增导出类型 `SlotDragEvent`，取代 4 处 `any`（vuedraggable 事件对象）。
+- **长口令截断**：bcrypt 只使用前 72 字节——改为 **SHA-256 预哈希**（`sha256$` 前缀）后再哈希，
+  并支持**旧哈希登录时惰性升级**；同时修复非法哈希导致的进程级 panic（改为校验失败）。
+- **弱密钥门禁**：拒绝**低熵**十六进制（如顺序串），CI 占位密钥显式封禁。
+- **静态资源与 CSP**：见「变更」的 Nginx 两条（修复的是可被探测的资源路径与过宽的 `connect-src`）。
+- **部署模板入库**：`frontend/nginx.conf` 与 `deploy.sh.example` 入库，修复镜像构建缺失 `nginx.conf` 的问题。
 
 ### 安全
 
-- **生产弱密钥启动门禁由「导入期」改为「应用启动期」**（`backend/app/core/config.py` → `app/main.py`
-  的 `startup_checks()`）：原先任何导入配置的场景（alembic、测试收集、一次性脚本）在生产环境下都会
-  被 `sys.exit(1)` 终止；现运维可见文案与「拒绝启动」语义不变，且门禁可被单元测试覆盖。
-- 新增门禁回归用例：生产弱密钥拒绝启动（子进程非零退出 + `FATAL` 文案）、强密钥放行、开发环境仅告警、
-  **仅导入配置不退出**。
+- 跨帮会创建账号与批量写操作越界修复、账号响应脱敏、成员数据隔离收紧（v1.2.0 起持续）。
+- 审计日志覆盖**带凭证的拒绝请求**，并转义日志中的控制字符（防日志注入）。
+- 生产弱密钥启动门禁、口令预哈希、CSP/静态资源收紧（详见上列条目）。
 
 ---
 

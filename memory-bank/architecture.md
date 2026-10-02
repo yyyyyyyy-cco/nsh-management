@@ -326,6 +326,8 @@ nsh-management/
 | 2026-10-03 | 批次 45（**F-72** 数据模型权威源漏列）：以「空库迁移 + `PRAGMA table_info`」为真值，逐列核对发现 `database-design.md` 漏登 **5 列**（`guilds.icon_char`、`users.token_version`、`match_data.round_no`、`schedules.profession_config`、`recordings.note`），文档全文 0 次提及、§4 更新记录停在 2026-09-20 ✗ → 已按 `models/**` + `alembic/versions/**` 补入（含类型/约束/迁移 revision）并加 `match_data` 索引说明；新增 **W2-15**（列级核对护栏）；教训记入 ai-checklist 第 81 条 | database-design.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 45 收口（**F-72 完成**：共补登 **6 个**未登记列 + 修复标题截断）：逐表双向终检（空库迁移 + `PRAGMA table_info`）最终 **两侧 0 差异** ✓；三处自伤（子串判存在 / 插入点含后续标题 / 验证用全局集合）记入 ai-checklist 第 82 条 | database-design.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 46（**F-73** 角色矩阵 ↔ 端点守卫核对）：解析 **80 个端点**的 `Depends(...)` 与 `design-document-v2.md §3.2` 矩阵逐行比对——**写操作侧一致** ✓；**读取类不一致** ✗（`GET /attendance`、`GET /lineups` 实现为 `get_current_user` 且代码注释写明「帮众可查看」，而矩阵写帮众 ❌）→ 按 `AGENTS §3.2` **以代码为准对齐矩阵**并补「读取类接口口径」；`security-review.md` 新增 **§14.10**（差异表 + 处置 + **待用户确认是否收紧代码**）；**未改运行时鉴权**；教训记入 ai-checklist 第 83 条 | design-document-v2.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | 批次 47（**F-74** CHANGELOG 未发布小节重写）：核对 `v1.2.0..HEAD` **83 个提交**，发现「未发布」小节停在 2026-10-02，自助改密 / 健康检查 / 错误率告警 / 备份归档模板 / 长口令截断修复 / CSP 与静态资源收紧 / 前端工具链升级等**使用者可见变更全未记录** ✗，且以「Wave 0～2 已完成」承载进度（违反 `AGENTS §3.4`）✗ → 已按**使用者影响**重写四条分类（新增/变更/修复/安全），清除进度类表述并指向 `progress.md` 与整改计划；教训记入 ai-checklist 第 84 条 | CHANGELOG.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 
 
 
