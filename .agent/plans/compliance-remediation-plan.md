@@ -640,6 +640,17 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | `CONTRIBUTING.md` 提交前核对段引用的脚本 | **0 缺失**；且它点名的 **7 道门禁 ⊂ CI 的 13 个脚本**，`npm run build/lint/test` 与 `install_git_hooks.sh` 均存在，并含 `--self-test`（与 F-68 口径一致） |
 
 
+
+#### 前端路由 ↔ 设计文档核对（2026-10-03，可复跑）
+
+> **匹配口径**：用路由自身的**中文 `meta.title`**（如「联赛日程」「系统配置」）去检索文档，**不要用英文路由名** —— 否则在中文文档里必然产生假缺口。
+
+| 核对项 | 结果 |
+|--------|------|
+| `frontend/src/router/index.ts` 的 13 条记录 | 12 条真实页面 **全部**在 `design-document-v2.md` 中有对应中文标题 |
+| 根路径 `/`（无 name / 无 title） | 布局壳，非功能页 → 不计为缺口 |
+| `/:pathMatch(.*)*` | 重定向兜底 → 不计为缺口 |
+
 #### 容器链静态核对（2026-10-03，可复跑）
 
 > Docker 路径**尚未构建过**（环境所限）——静态一致性是目前可得的保证。
