@@ -337,6 +337,8 @@ nsh-management/
 
 | 2026-10-02 | Wave 4 批次 23（合规化计划 **W4-20**）：`frontend/nginx.conf.example` 的 CSP `connect-src` 由 `'self' https:` **收窄为 `'self'`**（依据：前端无跨域 XHR/fetch/WS、baseURL 同源相对路径、唯二 https 链接为备案号 `<a href>` 顶层导航），文件头写明依据/收益/边界；`security-review.md` `13.2.4` 🟡→✅、CSP 相关行补 W4-20 完成标注，统计 **59✅ / 25🟡 / 12❌ / 28⚪** | nginx.conf.example, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 
+| 2026-10-02 | Wave 4 批次 24（合规化计划 **W4-21**）：`frontend/nginx.conf` 的 `/assets/` 增加**静态资源扩展名白名单**（依据 `npm run build` 产物实测扩展名集合）+ 非白名单 `return 404` 兜底，并按 nginx 语义确认缓存头仍继承；`security-review.md` `13.4.7` 🟡→✅，统计 **60✅ / 24🟡 / 12❌ / 28⚪**；计划 §9 补本轮全量回归结果与「nginx 配置无自动校验」缺口；**主动放弃**给 Dockerfile 加 `nginx -t`（构建期解析 `backend` 主机名会失败，无 Docker 无法验证）| nginx.conf, security-review.md, compliance-remediation-plan.md, architecture.md, progress.md |
+
 ## 使用说明
 
 1. **开发前**：阅读本文档了解项目结构，然后按需阅读具体文档

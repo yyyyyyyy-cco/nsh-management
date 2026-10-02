@@ -527,7 +527,7 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 | 13.4.4 | 2 | ✅ 满足 | 未启用 HTTP TRACE（nginx 默认不支持该方法，配置中亦无 `limit_except` 放行） |
 | 13.4.5 | 2 | ✅ 满足 | 生产关闭 API 文档；`/health` 为探针**有意**暴露且已在 `DEPLOY.md` 文档化 |
 | 13.4.6 | 3 | ✅ 满足 | 两处 nginx 配置均 `server_tokens off`（L63 / L12） |
-| 13.4.7 | 3 | 🟡 部分 | 前端仅挂载 `dist` 静态资源，但未按扩展名做白名单 |
+| 13.4.7 | 3 | ✅ 满足 | **2026-10-02 已补（W4-21）**：内层 `frontend/nginx.conf` 的 `/assets/` 增加**扩展名白名单**（`js|mjs|css|map|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|eot`）+ 非白名单 `return 404` 兜底；白名单依据是 `npm run build` 产物实测扩展名集合（`.js` 55 / `.css` 19 / `.html` 仅根 index.html）。**未验证**：本机无 nginx，语法与行为需容器/服务器侧确认 |
 
 ### 17.2 V8 访问控制（13 条）
 
@@ -677,8 +677,8 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 
 | 结论 | V13/V8/V16 | V6/V7/V9 | **合计** |
 |------|:---:|:---:|:---:|
-| ✅ 满足 | 28 | 31 | **59** |
-| 🟡 部分 | 11 | 14 | **25** |
+| ✅ 满足 | 29 | 31 | **60** |
+| 🟡 部分 | 10 | 14 | **24** |
 | ❌ 未满足 | 3 | 9 | **12** |
 | ⚪ 不适用 | 9 | 19 | **28** |
 | **合计** | **51** | **73** | **124** |
