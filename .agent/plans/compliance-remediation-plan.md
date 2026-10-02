@@ -730,7 +730,7 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | `check_stale_paths` | DEPLOY.md 写入旧绝对路径 | STILL_GREEN |
 | `check_verdict_sync` | 本轮未覆盖 | **本轮未覆盖** |
 
-**结论** ✓：已测门禁（6 个）均在注入真实违规后 **exit 1** ✓，且均已**安全还原** ✓；`check_verdict_sync` **本轮未覆盖** ✗（需先读其规则再设计注入 ✓）—— **不夸大为“全部验证完成”** ✗。
+**结论（更正）** ✗：已确认变红的门禁为 **4 个** ✓（行数 ✓ / 依赖锁定 ✓ / 环境文档 ✓ / 计划结构 ✓）；**`check_stale_paths` 实测仍绿** ✗✗（需查清是规则不含该模式还是门禁真缺陷 ✓）；`check_doc_numbers` 未注入成功 ✗；`check_verdict_sync` 本轮未覆盖 ✗。**不得将本节读作“全部门禁已验证”** ✗。
 
 ### 11.4 一键复跑顺序
 
