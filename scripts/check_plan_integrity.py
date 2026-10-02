@@ -81,6 +81,17 @@ def analyze(text: str) -> list[str]:
         problems.append(f"顶层章节号重复：{'、'.join(dup)}（计划结构要求编号唯一且单调）")
 
 
+    # 汇总行必须与表体一致（F-108：汇总行长期无人校验 ✗）
+    SUMMARY_ROW = re.search(r"完成 \*\*(\d+)/(\d+)\*\*（([\d.]+)%）；未完成 \*\*(\d+)\*\*；其它 \*\*(\d+)\*\*", text)
+    if SUMMARY_ROW:
+        cells = re.findall(r"^\| \*{0,2}W\d+-\d+\*{0,2} [^|]*\|\s*([^|]*?)\s*\|", text, re.MULTILINE)
+        d = sum(1 for c in cells if c.startswith("✅"))
+        p = sum(1 for c in cells if c.startswith(("⏳", "🔄")))
+        want = (d, len(cells), p, len(cells) - d - p)
+        got = tuple(int(x) for x in (SUMMARY_ROW.group(1), SUMMARY_ROW.group(2), SUMMARY_ROW.group(4), SUMMARY_ROW.group(5)))
+        if got != want:
+            problems.append(f"§7 汇总行与表体不一致：汇总 {got}（完成/总数/未完成/其它），实测 {want}")
+
     return problems
 
 
