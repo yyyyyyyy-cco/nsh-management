@@ -166,6 +166,28 @@ docker compose start backend
 > 卷的实际名称带 compose 项目前缀：`nsh-management_nsh-data` / `nsh-management_nsh-logs`
 >（`docker volume ls | grep nsh` 可查）。切勿 `docker compose down -v`。
 
+### 自动化备份（2026-10-02 新增，合规化计划 W3-2）
+
+`scripts/backup-db.sh.example` 把上面的「方式一」自动化（复制为 `scripts/backup-db.sh` 使用）：
+
+- **默认 dry-run**（`DRY_RUN=1`）只打印将执行的命令；确认无误后用 `DRY_RUN=0` 真正执行；
+- 快照先在容器内生成并执行 `PRAGMA integrity_check`，**校验通过才拷出**——避免把坏库当备份；
+- 产物 `$BACKUP_DIR/nsh-YYYYmmdd-HHMMSS.db`（默认 `~/nsh-backups`），默认保留 30 天（`RETENTION_DAYS`）；
+- cron 示例（每日 03:30）与全部可调参数见脚本头部注释。
+
+**为什么不能用 `cp`（本机实测，2026-10-02，Python 3.14 + SQLite）**：建库并写入 2000 行、**保持连接打开**时，
+直接复制**主库文件**得到的副本报 `no such table: t`（表结构都还在 `-wal` 里）；而 `backup API` 生成的快照
+读到 2000 行且 `integrity_check = ok`。这就是上方 ⚠️ 的实证依据。
+
+### 恢复演练记录（每季一次）
+
+| 日期 | 演练人 | 备份文件 | 恢复到 | 结果 | 备注 |
+|------|--------|----------|--------|------|------|
+| 2026-10-02（模板） | — | `nsh-YYYYmmdd-HHMMSS.db` | 非生产实例 | 待执行 | 首次演练按本节命令覆盖后，用 `PRAGMA integrity_check` + 登录冒烟验证 |
+
+> 演练要求：①使用**真实备份产物**恢复（不是现场重新生成）；②在**非生产**实例上验证可登录、可读常驻库与出勤库；
+> ③记录耗时与问题；④**禁止**在生产实例上演练恢复。
+
 ## 六、环境变量（服务器 `~/nsh-management/.env`）
 
 | 键 | 用途 |
@@ -259,3 +281,51 @@ backend 服务临时设 `APP_ENV: development` 后 `docker compose up -d backend
 | 配置 | `core/config.py` 默认值 + 本地 `.env` | 服务器 `.env` |
 | compose | 端口 80/443，仅 nsh-net | frontend 无宿主端口，nsh-net + proxy-net（external） |
 | 更新方式 | — | 本地 `./deploy.sh` 一键 |
+
+## 九、版本归档与回滚（2026-10-02 新增，合规化计划 W3-3）
+
+本项目**不使用镜像仓库**，制品以带版本号的 tar 归档。**版本权威是 git 标签**（`vX.Y.Z`；
+面向使用者的变更见 `CHANGELOG.md`，打标签流程见 `GIT-GUIDE.md §5`）。
+
+### 9.1 发布前归档（在服务器 compose 目录执行）
+
+```bash
+cp scripts/release-archive.sh.example scripts/release-archive.sh && chmod +x scripts/release-archive.sh
+./scripts/release-archive.sh v1.2.0              # 默认 dry-run：先看要做什么
+DRY_RUN=0 ./scripts/release-archive.sh v1.2.0    # 真正归档 backend / frontend 镜像
+```
+
+产物：`~/nsh-archives/nsh-backend-v1.2.0.tar`、`nsh-frontend-v1.2.0.tar` 与清单
+`nsh-v1.2.0.manifest.txt`（记录版本、提交号、镜像引用、归档时间）。脚本会核对标签是否存在、
+工作区是否干净并给出**警告**——归档的镜像必须能对应到一个已提交版本。
+
+### 9.2 回滚步骤（停服 → 换回旧版本 → 启动 → 验证）
+
+```bash
+cd ~/nsh-management
+docker compose stop                                     # 1) 停服
+docker load -i ~/nsh-archives/nsh-backend-v1.1.0.tar     # 2) 载入上一版本镜像
+docker load -i ~/nsh-archives/nsh-frontend-v1.1.0.tar
+docker images | grep -i nsh                              # 3) 记下旧镜像的 IMAGE ID
+# 4) 让 compose 使用旧镜像：为该镜像打上 compose 期望的本地 tag（回滚完成后还原 compose 文件）
+docker tag <旧镜像ID> nsh-management_backend:rollback
+docker tag <旧镜像ID> nsh-management_frontend:rollback
+docker compose up -d                                     # 5) 启动
+docker compose ps                                        # 6) backend 需 healthy、frontend 需 running
+curl -sk -o /dev/null -w '%{http_code}\n' \
+  -H 'Host: <YOUR_DOMAIN>' https://127.0.0.1/            # 7) 入口应为 200
+```
+
+### 9.3 ⚠️ 数据库迁移不可逆：回滚前必须先判断
+
+- 容器**每次启动**都会执行 `alembic upgrade head`（Dockerfile CMD），迁移**只前进不回退**。
+- 若已发布的版本包含**破坏性迁移**（删列 / 改类型 / 不可逆数据改写），仅回滚镜像会与已迁移的库不兼容；
+  此时必须**先回滚数据库**：用 `scripts/backup-db.sh` 在**升级前**生成的备份，按 §五 的恢复流程覆盖数据库，
+  再启动旧镜像。
+- 因此发布纪律：**先归档镜像（9.1）+ 先做数据库备份（§五），再执行 `up -d --build`**。
+- 迁移 head 与版本对应关系见 §二 与 `backend/alembic/versions/`；用户可见变更见 `CHANGELOG.md`。
+
+### 9.4 归档保留
+
+镜像 tar 体积较大（每服务数百 MB），建议 `~/nsh-archives` 只保留最近 3～5 个版本。
+删除前确认：该版本已不在生产使用，且其对应的**数据库备份仍在保留期内**（§五，默认 30 天）。

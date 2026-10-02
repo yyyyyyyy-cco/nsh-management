@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# ===== 数据库备份脚本模板（复制为 scripts/backup-db.sh 使用） =====
+#
+# 依据：`DEPLOY.md §五 备份与恢复`「方式一（推荐，在线安全）」——
+#       SQLite 在线 backup API 生成一致性快照，**WAL 模式下安全**（直接 cp 可能丢最新写入）。
+#       本脚本是该流程的自动化，不引入第二套备份方法。
+#
+# 用法（脚本需在 compose 目录下运行，见 cron 示例）：
+#   cp scripts/backup-db.sh.example scripts/backup-db.sh && chmod +x scripts/backup-db.sh
+#   ./scripts/backup-db.sh                        # 默认 DRY_RUN=1：只打印将执行的命令
+#   DRY_RUN=0 ./scripts/backup-db.sh              # 真正执行
+#
+# 建议 cron（每日 03:30；先手动跑通 dry-run 再启用）：
+#   30 3 * * * cd ~/nsh-management && DRY_RUN=0 BACKUP_DIR=$HOME/nsh-backups \
+#     bash scripts/backup-db.sh >> $HOME/nsh-backups/backup.log 2>&1
+#
+# 约定：
+#   · 备份产物 `$BACKUP_DIR/nsh-YYYYmmdd-HHMMSS.db`，默认保留 30 天（RETENTION_DAYS）。
+#   · 快照先在容器内生成并执行 `PRAGMA integrity_check`，**校验通过才拷出**——避免把坏库当备份。
+#   · 恢复流程见 `DEPLOY.md §五`（停服覆盖 + 清理 -wal/-shm）；本脚本不执行恢复。
+
+set -euo pipefail
+
+COMPOSE_DIR="${COMPOSE_DIR:-$HOME/nsh-management}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/nsh-backups}"
+RETENTION_DAYS="${RETENTION_DAYS:-30}"
+VOLUME="${VOLUME:-nsh-management_nsh-data}"      # 实际卷名带 compose 项目前缀：docker volume ls | grep nsh
+CONTAINER_DB="${CONTAINER_DB:-/app/data/nsh.db}"
+DRY_RUN="${DRY_RUN:-1}"                          # 默认演练：不写任何文件
+
+STAMP="$(date +%Y%m%d-%H%M%S)"
+SNAPSHOT_IN_CONTAINER="/app/data/nsh-backup-${STAMP}.db"
+SNAPSHOT_NAME="nsh-backup-${STAMP}.db"
+TARGET="${BACKUP_DIR}/nsh-${STAMP}.db"
+
+run_cmd() {
+  if [ "${DRY_RUN}" = "1" ]; then
+    printf '[dry-run] %s\n' "$*"
+  else
+    printf '[run] %s\n' "$*"
+    "$@"
+  fi
+}
+
+printf '== 数据库备份 ==\n'
+printf 'compose 目录 : %s\n' "${COMPOSE_DIR}"
+printf '备份目录     : %s\n' "${BACKUP_DIR}"
+printf '卷           : %s\n' "${VOLUME}"
+printf '保留天数     : %s\n' "${RETENTION_DAYS}"
+if [ "${DRY_RUN}" = "1" ]; then
+  printf '模式         : dry-run（不会写任何文件）\n'
+else
+  printf '模式         : REAL（将写文件）\n'
+fi
+
+if [ "${DRY_RUN}" = "1" ]; then
+  printf '[dry-run] 真实执行时会先校验：compose 目录存在 / docker 可用 / 卷存在，并创建备份目录\n'
+else
+  [ -d "${COMPOSE_DIR}" ] || { printf '[错误] compose 目录不存在：%s\n' "${COMPOSE_DIR}" >&2; exit 1; }
+  command -v docker >/dev/null 2>&1 || { printf '[错误] 未找到 docker 命令\n' >&2; exit 1; }
+  docker volume inspect "${VOLUME}" >/dev/null 2>&1 \
+    || { printf '[错误] 卷不存在：%s（用 docker volume ls | grep nsh 核对）\n' "${VOLUME}" >&2; exit 1; }
+  mkdir -p "${BACKUP_DIR}"
+  cd "${COMPOSE_DIR}"
+fi
+
+# ---------------- 1. 容器内用 backup API 生成快照 + 完整性校验 ----------------
+PY_SNAPSHOT="import sqlite3, sys
+src = sqlite3.connect('${CONTAINER_DB}')
+dst = sqlite3.connect('${SNAPSHOT_IN_CONTAINER}')
+src.backup(dst)
+dst.close()
+src.close()
+chk = sqlite3.connect('${SNAPSHOT_IN_CONTAINER}')
+res = chk.execute('PRAGMA integrity_check').fetchone()[0]
+chk.close()
+print('integrity_check:', res)
+sys.exit(0 if res == 'ok' else 1)"
+
+run_cmd docker compose exec -T backend python -c "${PY_SNAPSHOT}"
+
+# ---------------- 2. 从卷中拷出快照（与 DEPLOY.md §五 相同的导出方式） ----------------
+run_cmd docker run --rm -v "${VOLUME}":/data -v "${BACKUP_DIR}":/backup alpine \
+  sh -c "cp /data/${SNAPSHOT_NAME} /backup/$(basename "${TARGET}") && rm -f /data/${SNAPSHOT_NAME}"
+
+# ---------------- 3. 轮转：先列出再删除超过保留期的备份 ----------------
+if [ "${DRY_RUN}" = "1" ]; then
+  printf '[dry-run] 将列出并删除 %s 下超过 %s 天的 nsh-*.db\n' "${BACKUP_DIR}" "${RETENTION_DAYS}"
+else
+  OLD="$(find "${BACKUP_DIR}" -maxdepth 1 -name 'nsh-*.db' -mtime "+${RETENTION_DAYS}" -print || true)"
+  if [ -n "${OLD}" ]; then
+    printf '轮转删除以下过期备份：\n%s\n' "${OLD}"
+    find "${BACKUP_DIR}" -maxdepth 1 -name 'nsh-*.db' -mtime "+${RETENTION_DAYS}" -delete
+  else
+    printf '无超过 %s 天的备份需要删除\n' "${RETENTION_DAYS}"
+  fi
+fi
+
+printf '== 完成 ==\n'
+if [ "${DRY_RUN}" = "1" ]; then
+  printf '当前为 dry-run，未生成文件。确认上面命令无误后，以 DRY_RUN=0 重跑。\n'
+  printf '预期产物：%s\n' "${TARGET}"
+else
+  ls -lh "${TARGET}"
+  printf '请按 DEPLOY.md §五 每季做一次**恢复演练**，并把结果记入该节演练记录表。\n'
+fi
