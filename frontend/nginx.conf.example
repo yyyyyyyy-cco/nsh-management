@@ -65,10 +65,21 @@ server {
 
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
+    # X-XSS-Protection（2026-10-02 W4-5）：现代浏览器已移除该过滤器，CSP 才是有效防线；
+    # 置 0 可避免旧浏览器过滤器引入的副作用（历史头，见 security-review.md §十五 15.4）。
+    add_header X-XSS-Protection "0" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'self';" always;
+    # CSP（2026-10-02 W4-5 收紧：script-src 去掉 'unsafe-inline' 与 'unsafe-eval'）
+    # 依据（构建级证据，非推测）：
+    #   ① `npm run build` 产出的 dist/index.html 内联 <script>/<style> 均为 0 —— 只有 1 个外部 module script
+    #      与 1 个外链 CSS（故不需要 'unsafe-inline'）；源码中也无 v-html / eval / new Function。
+    #   ② 产物中唯一一处 `new Function("return this")` 来自 core-js 的全局对象探测，**自带 try/catch
+    #      回退到 window**：被 CSP 拦截时正好走回退分支，故不需要 'unsafe-eval'。
+    # style-src 仍保留 'unsafe-inline'：Element Plus / ECharts 运行时会注入内联样式（内联 style 属性
+    #   同受 style-src 管辖），去掉会白屏；如需进一步收紧，改用 nonce/hash 并做页面级验收。
+    # 回滚：把两个 token 加回 script-src 即可（本行以下为唯一落点）。
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" always;
 
     location = /api/v1/auth/login {
         limit_req zone=login burst=3 nodelay;

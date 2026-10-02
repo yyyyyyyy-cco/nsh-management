@@ -347,7 +347,7 @@
 已配置的边缘层安全响应头与加固（`nginx.conf.example`）：`server_tokens off`、`client_max_body_size 20m`、
 HSTS（`max-age=31536000; includeSubDomains`）、`X-Frame-Options: SAMEORIGIN`、
 `X-Content-Type-Options: nosniff`、`Referrer-Policy: strict-origin-when-cross-origin`、
-CSP（`default-src 'self'` + `frame-ancestors 'self'`）、`X-XSS-Protection`（历史头，见 15.4）。
+CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等，W4-5 已收紧）、`X-XSS-Protection: 0`（历史头，已停用，见 15.4）。
 
 ### 15.2 OWASP Top 10:2025 逐项对照（**条目级**）
 
@@ -356,7 +356,7 @@ CSP（`default-src 'self'` + `frame-ancestors 'self'`）、`X-XSS-Protection`（
 | 条目 | 本项目结论 | 证据 |
 |------|------------|------|
 | **A01** Broken Access Control | ✅ 已覆盖 | 6 个角色依赖矩阵 + 成员数据隔离 + 跨帮会越权修复；回归见 `backend/tests/test_permissions.py`、`scripts/selfcheck_security_fixes.py`；历史修复见本文件 §十/§六 |
-| **A02** Security Misconfiguration | 🟡 部分满足 | 生产关闭 API 文档（W4-1）、`server_tokens off`、HSTS、CORS 外置（W4-3）、`DEBUG` 默认关闭；**不足**：CSP 允许 `unsafe-inline`/`unsafe-eval`（见 15.4-1） |
+| **A02** Security Misconfiguration | 🟢 基本满足 | 生产关闭 API 文档（W4-1）、`server_tokens off`、HSTS、CORS 外置（W4-3）、`DEBUG` 默认关闭、**CSP 已收紧**（W4-5：`script-src 'self'`，去 `unsafe-inline`/`unsafe-eval`，补 `object-src 'none'`/`base-uri`/`form-action`）；剩余：`style-src` 仍含 `'unsafe-inline'`（Element Plus/ECharts 运行时样式所需，见 15.4-1） |
 | **A03** Software Supply Chain Failures（2025 新增） | 🟡 部分满足 | 已有：Dependabot、CI 镜像构建护栏、依赖漏洞审计（§十四）；**不足**：依赖无哈希锁定、无 SBOM、无签名（A03/A08 共同缺口） |
 | **A04** Cryptographic Failures | 🟡 部分满足 | TLS 1.2+ 与 HSTS；密码 bcrypt；JWT HS256 + 生产弱密钥**拒绝启动**；**已知接受风险**：Token 存 localStorage（本文件已知风险清单） |
 | **A05** Injection | ✅ 已覆盖 | SQLAlchemy 参数化查询、Pydantic 入参校验、图表 HTML tooltip 转义（本文件 §十二）、Excel 导入校验 |
@@ -383,15 +383,16 @@ CSP（`default-src 'self'` + `frame-ancestors 'self'`）、`X-XSS-Protection`（
 
 ### 15.4 本次识别的新增不足（可执行后续项，已登记到整改计划）
 
-1. **CSP 过宽**：`script-src` 含 `unsafe-inline`/`unsafe-eval`（`frontend/nginx.conf.example:71`），削弱 XSS 防护。
-   收紧需先评估 Element Plus / 内联脚本依赖，改为外部脚本 + nonce/hash。
+1. **CSP 过宽**——**已于 2026-10-02 收紧（W4-5）**：`script-src` 由 `'self' 'unsafe-inline' 'unsafe-eval'` 改为 **`'self'`**，并补 `object-src 'none'` / `base-uri 'self'` / `form-action 'self'`。
+   **依据（构建级证据）**：`npm run build` 产出的 `dist/index.html` 内联 `<script>`/`<style>` 均为 **0**（仅 1 个外部 module script + 1 个外链 CSS）；源码无 `v-html`/`eval`/`new Function`；产物中唯一一处 `new Function("return this")` 来自 **core-js 的全局对象探测且自带 try/catch 回退到 `window`**——被 CSP 拦截时走回退分支。
+   **保留项**：`style-src` 仍含 `'unsafe-inline'`（Element Plus/ECharts 运行时会注入内联样式，去掉会白屏）；进一步收紧需 nonce/hash。
+   **未验证（明确标注）**：本机无浏览器，**未做页面级验收**——收紧后的 CSP 未在真实浏览器中打开过应用；回滚方式为把两个 token 加回 `script-src`（唯一落点 `frontend/nginx.conf.example`）。
 2. **无告警通道**（A09 alerting 部分）——**已于 2026-10-02 修复（W4-6）**：新增后台告警循环（`app/core/alerting.py` 纯策略 + `app/services/alert_service.py` 查库与编排），最近 30 分钟内 `level=error` 达 20 条即触发；**未配置 webhook 时也写 WARNING 日志（不静默）**，配置 `ALERT_WEBHOOK_URL` 后 POST JSON（标准库发送，无新依赖）；同一窗口内去重，阈值为 0 可禁用。
    环境变量与运维说明见 `DEPLOY.md §四/§六` 与 `.env.example`。
 3. **供应链完整性**：依赖无哈希锁定、无 SBOM、镜像未签名（A03/A08，与计划 W1-4 依赖锁定、SLSA L2 相关）。
 4. **无威胁建模记录**（A06）——**已于 2026-10-02 修复（W4-7）**：新增 **§十六 威胁建模（STRIDE）**（7 类资产、5 个信任边界、18 条威胁核对）；建模过程**发现并修复导出文件公式注入**（F-47，`tests/test_excel_export_formula.py` 往返验证）。
 5. **ASVS 条目级核对未做**：本轮为域级对照；条目级需按官方 JSON/CSV 逐条标注（编号格式 `v5.0.0-x.y.z`）。
-6. **历史响应头**：`X-XSS-Protection: 1; mode=block` 已被 CSP 取代，现代浏览器已移除该过滤器，
-   建议置 `0` 或移除，避免旧浏览器过滤器的副作用。
+6. **历史响应头**——**已于 2026-10-02 处置（W4-5）**：`X-XSS-Protection` 由 `1; mode=block` 改为 **`0`**（现代浏览器已移除该过滤器，CSP 才是有效防线；置 0 避免旧浏览器过滤器的副作用）。
 
 ---
 

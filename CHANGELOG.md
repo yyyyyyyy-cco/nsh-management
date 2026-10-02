@@ -18,9 +18,23 @@
 
 ---
 
+### 安全
+
+- **错误率告警**：新增后台告警循环——最近 `ALERT_WINDOW_MINUTES`（默认 30）分钟内 `level=error` 审计日志达 `ALERT_ERROR_THRESHOLD`（默认 20）条即触发；配置 `ALERT_WEBHOOK_URL` 时 POST JSON，**未配置时也会写 WARNING 日志**（不静默）。阈值 0 表示禁用（`DEPLOY.md §四/§六`、`.env.example`）。
+- **CSP 收紧**：边缘 Nginx 的 `script-src` 去掉 `'unsafe-inline'` 与 `'unsafe-eval'`（构建产物无内联脚本，唯一 `new Function` 为 core-js 的带 `window` 回退的全局探测），并补 `object-src 'none'`、`base-uri 'self'`、`form-action 'self'`；`X-XSS-Protection` 置 `0`（现代浏览器已弃用该过滤器）。
+
+### 修复
+
+- **导出 Excel 公式注入**：成员姓名/备注等用户输入以 `=`/`+`/`-`/`@` 开头时，导出文件可能被 Excel 当作公式求值；现已统一按文本单元格写入（回归用例 `backend/tests/test_excel_export_formula.py`）。
+
+### 新增
+
+- **备份与制品归档脚本模板**：`scripts/backup-db.sh.example`（SQLite 在线 backup API、默认 dry-run、生成后完整性校验、保留轮转）与 `scripts/release-archive.sh.example`（镜像 tar + 清单，版本权威为 git 标签）。
+- **依赖精确锁定**：`fastapi`/`python-multipart` 由范围约束改为 `==` 精确版本，并显式锁定传递引入的 `starlette`；新增 CI 门禁 `scripts/check_requirements_pins.py`。
+
 ## [未发布]
 
-合规化整改（依据 `.agent/plans/compliance-remediation-plan.md`；Wave 0～2 已完成）。
+合规化整改（依据 `.agent/plans/compliance-remediation-plan.md`；Wave 0～2 已完成，Wave 3～4 进行中）。
 
 ### 新增
 
