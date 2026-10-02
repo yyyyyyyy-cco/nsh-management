@@ -72,9 +72,9 @@ operation_logs（操作审计日志）          guild_id（可空）
 | id | INTEGER | PK, AUTOINCREMENT | 主键 |
 | name | TEXT | NOT NULL, UNIQUE | 帮会名称 |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
+| icon_char | TEXT | NULL, 最多 4 字符 | 侧边栏折叠按钮显示的首字（迁移 g1h2i3j4k5l6） |
 
-### 2.2 users
-| icon_char | TEXT | NULL, 最多 4 字符 | 侧边栏折叠按钮显示的首字（迁移 g1h2i3j4k5l6） | — 账号表
+### 2.2 users — 账号表
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
@@ -134,6 +134,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 | rounds | INTEGER | NOT NULL, CHECK 1-3 | 局数（创建后不可修改） |
 | result | TEXT | NOT NULL, default 'pending' | `win` / `lose` / `draw` / `pending` |
 | round_results | TEXT (JSON) | NULL | 每局结果，如 `["win","lose","pending"]` |
+| profession_config | TEXT (JSON) | NULL | 单场职业配置覆盖 `{职业: 目标人数}`；NULL 表示沿用系统配置（迁移 j4k5l6m7n8o9） |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
 
 索引：`guild_id`、`match_time`。
@@ -151,6 +152,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 | status | TEXT | NOT NULL, default 'normal' | `normal` 正常 / `leave` 请假 |
 | is_filler | BOOLEAN | NOT NULL, default 0 | 是否补人 |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
+| remark | TEXT | NULL | 备注（导入时常驻库带入，出勤库内可修改）（迁移 n8o9p0q1r2s3） |
 
 索引：`schedule_id`、`member_id`。
 唯一约束：`(schedule_id, member_id)`（常驻成员每场一条）；`(schedule_id, member_name, is_filler=1)`（补人按姓名每场一条，SQLite 通过部分唯一索引实现）。
@@ -210,6 +212,7 @@ JSON 结构示例：
 |------|------|------|------|
 | id | INTEGER | PK, AUTOINCREMENT | 主键 |
 | schedule_id | INTEGER | NOT NULL, FK → schedules.id | 所属赛程 |
+| round_no | INTEGER | NOT NULL, default 1 | 第几局（1~rounds）；历史数据归为第 1 局（迁移 f6a7b8c9d0e1） |
 | player_name
 | round_no | INTEGER | NOT NULL, default 1 | 第几局（1~rounds）；历史数据归为第 1 局（迁移 f6a7b8c9d0e1） | | TEXT | NOT NULL | 玩家名字 |
 | profession | TEXT | NULL | 职业 |
@@ -371,4 +374,4 @@ JSON 结构示例：
 | 2026-09-15 | v1.8：补全 operation_logs 操作审计日志表（§1.2 表清单 + §2.11 字段级设计），表数 10 张更新为 11 张 |
 | 2026-09-20 | v1.9：新增 member_game_id_requests 游戏 ID 修改申请表（§1.2 表清单 + §2.12 字段/约束/生命周期），表数 11 张更新为 12 张；approved 记录兼作战绩新旧 ID 关联来源（Alembic 迁移 o9p0q1r2s3t4） |
 | 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录
-| 2026-10-03 | v1.9 补记（**无结构变更，仅补齐文档**）：补登 **5 个已由迁移引入但未记录的列**——`guilds.icon_char`（g1h2i3j4k5l6）、`users.token_version`（h2i3j4k5l6m7）、`match_data.round_no`（f6a7b8c9d0e1）、`schedules.profession_config`（j4k5l6m7n8o9）、`recordings.note`（l6m7n8o9p0q1）；并补 `match_data` 的 `round_no` 索引说明。来源：以 `backend/app/models/**` 与 `backend/alembic/versions/**` 为准逐列核对 |（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |
+| 2026-10-03 | v1.9 补记（**无结构变更，仅补齐文档**）：补登 **6 个已由迁移引入但未记录的列**——`guilds.icon_char`（g1h2i3j4k5l6）、`users.token_version`（h2i3j4k5l6m7）、`match_data.round_no`（f6a7b8c9d0e1）、`schedules.profession_config`（j4k5l6m7n8o9）、`recordings.note`（l6m7n8o9p0q1）、`attendance_records.remark`（n8o9p0q1r2s3）；并补 `match_data` 的 `round_no` 索引说明。来源：以 `backend/app/models/**` 与 `backend/alembic/versions/**` 为准逐列核对 |（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |
