@@ -349,6 +349,8 @@ nsh-management/
 
 | 2026-10-03 | Wave 1 批次 29（合规化计划 **W1-12**，收口 **F-57**）：口令改为**预哈希方案**——新哈希先 `base64(SHA-256(口令))` 再 bcrypt（`sha256$<bcrypt>`），任意长度口令完整参与，解除 72 字节静默截断；旧哈希仍走直连并在**登录时惰性升级**；**实测否决**「策略收紧到 72 字节」（中文仅 24 字符，违反 ASVS 6.2.9）与「立即升 bcrypt 5.0.0」（对 >72 字节连 `checkpw` 都报错 → 会锁死既有用户）；新增 `tests/test_password_hash_migration.py`（3 用例）并扩展兼容性用例；教训记入 ai-checklist 第 64 条 | security.py, auth_service.py, test_password_hash_compat.py, test_password_hash_migration.py, test_core_security.py, requirements.txt, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 
+| 2026-10-03 | Wave 1 批次 30（合规化计划 **W1-8 收口**）：用 GitHub Advisory API 逐包核对**全部依赖公告**——后端 12 个固定依赖**受影响 0 条** ✓（Pillow 78 条公告修复版均 ≤12.3.0、starlette 最新上限 <1.3.1、python-jose critical 修复于 3.4.0）；前端 19 包运行期 0 条、开发期 6 条（vite/esbuild/vitest，**dev-only**，`vite.config.ts` 未设 `host` → 默认仅绑 localhost ✓ 已缓解）；`security-review.md` 新增 §14.8 全量核对表；登记 **F-59 / W1-13**（前端工具链跨大版本升级）；教训记入 ai-checklist 第 65 条 | security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 ## 使用说明
 
 1. **开发前**：阅读本文档了解项目结构，然后按需阅读具体文档
