@@ -204,6 +204,7 @@
 | F-104 | **CSV 导入接口对缺失文件名会 500（P2）**：`app/api/v1/match_data.py:43` 直接调用 `file.filename.endswith(".csv")` ✗，而 `UploadFile.filename` 类型为 **`str | None`** ✓ —— 客户端构造**不带文件名**的 multipart 部件即触发 `AttributeError` ✓✗ → 用户拿到 **500** 而非干净的 **400 + 原因** ✓（与 F-98 同型：错误路径把 4xx 变 5xx ✓）。由 mypy 报告 `Item "None" of "str | None" has no attribute "endswith"` 发现 ✓ | `app/api/v1/match_data.py`、`backend/tests/test_upload_filename_guard.py` | **已修（2026-10-03）**：判定改为 `(file.filename or "").lower().endswith(".csv")` ✓（缺失/异常文件名一律按「仅支持 CSV 文件」拒绝 ✓，大小写不敏感 ✓）；新增 `tests/test_upload_filename_guard.py`（5 用例：`filename=None` 合法存在 ✓、None 被拒而非崩 ✓、`a.csv`/`A.CSV`/`数据.csv` 通过 ✓、非法名被拒 ✓、**源码级断言接口含 None 兜底** ✓）| **P2** |
 | F-105 | **`PUT /config/professions` 实际不可用（P2）**：服务 `batch_update_profession_configs` 的签名与服务体是 **dict 契约**（`item.get("profession")` / `item.get("target_count", 0)` ✓），而路由 `api/v1/config.py` 直接传入 `list[ProfessionConfigItem]` ✗（pydantic 模型**没有 `.get`** ✓）→ 运行时 `AttributeError` → **500**，批量更新职业配置**从未成功** ✗。由 mypy 的 `arg-type` 发现 ✓（属「类型谎言暴露运行时故障」✓）。| `app/api/v1/config.py`、`app/services/config_service.py`、`backend/tests/test_profession_config_contract.py` | **已修（2026-10-03）**：路由侧 `[c.model_dump() for c in body.configs]` ✓（与服务契约一致 ✓；服务端 `isinstance(target_count, int)` 与 `0..MAX` 边界校验不变 ✓）；新增契约测试 3 用例 ✓（模型**确无** `.get` ✓、服务确为 dict 式 ✓、路由**必含** `model_dump()` ✓ —— 含**反向锁**防回退 ✓）| **P2** |
 | F-106 | **动态属性注入 3 处（类型与 DB 双不可见）**：`api/v1/attendance.py:58/82` 的 `m.member_status = m.status` ✓ 与 `services/recording_service.py:131` 的 `r.profession = prof_map.get(...)` ✓ —— schema（`MemberOut`/`AttendanceItem`/`RecordingOut`）暴露这些字段 ✓，而 ORM 模型**未声明** ✗ → 运行期可用 ✓（动态属性 ✓），但类型检查报错 ✓ 且**迁移/文档不可见** ✗。| `app/api/v1/attendance.py`、`app/services/recording_service.py`、`app/models/member.py`、`app/models/recording.py` | **待用户选方案** ✗（不在本轮擅动 ORM 模型 ✗）：(a) 在模型上声明**非映射**属性（`__allow_unmapped__` ✓ 或 `ClassVar` ✓，不影响 DB ✓）；(b) 由 schema/响应层计算而非注入 ✓；(c) 保留现状并显式 `setattr` ✓（可读性最好但类型检查仍沉默 ✓）| **P3** |
+| F-107 | **`scripts/*.py` 不在行数规则与门禁的扫描范围内（规则写了却未被执行）**：规则文档 `.agent/rules/file-length-rule.md` 的类别为 Vue / Python 服务 / **工具函数（`utils/` 下 py/ts）** / 路由 / 前端 TS ✓；`scripts/check_file_length.py` 的 `LIMITS` 只按上述根与模式扫描 ✓ → **`scripts/` 既不在文字范围、也不被扫描** ✗。实测 ✗：**5 个脚本超过 200 行** —— `check_type_drift.py` **421**（2.1×）✗、`check_doc_refs.py` 231 ✗、`check_doc_numbers.py` 212 ✗、`check_schema_drift.py` 209 ✗、`check_file_length.py` **201** ✗。按 `AGENTS.md` §4「文件行数硬限：…工具函数 200 行」的精神，检查脚本属 Python 工具 → **应当受管** ✗✓。| `.agent/rules/file-length-rule.md`、`scripts/check_file_length.py`、`scripts/check_type_drift.py`、`scripts/check_doc_refs.py`、`scripts/check_doc_numbers.py`、`scripts/check_schema_drift.py` | **部分修复（2026-10-03）** ✓：①`check_file_length.py` 已从 201 剪到 **200**（合规 ✓）；②**分阶段计划**（避免立即红门禁 ✗）：**S1** 逐一把超限脚本降到 200 以内或按规则**打「行数豁免」标记 + 登记豁免清单** ✓（`check_type_drift.py` 421 行含 23 组配对表与 10 项自检 ✓，宜评估拆分 ✓）；**S2** 反超限清零后，把 `scripts/*.py` 加入规则文档类别 **与** 门禁 `LIMITS` ✓（限 200 ✓）；**S3** 门禁自检补 2 条用例（扫描到 `scripts/`、豁免必须登记 ✓）。**当前状态**：S1 进行中（1/5 ✓）| **P3** |
 
 ---
 
@@ -642,6 +643,22 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | `check_type_drift` | TS interface + Python 模型（import ast=False） | **Python 模型侧值得 AST 化** ✓（最可能的假阳性来源 ✓） | 按需 |
 | `check_schema_vs_db` | DB/迁移内省 + 文档表格比对（import ast=False） | 无需解析源码 -> **AST 无关** ✓（re 调用 0 次 ✓） | 按需 |
 | `check_doc_numbers` | Markdown 文档（import ast=False） | **正则是恰当工具** ✓（Markdown 无 AST ✓），保持现状 ✓ | 按需 |
+
+### 11.10 行数规则的**扫描范围**核查（2026-10-03 实测，发现 F-107）
+
+> 核查方法：读规则文档类别表 ✓ + 读门禁 `LIMITS` 的根/模式 ✓ → 与**实际文件行数**对比 ✓（脚本计算 ✓）。
+
+| 目录/类别 | 是否在规则文字内 | 是否被门禁扫描 | 实测超限 |
+|-----------|----------------|---------------|---------|
+| `frontend/src/**/*.vue`（Vue） | ✓ | ✓ | 见豁免清单 ✓ |
+| `backend/app/services/**`（Python 服务） | ✓ | ✓ | 见豁免清单 ✓ |
+| `backend/app/utils/**`（工具函数） | ✓ | ✓ | ✓ 合规 |
+| `backend/app/api/v1/**`（路由） | ✓ | ✓ | 已修（`match_data.py` 回到 150 ✓） |
+| `frontend/src/**/*.ts`（前端 TS） | ✓ | ✓ | 见豁免清单 ✓ |
+| **`scripts/**/*.py`（检查脚本）** | **✗ 不在** | **✗ 不扫** | **5 个超 200** ✗（详见 F-107） |
+
+**结论** ✓：规则的**扫描范围存在缺口** ✗，且已产生实际后果（5 个脚本超限、最严重 2.1× ✓）；处置见 **F-107** 的分阶段计划 ✓。
+
 ### 11.4 一键复跑顺序
 
 ```bash

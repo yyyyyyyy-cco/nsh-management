@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3 -*- coding: utf-8 -*-
 """文件行数规则检查（CI 门禁）。
 
 规则权威源：`.agent/rules/file-length-rule.md`
