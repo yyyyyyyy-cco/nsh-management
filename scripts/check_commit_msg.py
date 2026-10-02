@@ -33,6 +33,17 @@ BANNED_PHRASES = ("根据 diff", "根据diff", "AI 生成", "AI生成", "ai生�
 PASS_PREFIXES = ("Merge ", "Revert ", "fixup!", "squash!")
 
 
+def strip_quoted(text: str) -> str:
+    """去掉**引号内**的片段（「」、“”、‘’、反引号、ASCII 单双引号）。
+
+    用途（F-110）：禁用短语扫描不应命中「**引用/转述该禁令本身**」的正文——
+    历史提交 b9247c03 在正文里说明这两条禁令，却被误判为违规。
+    """
+    for a, b in (("「", "」"), ("“", "”"), ("‘", "’"), ("`", "`"), ("'", "'"), ("\"", "\"")):
+        text = re.sub(re.escape(a) + "[^" + re.escape(b) + "]*" + re.escape(b), "", text)
+    return text
+
+
 def meaningful_lines(text: str) -> list[str]:
     """去掉 BOM、git 注释行与空行后的消息行。
 
@@ -62,8 +73,9 @@ def validate(text: str) -> tuple[list[str], list[str]]:
     subject_line = lines[0]
     body = "\n".join(lines[1:])
 
+    _scan = strip_quoted(text)  # F-110：引号内的引用不算违规
     for phrase in BANNED_PHRASES:
-        if phrase in text:
+        if phrase in _scan:
             errors.append(f"消息中出现无信息量表述「{phrase}」")
 
     if subject_line.startswith(PASS_PREFIXES):
@@ -111,6 +123,8 @@ def run_self_test() -> int:
         ("feat(auth): add token revoke", 1),
         ("feat(auth): " + "很长" * 30, 1),
         ("feat(auth): 修复问题 根据 diff 生成", 1),
+        ("docs(rule): 说明「根据 diff」与「AI 生成」两条禁令", 0),  # F-110：引用不算违规
+        ("docs(rule): 反引号内 `根据 diff` 也不算违规", 0),
         ("", 1),
         ("# 只有注释\n#\n", 1),
     ]
