@@ -169,6 +169,12 @@ jobs:
           python scripts/check_schema_drift.py --self-test
           python scripts/check_schema_drift.py --strict
 
+
+      - name: 代码目录树覆盖（仅报告；AGENTS §3.3 第 3 条）
+        continue-on-error: true
+        run: |
+          python scripts/check_tree_coverage.py --self-test
+          python scripts/check_tree_coverage.py --strict
   commit-msg:
     name: 提交消息规范（基线之后）
     runs-on: ubuntu-latest

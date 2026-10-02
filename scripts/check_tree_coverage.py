@@ -8,6 +8,7 @@
 本检查只覆盖**已被证据证明会漂移**的范围：`scripts/*.py`。
 判定只看**目录树行**（含树形字符 `│├└` 的行 ✓），不整文件子串匹配（ai-checklist 第 124 条 ✓）。
 报告型：默认 exit 0；`--strict` 存在未登记文件时 exit 1。
+范围说明（2026-10-03 实测）：代码树对 `scripts/` 的覆盖度 = **17/17（100%）** ✓，而 `backend/app/services`(0/22)、`frontend/src/components`(0/72)、`frontend/src/views`(11/34) 等**均为目录级摘要** ✗—— 即约定是「**脚本逐文件列举、源码树用摘要 + 模块表**」。因此**不要扩到其它目录** ✗（会把“约定本身”当成“违规”产生大量误报 ✗）。
 """
 from __future__ import annotations
 
