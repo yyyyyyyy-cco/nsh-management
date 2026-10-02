@@ -7,6 +7,7 @@
 -r requirements.txt
 
 ruff==0.12.0   # 静态检查（2026-10-02 引入，合规化计划 W2-3）
+mypy==2.4.0    # 类型检查（2026-10-03 引入，W2-14；配置见 backend/mypy.ini，CI 为报告型步骤）
 pytest==9.1.1  # 测试框架（W2-2；配置见 backend/pytest.ini）
 # TestClient 的 HTTP 客户端。2026-10-02 由 httpx 换成 httpx2：starlette 1.7 起对 `starlette.testclient`
 # 使用 httpx 发出 StarletteDeprecationWarning 并建议改用 httpx2；实测卸载 httpx、只装 httpx2==2.13.1 后

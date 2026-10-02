@@ -69,6 +69,12 @@ jobs:
           python ../scripts/check_schema_vs_db.py --strict
       - name: 应用可导入（同时验证启动门禁不误杀）
         run: python -c "import app.main; print('app.main 导入成功')"
+      # —— 报告型：静态类型（W2-14 / F-99）。存量诊断未清零，continue-on-error 只告警 ——
+      - name: 静态类型（mypy，报告型）
+        continue-on-error: true
+        run: |
+          python -m mypy --version
+          python -m mypy app
       - name: 测试套件（pytest：新用例 + 既有 selfcheck）
         env:
           # 测试使用内存库，不依赖 data/ 下的库文件；显式声明避免落到真实路径
