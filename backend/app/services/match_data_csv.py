@@ -76,7 +76,7 @@ def parse_csv(content: str) -> list[dict]:
 
         # 数据行
         if header and current_camp and len(row) >= len(header):
-            data = {"camp": current_camp}
+            data: dict[str, str | int] = {"camp": current_camp}
             for j, col_name in enumerate(header):
                 field_name = CSV_COLUMN_MAP.get(col_name)
                 if not field_name or j >= len(row):
