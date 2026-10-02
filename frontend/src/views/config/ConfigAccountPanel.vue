@@ -63,7 +63,7 @@ const accountFormRef = ref<FormInstance>()
 const accountForm = ref({
   username: '',
   password: '',
-  role: 'member' as 'admin' | 'member',
+  role: 'member',
   guildId: null as number | null,
 })
 const accountRules: FormRules = {

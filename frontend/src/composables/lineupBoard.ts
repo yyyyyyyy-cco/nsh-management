@@ -272,14 +272,14 @@ export function useLineupBoard(scheduleId: number) {
 
   /** 拖拽开始：记录被拖成员的来源槽位（元素上携带 data-key）。 */
   function onSlotDragStart(evt: SlotDragEvent, team: TeamBox, si: number) {
-    const key = evt.item?.dataset?.key as string | undefined
+    const key = evt.item?.dataset?.key
     if (!key) return
     dragCtx = { key, team, si }
   }
 
   /** 拖拽开始：来源为候选池（team 为 null，表示替换而非交换）。 */
   function onPoolDragStart(evt: SlotDragEvent) {
-    const key = evt.item?.dataset?.key as string | undefined
+    const key = evt.item?.dataset?.key
     if (!key) return
     dragCtx = { key, team: null, si: -1 }
   }

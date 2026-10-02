@@ -109,7 +109,7 @@ export function buildHealTakenOption(items: MatchData[]) {
     series: [
       {
         type: 'scatter',
-        symbolSize: (data: number[]) => Math.max(6, Math.min(13, (data[5] as number) * 2)),
+        symbolSize: (data: number[]) => Math.max(6, Math.min(13, (data[5]) * 2)),
         data: scored.map((s) => [
           s.player.healing,
           s.player.damage_taken,
