@@ -565,7 +565,7 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 | 7 | A3 | S/E 越权 | 用他帮会 ID 读写（水平/垂直越权） | 服务层按 `guild_id` 过滤；路由角色依赖（`api/deps.py`）；跨帮会回归 `scripts/selfcheck_security_fixes.py`；用例 `tests/test_permissions.py` | 无 | 已控制 |
 | 8 | A3 | I 泄露 | 列表/导出接口绕过帮会过滤 | 列表与导出均带 guild 作用域；账号响应脱敏 | 无 | 已控制 |
 | 9 | A3/A7 | R 抵赖 | 否认执行过写操作 | 审计中间件记录 module/action/path/status/detail（已脱敏） | 日志无防篡改（无 WORM/签名），developer 可手动清理（清理动作自身被审计） | 已接受（单机自托管）；建议：日志外发/只读副本 |
-| 10 | A4 | T/I 注入 | 导入恶意 Excel/CSV | 大小双检（声明 + 读取后二次校验，`api/v1/members.py:107-112`；CSV `api/v1/match_data.py:39`）；行数上限 5000（`utils/excel_import.py:79`）；Nginx `client_max_body_size` | 无 | 已控制 |
+| 10 | A4 | T/I 注入 | 导入恶意 Excel/CSV | 大小双检（声明 + 读取后二次校验，`api/v1/members.py:107-112`；CSV `api/v1/match_data.py:39`）；行数上限 5000（含 5000 行、第 5001 行拒绝；2026-10-03 以测试钉住，见 F-83）（`utils/excel_import.py:79`）；Nginx `client_max_body_size` | 无 | 已控制 |
 | 11 | A4 | T 注入 | **导出**文件携带公式（姓名/备注以 `=` 开头） | **2026-10-02 已修复**：导出统一走 `_text_cell`，对 `=`/`+`/`-`/`@` 开头的值显式声明 `data_type='s'`（`utils/excel_export.py`）；往返回归 `tests/test_excel_export_formula.py` | 无（修复前 Excel 打开可能触发对外请求） | **已修复（F-47）** |
 | 12 | A4 | D 耗尽 | 超大导出/长图耗尽 CPU/内存 | 长图 800 人上限（`utils/image_export.py:60`）；compose 资源上限（`docker-compose.yml` 的 `deploy.resources.limits`：内存 + cpus） | 无 | 已控制 |
 | 13 | A4 | S/I 伪协议 | 提交 `javascript:` 等链接，管理员点击即执行 | 后端入参 `pattern=^https?://`（`schemas/recording.py:28`）；前端 `normalizeUrl` + `rel="noopener"`（`components/recording/RecordingTablePanel.vue:25`、`RecordingMobileList.vue:71`） | 外链目标站不可控（钓鱼/恶意页），非本项目可控面 | 已控制（技术面）；链接来自帮众，点击前自行判断 |
