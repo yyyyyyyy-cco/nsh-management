@@ -497,7 +497,7 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 | 13.2.5 | 2 | 🟡 部分 | 容器未做**出网白名单**（egress 限制）；建议在部署层加 |
 | 13.2.6 | 3 | 🟡 部分 | 无外部连接配置需要遵循（同 13.2.3） |
 | 13.3.1 | 2 | ❌ 未满足 | 未使用密钥管理服务，改为 `.env` + 服务器文件权限（单机自托管的取舍，见 §十六 A5） |
-| 13.3.2 | 2 | ❌ 未满足 | **容器实际以 root 运行**：`backend/Dockerfile:14` 与 `frontend/Dockerfile:10` 建了 `appuser` 但**没有 `USER appuser`**（新发现 F-49） |
+| 13.3.2 | 2 | 🟡 部分 | **2026-10-02 更正（原判 ❌，依据 F-49 的旧结论）**：`backend/entrypoint.sh` 用 `exec gosu appuser "$@"` 已降权（配合 `useradd` + chown 卷目录）→ 后端**非 root** ✓；`frontend/Dockerfile` 建了 `appuser/appgroup` 并 chown html/cache/log/pid，**但没有 `USER`** → nginx 以 root 运行 ✗（F-49 仅前端成立，W1-9 待 Docker 验证） |
 | 13.3.3 | 3 | ⚪ 不适用 | 无 HSM/隔离密码模块需求 |
 | 13.3.4 | 3 | ❌ 未满足 | `SECRET_KEY` 无轮换机制（轮换即需重签令牌）；建议在 `DEPLOY.md` 写明轮换步骤 |
 | 13.4.1 | 1 | ✅ 满足 | 两个 `.dockerignore` 均排除 `.git`；镜像内不含版本控制元数据 |
@@ -537,10 +537,10 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 | 16.2.4 | 2 | ✅ 满足 | 容器日志格式统一（`core/logging_config.py`）；审计可按字段检索 |
 | 16.2.5 | 2 | ✅ 满足 | 敏感键脱敏（`services/log_service.py` `SENSITIVE_KEYS`）；`plain_password` 不入日志 |
 | 16.3.1 | 2 | ✅ 满足 | 登录成功/失败均埋点（`api/v1/auth.py`），含账号、IP、状态码与失败原因 |
-| 16.3.2 | 2 | 🟡 部分 | **授权失败的读操作未落库**：审计中间件只覆盖 `AUDIT_METHODS = {POST,PUT,DELETE,PATCH}`，GET 的 403 不记录（新发现 F-50） |
+| 16.3.2 | 2 | ✅ 满足 | **2026-10-02 更正（F-50 已于 W4-9 修复）**：审计中间件的条件扩展为「写方法 **或** 非写方法 + 携带 Authorization + 401/403」，匿名 401 不记录；读接口的越权/失效令牌同样落库（`tests/test_audit_denials.py` 6 用例回归） |
 | 16.3.3 | 2 | 🟡 部分 | 已记录关键事件；「文档定义的安全事件清单」未成文 |
 | 16.3.4 | 2 | ✅ 满足 | 未预期异常经兜底处理器 + 中间件记为 `level=error` |
-| 16.4.1 | 2 | 🟡 部分 | 详情以 JSON 文本入库，但**未对换行/控制字符做转义**（新发现 F-51，日志注入面） |
+| 16.4.1 | 2 | ✅ 满足 | **2026-10-02 更正（F-51 已于 W4-9 修复）**：`escape_control` 把换行/制表等转成 `\x0a` 形态可见转义，应用于 `username`/`path`/`ip` 与 `sanitize_detail` 字符串分支；含换行用户名的端到端回归已入库 |
 | 16.4.2 | 2 | ❌ 未满足 | 日志无防篡改（无 WORM/签名），developer 可手动清理（清理动作自身被审计）——已接受并记录于 §十六 |
 | 16.4.3 | 2 | ❌ 未满足 | 日志未发送到逻辑独立系统（同机 SQLite + stdout）——已接受（单机自托管） |
 | 16.5.1 | 2 | ✅ 满足 | 关闭 DEBUG 时统一错误体，异常细节不外泄（W4-2 已核） |
@@ -656,9 +656,9 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 
 | 结论 | V13/V8/V16 | V6/V7/V9 | **合计** |
 |------|:---:|:---:|:---:|
-| ✅ 满足 | 21 | 31 | **52** |
-| 🟡 部分 | 16 | 13 | **29** |
-| ❌ 未满足 | 5 | 10 | **15** |
+| ✅ 满足 | 23 | 31 | **54** |
+| 🟡 部分 | 15 | 13 | **28** |
+| ❌ 未满足 | 4 | 10 | **14** |
 | ⚪ 不适用 | 9 | 19 | **28** |
 | **合计** | **51** | **73** | **124** |
 

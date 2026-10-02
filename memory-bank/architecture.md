@@ -305,6 +305,8 @@ nsh-management/
 | 2026-10-02 | Wave 2 批次 15（合规化计划 **W2-12**）：`scripts/check_env_docs.py` 扩展为**双向落地校验**——在原「代码 ↔ `.env.example`」之外，新增「`.env.example` 的每个键必须在 `DEPLOY.md` 出现」；`DEPLOY.md §六` 表格补全并加「表格口径」说明；自检 11→14 条。**实测证据**（`git show HEAD:DEPLOY.md` + 同一取键函数）：修复前有 7 个键未在部署文档出现 | check_env_docs.py, DEPLOY.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-02 | Wave 4 批次 16（合规化计划 **W4-13 容器与拓扑声明核实**，并更正 **F-49**）：核对 `nginx.conf`（内层构建输入）与 `nginx.conf.example`（边缘模板）职责分工——无重复维护 ✓；compose 与 `DEPLOY.md §二` 的差异属**本地演示 vs 生产单层 TLS**的设计意图（两侧均已写明）✓；`.gitignore` 第 99 行为注释、无残留忽略规则 ✓。**更正 F-49**：后端 `entrypoint.sh` 已用 `exec gosu appuser` 降权（原「后端以 root 运行」有误），仅前端成立（无 `USER`）→ W1-9 范围收窄为前端 | compliance-remediation-plan.md, security-review.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-02 | Wave 4 批次 17（合规化计划 **W4-14 威胁模型与部署声明复核**）：逐行核对 `frontend/nginx.conf` 与 `DEPLOY.md §二` 的四项声明（gzip / `/assets/` immutable / `index.html` no-store / `client_max_body_size 20m`）**全部为真**；抽查 `security-review.md §十六` STRIDE「现有控制」6 条数字（800 / 5000 / 5MB / `^https?://` / 日志保留 / 登录限流 5·5）**全部准确**；**更正一条过时的残余风险**——第 4 行「无口令复杂度要求」在 W4-10 实施口令策略后已不成立，改为「无 MFA」并补齐现有控制，同步更正 16.3 两处 | security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-02 | Wave 4 批次 18（合规化计划 **W4-15 ASVS 判定行抽样复核**）：抽样 §17 的 124 条判定（优先挑引用 F 编号/写着未做的行），**更正 3 处过时判定**——`13.3.2` ❌→🟡（后端 gosu 已降权，仅前端 root）、`16.3.2` 🟡→✅（F-50 已修）、`16.4.1` 🟡→✅（F-51 已修）；另反向验证 5 条 ✅ 行全部为真；统计重算为 **54✅ / 28🟡 / 14❌ / 28⚪** | security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 
 
 
