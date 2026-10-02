@@ -205,6 +205,12 @@ JSON 结构示例：
 索引：`schedule_id`、`status`。
 唯一约束：`(schedule_id, member_id, round_number)`；补人按 `(schedule_id, member_name, round_number)`（部分唯一索引 `uq_recording_filler_schedule_name_round`，`member_id IS NULL` 时生效——该索引由迁移 `p0q1r2s3t4u5` 落地，见 F-79）。
 业务规则：创建赛程时按局数批量初始化录屏占位记录（每人每局一条）；URL 校验支持 B站、YouTube 等。
+- **审核状态迁移（2026-10-03 补记，与实现一致）**：
+  - `pending → approved` / `pending → rejected`：**必须已提交链接**（`url` 为空时通过/驳回均返回业务错误「该录屏尚未提交链接」）；
+  - `approved` / `rejected → pending`：**帮众重新提交链接即回到待审核**，并**清空** `review_remark` 与 `reviewed_at`（重新提交视为新的待审提交）；
+  - 已审核行在重新提交后可再次审核（无终态锁定）；批量通过只处理**已提交链接**的行，未提交者自动跳过；
+  - 审计口径：审核/提交动作由审计中间件记录**请求级**信息（`method`/`path`/`status_code`/操作账号/IP），
+    **但不保存被覆盖的审核结论**（见 `.agent/plans/compliance-remediation-plan.md` 的 F-80）。
 
 ### 2.9 match_data — 比赛数据表
 
