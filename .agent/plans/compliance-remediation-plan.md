@@ -837,6 +837,9 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 
 | `check_commit_msg` / `.githooks/commit-msg`（行为验证） | 构造消息经 `--stdin` 与贡献者钩子各跑一遍 | 5 例全部符合预期 | 合规 0；摘要 54 字 1（报错精确）；缺 scope 1；非法 type 1；引用形式的禁句 0（F-110 的 strip_quoted 端到端验证）；钩子入口与 --stdin 行为一致（临时 GIT_DIR 隔离，未改任何 git 配置） |
 
+
+| 运维示例脚本（行为验证） | 隔离环境实跑（dry-run 与临时库） | 3/3 符合预期 | backup-db.sh.example：exit 0、声明 dry-run、打印 docker run 且未创建备份目录（真无副作用）；release-archive.sh.example：exit 0 且读出当前提交，非法版本 1.2 → exit 2 + 精确报错；install_git_hooks.sh：隔离库中写入 core.hooksPath=.githooks 且真实配置未被改动 |
+
 ### 11.4 一键复跑顺序
 
 ```bash
