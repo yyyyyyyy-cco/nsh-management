@@ -201,6 +201,96 @@ def nullability_risks(fe_nullable: dict[str, dict[str, dict]], be_null: dict[str
     return risks
 
 
+# ---------------- 请求侧必填（2026-10-03，F-102 扩展） ----------------
+# 前端类型名 → 后端请求模型名（人工维护；*Update 类全可选，配对后天然通过）
+PAIRS_REQ: dict[str, list[str]] = {
+    "SchedulePayload": ["ScheduleCreate"],
+    "GuildCreateRequest": ["GuildCreate"],
+    "AccountCreateRequest": ["AccountCreate"],
+    "AccountUpdateRequest": ["AccountUpdate"],
+    "AccountStatusUpdateRequest": ["AccountStatusUpdate"],
+    "GameIdRequestItem": ["GameIdRequestMemberOut"],
+    "GameIdRequestMemberPage": ["GameIdRequestMemberPage"],
+}
+
+
+def py_required(text: str) -> dict[str, dict[str, bool]]:
+    """{模型: {字段: 是否必填}}。
+
+    必填判定（**修正版**）：无 `=` 默认值，或默认值是 `Field(..., ...)`（可跨行）。
+    首版脚本用 `"Field(...)" in typ` 判断 ✗ —— `Field(...,` 不含完整 `Field(...)` ✗，
+    会把必填字段误判为可选（见 ai-checklist 第 111 条 ①）。
+    """
+    out: dict[str, dict[str, bool]] = {}
+    lines = text.split("\n")
+    cur: str | None = None
+    fields: dict[str, bool] = {}
+    pending: str | None = None  # 跨行的 Field(...) 续行
+    for line in lines:
+        cm = re.match(r"class (\w+)\s*\(", line)
+        if cm:
+            if cur:
+                out[cur] = fields
+            cur, fields, pending = cm.group(1), {}, None
+            continue
+        if cur is None:
+            continue
+        if line and not line.startswith((" ", "\t")):
+            out[cur] = fields
+            cur, fields, pending = None, {}, None
+            continue
+        fm = re.match(r"\s{4}([a-z_]\w*)\s*:\s*(.+)", line)
+        if fm:
+            name, typ = fm.group(1), fm.group(2)
+            if "=" not in typ:
+                fields[name] = True
+            elif re.search(r"=\s*Field\(\s*\.\.\.", typ):  # search 而非 match：typ 以类型名开头，match 会锚定失败
+                fields[name] = True
+            else:
+                fields[name] = False
+            pending = name if (typ.rstrip().endswith(("Field(", ",")) or typ.count("(") > typ.count(")")) else None
+            continue
+        if pending and re.match(r"\s{4,}", line) and "..." in line:
+            fields[pending] = True
+            pending = None
+    if cur:
+        out[cur] = fields
+    return out
+
+
+def ts_optional(text: str) -> dict[str, dict[str, bool]]:
+    """{接口: {字段: 是否带 `?`}}"""
+    out: dict[str, dict[str, bool]] = {}
+    for m2 in re.finditer(r"export interface (\w+)\s*(?:extends\s+[\w,\s]+)?\{([^}]*)\}", text):
+        name, body = m2.group(1), m2.group(2)
+        fields: dict[str, bool] = {}
+        for line in body.split("\n"):
+            s = line.strip()
+            if not s or s.startswith(("//", "/*", "*")):
+                continue
+            fm = re.match(r"([A-Za-z_]\w*)(\??)\s*:", s)
+            if fm:
+                fields[fm.group(1)] = fm.group(2) == "?"
+        out[name] = fields
+    return out
+
+
+def required_risks(fe_opt: dict[str, dict[str, bool]], be_req: dict[str, dict[str, bool]],
+                   pairs: dict[str, list[str]] | None = None) -> list[tuple[str, str, str]]:
+    """返回 [(前端接口, 字段, 说明)]：**后端必填但前端标了 `?`**（前端可漏传 -> 422）。"""
+    risks = []
+    for fe_name, be_names in sorted((pairs if pairs is not None else PAIRS_REQ).items()):
+        if fe_name not in fe_opt:
+            continue
+        for fname, optional in fe_opt[fe_name].items():
+            for n in be_names:
+                if n in be_req and fname in be_req[n]:
+                    if be_req[n][fname] and optional:
+                        risks.append((fe_name, fname, f"后端 {n} 必填，前端标为可选"))
+                    break
+    return risks
+
+
 # ---------------- 自检 ----------------
 SELFTEST_PY = '''
 class Parent(BaseModel):
@@ -256,8 +346,19 @@ def self_test() -> int:
         failures.append("前端 nullable 被误报")
     if nullability_risks({"A": {"x": {"optional": True, "nullable": False}}}, {"M": {"x": True}}, {"A": ["M"]}):
         failures.append("前端 optional 被误报")
+    # 8) 请求侧：后端必填 + 前端 ? -> 风险（注意 Field(..., 跨行也要判为必填）
+    py_src = 'class M(BaseModel):\n    a: str = Field(..., min_length=1)\n    b: str | None = None\n    c: int\n'
+    req = py_required(py_src)
+    if req.get("M") != {"a": True, "b": False, "c": True}:
+        failures.append(f"必填判定异常（Field(..., 应判必填）：{req.get('M')}")
+    r8 = required_risks({"A": {"a": True}}, req, {"A": ["M"]})
+    if r8 != [("A", "a", "后端 M 必填，前端标为可选")]:
+        failures.append(f"请求侧风险未检出：{r8}")
+    # 9) 前端非可选 + 后端必填 -> 不算风险
+    if required_risks({"A": {"a": False}}, req, {"A": ["M"]}):
+        failures.append("请求侧无反例失败")
 
-    total = 8
+    total = 10
     if failures:
         print("[type-drift] 自检失败：")
         for f in failures:
@@ -293,6 +394,18 @@ def main() -> int:
         be_null.update(py_nullable(p.read_text(encoding="utf-8")))
     null_risks = nullability_risks(fe_null, be_null)
     print(f"[type-drift] 空值契约：**后端可空但前端非空** {len(null_risks)} 条")
+
+    # 请求侧必填（F-102）
+    fe_opt: dict[str, dict[str, bool]] = {}
+    for p in sorted(FE_TYPES.glob("*.ts")):
+        fe_opt.update(ts_optional(p.read_text(encoding="utf-8")))
+    be_req: dict[str, dict[str, bool]] = {}
+    for p in sorted(BE_SCHEMAS.glob("*.py")):
+        be_req.update(py_required(p.read_text(encoding="utf-8")))
+    req_risks = required_risks(fe_opt, be_req)
+    print(f"[type-drift] 请求侧必填：**后端必填但前端可选** {len(req_risks)} 条")
+    for fe_name, fname, why in req_risks:
+        print(f"  - {fe_name}.{fname}：{why}")
     for fe_name, fname, why in null_risks:
         print(f"  - {fe_name}.{fname}：{why}")
     print(f"[type-drift] 已核对 {len(rows)} 对前后端模型（前端接口 {len(fe)} 个 / 后端模型 {len(be)} 个）")
@@ -301,7 +414,7 @@ def main() -> int:
             print(f"  - {name}：**仅前端有** -> {only_fe}")
     if not drift:
         print("[type-drift] 未发现「前端声明但后端不提供」的字段 : PASS")
-    return 1 if (args.strict and (drift or null_risks)) else 0
+    return 1 if (args.strict and (drift or null_risks or req_risks)) else 0
 
 
 if __name__ == "__main__":
