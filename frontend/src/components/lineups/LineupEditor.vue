@@ -176,7 +176,7 @@ import { ArrowRight, Check, Close, Download, EditPen, Search, User } from '@elem
 import { ElMessage, ElMessageBox } from 'element-plus'
 import draggable from 'vuedraggable'
 
-import { useLineupBoard, type CandidateItem, type TeamBox } from '@/composables/lineupBoard'
+import { useLineupBoard, type CandidateItem, type SlotDragEvent, type TeamBox } from '@/composables/lineupBoard'
 import ImportHistoryDialog from './ImportHistoryDialog.vue'
 import MatchConfirmDialog from './MatchConfirmDialog.vue'
 import { profColor } from '@/utils/profession'
@@ -207,7 +207,7 @@ function onSlotClick(team: TeamBox, si: number) {
 }
 
 /** 槽位放入后触发弹跳动画 */
-function onSlotChangeWithBounce(evt: any, team: TeamBox, si: number) {
+function onSlotChangeWithBounce(evt: SlotDragEvent, team: TeamBox, si: number) {
   board.onSlotChange(evt, team, si)
   if (evt.added) {
     // 找到目标槽位的 DOM 元素，添加临时动画 class

@@ -80,6 +80,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: 类型检查 + 生产构建
         run: npm run build
+      - name: 静态检查（ESLint，配置见 frontend/eslint.config.js）
+        run: npm run lint
 
   repo-hygiene:
     name: 仓库卫生（行数 / 路径 / 换行）

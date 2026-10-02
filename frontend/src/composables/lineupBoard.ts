@@ -33,6 +33,17 @@ export interface TeamBox {
 /** 职业展示顺序（依据 ui-style-guide）。 */
 export const PROF_ORDER = ['铁衣', '素问', '神相', '碎梦', '血河', '玄机', '九灵', '潮光', '龙吟', '鸿音', '沧澜']
 
+/**
+ * vuedraggable 拖拽事件对象的**最小结构声明**：只覆盖本项目实际读取的字段
+ * （`item.dataset.key` 识别被拖成员、`added/removed.element` 处理落位与回池）。
+ * 2026-10-02 引入以替代 `any`（合规化计划 W2-3 前端 lint）。
+ */
+export type SlotDragEvent = {
+  item?: { dataset?: Record<string, string | undefined> }
+  added?: { element: SlotItem | CandidateItem }
+  removed?: { element: SlotItem | CandidateItem }
+}
+
 function keyOf(memberId: number | null, name: string): string {
   return memberId != null ? `m${memberId}` : `f${name}`
 }
@@ -251,14 +262,14 @@ export function useLineupBoard(scheduleId: number) {
   let dragCtx: { key: string; team: TeamBox | null; si: number } | null = null
 
   /** 拖拽开始：记录被拖成员的来源槽位（元素上携带 data-key）。 */
-  function onSlotDragStart(evt: any, team: TeamBox, si: number) {
+  function onSlotDragStart(evt: SlotDragEvent, team: TeamBox, si: number) {
     const key = evt.item?.dataset?.key as string | undefined
     if (!key) return
     dragCtx = { key, team, si }
   }
 
   /** 拖拽开始：来源为候选池（team 为 null，表示替换而非交换）。 */
-  function onPoolDragStart(evt: any) {
+  function onPoolDragStart(evt: SlotDragEvent) {
     const key = evt.item?.dataset?.key as string | undefined
     if (!key) return
     dragCtx = { key, team: null, si: -1 }
@@ -269,7 +280,7 @@ export function useLineupBoard(scheduleId: number) {
     dragCtx = null
   }
 
-  function onSlotChange(evt: any, team: TeamBox, si: number) {
+  function onSlotChange(evt: SlotDragEvent, team: TeamBox, si: number) {
     const box = team.slots[si]
     if (evt.added) {
       const el = evt.added.element

@@ -120,8 +120,9 @@
 | vue-tsc | 前端类型检查（`npm run build` 前置） |
 | pytest | 后端测试（`backend/tests/` 新用例 + 既有 `backend/scripts/selfcheck_*.py`；内存库，配置见 `backend/pytest.ini`）。前端 Vitest 待引入 |
 | Ruff 0.12 | 后端 Python 静态检查（配置 `backend/ruff.toml`，依赖见 `backend/requirements-dev.txt`，CI 门禁） |
+| ESLint 10 + Prettier 3 | 前端静态检查与格式化（配置 `frontend/eslint.config.js`、`frontend/.prettierrc.json`；`npm run lint` / `format`，CI 门禁） |
 
-> **2026-10-02 更新（合规化计划 W2-3）**：Ruff 已配置并接入 CI（规则集 E4/E7/E9/F；全后端 `ruff check .` 通过，`alembic/versions/*` 与 3 个一次性分析脚本按文件豁免）。**前端 ESLint / Prettier 仍未配置**（需新增 npm devDependencies，另起提交）；`E501` 行长、`ruff format` 与 `I`/`UP`/`B` 规则待分级收敛后再纳入。
+> **2026-10-02 更新（合规化计划 W2-3）**：**后端 Ruff 与前端 ESLint 10 + Prettier 3 均已配置并接入 CI**——后端 `ruff check .` 通过；前端 `npm run lint` 为 **0 error / 10 warning**（10 处 `vue/no-mutating-props` 降级为 warn，属既有架构债，见计划 W2-8）、`npm run build`（vue-tsc + vite）通过。**待收紧**：`E501` 行长、`ruff format`、`I`/`UP`/`B` 规则、vue `flat/recommended` 排版规则与 Prettier 一次性格式化；后端 mypy 尚未引入。
 
 ### VS Code推荐插件
 - Volar (Vue官方插件)
