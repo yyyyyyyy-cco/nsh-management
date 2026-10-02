@@ -12,7 +12,6 @@
 - 模型侧**只统计 `= mapped_column(...)`**：`guild: Mapped[...] = relationship(...)` 是关系属性，不是列（否则会假报 ✗）。
 - 行式解析（见 ai-checklist 第 102/103 条：跨行正则容易吞掉换行与缩进）。
 """
-from __future__ import annotations
 
 import argparse
 import pathlib

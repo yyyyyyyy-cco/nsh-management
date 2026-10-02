@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """文档引用的「存活核对」：memory-bank 等文档里引用的文件路径/行号是否真实存在。
 
 **动机**：第 36–40 轮我手工反复抓到「文档指向已漂移」的问题（旧路径、旧版本号、指向不存在的文件）。
@@ -16,7 +15,6 @@
     python scripts/check_doc_refs.py                 # 报告模式（有缺失即 exit 1）
     python scripts/check_doc_refs.py --self-test     # 内置样例自检
 """
-from __future__ import annotations
 
 import re
 import subprocess

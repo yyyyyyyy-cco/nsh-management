@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """文档「数字/版本」一致性门禁（AGENTS §3.3 第 5 条「版本号 / 数量一致性」的固化）。
 
 **为什么需要**：该自检项此前只靠人工 `grep`。本项目已有教训——「靠人工核对必漏」（ai-checklist 第 34 条），
@@ -19,7 +18,6 @@
     python scripts/check_doc_numbers.py                # 校验
     python scripts/check_doc_numbers.py --self-test    # 内置样例自检
 """
-from __future__ import annotations
 
 import re
 import sys
