@@ -13,9 +13,10 @@
 | 默认分支 | `main` |
 | 远程 GitHub | `origin` → `https://github.com/yyyyyyyy-cco/nsh-management.git` |
 | 远程 Gitee | `gitee` → `https://gitee.com/Gypsophilaaa/nsh-management.git` |
-| 当前版本标签 | `v1.1.0`（新增个人战绩、系统日志模块） |
+| 当前版本标签 | `v1.2.0`（新增游戏 ID 改名审批与战绩关联、成员战绩页与单场图文战报） |
 
 > **双远程策略**：`origin`（GitHub）与 `gitee`（Gitee）互为镜像。任何推到 main 的提交和打出的 tag，都要**同步推送到两个远程**，避免仓库分叉。
+> **备注（2026-10-02）**：发布 `v1.2.0` 时本地检出 `git remote -v` **仅配置 `origin`**，无 `gitee` 远端，故该标签只推送到 GitHub；补齐 `gitee` 后需用 `git push gitee v1.2.0` 回补，恢复双远端一致。此处仅记录事实，双远程策略不变。
 
 ---
 
