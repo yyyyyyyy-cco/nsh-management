@@ -647,7 +647,7 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | `check_doc_refs` | Markdown 文档（import ast=False） | **正则是恰当工具** ✓（Markdown 无 AST ✓），保持现状 ✓ | 按需 |
 | `check_type_drift` | TS interface + Python 模型（import ast=False） | **Python 模型侧值得 AST 化** ✓（最可能的假阳性来源 ✓） | 按需 |
 | `check_schema_vs_db` | DB/迁移内省 + 文档表格比对（import ast=False） | 无需解析源码 -> **AST 无关** ✓（re 调用 0 次 ✓） | 按需 |
-| `check_doc_numbers` | Markdown 文档（import ast=False） | **正则是恰当工具** ✓（Markdown 无 AST ✓），保持现状 ✓ | 按需 |
+| `check_doc_numbers` | （未注入）| **本轮未测** ✗：我假设的 `12 张表` 在文档中**不存在** ✗（实测候选集为空 ✓）—— 下次先读真实文本再注入 ✓ |
 
 ### 11.10 行数规则的**扫描范围**核查（2026-10-03 实测，发现 F-107） —— **已闭环（2026-10-03）** ✓：F-107 完成 S1+S2 ✓（拆分 ✓ + 豁免登记 ✓ + 扩扫描 ✓ + 门禁自检 ✓）
 
@@ -727,10 +727,10 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | `check_requirements_pins` | `requirements.txt` 把 `==` 改为 `>=` | ✓ 变红 |
 | `check_env_docs` | `config.py` 新增未登记 `os.getenv` | ✓ 变红 |
 | `check_plan_integrity` | 新增无 §5 任务的 §7 行 | RED |
-| `check_stale_paths` | DEPLOY.md 写入旧绝对路径 | STILL_GREEN |
+| `check_stale_paths` | DEPLOY.md 写入**完整**旧路径 `e:\code\@Cjy\...` | **✓ 变红（有效）** ✓—— 注：我先前注入的**父目录短形式**不属该门禁检测范围 ✗，属**我的注入错** ✗，非门禁缺陷 ✓ |
 | `check_verdict_sync` | 本轮未覆盖 | **本轮未覆盖** |
 
-**结论（更正）** ✗：已确认变红的门禁为 **4 个** ✓（行数 ✓ / 依赖锁定 ✓ / 环境文档 ✓ / 计划结构 ✓）；**`check_stale_paths` 实测仍绿** ✗✗（需查清是规则不含该模式还是门禁真缺陷 ✓）；`check_doc_numbers` 未注入成功 ✗；`check_verdict_sync` 本轮未覆盖 ✗。**不得将本节读作“全部门禁已验证”** ✗。
+**结论（最终）** ✓：行数 ✓、依赖锁定 ✓、环境文档 ✓、计划结构 ✓、**陈旧路径 ✓（本轮用正确形态复验：注入完整旧路径 → exit 1 ✓，已哈希还原 ✓）** 共 **5 个门禁已行为验证** ✓；`check_doc_numbers` **本轮未测** ✗（注入目标不存在 ✗）、`check_verdict_sync` **本轮未覆盖** ✗。**不得将本节读作“全部门禁已验证”** ✗。
 
 ### 11.4 一键复跑顺序
 
@@ -748,3 +748,5 @@ python scripts/check_verdict_sync.py --self-test      && python scripts/check_ve
 
 > **门禁只写在 CI 里等于本地没有门禁**（本轮实测：陈旧路径检查原先只在 CI YAML，我手搓临时检查时口径不一致，
 > 产生 9 处假阳性）——因此本项目现在 **7 道**门禁**全部**是本地可跑的脚本，CI 只是调用它们。另有 1 个**仅报告**的辅助检查 `check_doc_refs.py`（文档引用存活核对；误报率高，**有意不接入门禁**，见 §7 W4-22）。
+
+> **2026-10-03 例外说明** ✓：本文件中若有历史记录行被改写，**仅因其含“被门禁禁止的完整旧路径字面量”** ✗，已改为门禁自检允许的**省略号形式** ✓；除此之外历史条目不回改 ✓。
