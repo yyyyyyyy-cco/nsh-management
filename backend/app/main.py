@@ -9,9 +9,10 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.api.v1.health import router as health_router
 from app.api.v1.router import api_router
 from app.core.client_ip import get_client_ip
-from app.core.config import enforce_secret_key, settings
+from app.core.config import api_docs_enabled, enforce_secret_key, settings
 from app.core.logging_config import setup_logging
 from app.core.security import decode_access_token
 from app.core.database import async_session_factory
@@ -33,7 +34,16 @@ from app.utils.excel_import import ExcelImportError
 setup_logging()
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.APP_NAME)
+# 在线 API 文档开关（合规化计划 W4-1）：生产环境关闭 `/docs`、`/redoc`、`/openapi.json`
+# （暴露完整接口与数据结构属 OWASP Top 10:2025 A02 安全配置错误）；本地开发保留以便调试。
+_DOCS_ENABLED = api_docs_enabled()
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    docs_url="/docs" if _DOCS_ENABLED else None,
+    redoc_url="/redoc" if _DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if _DOCS_ENABLED else None,
+)
 
 # 审计中间件拦截的写方法与豁免路径（login 在 auth 接口内手动埋点，含失败详情；
 # developer/logs 的 DELETE 在接口内手动埋点带清理详情）
@@ -131,6 +141,12 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.API_PREFIX)
+# 健康检查（合规化计划 W3-1）挂两处：
+#   ① 根路径 `/health`：容器 healthcheck 与内网探针直接命中（见 docker-compose.yml）；
+#   ② `/api/v1/health`：经既有 `/api/*` 反向代理对外可达，供外部 uptime 监控探活
+#      （若运维不希望对外暴露，可在边缘 Nginx 拦掉该路径）
+app.include_router(health_router)
+app.include_router(health_router, prefix=settings.API_PREFIX)
 
 
 def startup_checks() -> None:

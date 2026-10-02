@@ -102,6 +102,16 @@ def _is_production() -> bool:
         return False
 
 
+def api_docs_enabled() -> bool:
+    """是否启用在线 API 文档（`/docs`、`/redoc`、`/openapi.json`）。
+
+    生产环境关闭：在线文档会向任何访问者暴露完整接口、参数与数据结构，属
+    OWASP Top 10:2025 A02（安全配置错误）与 ASVS 配置项的整改范围（合规化计划 W4-1）；
+    本地开发环境（无非生产特征）保留，便于调试与联调。
+    """
+    return not _is_production()
+
+
 class InsecureSecretKeyError(RuntimeError):
     """生产环境 SECRET_KEY 强度不足（由启动门禁抛出，见 validate_secret_key）。"""
 

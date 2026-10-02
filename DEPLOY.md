@@ -51,6 +51,19 @@
   （`frontend/nginx.conf`，2026-09-11 生效；no-store 为 2026-09-11 下午针对微信端
   缓存旧 HTML 问题强化，index.html 同时内嵌 meta 缓存标签，见 `frontend/index.html`）。
 
+### 健康检查与在线 API 文档（2026-10-02 新增）
+
+- **健康检查端点** `GET /health`（根路径；容器 `healthcheck` 探它）：进程可用且数据库可查询 →
+  `200 {"status":"ok","database":"ok"}`；数据库不可用 → `503 {"status":"degraded","database":"error"}`。
+  数据库异常刻意**不抛 500**：否则对外表现为「应用崩溃」而非「依赖不可用」，不利排查。
+  同一端点也挂在 `/api/v1/health`，可经既有 `/api/*` 反向代理对外访问，供外部 uptime 监控探活；
+  若不希望对外暴露，可在边缘 Nginx 拦掉该路径（探活改用内网方式）。
+- **手动探活**：backend 不映射宿主端口，宿主机直接 `curl` 不通。可执行
+  `docker compose exec backend python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8000/health').read().decode())"`。
+- **生产环境关闭在线 API 文档**：`/docs`、`/redoc`、`/openapi.json` 一律 404（本地开发环境保留，便于调试）。
+  依据 OWASP Top 10:2025 A02（安全配置错误）。需要临时查阅接口时请在本地以开发环境运行后端，
+  **不要在服务器上开启**。
+
 ## 三、日常更新流程（一键）
 
 在**本地项目根目录**执行：

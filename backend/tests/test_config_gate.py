@@ -18,6 +18,7 @@ from app.core.config import (
     InsecureSecretKeyError,
     _is_production,
     _secret_key_is_weak,
+    api_docs_enabled,
     enforce_secret_key,
     settings,
     validate_secret_key,
@@ -184,3 +185,17 @@ class StartupGateWiringTests(unittest.TestCase):
             settings, "SECRET_KEY", STRONG_MIXED_KEY
         ):
             self.assertIsNone(startup_checks())
+
+
+class ApiDocsVisibilityTests(unittest.TestCase):
+    """在线 API 文档开关（W4-1）：仅生产环境关闭，本地开发保留。"""
+
+    def test_disabled_in_production(self):
+        for app_env in ("production", "prod", " PRODUCTION "):
+            with self.subTest(app_env=app_env), mock.patch.dict(os.environ, {"APP_ENV": app_env}):
+                self.assertFalse(api_docs_enabled())
+
+    def test_enabled_in_development(self):
+        for app_env in ("development", "dev", "test"):
+            with self.subTest(app_env=app_env), mock.patch.dict(os.environ, {"APP_ENV": app_env}):
+                self.assertTrue(api_docs_enabled())
