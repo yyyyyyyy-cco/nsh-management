@@ -7,9 +7,13 @@
 #   repo-hygiene  行数规则脚本 + 陈旧绝对路径 + 换行归一（W0-2/W2-5 的回归护栏）
 #   docker-build  双镜像构建 —— 这一项正是 F-08（frontend/Dockerfile COPY nginx.conf 缺失）的回归护栏
 #
-# 后续扩展：
-#   - W2-2 把 backend/scripts/selfcheck_*.py 迁为 pytest 用例后，在 backend job 追加 `python -m pytest -q`
-#   - W2-3 引入 ruff/mypy/eslint 后，把静态检查步骤加进对应 job（先以 warn 起步再收紧）
+# 现状（2026-10-03 核对，替换原先的「后续扩展」设想——其前置条件均已满足）：
+#   - backend job 已含 `python -m pytest`（W2-2 完成）与 `ruff check .`（W2-3 完成）
+#   - frontend job 已含 `npm run lint` 与 `npm run test`（W2-3 / W1-13 完成）
+#   - repo-hygiene 已含 7 道门禁中的全部（每道均为「自检 + 实跑」两步；2026-10-03 补齐 check_file_length 的自检）
+#   - commit-msg 作业校验基线之后的每个提交（基线文件 .github/commit-msg-baseline）
+#   - docker-build 为双镜像构建护栏（F-08 回归）
+#   仍未接入：mypy（见计划 W2-14）；Node/Python 基座版本待 W1-5/W1-7 统一后同步
 name: CI
 
 on:
@@ -93,8 +97,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: 文件行数规则（标记 + 登记双重校验）
-        run: python scripts/check_file_length.py
+      - name: 文件行数规则（自检 + 标记/登记双重校验）
+        run: |
+          python scripts/check_file_length.py --self-test
+          python scripts/check_file_length.py
       - name: 依赖清单锁定（自检 + 实际清单）
         run: |
           python scripts/check_requirements_pins.py --self-test
