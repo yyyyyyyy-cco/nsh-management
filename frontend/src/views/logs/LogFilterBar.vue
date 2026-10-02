@@ -43,13 +43,15 @@ import { moduleLabels } from './logLabels'
 
 defineProps<{
   guilds: Guild[]
-  filters: {
-    username: string
-    guild_id: number | null
-    module: string | null
-    level: string | null
-  }
 }>()
+
+// 筛选表单会写 `filters.*`：与下方 `dateRange` 一致，声明为 model（W2-8）
+const filters = defineModel<{
+  username: string
+  guild_id: number | null
+  module: string | null
+  level: string | null
+}>('filters', { required: true })
 
 defineEmits<{ search: []; reset: [] }>()
 

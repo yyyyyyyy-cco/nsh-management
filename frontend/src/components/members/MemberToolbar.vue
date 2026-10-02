@@ -42,7 +42,11 @@ import { Delete, Download, Plus, Search, Upload } from '@element-plus/icons-vue'
 import type { MemberQuery } from '@/api/members'
 import { MEMBER_STATUSES, PROFESSIONS } from '@/utils/constants'
 
-defineProps<{ query: MemberQuery; exporting: boolean; selectedCount: number }>()
+// `query` 由子组件双向使用（筛选输入与下拉），故声明为 model 而非 prop：
+// defineModel 返回 ref，模板中就地更新的是**父组件共享的同一对象**，行为与改前一致（2026-10-03 W2-8）。
+const query = defineModel<MemberQuery>('query', { required: true })
+
+defineProps<{ exporting: boolean; selectedCount: number }>()
 
 defineEmits<{
   search: []

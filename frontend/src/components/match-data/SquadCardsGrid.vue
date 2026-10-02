@@ -107,9 +107,11 @@ const props = defineProps<{
   isAdmin: boolean
   detailSquad: string
   compareMode: boolean
-  compareChecked: Record<string, boolean>
   compareSelectedCount: number
 }>()
+
+// 勾选映射由子组件写入（`compareChecked[squad_name] = v`）：声明为 model（W2-8）
+const compareChecked = defineModel<Record<string, boolean>>('compareChecked', { required: true })
 
 const emit = defineEmits<{
   'open-detail': [name: string]

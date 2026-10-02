@@ -101,8 +101,10 @@ defineProps<{
   items: MemberInfo[]
   total: number
   selectedIds: number[]
-  query: MemberQuery
 }>()
+
+// 分页控件会写 `query.page` / `query.page_size`：声明为 model，避免改 prop（W2-8）
+const query = defineModel<MemberQuery>('query', { required: true })
 
 const emit = defineEmits<{
   'selection-change': [rows: MemberInfo[]]

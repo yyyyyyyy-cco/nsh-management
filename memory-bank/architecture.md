@@ -353,6 +353,8 @@ nsh-management/
 
 | 2026-10-03 | Wave 1 批次 31（合规化计划 **W1-13**，收口 **F-59**）：前端工具链升级——`vite` 5.4.21 → **6.4.3**、`esbuild` → **0.25.12**（随 vite 依赖）、`vitest` 3.2.7 → **4.1.11**；升级后逐包复核公告：**6 条中 5 条清除**，剩余 1 条（esbuild）经 API `withdrawn_at` **实证为上游已撤回**；回归证据 build exit 0 / test 60 passed / lint 0 error；`CONTRIBUTING.md` 补充换源指引；教训记入 ai-checklist 第 66 条 | frontend/package.json, frontend/package-lock.json, CONTRIBUTING.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 
+| 2026-10-03 | Wave 2 批次 32（合规化计划 **W2-8**）：用 `defineModel` 消除 **10 处 `vue/no-mutating-props`** 告警（4 个文件：`SquadCardsGrid`/`MemberTablePanel`/`MemberToolbar`/`LogFilterBar`）；因父组件为 `reactive` 常量、`defineModel` 就地写共享对象语义与改前一致 → **父组件零改动**；验证：lint **10→0**、`vue-tsc` exit 0、`build` exit 0、`test` 60 passed；**页面级交互验收仍待浏览器授权**；教训记入 ai-checklist 第 67 条 | SquadCardsGrid.vue, MemberTablePanel.vue, MemberToolbar.vue, LogFilterBar.vue, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 ## 使用说明
 
 1. **开发前**：阅读本文档了解项目结构，然后按需阅读具体文档
