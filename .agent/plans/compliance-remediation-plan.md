@@ -505,15 +505,15 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 |----|------|---------|
 | 后端静态检查 | `ruff check .`（0.12.0） | All checks passed（exit 0） |
 | 后端字节码编译 | `python -m compileall -q app backend` | exit 0 |
-| 后端测试套件 | `python -m pytest`（Python 3.12 + 锁定依赖） | **178 passed + 89 subtests，exit 0**（2026-10-03 实测） |
-| 前端测试套件 | `npm run test`（vitest **4.1.11** + jsdom） | **60 passed / 7 文件，exit 0，无 unhandled error**（2026-10-03 实测） |
+| 后端测试套件 | `python -m pytest`（Python 3.12 + 锁定依赖） | **266 passed + 89 subtests，exit 0**（2026-10-03 批次 90 重测） |
+| 前端测试套件 | `npm run test`（vitest **4.1.11** + jsdom） | **69 passed / 8 files，exit 0，无 unhandled error**（2026-10-03 批次 90 重测） |
 | 前端 lint | `npm run lint` | **0 error / 0 warning**（W2-8 已于 2026-10-03 用 `defineModel` 清零；ESLint 无问题时**不打印 problems 行**） |
 | 前端类型检查 + 构建 | `npm run build`（`vue-tsc` + **vite 6.4.3**；TEMP 指向工作区） | exit 0（≈8.4s，2026-10-03 实测） |
 | 门禁 1 行数规则 | `check_file_length.py` | PASS（自检 9/9 + 实跑；自检为 2026-10-02 补齐，此前只有实跑） |
 | 门禁 2 依赖锁定 | `check_requirements_pins.py` | PASS（自检 12/12） |
 | 门禁 3 环境变量文档 | `check_env_docs.py` | PASS（自检 **14/14**；17/17 已文档化 **且 17/17 已在 `DEPLOY.md` 提及**） |
 | 门禁 4 计划结构 | `check_plan_integrity.py` | PASS（自检 8/8；任务↔进度一一对应） |
-| 门禁 5 陈旧绝对路径 | `check_stale_paths.py` | PASS（自检 5/5；扫描 **360** 个跟踪文件 0 命中，2026-10-03 实测） |
+| 门禁 5 陈旧绝对路径 | `check_stale_paths.py` | PASS（自检 5/5；扫描 **383** 个跟踪文件 0 命中，2026-10-03 实测） |
 | 门禁 6 文档数字/版本一致性 | `check_doc_numbers.py` | PASS（自检 8/8；真值 12 表 / 16 迁移 / v1.9，扫描全部当前态行） |
 | 门禁 7 判定与修复状态同步 | `check_verdict_sync.py` | PASS（自检 **13/13**；严格模式 0 处） |
 | 仓库卫生 | `git status --porcelain` / `git ls-files --eol` | 工作区干净；索引无 CRLF（`i/lf`） |
@@ -543,6 +543,26 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | 远端分支删除授权 | W3-5 | 3 个已合并分支仍在远端 |
 | **默认口令策略**（F-61：`admin123` 在应用自身黑名单内） | W1-14 | 影响首次部署的账号安全与使用体验 |
 | **构建产物移出版本库的删除授权**（F-60） | W2-13 | `frontend/tsconfig.node.tsbuildinfo` 仍被跟踪 |
+
+
+### 11.5 决策就绪包（批次 90，2026-10-03 实测事实）
+
+> 目的：把待决策项做成「**事实 → 选项 → 影响**」，使每项**一句话即可拍板**。全部事实均为本轮**实测**（文件行号可复核）。
+
+| # | 决策 | 实测事实（本轮） | 选项 | 影响面 | 我的建议 |
+|---|------|-----------------|------|--------|---------|
+| J-1 | **是否推送本地提交**（最高优先） | 领先 `origin/main` **137** 个提交 ✓；CI 从未运行 ✗；本机**无 Python 3.11** ✗ | ① 推送 ② 暂不 | 推送后立即获得：**3.11 全量测试** ✓、**5 个报告型步骤**真跑 ✓、`W1-4` 哈希锁可生成 ✓、远端可见 ✓ | **①** —— 这是唯一能补齐「环境不可验证」的钥匙 ✓ |
+| J-2 | **D-4 版本联动**（`W3-4`） | `frontend/package.json` = **0.1.0** ✓、后端**无版本声明** ✗、`CHANGELOG.md` 最新 **1.2.0** ✓；三段版本日期与 git 标签**逐一相符** ✓ | ① 收敛到单一来源（以 CHANGELOG 为准，`package.json` 随 tag 发布）② 保持独立 | ① 制品可反查版本 ✓（SemVer / 12-Factor V）；② 现状无追溯能力 ✗ | **①**（成本低：改 1 处 + 加 1 条 CI 校验 ✓） |
+| J-3 | **开发者对按帮会隔离路径的访问**（决定 mypy 最后 **56** 条） | mypy 共 **59** 条 ✓，其中 **56** 条为 `current_user.guild_id`（`int | None`）传入要求 `int` 的服务 ✓；`deps.py` 的 `require_admin` **含** developer ✓ 而 `require_admin_strict` **不含** ✓ | ① 保持隐式放行 ② 显式收紧为管理员 ③ 仅收紧写操作、放行读操作 | ① 行为不变 ✓ 但类型层长期带 56 条噪声 ✗；② 语义最清晰 ✓ 但可能改变 developer 用法 ✗（**需你确认是否有人依赖**）；③ 折中 ✓ | **③**（先收紧写、读保留 ✓），可一次清 40+ 条并保留可用性 ✓ |
+| J-4 | **F-106 动态属性注入方案** | 3 处：`attendance.py:58/82` 的 `m.member_status = m.status` ✓、`recording_service.py:131` 的 `r.profession = …` ✓；schema **暴露**这些字段 ✓，ORM 模型**未声明** ✗；运行期可用 ✓ | ① 在模型上声明**非映射**属性 ② 由响应层计算 ③ 保留 + 显式 `setattr` | ① 类型可见 ✓ 且**不动 DB** ✓；② 更正统 ✓ 但需改响应组装；③ 最省事 ✓ 但类型检查仍沉默 ✗ | **①**（改 2 个模型 + 3 处赋值点，风险低 ✓） |
+| J-5 | **默认口令策略**（F-61，`W1-14`） | 默认账号**仅当** `ADMIN_PASSWORD`/`MEMBER_PASSWORD` 存在时才创建 ✓（`init_db.py:63/72/87`）；`plain_password` 明文列仅 developer 可见 ✓；已有针对 `SECRET_KEY` 的弱密钥检查 ✓（`core/config.py:_secret_key_is_weak`） | ① 强制首登改密 ② 文档强提示 + 生成随机初始口令 ③ 现状 | ① 最安全 ✓ 但需加字段/迁移 ✗；② 成本低 ✓ 但依赖部署者自觉 ✗；③ 弱口令风险 ✗ | **②**（并在 `DEPLOY.md` 给随机口令示例 ✓） |
+| J-6 | **两个读取端点的可见范围**（F-73） | `GET /config/professions` → `get_current_user` ✓、`GET /members/attendance-rate` → `get_current_user` ✓；同文件其余读取均为 `require_admin` ✓（`profession-stats`、`export` 等） | ① 保持现状（登录即可读）② 收紧为 `require_admin` | ① 帮众可见**全局职业目标**与**出勤率**；② 收紧后若前端依赖这些数据会失效 ✗（**需确认前端用途**） | **先确认前端用途再定** ✓（下一轮我给出「若收紧，哪些前端调用会失败」的清单 ✓） |
+| J-7 | **已通过录屏是否允许重提交**（F-80） | `recording_service.py:167` 明确写「重新提交回到待审核」✓，**对上一次状态无限制** ✗（approved → 可回 pending） | ① 允许（现状）② 仅 `rejected` 可重提交 | ① 审核记录可被反复刷新 ✗（审计性弱）；② 审核结论更稳定 ✓ 但成员改错后无法自救 ✗ | **②**（配一条「管理员可退回」路径 ✓） |
+| J-8 | **职业目标之和是否设上限**（F-84） | 单条边界已校验 ✓（`0..MAX_PROFESSION_TARGET`，`config_service.py:60/115`）；**无总和校验** ✗；排表容量 **10 队 × 6 人 = 60** ✓ | ① 加总和上限/告警 ② 不加 | ① 防配置失真 ✓；② 允许超出 ✗ | **①（告警而非硬拦 ✓）** |
+| J-9 | **`F-100` 非调色板色调 5 处** | `#f6ecd0`×4 ✓、`#f3e6c4` ✓、`#fdf8ec` ✓、`#eef3f8`×3 ✓、`#f2f5f8` ✓ | ① 归并到 `theme.css` 令牌 ② 保留 | ① 视觉**可能**有极小变化 ✗（**需你确认可接受**）；② 现状 | **①**，但我会**先给颜色差异对照**再改 ✓ |
+| J-10 | **删除授权两项** | `W2-13`：`frontend/tsconfig.node.tsbuildinfo` 仍被跟踪 ✓（需 `git rm --cached`）；`W3-5`：远端 **3~4** 个已合并分支 ✓ | ① 授权执行 ② 暂缓 | ① 构建产物不再入库 ✓ / 分支清爽 ✓；② 现状 | **①** |
+
+> J-6 的后续（我可自主完成 ✓）：给出「若收紧，前端哪些调用会失败」的清单，使 J-6 也能一句话拍板 ✓。
 
 ### 11.4 一键复跑顺序
 
