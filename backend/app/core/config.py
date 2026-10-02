@@ -70,6 +70,9 @@ _WEAK_SECRET_KEYS = frozenset({
     Settings._DEV_SECRET_KEY,
     "your-secret-key-change-this",
     "please-change-me-with-openssl-rand-hex-32",
+    # CI 工作流中的占位密钥（64 字符纯 hex，会走下方豁免通道）——显式封禁，
+    # 防止被粘进生产：它是**顺序十六进制**，零熵（2026-10-03 仓库密钥扫描发现 F-62）。
+    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
 })
 
 # 可猜片段黑名单（小写匹配）：拦截「长而可猜」的拼接式密钥。
@@ -81,20 +84,40 @@ _GUESSABLE_FRAGMENTS = frozenset({
 })
 _YEAR_PATTERN = re.compile(r"20\d{2}")
 _HEX_PATTERN = re.compile(r"[0-9a-f]+")
+_MIN_DISTINCT_HEX = 8  # 随机 hex 的不同字符数通常 15–16；低于此值视为可猜
+
+
+def _hex_is_low_entropy(key: str) -> bool:
+    """纯十六进制串是否「可猜」：周期重复，或不同字符数过少。
+
+    背景（F-62，2026-10-03 仓库密钥扫描发现）：`_secret_key_is_weak` 对 ≥64 字符纯 hex 设有豁免通道
+    （避免随机 hex 偶然出现年份模式被误杀），但该豁免**也放过了** `0123456789abcdef...` 这类顺序串——
+    长度达标、纯 hex，却毫无熵。故豁免前先做两项检查：
+    ①周期性（整串是否为短周期的整数倍重复）；②不同字符数 < 8。
+    随机 64 位 hex 的实测不同字符数为 15–16，两项都不会误杀合法强密钥。
+    """
+    if not _HEX_PATTERN.fullmatch(key):
+        return False
+    n = len(key)
+    for period in range(1, min(32, n // 2) + 1):
+        if n % period == 0 and key == key[:period] * (n // period):
+            return True
+    return len(set(key)) < _MIN_DISTINCT_HEX
 
 
 def _secret_key_is_weak(key: str) -> bool:
     """密钥强度判定：弱集合 / 长度 <32 / 含可猜片段或年份 → True。
 
-    豁免通道：≥64 字符的纯十六进制串（即 openssl rand -hex 32 及以上，熵 ≥256 bit）
-    恒判为强；否则年份模式 20\\d\\d 在随机 hex 中会偶然出现（单密钥概率约 20%），
-    导致误杀合法强密钥。
+    豁免通道：≥64 字符的纯十六进制串（即 openssl rand -hex 32 及以上，熵 ≥256 bit）**且不低熵**时判为强；
+    否则年份模式在随机 hex 中会偶然出现（单密钥概率约 20%），导致误杀合法强密钥。
+    注意：豁免**不覆盖低熵 hex**（顺序/短周期重复串），见 `_hex_is_low_entropy`（F-62）。
     """
     if key in _WEAK_SECRET_KEYS or len(key) < 32:
         return True
     lowered = key.lower()
     if len(lowered) >= 64 and _HEX_PATTERN.fullmatch(lowered):
-        return False
+        # 豁免前先排除低熵 hex（顺序/重复串），见 F-62
+        return _hex_is_low_entropy(lowered)
     return any(frag in lowered for frag in _GUESSABLE_FRAGMENTS) or bool(_YEAR_PATTERN.search(lowered))
 
 

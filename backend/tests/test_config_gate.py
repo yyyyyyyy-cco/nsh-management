@@ -31,6 +31,42 @@ BACKEND_ROOT = Path(__file__).resolve().parents[1]
 STRONG_MIXED_KEY = "Kj7#mQ2!vX9@bN4$wZ8%tR6^yU1&pL5*"
 
 
+class HexEntropyTest(unittest.TestCase):
+    """F-62：hex 豁免通道不得放过顺序/重复类低熵密钥（仓库密钥扫描发现）。"""
+
+    def test_ci_placeholder_key_is_rejected(self) -> None:
+        from app.core.config import _secret_key_is_weak
+
+        self.assertTrue(
+            _secret_key_is_weak("0123456789abcdef" * 4),
+            "CI 使用的顺序十六进制占位密钥必须判为弱（64 字符纯 hex，但零熵）",
+        )
+
+    def test_repeated_unit_key_is_rejected(self) -> None:
+        from app.core.config import _secret_key_is_weak
+
+        self.assertTrue(_secret_key_is_weak("abcd" * 16), "短周期重复串必须判为弱")
+        self.assertTrue(_secret_key_is_weak("a" * 64), "单一字符重复必须判为弱")
+
+    def test_low_distinct_chars_flagged(self) -> None:
+        from app.core.config import _hex_is_low_entropy
+
+        self.assertTrue(_hex_is_low_entropy("abababcdabababcd" * 4), "不同字符数过少 → 低熵")
+        self.assertFalse(
+            _hex_is_low_entropy("9f2c41ab7de3560c8a1f4b6d2e907c35a8b1d4e607f3a92c5b8e1d0f7a3c6e94"),
+            "随机 hex 不应被判为低熵",
+        )
+
+    def test_random_hex_still_accepted(self) -> None:
+        """回归保护：合法随机 hex（openssl rand -hex 32）必须仍判为强。"""
+        from app.core.config import _secret_key_is_weak
+
+        self.assertFalse(
+            _secret_key_is_weak("9f2c41ab7de3560c8a1f4b6d2e907c35a8b1d4e607f3a92c5b8e1d0f7a3c6e94"),
+            "随机 hex 必须仍被接受（豁免通道不能被改坏）",
+        )
+
+
 class SecretKeyStrengthTests(unittest.TestCase):
     """弱密钥判定：明显弱值一律拦截，强值不误杀。"""
 
