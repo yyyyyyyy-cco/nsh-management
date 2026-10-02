@@ -13,7 +13,7 @@
 |------|------|------|---------|
 | Vue | 3.x | UI框架 | 渐进式框架，学习曲线平缓，中文文档完善 |
 | TypeScript | 5.x | 类型系统 | 类型安全，减少运行时错误 |
-| Vite | 5.x | 构建工具 | 快速冷启动，热更新快，Vue官方推荐 |
+| Vite | 6.x | 构建工具 | 快速冷启动，热更新快，Vue官方推荐（2026-10-03 W1-13 由 5.4 升级到 **6.4.3**，为清除 dev server 系列公告；engines 要求 Node `^18 || ^20 || >=22`） |
 | Element Plus | 2.x | UI组件库 | Vue3组件库，中文友好，企业级组件 |
 | Vue Router | 4.x | 路由管理 | Vue官方路由，支持嵌套路由 |
 | Pinia | 2.x | 状态管理 | Vue官方推荐，轻量级，TypeScript友好 |
@@ -44,7 +44,7 @@
 | uvicorn | 0.x | ASGI服务器 | 高性能异步服务器 |
 | aiosqlite | 0.x | 异步SQLite | 异步数据库驱动 |
 | openpyxl | 3.1.5 | Excel 导入导出 | 成员模板解析与成员导出 |
-| Pillow | 11.x | 图片导出 | 常驻库导出图片 |
+| Pillow | 12.x | 图片导出 | 常驻库导出图片（2026-10-03 W1-8 由 11.1.0 升级到 **12.3.0**，见 `security-review.md §14.7`） |
 
 ### 后端项目结构
 
@@ -58,7 +58,7 @@
 > **锁定状态（2026-10-02，W1-4）**：`fastapi` 由 `>=0.115.0` 改为 **`==0.142.2`**、`python-multipart` 由 `>=0.0.18` 改为 **`==0.0.32`**，并显式锁定传递引入的 **`starlette==1.7.0`**——三者均为**本仓已实测通过**的组合（pytest 93 用例 + selfcheck 全绿；PyPI 元数据 `requires_python >=3.10`，与 3.11 基座兼容）。范围约束的漂移风险与实测证据见合规化计划 F-15；门禁 `scripts/check_requirements_pins.py` 已接入 CI，阻止再次引入范围约束。
 > **仍待完成**：带**哈希**的全量锁文件（`pip-compile` / `uv pip compile`）必须在**部署所用 Python（3.11）**环境生成，否则会锁到 cp312 等错误 wheel；本机无 3.11，故未生成——列入 W1-4 收尾。
 
-> 版本说明（2026-10-02 复核，按代码事实）：**运行时以 Python 3.11 为准**（生产镜像基座与 CI 一致；本地开发 3.11–3.13 可用）。pydantic / SQLAlchemy 固定版本均有对应 wheel；bcrypt 固定版本的锁定与升级依据 以兼容 passlib 1.7.4（≥4.1 会报错）；fastapi 锁定 0.142.2；openpyxl 用于 Excel 导入导出；python-multipart 锁定 0.0.32（修复 CVE-2024-53981）。
+> 版本说明（2026-10-02 复核，按代码事实）：**运行时以 Python 3.11 为准**（生产镜像基座与 CI 一致；本地开发 3.11–3.13 可用）。pydantic / SQLAlchemy 固定版本均有对应 wheel；`bcrypt` 由 `4.0.1`（曾为兼容 passlib 而钉死）升至 **`4.3.0`** 并改为直连调用（W1-10），`passlib` **已移除**。
 
 ---
 
@@ -120,12 +120,12 @@
 | VS Code | 推荐 IDE |
 | vue-tsc | 前端类型检查（`npm run build` 前置） |
 | pytest | 后端测试（`backend/tests/` 新用例 + 既有 `backend/scripts/selfcheck_*.py`；内存库，配置见 `backend/pytest.ini`） |
-| Vitest 3 | 前端单元测试（`frontend/src/**/*.spec.ts`，jsdom 环境，配置见 `frontend/vitest.config.ts`；`npm run test`）。**版本须为 3.x**：5.x 的 peer 要求 `vite ≥6.4`，与项目固定的 vite 5.4 冲突 |
+| Vitest 4 | 前端单元测试（`frontend/src/**/*.spec.ts`，jsdom 环境，配置见 `frontend/vitest.config.ts`；`npm run test`）。当前 **4.1.11**（2026-10-03 W1-13 由 3.2.7 升级，清除 dev-only 公告）。**已核实 peer**：`vitest 4.1.11 → vite ^6 || ^7 || ^8`、`vitest 5.0.0 → vite ^6.4 || ^7 || ^8` —— 故升级 vite 到 6.4.3 后，原「必须停留在 3.x」的约束**已不存在** |
 | @vue/test-utils 2 | 组件级用例挂载（`components/**/*.spec.ts`；配合 jsdom + `@vitejs/plugin-vue`，见 `frontend/vitest.config.ts`）。2026-10-02 随首个组件用例（自助改密对话框）引入 |
 | Ruff 0.12 | 后端 Python 静态检查（配置 `backend/ruff.toml`，依赖见 `backend/requirements-dev.txt`，CI 门禁） |
 | ESLint 10 + Prettier 3 | 前端静态检查与格式化（配置 `frontend/eslint.config.js`、`frontend/.prettierrc.json`；`npm run lint` / `format`，CI 门禁） |
 
-> **2026-10-02 更新（合规化计划 W2-3）**：**后端 Ruff 与前端 ESLint 10 + Prettier 3 均已配置并接入 CI**——后端 `ruff check .` 通过；前端 `npm run lint` 为 **0 error / 10 warning**（10 处 `vue/no-mutating-props` 降级为 warn，属既有架构债，见计划 W2-8）、`npm run build`（vue-tsc + vite）通过。**待收紧**：`E501` 行长、`ruff format`、`I`/`UP`/`B` 规则、vue `flat/recommended` 排版规则与 Prettier 一次性格式化；后端 mypy 尚未引入。
+> **2026-10-02 更新（合规化计划 W2-3）**：**后端 Ruff 与前端 ESLint 10 + Prettier 3 均已配置并接入 CI**——后端 `ruff check .` 通过；前端 `npm run lint` 为 **0 error / 0 warning**（10 处 `vue/no-mutating-props` 债已于 2026-10-03 由 W2-8 用 `defineModel` 清零；ESLint 在无问题时**不打印 problems 行**）、`npm run build`（vue-tsc + vite）通过。**待收紧**：`E501` 行长、`ruff format`、`I`/`UP`/`B` 规则、vue `flat/recommended` 排版规则与 Prettier 一次性格式化；后端 mypy 尚未引入。
 
 ### VS Code推荐插件
 - Volar (Vue官方插件)

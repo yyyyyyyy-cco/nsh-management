@@ -119,6 +119,67 @@ def run_self_test() -> int:
     return 1 if failed else 0
 
 
+_TS_ROW = re.compile(r"^\| (?P<name>[A-Za-z0-9_.\- ]+?) \| (?P<ver>[0-9][0-9.x]*)(?:\(锁定\))? \|")
+_TS_ALIAS = {
+    "vite": "vite", "vitest": "vitest", "vue": "vue", "typescript": "typescript",
+    "element plus": "element-plus", "pinia": "pinia", "axios": "axios", "echarts": "echarts",
+    "dayjs": "dayjs", "html2canvas": "html2canvas", "vue router": "vue-router",
+    "vue.draggable.next": "vuedraggable", "fastapi": "fastapi", "sqlalchemy": "sqlalchemy",
+    "pydantic": "pydantic", "python-jose": "python-jose", "bcrypt": "bcrypt",
+    "python-multipart": "python-multipart", "uvicorn": "uvicorn", "aiosqlite": "aiosqlite",
+    "openpyxl": "openpyxl", "pillow": "pillow", "alembic": "alembic",
+}
+
+
+def real_pins() -> dict:
+    """清单实际版本：后端 requirements*.txt 的 `==` 锁定 + 前端 package-lock.json 已解析版本。"""
+    pins: dict = {}
+    for rel in ("backend/requirements.txt", "backend/requirements-dev.txt"):
+        f = ROOT / rel
+        if not f.exists():
+            continue
+        for line in f.read_text(encoding="utf-8").split("\n"):
+            m = re.match(r"^([A-Za-z0-9_.\-]+)(?:\[[^\]]*\])?==([0-9][^\s#]*)", line.strip())
+            if m:
+                pins.setdefault(m.group(1).lower(), m.group(2))
+    lock = ROOT / "frontend" / "package-lock.json"
+    if lock.exists():
+        try:
+            import json
+
+            pkgs = json.loads(lock.read_text(encoding="utf-8")).get("packages", {})
+            for name, info in pkgs.items():
+                if name.startswith("node_modules/") and info.get("version"):
+                    pins.setdefault(name[len("node_modules/"):], info["version"])
+        except Exception:
+            pass
+    return pins
+
+
+def check_tech_stack(text: str, pins: dict) -> list:
+    """tech-stack.md 的「依赖 → 版本」行 vs 清单实际版本（纯函数）。
+
+    文档写 `N.x` → 实际主版本必须为 N；写精确版本 → 实际版本须以其为前缀；名字不在别名表内则跳过。
+    """
+    problems = []
+    for m in _TS_ROW.finditer(text):
+        name = m.group("name").strip().lower()
+        doc_ver = m.group("ver").strip()
+        pkg = _TS_ALIAS.get(name)
+        if not pkg or pkg not in pins:
+            continue
+        real = pins[pkg].lstrip("=")
+        dm = re.match(r"^(\d+)", doc_ver)
+        rm = re.match(r"^(\d+)", real)
+        if not dm or not rm:
+            continue
+        if dm.group(1) != rm.group(1):
+            problems.append(f"tech-stack 写 {name} {doc_ver}，但清单实际是 {real}（主版本不一致）")
+        elif not doc_ver.endswith("x") and not real.startswith(doc_ver):
+            problems.append(f"tech-stack 写 {name} {doc_ver}，但清单实际是 {real}（精确版本不一致）")
+    return problems
+
+
 def main(argv: list[str]) -> int:
     if "--self-test" in argv:
         return run_self_test()
@@ -133,6 +194,9 @@ def main(argv: list[str]) -> int:
 
     lines = current_lines()
     problems = analyze(lines, tables, migrations, db_version)
+    ts_doc = ROOT / "memory-bank" / "tech-stack.md"
+    if ts_doc.exists():
+        problems += check_tech_stack(ts_doc.read_text(encoding="utf-8"), real_pins())
     print(f"[doc-numbers] 真值：模型表数 {tables}、迁移文件 {migrations}、database-design {db_version or '未识别'}")
     print(f"[doc-numbers] 扫描当前态行 {len(lines)} 行（已排除日期开头的更新记录行）")
     if problems:

@@ -161,6 +161,7 @@
 | F-61 | **默认管理员口令是应用自身黑名单里的弱口令**：文档与 `.env.example` 的 `admin123` 同时出现在 `password_policy.CONTEXT_WORDS` 中 ✗——系统发布了「自己认为太弱」的默认口令（现由「首登后改密」要求缓解） | `.env.example`、`README.md`、`DEPLOY.md` | **待决策（W1-14）** | P2 |
 | F-62 | **弱密钥门禁的 hex 豁免通道放过了零熵密钥**：`_secret_key_is_weak` 对「≥64 字符纯 hex」恒判为强，于是 CI 里的 `0123456789abcdef…`（顺序十六进制、零熵）**能通过生产门禁** ✗ | `backend/app/core/config.py` | **已修（2026-10-03）**：豁免前增加 `_hex_is_low_entropy`（周期性 + 不同字符数 <8）+ 显式封禁该字面量 + `HexEntropyTest` 4 用例 | P2 |
 | F-63 | **计划出现重复的顶层章节号（两个 `## 9.`）**：`9. 风险登记` 与 `9. 验收清点` 同号（第 46 轮追加时未检查唯一性）；且**验收清点里的数字已过时**（后端 158→178、前端 lint 10 warning→0、构建 ≈19s→≈8.4s、扫描 353→360 个文件）——执行类文档的数字最易腐坏 | `.agent/plans/compliance-remediation-plan.md`、`scripts/check_plan_integrity.py` | **已修（2026-10-03）**：验收清点改为 **§11**（编号 1–11 唯一且单调）、数字按实测刷新、复跑清单补到 7 道；并给 `check_plan_integrity` 增加**章节编号唯一性检查**（含 2 条自检样例 + 反向验证） | P3 |
+| F-64 | **技术栈权威源未随依赖升级回填**（AGENTS §2.1 规定技术栈版本权威源为 `tech-stack.md` + `requirements.txt`）：文档仍写 `Vite 5.x`（实际 **6.4.3**）、`Pillow 11.x`（实际 **12.3.0**，W1-8 升级时漏回填）、`Vitest 3` 并附「**版本须为 3.x**（5.x 需 vite ≥6.4，与 vite 5.4 冲突）」的**已失效约束**（实际 4.1.11；已核实 peer：4.1.11 → `vite ^6\|\|^7\|\|^8`、5.0.0 → `vite ^6.4\|\|^7\|\|^8`）、lint 仍写 `10 warning`（实际 **0**） | `memory-bank/tech-stack.md`、`scripts/check_doc_numbers.py` | **已修（2026-10-03）**：四处按实测回填（另修 passlib 残留表述与 `；；`）；并给 `check_doc_numbers` 增加**「tech-stack ↔ 清单实际版本」交叉核对**（`real_pins()` + `check_tech_stack()`，含反向验证） | P2 |
 
 ---
 
