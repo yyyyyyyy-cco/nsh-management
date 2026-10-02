@@ -104,7 +104,7 @@
 测试与优化：补充单元测试、压力测试、安全审计；未解决风险见 `memory-bank/security-review.md` §十。
 
 ### 隔离与导出回归（2026-09-18 新增）
-在项目根目录用 backend 虚拟环境运行（无需 pytest/httpx，不连接业务数据库）：
+在项目根目录用 backend 虚拟环境运行（无需 pytest/httpx2，不连接业务数据库）：
 
 ```bat
 backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_security_fixes.py
