@@ -118,7 +118,8 @@
 | Git | 版本控制 |
 | VS Code | 推荐 IDE |
 | vue-tsc | 前端类型检查（`npm run build` 前置） |
-| pytest | 后端测试（`backend/tests/` 新用例 + 既有 `backend/scripts/selfcheck_*.py`；内存库，配置见 `backend/pytest.ini`）。前端 Vitest 待引入 |
+| pytest | 后端测试（`backend/tests/` 新用例 + 既有 `backend/scripts/selfcheck_*.py`；内存库，配置见 `backend/pytest.ini`） |
+| Vitest 3 | 前端单元测试（`frontend/src/**/*.spec.ts`，jsdom 环境，配置见 `frontend/vitest.config.ts`；`npm run test`）。**版本须为 3.x**：5.x 的 peer 要求 `vite ≥6.4`，与项目固定的 vite 5.4 冲突 |
 | Ruff 0.12 | 后端 Python 静态检查（配置 `backend/ruff.toml`，依赖见 `backend/requirements-dev.txt`，CI 门禁） |
 | ESLint 10 + Prettier 3 | 前端静态检查与格式化（配置 `frontend/eslint.config.js`、`frontend/.prettierrc.json`；`npm run lint` / `format`，CI 门禁） |
 
