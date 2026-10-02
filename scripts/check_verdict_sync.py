@@ -56,20 +56,35 @@ def exemptions(residual_text: str) -> set[str]:
     return out
 
 
+# 反向方向：判定行自称「已修复/已修」时所依据的措辞
+CLAIMS_FIXED = re.compile(r"已修复|已于[^|]{0,20}修复|已修")
+
+
 def analyze(plan_text: str, review_text: str) -> list[str]:
-    """返回问题列表（纯函数：自检、实跑、历史版本验证共用）。"""
+    """返回问题列表（纯函数：自检、实跑、历史版本验证共用）。
+
+    两个方向：
+    A. **正向**：判定非 ✅，但证据引用的编号在计划中已标记修复（豁免名单内除外）→ 判定可能过时；
+    B. **反向**：判定行自称「已修复」，但其引用的编号在计划中**并未**标记修复 → 两处结论互相矛盾。
+    """
     fixed = fixed_findings(plan_text)
     exempt_by_fid = {fid: exemptions(text) for fid, text in fixed.items()}
     problems: list[str] = []
     for m in VERDICT_ROW.finditer(review_text):
         item, verdict, evidence = m.group(1), m.group(3).strip(), m.group(4)
-        if verdict.startswith("✅"):
-            continue
-        for fid in set(F_REF.findall(evidence)):
-            if fid in fixed and item not in exempt_by_fid.get(fid, set()):
-                problems.append(
-                    f"{item} 判定「{verdict}」，但证据引用的 {fid} 在计划中已标记修复 → 需重访该判定行"
-                )
+        cited = set(F_REF.findall(evidence))
+        if not verdict.startswith("✅"):
+            for fid in cited:
+                if fid in fixed and item not in exempt_by_fid.get(fid, set()):
+                    problems.append(
+                        f"{item} 判定「{verdict}」，但证据引用的 {fid} 在计划中已标记修复 → 需重访该判定行"
+                    )
+        if CLAIMS_FIXED.search(evidence):
+            for fid in cited:
+                if fid not in fixed:
+                    problems.append(
+                        f"{item} 自称「已修复」并引用 {fid}，但计划中该发现未被标记为已修复 → 两处结论矛盾"
+                    )
     return problems
 
 
@@ -83,6 +98,10 @@ SELF_TEST_CASES: tuple[tuple[str, str, bool, str], ...] = (
     ("| F-01 | 已完成 | **W1-1 ✅（2026-10-02 已修复）** |", "| 1.1.1 | 1 | ❌ 未满足 | 见 F-99 |", True, "引用未修复的 F-99 → 不报"),
     ("| F-01 | 已完成 | **W1-1 ✅（已修复；残留判定：1.1.1）** |", "| 1.1.1 | 1 | ❌ 未满足 | 见 F-01 |", True, "在「残留判定」豁免名单内 → 不报"),
     ("| F-01 | 已完成 | **W1-1 ✅（已修复；残留判定：1.1.1）** |", "| 1.1.2 | 1 | 🟡 部分 | 见 F-01 |", False, "同发现但不在豁免名单内 → 仍报"),
+    # 反向方向样例
+    ("| F-01 | 已完成 | 任务 W1-1（Docker 验证） |", "| 1.1.1 | 1 | 🟡 部分 | 已修复（见 F-01） |", False, "反向：自称已修复但计划未标修复 → 应报"),
+    ("| F-01 | 已完成 | **W1-1 ✅（2026-10-02 已修复）** |", "| 1.1.1 | 1 | ✅ 满足 | 已修复（见 F-01） |", True, "反向：自称已修复且计划已标修复（判定 ✅）→ 不报"),
+    ("| F-01 | 已完成 | 任务 W1-1（Docker 验证） |", "| 1.1.1 | 1 | 🟡 部分 | 尚未修复，见 F-01 |", True, "反向：未自称已修复 → 不报"),
     (
         "| F-01 | 已完成 | " + "x" * 100 + "**W1-1 ✅（已修复；残留判定：1.1.1）** |",
         "| 1.1.1 | 1 | ❌ 未满足 | 见 F-01 |",
