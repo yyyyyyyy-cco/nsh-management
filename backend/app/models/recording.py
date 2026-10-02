@@ -1,6 +1,7 @@
 """录屏表：按局数提交链接，审核状态流转。"""
 from datetime import datetime, timezone
 
+from sqlalchemy import Index, text
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -11,6 +12,9 @@ class Recording(Base):
     __tablename__ = "recordings"
     __table_args__ = (
         UniqueConstraint("schedule_id", "member_id", "round_number", name="uq_recording_schedule_member_round"),
+        # 补人按 (schedule_id, member_name, round_number) 唯一（部分唯一索引；与迁移一致，见 F-79）
+        Index("uq_recording_filler_schedule_name_round", "schedule_id", "member_name",
+              "round_number", unique=True, sqlite_where=text("member_id IS NULL")),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

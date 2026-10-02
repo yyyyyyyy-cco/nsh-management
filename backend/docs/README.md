@@ -56,7 +56,7 @@
 ### 已完成
 - ✅ 项目初始化、目录结构、依赖安装（venv，Python 3.11；本机 3.12 亦可）
 - ✅ 数据库配置（SQLAlchemy 2.0.36 异步 + aiosqlite）
-- ✅ 12 张表模型 + 15 个 Alembic 迁移（data/nsh.db）
+- ✅ 12 张表模型 + 16 个 Alembic 迁移（data/nsh.db）
 - ✅ Pydantic Schema、全局异常处理、CORS
 - ✅ 认证模块（登录/登出/me + 5 次失败锁定 5 分钟 + 未知账号锁定 + 锁定倒计时 remaining_seconds）
 - ✅ 开发者角色（developer，不绑定帮会，可创建帮会/派发账号/删除帮会）

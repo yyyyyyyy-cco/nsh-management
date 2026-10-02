@@ -86,7 +86,7 @@ class MigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="nsh_mig_check_") as tmp:
             db_path = Path(tmp) / "migration.db"
 
-            up_log = _run_alembic(db_path, "upgrade", "head")
+            up_log = _run_alembic(db_path, "upgrade", HEAD_REVISION)
             self.assertIn("Running upgrade", up_log)
             self.assertIn(HEAD_REVISION, up_log)
             self.assertEqual(_current_revision(db_path), HEAD_REVISION)
@@ -124,7 +124,7 @@ class MigrationTests(unittest.TestCase):
             self.assertNotIn(NEW_TABLE, _table_names(db_path))
             self.assertNotEqual(_current_revision(db_path), HEAD_REVISION)
 
-            _run_alembic(db_path, "upgrade", "head")
+            _run_alembic(db_path, "upgrade", HEAD_REVISION)
             self.assertEqual(_current_revision(db_path), HEAD_REVISION)
             self.assertIn(NEW_TABLE, _table_names(db_path))
 

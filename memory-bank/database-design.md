@@ -155,7 +155,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 | remark | TEXT | NULL | 备注（导入时常驻库带入，出勤库内可修改）（迁移 n8o9p0q1r2s3） |
 
 索引：`schedule_id`、`member_id`。
-唯一约束：`(schedule_id, member_id)`（常驻成员每场一条）；`(schedule_id, member_name, is_filler=1)`（补人按姓名每场一条，SQLite 通过部分唯一索引实现）。
+唯一约束：`(schedule_id, member_id)`（常驻成员每场一条）；`(schedule_id, member_name, is_filler=1)`（补人按姓名每场一条，SQLite 通过部分唯一索引 `uq_attendance_filler_schedule_name` 实现——该索引由迁移 `p0q1r2s3t4u5` 落地，见 F-79）。
 业务规则：正常状态人数上限 60 人（应用层校验）；补人下次比赛自动消失（按赛程独立存储天然满足）。
 
 ### 2.7 lineups — 排表表
@@ -203,7 +203,7 @@ JSON 结构示例：
 | created_at | DATETIME | NOT NULL, default now | 提交时间 |
 
 索引：`schedule_id`、`status`。
-唯一约束：`(schedule_id, member_id, round_number)`；补人按 `(schedule_id, member_name, round_number)`。
+唯一约束：`(schedule_id, member_id, round_number)`；补人按 `(schedule_id, member_name, round_number)`（部分唯一索引 `uq_recording_filler_schedule_name_round`，`member_id IS NULL` 时生效——该索引由迁移 `p0q1r2s3t4u5` 落地，见 F-79）。
 业务规则：创建赛程时按局数批量初始化录屏占位记录（每人每局一条）；URL 校验支持 B站、YouTube 等。
 
 ### 2.9 match_data — 比赛数据表
@@ -374,4 +374,5 @@ JSON 结构示例：
 | 2026-09-15 | v1.8：补全 operation_logs 操作审计日志表（§1.2 表清单 + §2.11 字段级设计），表数 10 张更新为 11 张 |
 | 2026-09-20 | v1.9：新增 member_game_id_requests 游戏 ID 修改申请表（§1.2 表清单 + §2.12 字段/约束/生命周期），表数 11 张更新为 12 张；approved 记录兼作战绩新旧 ID 关联来源（Alembic 迁移 o9p0q1r2s3t4） |
 | 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录
+| 2026-10-03 | **v1.10**：补上「补人」部分唯一索引（迁移 `p0q1r2s3t4u5`，F-79）——`attendance_records` 增加 `(schedule_id, member_name) WHERE is_filler = 1`、`recordings` 增加 `(schedule_id, member_name, round_number) WHERE member_id IS NULL`，使 §2.6/§2.8 早已声明的补人唯一性**真正由数据库约束**（此前仅应用层查重，存在竞态）；表数不变（12 张）|
 | 2026-10-03 | v1.9 补记（**无结构变更，仅补齐文档**）：补登 **6 个已由迁移引入但未记录的列**——`guilds.icon_char`（g1h2i3j4k5l6）、`users.token_version`（h2i3j4k5l6m7）、`match_data.round_no`（f6a7b8c9d0e1）、`schedules.profession_config`（j4k5l6m7n8o9）、`recordings.note`（l6m7n8o9p0q1）、`attendance_records.remark`（n8o9p0q1r2s3）；并补 `match_data` 的 `round_no` 索引说明。来源：以 `backend/app/models/**` 与 `backend/alembic/versions/**` 为准逐列核对 |（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |

@@ -34,7 +34,7 @@
 ### 1.3 不在本次范围
 
 - 业务功能新增与 UI 调整（本计划只做合规化与工程效能，不改业务语义）
-- 数据库表结构变更（无必要，`alembic` 版本链完整：12 张表 / 15 个迁移，head `o9p0q1r2s3t4`）
+- 数据库表结构变更（无必要，`alembic` 版本链完整：12 张表 / 16 个迁移，head `p0q1r2s3t4u5`）
 - 生产服务器上的直接操作（须先经 §3 决策与 §6 授权，并遵循「先备份 → 改 → 验证」流程）
 
 ---
@@ -176,6 +176,7 @@
 | F-76 | **组件内硬编码色调，未走 CSS 变量**：`frontend/src/layouts/AppSidebar.vue` 的侧边栏渐变`linear-gradient(180deg, #fdfaf3 0%, #f8f2e6 100%)` 直接写值，而 `ui-style-guide.md` 的 「色彩规范（CSS 变量：theme.css）」口径要求调色板以变量维护（该文档 §1.1 记有 `#FDFAF3 → #F8F2E6`）| `frontend/src/layouts/AppSidebar.vue`、`frontend/src/styles/theme.css`、`memory-bank/ui-style-guide.md` | **已登记（2026-10-03）**：建议在 `theme.css` 新增两个**同值**令牌（如 `--ink-sidebar-from/to`）并在组件中引用——**值相同故零视觉变化**，但需前端构建 + 人工视觉确认；**未擅自改动** | P3 |
 | F-77 | **删除帮会漏删 `squad_adjustments`（与 F-75 同源）**：`design-document-v2.md` 规定「删除帮会 → 级联删除帮会全部关联数据（账号/成员/赛程/出勤/排表/录屏/**分析**/职业配置）」，但 `guild_service.delete_guild` 对赛程子表只删 `recordings / match_data / attendance_records / lineups` + 赛程，**漏 `squad_adjustments`** ✗ | `backend/app/services/guild_service.py`、`backend/tests/test_schedule_cascade.py` | **已修（2026-10-03）**：补 `SquadAdjustment` 删除（含 import 与 docstring 同步）；新增 `GuildCascadeTest`（8 张关联表 + 帮会 + 账号逐项断言 0 残留）| **P2** |
 | F-78 | **删除成员时 `attendance_records`/`recordings` 的 `member_id` 悬空**：`detach_member` 只把 `MemberGameIdRequest.member_id` 置空（docstring 明写「避免主键复用导致误关联」），而这两张表的历史行未处理 ✗；`database-design.md:285` 已确立「成员删除后置空，防主键复用误关联」口径，且未启用 `sqlite_autoincrement` 时 `members.id` 可被复用 → **新成员可能继承旧成员的出勤/录屏归属** ✗ | `backend/app/services/game_id_request_lifecycle.py`、`backend/tests/test_schedule_cascade.py` | **已修（2026-10-03）**：`detach_member` 同步将两张表的 `member_id` 置空（`member_name` 快照保留，展示不受影响）；新增 `MemberDetachTest`（历史行保留 + 引用置空双向断言）| **P2** |
+| F-79 | **文档声称的「补人部分唯一索引」在真实库中不存在**：`database-design §2.6/§2.8` 写明补人按 `(schedule_id, member_name, is_filler=1)`（SQLite 通过**部分唯一索引**实现）与 `(schedule_id, member_name, round_number)`；但迁移后实测（`PRAGMA index_list` + `sqlite_master.sql`）**只有**含 `member_id` 的唯一约束（`partial=0`），补人维度**无任何数据库级约束**（NULL 在 SQLite 中互不冲突）→ 唯一防线是 `attendance_service.add_filler` 的应用层姓名查重（**存在竞态**）✗ | `backend/alembic/versions/p0q1r2s3t4u5_filler_partial_unique_indexes.py`、`backend/app/models/attendance.py`、`backend/app/models/recording.py`、`backend/tests/test_filler_uniqueness.py` | **已修（2026-10-03）**：迁移 `p0q1r2s3t4u5` 建两条**部分唯一索引**（可逆）+ 模型同步声明 + 4 用例回归测试；迁移实测三态通过（升级建索引 / `downgrade -1` 可逆 / 再升级恢复）| **P2** |
 
 ---
 
@@ -479,7 +480,7 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | 门禁 3 环境变量文档 | `check_env_docs.py` | PASS（自检 **14/14**；17/17 已文档化 **且 17/17 已在 `DEPLOY.md` 提及**） |
 | 门禁 4 计划结构 | `check_plan_integrity.py` | PASS（自检 8/8；任务↔进度一一对应） |
 | 门禁 5 陈旧绝对路径 | `check_stale_paths.py` | PASS（自检 5/5；扫描 **360** 个跟踪文件 0 命中，2026-10-03 实测） |
-| 门禁 6 文档数字/版本一致性 | `check_doc_numbers.py` | PASS（自检 8/8；真值 12 表 / 15 迁移 / v1.9，扫描全部当前态行） |
+| 门禁 6 文档数字/版本一致性 | `check_doc_numbers.py` | PASS（自检 8/8；真值 12 表 / 16 迁移 / v1.9，扫描全部当前态行） |
 | 门禁 7 判定与修复状态同步 | `check_verdict_sync.py` | PASS（自检 **13/13**；严格模式 0 处） |
 | 仓库卫生 | `git status --porcelain` / `git ls-files --eol` | 工作区干净；索引无 CRLF（`i/lf`） |
 | UI 规范令牌值 ↔ `theme.css` | 抽取 `ui-style-guide.md` 令牌表中的 (名, 值) 对，与 `theme.css` 实际声明逐对归一化比对 | **22/23 对完全一致** ✓（唯一差异 `--gold-gradient` 属**记法差异**：规范用可读简写、CSS 用 `linear-gradient(...)`，色值相同）；颜色字面量归一化（含 `.ts` 图表色）后**规范独有 2 个**（2026-10-03 实测） |
