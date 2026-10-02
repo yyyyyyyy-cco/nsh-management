@@ -62,7 +62,7 @@ member（帮众）→ 绑定帮会，只读 + 有限操作
 > 本节仅列出关键信息摘要，详细版本号和依赖列表请查阅权威源。
 
 - 前端：Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia + vuedraggable + html2canvas
-- 后端：Python 3.13 + FastAPI 0.115+ + SQLAlchemy 2.0.36 + SQLite + Pydantic 2.11.4 + Alembic 1.13.1
+- 后端：Python 3.11（生产基座/CI）+ FastAPI 0.142.2（锁定） + SQLAlchemy 2.0.36 + SQLite + Pydantic 2.11.4 + Alembic 1.13.1
 - 部署：Docker Compose 编排（前端 Nginx:80 + 后端 FastAPI:8000），SQLite 数据卷持久化，Nginx 反向代理 + SPA 回退 + HTTPS
 
 ---

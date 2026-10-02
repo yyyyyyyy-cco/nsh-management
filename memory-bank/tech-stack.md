@@ -33,8 +33,8 @@
 
 | 技术 | 版本 | 用途 | 选择理由 |
 |------|------|------|---------|
-| Python | 3.13 | 运行环境 | 简单易学，生态丰富 |
-| FastAPI | 0.115+ | Web框架 | 现代高性能，自动API文档，类型提示支持 |
+| Python | 3.11 | 运行环境 | 生产镜像基座（`python:3.11-slim`）与 CI 均为 3.11；本地 3.11–3.13 可用（3.14 暂无 `pydantic-core` wheel） |
+| FastAPI | 0.142.2（锁定） | Web框架 | 现代高性能，自动API文档，类型提示支持 |
 | SQLAlchemy | 2.x | ORM | 最流行Python ORM，功能强大，文档完善 |
 | SQLite | 3.x | 数据库 | 轻量级，无需额外服务，单文件存储 |
 | Pydantic | 2.x | 数据验证 | 类型安全，自动验证，与FastAPI深度集成 |
@@ -55,9 +55,10 @@
 > **权威源**：`backend/requirements.txt`（运行时依赖，实际锁定版本，含 bcrypt 固定 4.0.1 等说明）；开发/CI 依赖见 `backend/requirements-dev.txt`（ruff、pytest、httpx）。
 >
 > **编码声明（2026-10-02）**：两个依赖清单首行均为 `# -*- coding: utf-8 -*-`——文件含中文注释，中文 Windows 的 pip 按 cp936 解码会失败（`UnicodeDecodeError`），新增中文内容时**勿删除该行**。
-> **未锁定项（待 W1-4 处理）**：`fastapi`、`python-multipart` 为范围约束；2026-10-02 实测一次干净安装解析到 fastapi **0.142.2** / starlette 1.7.0（详见合规化计划 F-15）。
+> **锁定状态（2026-10-02，W1-4）**：`fastapi` 由 `>=0.115.0` 改为 **`==0.142.2`**、`python-multipart` 由 `>=0.0.18` 改为 **`==0.0.32`**，并显式锁定传递引入的 **`starlette==1.7.0`**——三者均为**本仓已实测通过**的组合（pytest 93 用例 + selfcheck 全绿；PyPI 元数据 `requires_python >=3.10`，与 3.11 基座兼容）。范围约束的漂移风险与实测证据见合规化计划 F-15；门禁 `scripts/check_requirements_pins.py` 已接入 CI，阻止再次引入范围约束。
+> **仍待完成**：带**哈希**的全量锁文件（`pip-compile` / `uv pip compile`）必须在**部署所用 Python（3.11）**环境生成，否则会锁到 cp312 等错误 wheel；本机无 3.11，故未生成——列入 W1-4 收尾。
 
-> 版本说明（2026-08 实际验证）：适配 Python 3.13。pydantic≥2.10、SQLAlchemy≥2.0.36 才有 Python 3.13 预编译包；bcrypt 固定 4.0.1 以兼容 passlib 1.7.4（≥4.1 会报错）；fastapi 升级到 0.115+；openpyxl 用于 Excel 导入导出；python-multipart 升级修复 CVE-2024-53981。
+> 版本说明（2026-10-02 复核，按代码事实）：**运行时以 Python 3.11 为准**（生产镜像基座与 CI 一致；本地开发 3.11–3.13 可用）。pydantic / SQLAlchemy 固定版本均有对应 wheel；bcrypt 固定 4.0.1 以兼容 passlib 1.7.4（≥4.1 会报错）；fastapi 锁定 0.142.2；openpyxl 用于 Excel 导入导出；python-multipart 锁定 0.0.32（修复 CVE-2024-53981）。
 
 ---
 

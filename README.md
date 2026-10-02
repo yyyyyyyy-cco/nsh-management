@@ -32,7 +32,7 @@
 
 **前端：** Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia
 
-**后端：** Python 3.13 + FastAPI + SQLAlchemy + SQLite + Alembic
+**后端：** Python 3.11（生产镜像基座与 CI；本地 3.11～3.13） + FastAPI + SQLAlchemy + SQLite + Alembic
 
 **部署：** Docker Compose + Nginx
 
@@ -64,7 +64,7 @@ start.bat
 > `pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com`。
 > 另注意：`requirements.txt` 与 `requirements-dev.txt` 首行声明了 `# -*- coding: utf-8 -*-`——文件含中文注释，中文 Windows（cp936）下 pip 缺少编码声明会解码失败（`UnicodeDecodeError`），**新增内容时请勿删除该行**。
 
-> **Python 版本（2026-10-02 实测）**：请使用 **Python 3.11 / 3.12 / 3.13**。实测 **3.14 装不上本项目依赖**——`pydantic-core==2.33.2`（pydantic 2.11.4）尚无 cp314 wheel，pip 会转去源码构建（需 Rust 工具链）而失败。生产镜像基座为 `python:3.11-slim`，文档声明 3.13，两者将随合规化计划 W1-5 统一。
+> **Python 版本（2026-10-02 实测）**：请使用 **Python 3.11 / 3.12 / 3.13**。实测 **3.14 装不上本项目依赖**——`pydantic-core==2.33.2`（pydantic 2.11.4）尚无 cp314 wheel，pip 会转去源码构建（需 Rust 工具链）而失败。生产镜像基座为 `python:3.11-slim`；**运行时版本已按代码事实统一为 3.11**（合规化计划 W1-5，2026-10-02 完成），本机 3.12 亦可用于本地验证。
 
 ### 后端测试与静态检查
 

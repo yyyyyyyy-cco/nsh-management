@@ -9,7 +9,7 @@
 **轻衫都会用的帮会联赛管理系统** — 逆水寒游戏帮会一体化管理工具。
 
 - 核心功能：常驻库、出勤库、联赛排表（10 队 × 6 人拖拽）、录屏审核、数据分析（ECharts 8 Tab）、分析调整、系统配置、联赛日程、个人战绩、系统日志
-- 技术栈：Vue 3 + TS + Vite + Element Plus + ECharts 6 + Pinia / Python 3.13 + FastAPI + SQLAlchemy + SQLite / Docker Compose + Nginx（权威源 `memory-bank/tech-stack.md`）
+- 技术栈：Vue 3 + TS + Vite + Element Plus + ECharts 6 + Pinia / Python 3.11（生产镜像基座 `python:3.11-slim` 与 CI；本地 3.11–3.13 可用，3.14 暂不可用） + FastAPI + SQLAlchemy + SQLite / Docker Compose + Nginx（权威源 `memory-bank/tech-stack.md`）
 - 角色：developer（全局管理 + 系统日志）、admin（帮会全部权限）、member（录屏上传 / 个人战绩 / 联赛日程，赛程详情仅录屏与数据分析只读）（权威源 `design-document-v2.md` §3）
 - 启动命令与默认账号：见 `README.md`（其他文档只引用，不复制）
 

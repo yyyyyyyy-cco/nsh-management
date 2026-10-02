@@ -2,7 +2,14 @@
 # 说明：本文件含中文注释，必须保留上方编码声明（PEP 263）——pip 读取 requirements
 # 文件时会按 PEP 263 / BOM / 本地 locale 依次判断编码；中文 Windows（cp936）无 BOM 时
 # 会以 gbk 解码失败（UnicodeDecodeError），导致 README 的安装步骤直接报错。
-fastapi>=0.115.0
+# Web 框架（2026-10-02 由 `>=0.115.0` 改为精确锁定，见合规化计划 W1-4）：
+# 原范围约束会使全新环境静默漂移——实测一次干净安装解析到 0.142.2（项目开发期为 0.115.x，见 F-15）。
+# 0.142.2 为**本仓已实测通过**的版本（pytest 93 用例 + 既有 selfcheck 全绿），
+# 且 PyPI 元数据 requires_python >=3.10（classifier 含 3.11），与生产基座 python:3.11-slim 兼容。
+fastapi==0.142.2
+# 由 fastapi 传递引入（fastapi 声明 starlette>=0.46.0，会解析到 1.x 大版本）——
+# 此处显式锁定，保证「已实测组合」可复现（元数据 requires_python >=3.10）。
+starlette==1.7.0
 uvicorn[standard]==0.27.1
 sqlalchemy==2.0.36
 aiosqlite==0.20.0
@@ -10,7 +17,7 @@ pydantic==2.11.4
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1  # passlib 1.7.4 与 bcrypt>=4.1 不兼容，固定版本
-python-multipart>=0.0.18  # 修复 CVE-2024-53981 multipart DoS
+python-multipart==0.0.32  # 修复 CVE-2024-53981 multipart DoS；0.0.32 为已实测版本（requires_python >=3.10）
 openpyxl==3.1.5
 Pillow==11.1.0  # 常驻库导出图片
 alembic==1.13.1

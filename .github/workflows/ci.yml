@@ -95,6 +95,10 @@ jobs:
           python-version: "3.11"
       - name: 文件行数规则（标记 + 登记双重校验）
         run: python scripts/check_file_length.py
+      - name: 依赖清单锁定（自检 + 实际清单）
+        run: |
+          python scripts/check_requirements_pins.py --self-test
+          python scripts/check_requirements_pins.py
       - name: 陈旧绝对路径（不得出现旧仓库位置）
         run: |
           set -e

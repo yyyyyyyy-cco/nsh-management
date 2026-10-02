@@ -52,7 +52,7 @@
 **完成进度**：100%（全部功能模块开发完成）
 
 ### 已完成
-- ✅ 项目初始化、目录结构、依赖安装（venv，Python 3.13）
+- ✅ 项目初始化、目录结构、依赖安装（venv，Python 3.11；本机 3.12 亦可）
 - ✅ 数据库配置（SQLAlchemy 2.0.36 异步 + aiosqlite）
 - ✅ 12 张表模型 + 15 个 Alembic 迁移（data/nsh.db）
 - ✅ Pydantic Schema、全局异常处理、CORS
