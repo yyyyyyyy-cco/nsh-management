@@ -139,6 +139,12 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 索引：`guild_id`、`match_time`。
 业务规则：删除赛程时由 Service 级联删除 attendance_records、lineups、recordings、match_data、squad_adjustments。
+- **日程字段与校验（2026-10-03 补记，与实现一致）**：
+  - `rounds`（局数）**创建后不可修改由 schema 层保证**：更新模型 `ScheduleUpdate` **不包含该字段**
+    （Pydantic 会忽略请求中传入的 `rounds`），数据库另有 `CHECK rounds BETWEEN 1 AND 3`；
+  - `round_results`（每局结果）**长度必须等于 `rounds`**，取值限于 `win` / `lose` / `draw` / `pending`；
+  - `result`（总结果）取值同样限于上述四种；
+  - `profession_config`（单场职业配置覆盖）：键必须是合法职业，值为 **0-60** 的整数；传入 `null` 表示恢复默认（沿用系统配置）。
 
 ### 2.6 attendance_records — 出勤记录表
 
