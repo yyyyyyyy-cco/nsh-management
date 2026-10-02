@@ -1,4 +1,9 @@
 # ===== 边缘反向代理模板（同机 nginx-proxy 容器的 conf.d/<域名>.conf） =====
+# CSP 收紧（2026-10-02，合规化计划 W4-20）：connect-src 由 'self' https: 收窄为 'self'。
+#   依据（已核）：前端无任何跨域 XHR/fetch/WebSocket（`sendBeacon`/`EventSource`/`WebSocket`/`new XMLHttpRequest` 全为 0），
+#   axios baseURL 为同源相对路径 `/api/v1`；源码中唯二的 https 链接是备案号 <a href>（**顶层导航不受 connect-src 约束**，仍可正常点击）。
+#   收益：若发生 XSS，脚本无法把数据外泄到任意 HTTPS 主机（此前后者可自由外联）。
+#   边界：本文件是**服务器侧边缘模板**，不参与本地镜像构建，故响应头级效果需在服务器/浏览器验收。
 # 架构：**单层 TLS**（2026-09-15 改造；权威源 DEPLOY.md §二）
 #   · 本文件（B 段）= 边缘层：独占 TLS / 证书 / 限流 / 安全响应头 / HTTP→HTTPS 跳转 / 默认 server 兜底
 #   · A 段 = frontend 容器内层，已入库为 `frontend/nginx.conf`（镜像构建输入）。
@@ -79,7 +84,7 @@ server {
     # style-src 仍保留 'unsafe-inline'：Element Plus / ECharts 运行时会注入内联样式（内联 style 属性
     #   同受 style-src 管辖），去掉会白屏；如需进一步收紧，改用 nonce/hash 并做页面级验收。
     # 回滚：把两个 token 加回 script-src 即可（本行以下为唯一落点）。
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" always;
 
     location = /api/v1/auth/login {
         limit_req zone=login burst=3 nodelay;

@@ -372,7 +372,7 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 | 条目 | 本项目结论 | 证据 |
 |------|------------|------|
 | **A01** Broken Access Control | ✅ 已覆盖 | 6 个角色依赖矩阵 + 成员数据隔离 + 跨帮会越权修复；回归见 `backend/tests/test_permissions.py`、`scripts/selfcheck_security_fixes.py`；历史修复见本文件 §十/§六 |
-| **A02** Security Misconfiguration | 🟢 基本满足 | 生产关闭 API 文档（W4-1）、`server_tokens off`、HSTS、CORS 外置（W4-3）、`DEBUG` 默认关闭、**CSP 已收紧**（W4-5：`script-src 'self'`，去 `unsafe-inline`/`unsafe-eval`，补 `object-src 'none'`/`base-uri`/`form-action`）；剩余：`style-src` 仍含 `'unsafe-inline'`（Element Plus/ECharts 运行时样式所需，见 15.4-1） |
+| **A02** Security Misconfiguration | 🟢 基本满足 | 生产关闭 API 文档（W4-1）、`server_tokens off`、HSTS、CORS 外置（W4-3）、`DEBUG` 默认关闭、**CSP 已收紧**（W4-5：`script-src 'self'`，去 `unsafe-inline`/`unsafe-eval`，补 `object-src 'none'`/`base-uri`/`form-action`）；剩余：`style-src` 仍含 `'unsafe-inline'`（Element Plus/ECharts 运行时样式所需，见 15.4-1） | **W4-20（2026-10-02）已完成**：`connect-src` 由 `'self' https:` 收窄为 `'self'`。
 | **A03** Software Supply Chain Failures（2025 新增） | 🟡 部分满足 | 已有：Dependabot、CI 镜像构建护栏、依赖漏洞审计（§十四）；**不足**：依赖无哈希锁定、无 SBOM、无签名（A03/A08 共同缺口） |
 | **A04** Cryptographic Failures | 🟡 部分满足 | TLS 1.2+ 与 HSTS；密码 bcrypt；JWT HS256 + 生产弱密钥**拒绝启动**；**已知接受风险**：Token 存 localStorage（本文件已知风险清单） |
 | **A05** Injection | ✅ 已覆盖 | SQLAlchemy 参数化查询、Pydantic 入参校验、图表 HTML tooltip 转义（本文件 §十二）、Excel 导入校验 |
@@ -514,7 +514,7 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 | 13.2.1 | 2 | ⚪ 不适用 | 单后端进程，无「组件间通信绕过用户会话」的场景 |
 | 13.2.2 | 2 | ⚪ 不适用 | 同上 |
 | 13.2.3 | 2 | ⚪ 不适用 | 无服务间凭证 |
-| 13.2.4 | 2 | 🟡 部分 | 外呼仅 `ALERT_WEBHOOK_URL`（运维配置）；CSP `connect-src 'self' https:` 仍放宽 `https:`（见 §15.4-1） |
+| 13.2.4 | 2 | ✅ 满足 | **2026-10-02 更新**：外呼仅有运维配置的 `ALERT_WEBHOOK_URL`（服务端标准库发出，见 §15.5 通信需求清单）；浏览器侧 CSP 已把 `connect-src` 由 `'self' https:` **收窄为 `'self'`**（W4-20），跨域外联能力被移除（前端无任何跨域 XHR/fetch/WS，证据见 `frontend/nginx.conf.example` 注释） |
 | 13.2.5 | 2 | 🟡 部分 | 容器未做**出网白名单**（egress 限制）；建议在部署层加 |
 | 13.2.6 | 3 | 🟡 部分 | 无外部连接配置需要遵循（同 13.2.3） |
 | 13.3.1 | 2 | ❌ 未满足 | 未使用密钥管理服务，改为 `.env` + 服务器文件权限（单机自托管的取舍，见 §十六 A5） |
@@ -677,8 +677,8 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 
 | 结论 | V13/V8/V16 | V6/V7/V9 | **合计** |
 |------|:---:|:---:|:---:|
-| ✅ 满足 | 27 | 31 | **58** |
-| 🟡 部分 | 12 | 14 | **26** |
+| ✅ 满足 | 28 | 31 | **59** |
+| 🟡 部分 | 11 | 14 | **25** |
 | ❌ 未满足 | 3 | 9 | **12** |
 | ⚪ 不适用 | 9 | 19 | **28** |
 | **合计** | **51** | **73** | **124** |

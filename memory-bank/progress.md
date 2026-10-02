@@ -407,6 +407,8 @@ nsh-management/
 
 ---
 
+| 2026-10-02 | Wave 4 批次 23（合规化计划 **W4-20 CSP connect-src 收窄**）：①**先找反证再改配置**：收紧前全仓检索前端绝对 URL（仅 3 处：`useRecordingList.ts` 的 URL 正则不发请求、`LoginView.vue` 两个备案号 `<a href>` 属顶层导航、**不受 connect-src 约束**）与可能触发 `connect-src` 的 API（`sendBeacon`/`EventSource`/`WebSocket`/`new XMLHttpRequest` **全为 0**）；axios `baseURL='/api/v1'` 同源相对路径；vite `127.0.0.1:8000` 代理属开发服务器行为 → 收窄**不打断功能** ✓。②**改动**：`connect-src 'self' https:` → `'self'`，并在 `frontend/nginx.conf.example` 头部写入依据、收益（XSS 后无法向任意 HTTPS 主机外泄）与边界。③**判定更新**：`13.2.4` 🟡→**✅**（外呼仅服务端 webhook + 浏览器跨域外联能力已移除）；`security-review.md` 中引用该缺口的行补 W4-20 完成标注；统计重算 **59✅ / 25🟡 / 12❌ / 28⚪（124 条）**。④**验证边界（必须明说）**：`nginx.conf.example` 是服务器侧**边缘模板**，不参与本地镜像构建 → CSP 的**响应头级效果无法在本机验证** ✗（需服务器/浏览器验收）；本机可验证的是「配置文本已正确收窄」与「前端无反证」。⑤**过程缺陷（如实记录）**：首次脚本按**假设措辞**匹配 §15.4-1 行 → 实际措辞不同、该行未改而写入断言失败中止（未提交、无半截状态）；随后又第三次犯 `str.replace(a, b, text, 1)` 的参数错误 ✗ ——已改用**共用辅助函数** `insert_row(rel, anchor, row, ensure)`（写入后自动断言）从结构上消除，并自查 `.git` 下脚本中的 4 参数 replace 残留。⑥教训记入 ai-checklist 第 59 条。⑦验证：7 道门禁复跑全部 exit 0 | fix(security): 收窄 CSP connect-src 并更新对应判定 |
+
 ## 使用说明
 
 1. **代码变更后**：必须更新本文档的"代码模块说明"部分

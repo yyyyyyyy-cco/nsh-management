@@ -335,6 +335,8 @@ nsh-management/
 
 ---
 
+| 2026-10-02 | Wave 4 批次 23（合规化计划 **W4-20**）：`frontend/nginx.conf.example` 的 CSP `connect-src` 由 `'self' https:` **收窄为 `'self'`**（依据：前端无跨域 XHR/fetch/WS、baseURL 同源相对路径、唯二 https 链接为备案号 `<a href>` 顶层导航），文件头写明依据/收益/边界；`security-review.md` `13.2.4` 🟡→✅、CSP 相关行补 W4-20 完成标注，统计 **59✅ / 25🟡 / 12❌ / 28⚪** | nginx.conf.example, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 ## 使用说明
 
 1. **开发前**：阅读本文档了解项目结构，然后按需阅读具体文档
