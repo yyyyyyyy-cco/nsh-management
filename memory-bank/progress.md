@@ -17,7 +17,8 @@ nsh-management/
 │   ├── alembic/               # 数据库迁移（15 个版本）
 │   ├── data/                  # SQLite 数据库（nsh.db）
 │   ├── docs/README.md         # 后端模块开发文档
-│   ├── scripts/               # 工具脚本、check_type_drift.py（前后端字段一致性，仅报告）、check_api_paths.py（前后端路由对账，仅报告）、check_schema_drift.py（DB 权威源与模型字段对账，仅报告）、check_schema_vs_db.py（文档 ↔ 真实迁移产物，仅报告）、check_commit_msg.py、check_doc_numbers.py、check_doc_refs.py、check_env_docs.py、check_file_length.py、check_plan_integrity.py、check_requirements_pins.py、check_stale_paths.py、check_tree_coverage.py、check_verdict_sync.py
+│   ├── scripts/               # 工具脚本、check_type_drift.py（前后端字段一致性，仅报告）、check_api_paths.py（前后端路由对账，仅报告）、check_schema_drift.py（DB 权威源与模型字段对账，仅报告）、check_schema_vs_db.py（文档 ↔ 真实迁移产物，仅报告）、check_commit_msg.py、check_doc_numbers.py、check_doc_refs.py、check_env_docs.py、check_file_length.py、check_plan_integrity.py、check_requirements_pins.py、check_stale_paths.py、check_tree_coverage.py
+│   ├── check-config-drift.sh.example   # 配置漂移告警（D-5 回退方案；部署者在服务器运行）、check_verdict_sync.py
 │   │   ├── check_nullability.py              # 空值契约核对（仅报告：后端可空但前端非 null 且非可选）
 │   │   ├── check_request_required.py         # 请求侧必填核对（仅报告：后端必填但前端标 ?）
 │   │   ├── _pairs.py                         # 前后端配对表（check_type_drift / check_nullability / check_request_required 共用）
@@ -483,6 +484,7 @@ nsh-management/
 | 2026-10-03 | 批次 129（无障碍审计与修复；含 1 个 .vue 改动）：①**方法** ✓：先读项目约定 ✓（Element Plus `el-form-item label` 本身提供标签 ✓ → 不能按原生 input 规则扫 ✗）再量化 ✓。②**量化** ✓：110 个 `.vue`；`img` 缺 `alt` **0** ✓、原生 input **0** ✓、`el-form-item` 带 label **90%** ✓；图标按钮无名 **2** ✗、非交互 `@click` **15** ✗。③**修复** ✓：两个导航按钮加 `aria-label` ✓（零视觉/零行为 ✓）→ 复测 **2 → 0** ✓✔。④**不擅改** ✓：15 处需 `role`/`tabindex`/`@keydown` 的改动属**交互行为变更** ✗ → 已登记待决策 ✓。⑤**过程** ✗✓：我又在 **`re` 替换串**里写了 `\u` ✗ → `bad escape \u` ✗（**写入前报错、零副作用** ✓）→ 改 **lambda 替换** ✓。⑥新发现 **F-112（P3）** ✗ |
 | 2026-10-03 | 批次 130（更正测量假阳性；仅文档）：①**错在哪** ✗：批次 129 写了「2 → 0」✗，实测 **2 → 1** ✗。②**真因** ✓：正则 `<el-button\b` **把 `<el-button-group>` 也算成按钮** ✗（`\b` 在 `-` 前成立 ✗）→ 用 `<el-button(?![\-\w])` 修正后实测 **0** ✓✔。③**就地更正** ✓：F-112 行与本记录中的数字均改为实测值 ✓。④**教训** ✓：**写数字前先看实测** ✓（本会话第 3 次同类 ✗）；**标签匹配防前缀** ✓ |
 | 2026-10-03 | 批次 131（vitest 回归 + 决策包；仅文档）：①**vitest** ✓：exit=0，**69 passed / 8 files** ✓ → 与历史一致 ✓，**aria-label 改动零回归** ✓（补齐了批次 129/130 只验证了 build 未验证 vitest 的缺口 ✓）。②**新增 §11.5.1** ✓：F-110(a) / F-112(a) / F-112(b) 三项各附**影响面、最小改动、回滚、不做的后果** ✓，明确“不做 F-110(a) 则 CI commit-msg job 必红、其余 job 不受影响” ✓ 与“不做 F-112(a) 则仅键盘用户受影响” ✓ |
+| 2026-10-03 | 批次 134（核验阻塞性 + 完成 W1-3 第②步；新增 1 个脚本）：①**逐条核验** ✓：§7 的 11 条非完成行中，9 条确属环境/决策/授权 ✓；但 **W1-3 的回退方案本就可做** ✓（D-5 明文「至少应做 ②」✓）→ **推翻了我“剩余全部受阻”的断言** ✗✓。②**完成** ✓：新增 `scripts/check-config-drift.sh.example` ✓（部署者在服务器运行 ✓，**敏感值掩码** ✓，报告型 + `--strict` ✓）。③**验证** ✓✔：`bash -n` exit 0 ✓；冒烟三场景均符合预期 ✓（有漂移/报告型 0 ✓、有漂移/`--strict` 1 ✓、无漂移/`--strict` 0 ✓）；且敏感值未出现于输出 ✓✔。④**已登记** ✓：§7 W1-3 行、§8 命令表、`progress.md` 代码树 ✓。⑤**仍阻塞** ✗：W1-3 第①步需 D-5 ✓ |
 
 
 

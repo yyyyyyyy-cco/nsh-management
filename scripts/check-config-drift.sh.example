@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# ===== 配置漂移告警（W1-3 的 D-5 回退方案，2026-10-03）=====
+#
+# 依据：合规化整改计划 §3 D-5「生产配置可否去敏入库」② —— 在决策未定前**至少**提供 diff 告警脚本。
+# 用途：部署者在**服务器上**执行，比对服务器实际配置与仓库内配置的差异，发现「手工改过但没回写仓库」的漂移。
+# 安全：输出前对敏感值做**掩码**（值一律替换为 ***），只暴露**键名与结构差异**，避免把密钥带进日志。
+# 不改动任何文件、不连接任何服务；纯文本比对。
+#
+# 用法：
+#   bash scripts/check-config-drift.sh.example                  # 用默认路径比对，报告型（exit 0）
+#   bash scripts/check-config-drift.sh.example --strict         # 有漂移则 exit 1（可接入部署前检查）
+#   bash scripts/check-config-drift.sh.example <服务器文件> <仓库文件>   # 自定义一对文件
+#   REPO_ROOT=/opt/nsh bash scripts/check-config-drift.sh.example
+#
+# 退出码：0 = 无漂移或（报告型下的）有漂移；1 = --strict 且有漂移；2 = 用法/环境错误
+
+set -u
+
+REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+STRICT=0
+
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+    sed -n '2,20p' "$0"
+    exit 0
+fi
+
+if [ "${1:-}" = "--strict" ]; then
+    STRICT=1
+    shift
+fi
+
+# 待比对的文件对（服务器路径 与 仓库路径）；可被位置参数覆盖
+SRV_COMPOSE="${1:-/srv/nsh-management/docker-compose.yml}"
+REPO_COMPOSE="${2:-$REPO_ROOT/docker-compose.yml}"
+SRV_NGINX="${3:-/srv/nsh-management/nginx-proxy.conf}"
+REPO_NGINX="${4:-$REPO_ROOT/frontend/nginx.conf.example}"
+
+# 掩码：把「KEY=VALUE」或「key: value」中的**值**替换为 ***，保留键名与缩进
+mask() {
+    sed -E \
+        -e 's/^([[:space:]]*[-]?[[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=[[:space:]]*).*/\1***/' \
+        -e 's/^([[:space:]]*[A-Za-z_][A-Za-z0-9_]*[[:space:]]*:[[:space:]]*)[^#].*/\1***/' \
+        "$1"
+}
+
+drift=0
+checked=0
+
+compare_one() {
+    srv="$1"; repo="$2"; label="$3"
+    if [ ! -f "$srv" ]; then
+        echo "[config-drift] 跳过 $label：服务器文件不存在（$srv）"
+        return 0
+    fi
+    if [ ! -f "$repo" ]; then
+        echo "[config-drift] 跳过 $label：仓库文件不存在（$repo）"
+        return 0
+    fi
+    checked=$((checked + 1))
+    # 掩码后比对；只报告「有/无漂移」与差异行数，避免打印敏感上下文
+    if diff -q <(mask "$srv") <(mask "$repo") >/dev/null 2>&1; then
+        echo "[config-drift] $label：无漂移 ✓"
+    else
+        n=$(diff <(mask "$srv") <(mask "$repo") 2>/dev/null | grep -c '^[<>]' || true)
+        echo "[config-drift] $label：**发现漂移**（掩码后差异行 $n）——服务器上有改动未回写仓库？"
+        drift=$((drift + 1))
+    fi
+}
+
+echo "[config-drift] 仓库根目录：$REPO_ROOT"
+compare_one "$SRV_COMPOSE" "$REPO_COMPOSE" "docker-compose.yml"
+compare_one "$SRV_NGINX" "$REPO_NGINX" "nginx-proxy.conf"
+
+echo "[config-drift] 已比对 $checked 对文件；漂移 $drift 处"
+if [ "$checked" -eq 0 ]; then
+    echo "[config-drift] 未能比对任何文件：请用位置参数指定服务器路径，或设置 REPO_ROOT" >&2
+    exit 2
+fi
+if [ "$drift" -gt 0 ] && [ "$STRICT" -eq 1 ]; then
+    exit 1
+fi
+exit 0
