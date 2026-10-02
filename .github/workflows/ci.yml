@@ -60,6 +60,13 @@ jobs:
         run: python -m compileall -q app scripts alembic
       - name: 迁移可用性（空库升级到 head）
         run: alembic upgrade head
+      # —— 报告型：文档 ↔ 真实迁移产物（W2-15 / F-97）。本 job 已装 alembic，
+      #    脚本自带临时库；带 continue-on-error：漂移只告警不阻断 ——
+      - name: 文档 ↔ 真实迁移产物字段对账（自检 + 严格模式；仅报告）
+        continue-on-error: true
+        run: |
+          python ../scripts/check_schema_vs_db.py --self-test
+          python ../scripts/check_schema_vs_db.py --strict
       - name: 应用可导入（同时验证启动门禁不误杀）
         run: python -c "import app.main; print('app.main 导入成功')"
       - name: 测试套件（pytest：新用例 + 既有 selfcheck）
