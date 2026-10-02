@@ -211,6 +211,7 @@
 | F-111 | **`PAIRS_REQ` 中失效的前端类型名被静默跳过，无任何告警** ✗：`scripts/_pairs.py` 的 `PAIRS_REQ` 仍把 `SchedulePayload` 作为键 ✗，但该类型在 F-102 修复时已拆为 `ScheduleCreatePayload` / `ScheduleUpdatePayload` ✓ → 检查器的 `required_risks()` 在 `fe_name not in fe_opt` 时 **直接 continue** ✗ → **该配对的请求侧必填检查被静默失效** ✗✗（覆盖面缩小但**输出仍显示 0 条风险** ✗，使用者无从得知此时已不再校验该类型 ✗）。对比 ✓：`check_type_drift` 对**后端侧**失效配对有 `配对表指向不存在的后端模型` 提示 ✓，而**前端侧**无对应提示 ✗。证据 ✓：直接 instrument 解析器，`ts_optional()` 的视图里 `SchedulePayload` **不存在** ✗，而 `ScheduleCreatePayload` 存在 ✓。 | `scripts/_pairs.py`、`scripts/check_request_required.py`、`scripts/check_type_drift.py` | **待处理（2026-10-03 登记）** ✓：①把 `PAIRS_REQ` 的键改为现行类型名 ✓（`ScheduleCreatePayload` / `ScheduleUpdatePayload` ✓）；②给两个类型对账检查器**同时加前端侧失效配对提示** ✓（与后端侧提示对称 ✓） | **P3** **已修复（2026-10-03）** ✓：①`_pairs.py` 键名 `SchedulePayload` → **`ScheduleCreatePayload`** ✓（注释说明原键已失效 ✓）；②给 **`check_type_drift` / `check_nullability` / `check_request_required`** 同时加**前端侧失效配对告警** ✓（与后端侧提示对称 ✓）；**恢复后未暴露新风险** ✓（`--strict` 均 exit 0 ✓）—— 但覆盖面已恢复 ✓ |
 | F-112 | **无障碍（WCAG 2.2）基线缺口** ✗：静态审计 **110** 个 `.vue` ✓ —— ①**图标按钮无可访问名 2 个** ✗（`ScheduleCalendar.vue` 的 `changeMonth(±1)` 按钮仅含 `<el-icon>` ✗，违反 **WCAG 4.1.2**）；②**非交互元素 `@click` 且缺 `role`/`tabindex`/`@keydown` 15 处** ✗（可点击行/卡片/筛选项 ✗，违反 **WCAG 2.1.1 与 4.1.2**）；③`el-form-item` 无 `label` 2 处 ✗（待人工判定是否属非字段布局 ✓）。**合规部分** ✓：`<img>` 缺 `alt` **0** ✓；原生 `<input>` **0** ✓（全程 Element Plus ✓）；`el-form-item` 带 `label` **19/21 = 90%** ✓。**依据** ✓：项目自身已引用 WCAG ✓（`ui-style-guide.md` ✓、`frontend/docs/README.md` ✓）。 | `frontend/src/components/schedules/ScheduleCalendar.vue` 等✓ | **部分修复（2026-10-03）** ✓：①**已修** ✓ 两个导航按钮加 `aria-label="上/下一月"` ✓（**零视觉、零行为变化** ✓）→ 复测 **2 → 1** ✓，其中 1 个为**我的测量假阳性** ✗（`<el-button\b` 把 **`<el-button-group>`** 也匹配了 ✗）→ 用 `<el-button(?<![-\w])` 修正后实测 **0** ✓✔；②**未擅改、待决策** ✓：15 处需 `role`/`tabindex`/`@keydown` ✓（属**交互行为变更** ✗）+ 2 处 `el-form-item` 待人工判定 ✓ | **P3** |
 | F-113 | **`CHANGELOG.md` 的 `[Unreleased]` 漏记使用者可见变更** ✗：项目引用 **Keep a Changelog 1.1.0** ✓ 且 `AGENTS §2.2` 规定“有使用者可见变更时”必须更新 ✓，但以 `v1.2.0..HEAD`的 **43 条 `feat`/`fix`** 逐条对照后 ✓：一批**产品/业务类修复**（F-105 职业配置批量更新不可用 ✗、F-104 CSV 缺文件名返回 500 ✗、帮会口令服务层兜底 ✗、排表唯一占位 ✗、补人唯一索引 ✗、级联删除清理 ✗、删除路径引用清理 ✗、口令预哈希截断 ✗、`passlib`→`bcrypt` ✗）与 一批**运维/使用者可见项**（健康检查端点 + 生产关闭在线文档 ✗、配置漂移脚本 ✗、部署模板入库 ✗、图标按钮可访问名 ✗）**均未登记** ✗✗；而**内部工具/文档类**（`check_*` 脚本 ✓、CI 门禁 ✓、计数更正 ✓）按该文件自身 L11“内部重构若无外部可见影响不单独成条”✓ **本就应省略** ✓（**不得填入** ✗）。 | `CHANGELOG.md` | **已修复（2026-10-03）** ✓：在 `[Unreleased]` 的 `### 新增`追加 **3** 条、`### 修复`追加 **9** 条 ✓（**均以“对人有用的结果”措辞** ✓，不写 commit subject ✓，**未改动任何既有条目** ✓）。 | **P3** |
+| F-114 | **计划 §8（回归命令权威清单）的期望值过期，且其 pytest 命令**看不到**摘要** ✗：①`npm run test`「60 passed / 7 文件」✗ → 实测 **69 / 8** ✓；②`python -m pytest -q`「178 passed + 89 subtests」✗ → 实测 **266 + 89** ✓，且**另有新问题** ✗：仓库 pytest 配置**已含 `-q`** ✓ → 再加 `-q` 成 `-qq` ✗ → **摘要被掩掉** ✗（实测：带 `-q` 时输出**无**计数行 ✗），即照单执行**无法观察到它自己写的期望值** ✗✗；③`check_doc_refs.py --self-test`「18/18」✗ → **20/20** ✓；④`git ls-files --eol`「单一 eol」**不准确** ✗ → 应为“**索引中无 CRLF**” ✓；⑤组 7（运行时）未标需服务 ✗。 | `.agent/plans/compliance-remediation-plan.md` | **已修复（2026-10-03）** ✓：三处改**实测值** ✓、一处改**准确表述** ✓、**pytest 命令改为不带 `-q`** 并标注原因 ✓✔（否则仍然看不到计数 ✗）、组 7 加服务提示 ✓。 | **P3** |
 
 ---
 
@@ -414,7 +415,7 @@
 ```bash
 # 1. 仓库卫生与文档一致性
 git status --porcelain                          # 期望：干净
-git ls-files --eol | awk '{print $1}' | sort | uniq -c   # 期望：单一 eol
+git ls-files --eol | awk '{print $1}' | sort | uniq -c   # 期望：**索引中无 CRLF**（实测首列 i/lf ✓；i/-text、i/none 为二进制与其他）
 python scripts/check_stale_paths.py --self-test && python scripts/check_stale_paths.py   # 期望：PASS（口径与 CI 完全一致）
 git ls-files memory-bank | grep -i security     # 期望：全小写 security-review.md
 
@@ -427,7 +428,7 @@ grep -rn 'security-review\.md' --include='*.md' memory-bank | wc -l   # 引用�
 # 4. 前端静态检查、单测、构建（含类型检查）与镜像构建
 cd frontend && npm ci
 npm run lint                                    # 期望：0 error / 0 warning（ESLint 干净时不打印 problems 行）
-npm run test                                    # 期望：60 passed / 7 文件
+npm run test                                    # 期望：69 passed / 8 文件（实测）
 npm run build                                   # vue-tsc 类型检查 + vite 生产构建；期望 exit 0
 # Windows 本地跑 build 需把 TEMP/TMP 指向工作区，否则 esbuild 临时文件会被拒（见 ai-checklist 第 67 条）
 docker compose build                            # 期望：双镜像构建成功（frontend/nginx.conf 已于 W1-2 补齐）
@@ -440,10 +441,10 @@ grep -n 'nginx.conf' DEPLOY.md README.md        # 期望：说明构建前置
 # 6. 后端门禁与测试
 cd backend && python -m compileall -q app
 alembic upgrade head                            # 临时库
-python -m pytest -q                             # 期望：178 passed + 89 subtests（含 selfcheck_*.py 改造后的用例类）
+python -m pytest                                  # 期望：266 passed + 89 subtests（实测）——**勿加 `-q`**：仓库配置已含 `-q`，再加会变 `-qq` 而**掩掉摘要**，导致看不到计数
 ruff check .                                    # 期望：All checks passed（CI 门禁同款）
 
-# 7. 运行时验证
+# 7. 运行时验证（**需运行中的服务** ✗；隔离环境请按 §11.3.1 A 段执行 ✓）
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/health   # 期望 200
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/docs     # 生产期望 404
 ```
@@ -463,7 +464,7 @@ python scripts/check_verdict_sync.py --self-test && python scripts/check_verdict
 # 9. 其它仓库脚本（同样「自检 + 用法」）
 python scripts/check_commit_msg.py --self-test   # 提交消息规范（规则源：.agent/rules/git-commit-message.md）
 python scripts/check_commit_msg.py --stdin       # CI 逐个提交校验用法；本地由 .githooks/commit-msg 钩子调用
-python scripts/check_doc_refs.py --self-test     # 文档引用存活核对（自检 18/18）
+python scripts/check_doc_refs.py --self-test     # 文档引用存活核对（自检 **20/20**（实测））
 python scripts/check_doc_refs.py                 # **仅报告，非门禁**：误报率高（故意的「不存在」引用），见 §7 W4-22
 ```
 
