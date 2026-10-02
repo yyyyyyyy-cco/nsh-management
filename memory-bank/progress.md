@@ -510,6 +510,7 @@ nsh-management/
 | 2026-10-03 | 批次 177（CI 静态引用核对；仅文档）：①scripts 引用 0 缺失、工作目录存在、npm 脚本齐全、python 3.11/node 20 一致、requirements 存在、actions tag 固定。②F-68 复验：7 道门禁既有自检又有实跑。③我两次解析错误（相对路径基准、多行 run 块）均被断言拦下，未产生错误结论 |
 | 2026-10-03 | 批次 178（容器链静态核对；仅文档）：①COPY 上下文源全部存在（跨阶段 --from= 除外）；②后端入口链一致（uvicorn 8000 = EXPOSE 8000 = healthcheck /health = 路由存在）；③nginx proxy_pass → backend:8000 且 backend 为 compose 服务名；④entrypoint 引用文件均存在、后端 gosu 降权；⑤前端未设 USER 属已登记的 J-13 项。⑥首轮把跨阶段 COPY 当上下文源产生一处假缺失，已修正 |
 | 2026-10-03 | 批次 179（.gitignore 审计；含代码/配置修复）：①17 类代表路径实测，env/db/构建产物/缓存/日志/临时目录均被忽略；428 个已跟踪文件中无危险类型。②F-115 已修：补 *.pem/*.key/*.p12/*.pfx/*.jks 五条规则，验证生效且未命中已跟踪文件。③F-116 登记待授权：tsconfig.node.tsbuildinfo 既被跟踪又被忽略，清除需 git rm --cached（删除操作需用户允许） |
+| 2026-10-03 | 批次 180（周期核对 + 清单补充；仅文档）：①新增 ai-checklist 第 137 条（check-ignore 退出码不区分忽略/放行，须看 -v）。②7 门禁 + 8 报告型检查器全绿。③F-115 规则仍生效、F-116 仍待授权 |
 
 
 
