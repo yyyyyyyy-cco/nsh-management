@@ -77,13 +77,18 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
 
     用户身份优先复用请求认证依赖挂载的 request.state.user（省一次 JWT 解码 + 查库）；
     依赖未执行到（如 401/404）时回退到 Authorization 解析。
+
+    覆盖范围（2026-10-02 扩展，ASVS 5.0.0 16.3.2 / 差距 F-50）：
+    - 写方法（POST/PUT/DELETE/PATCH）：全部留痕；
+    - **读方法但携带 Authorization 且被拒（401/403）**：也留痕——否则越权尝试（尤其读接口）无痕；
+    - 未携带凭证的 401（匿名探测）**不记录**：那属于未认证访问而非授权失败，避免探测刷爆日志。
     """
 
     async def dispatch(self, request: Request, call_next):
-        should_audit = (
-            request.method in AUDIT_METHODS
-            and request.url.path not in AUDIT_EXCLUDED_PATHS
-        )
+        path = request.url.path
+        excluded = path in AUDIT_EXCLUDED_PATHS
+        is_write = request.method in AUDIT_METHODS and not excluded
+        has_credentials = bool(request.headers.get("authorization"))
         exception: Exception | None = None
         status_code: int | None = None
         try:
@@ -95,19 +100,37 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
             raise
         finally:
             is_error = exception is not None or (status_code is not None and status_code >= 500)
-            # 写操作全部审计；错误（未处理异常/5xx）不限方法也落库，读操作的 4xx 不记避免噪音
-            if is_error or should_audit:
+            # 授权失败留痕（F-50）：读方法 + 带凭证 + 被拒
+            denied = (
+                not is_write
+                and not excluded
+                and has_credentials
+                and status_code in (401, 403)
+            )
+            # 写操作全部审计；错误（未处理异常/5xx）不限方法也落库；读操作的「带凭证被拒」同样落库
+            if is_error or is_write or denied:
                 detail: dict | str | None = None
                 if exception is not None:
                     level = "error"
                     detail = f"未处理异常: {exception}"
                 elif status_code is not None and status_code >= 500:
                     level = "error"
+                elif status_code == 401:
+                    level = "warning"
+                    detail = "凭证无效或已失效（请求携带 Authorization）" if denied else None
+                elif status_code == 403:
+                    level = "warning"
+                    detail = "授权被拒" if denied else None
                 else:
                     level = "info"
                     if status_code is not None and status_code >= 400:
                         level = "warning"
-                asyncio.create_task(self._write_log(request, status_code, level, detail))
+                # 授权失败是**罕见路径**（且审计记录应当可靠落库、不可在进程崩溃时丢失），
+                # 故这里直接 await；写操作热路径仍用 create_task 以免给每个请求加一次落库延迟。
+                if denied:
+                    await self._write_log(request, status_code, level, detail)
+                else:
+                    asyncio.create_task(self._write_log(request, status_code, level, detail))
 
     @staticmethod
     async def _resolve_user(request: Request) -> User | None:

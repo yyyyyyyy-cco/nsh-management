@@ -16,6 +16,16 @@ from app.models.user import User
 # detail 中禁止落库的敏感字段名（小写比对）
 SENSITIVE_KEYS = {"password", "plain_password", "token", "access_token", "authorization"}
 
+
+def escape_control(text: str, limit: int | None = None) -> str:
+    """把控制字符（换行/制表等）转成可见转义，防**日志注入**（ASVS 5.0.0 16.4.1，差距 F-51）。
+
+    为什么需要：`username`/`ip`/`path`/`detail` 都可能含用户输入或异常文本；一个换行就能让
+    「一行审计记录」在容器日志与文本导出里被伪造成两行，掩盖真实事件。
+    """
+    escaped = "".join(ch if ch.isprintable() else f"\\x{ord(ch):02x}" for ch in text)
+    return escaped[:limit] if limit else escaped
+
 # 模块白名单（路径首段），不在名单内的归为 other
 MODULES = {
     "members", "schedules", "attendance", "lineups", "recordings",
@@ -31,7 +41,7 @@ def sanitize_detail(detail: dict | str | None) -> str | None:
     if detail is None:
         return None
     if isinstance(detail, str):
-        return detail[:2000]
+        return escape_control(detail, 2000)
     def _clean(obj):
         if isinstance(obj, dict):
             return {
@@ -42,7 +52,7 @@ def sanitize_detail(detail: dict | str | None) -> str | None:
             return [_clean(i) for i in obj]
         return obj
     try:
-        return json.dumps(_clean(detail), ensure_ascii=False)[:2000]
+        return escape_control(json.dumps(_clean(detail), ensure_ascii=False), 2000)
     except (TypeError, ValueError):
         return None
 
@@ -66,17 +76,21 @@ async def record_log(
             session.add(
                 OperationLog(
                     user_id=user.id if user else None,
-                    username=username if username is not None else (user.username if user else None),
+                    username=escape_control(
+                        username if username is not None else (user.username if user else ""),
+                        64,
+                    )
+                    or None,
                     role=user.role if user else None,
                     guild_id=user.guild_id if user else None,
                     module=module[:32],
                     action=action[:32],
                     level=level,
                     method=(method or "")[:8],
-                    path=(path or "")[:255],
+                    path=escape_control(path or "", 255),
                     status_code=status_code,
                     detail=sanitize_detail(detail),
-                    ip=ip,
+                    ip=escape_control(ip, 64) if ip else None,
                 )
             )
             await session.commit()
