@@ -209,6 +209,49 @@ docker compose start backend
 
 敏感内容，严禁写入任何入库文件；修改 `SECRET_KEY` 会使所有登录态失效。
 
+### 关键秘密清单（2026-10-02 新增，对应 ASVS 13.1.4）
+
+> 本节是**秘密清单与管理策略的唯一落点**（环境变量取值见上一张表，本节不重复列默认值）。
+> 判定口径：秘密 = 泄漏后可直接或间接获得权限、解密能力或身份的东西。
+
+| 秘密 | 存放位置 | 访问边界（谁能读） | 泄漏影响（按严重度） |
+|------|---------|------------------|--------------------|
+| `SECRET_KEY` | 服务器 `.env`（`.gitignore` 忽略；`backend/.dockerignore` 亦排除，**不入镜像**） | 仅服务器部署账号/root | **最高**：可伪造任意角色（含 developer）的 JWT。经代码核实，它的唯一用途是 JWT 签发与校验（`backend/app/core/security.py`），不涉及口令哈希与审计 |
+| `DEVELOPER_PASSWORD` / `ADMIN_PASSWORD` / `MEMBER_PASSWORD` | 服务器 `.env` | 同上 | 高：可直接登录对应初始账号。**仅在首次建库时生效**，改库后不再读取 |
+| 账号口令（运行时） | 库内 `users.password_hash`（bcrypt）；另有 `users.plain_password` **明文列**（仅 developer 可见，属已接受风险，见 `security-review.md §十六 A2`） | 库文件属主 `appuser`；备份产物**未加密** | 高：库文件或备份泄漏 = 口令全量泄漏 |
+| `ALERT_WEBHOOK_URL` | 服务器 `.env` | 同上 | 低-中：可向该 webhook 发送伪造告警；若 URL 内嵌共享令牌，等同该令牌泄漏 |
+| `DATABASE_URL` | 服务器 `.env`（仅改用外部库时才设置） | 同上 | 中：可能内嵌外部数据库账号口令 |
+| TLS 私钥 | 宿主 `/etc/letsencrypt`（以 `:ro` 只读挂载进边缘 `nginx-proxy`） | 宿主 root | 高：可解密或冒充站点 |
+| 服务器 SSH 凭据 | 部署者本机的 `deploy.sh`（**不入库**，见 §三 排除清单） | 部署者本机 | 最高：服务器接管 |
+
+**"不入库"的验证方式**（不要靠记忆）：
+
+```bash
+git check-ignore -v .env deploy.sh        # 应各自命中一条忽略规则
+git ls-files | grep -E '(^|/)\.env$'      # 期望：无输出（模板 .env.example 除外，它是占位符）
+```
+
+### 秘密轮换与泄漏处置（2026-10-02 新增，对应 ASVS 13.3.4）
+
+**轮换周期建议**：`SECRET_KEY` 每 6–12 个月、或**人员变动 / 疑似泄漏 / 服务器重建**时立即轮换；
+三角色初始口令在**首次部署完成后立即**改为强口令（此后系统不再读取这两个变量）。
+
+| 秘密 | 轮换步骤 | 影响与验证 |
+|------|---------|-----------|
+| `SECRET_KEY` | ①`openssl rand -hex 32`；②替换服务器 `.env` 中的值；③`docker compose up -d backend`（重建容器） | **所有已登录用户需重新登录**（旧令牌验签失败；这是预期代价，见 §六 末尾与 Q6）。验证：旧令牌请求返回 401、重新登录后 200 |
+| 三角色初始口令 | 首次部署后通过系统内**自助改密**（右上角菜单 →「修改密码」）或管理端重置 | 无需重启；改密会使该账号的**其他会话立即失效**（`token_version` 自增） |
+| 账号口令（疑似泄漏） | 立即改密；必要时在系统配置禁用该账号（禁用即 401） | 无需重启 |
+| `ALERT_WEBHOOK_URL` | 替换 `.env` 中值 → `docker compose up -d backend` | 无登录影响 |
+| TLS 私钥/证书 | 交由宿主 `certbot` 续期（证书路径与挂载见 §二）；续期后重载边缘 `nginx-proxy` | 验证：`openssl s_client` 查看证书有效期 |
+| SSH 凭据 | 更换密钥对并清理 `authorized_keys`；确认 `deploy.sh` 未入库 | 验证：`git check-ignore -v deploy.sh` 有命中 |
+
+**泄漏应急处置（按顺序）**：
+
+1. **先轮换、后排查**：按上表轮换相关秘密（`SECRET_KEY` 轮换会让攻击者已窃取的令牌立即失效）；
+2. **查审计**：`operation_logs` 表按 `module='auth'` 检索异常登录/IP（登录成功与失败均已埋点）；
+3. **查暴露面**：确认泄漏路径（误提交到 git / 镜像 / 日志 / 备份），若曾推送过 git，轮换是唯一补救（历史无法回收）；
+4. **记录**：在 `security-review.md` 追加一条处置记录（含时间、影响面、轮换范围），便于回溯。
+
 ### 启动门禁（2026-09-28 新增）
 
 后端启动时校验 SECRET_KEY（`backend/app/core/config.py`）：**生产环境**（`APP_ENV=production`

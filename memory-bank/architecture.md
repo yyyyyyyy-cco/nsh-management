@@ -308,6 +308,8 @@ nsh-management/
 | 2026-10-02 | Wave 4 批次 18（合规化计划 **W4-15 ASVS 判定行抽样复核**）：抽样 §17 的 124 条判定（优先挑引用 F 编号/写着未做的行），**更正 3 处过时判定**——`13.3.2` ❌→🟡（后端 gosu 已降权，仅前端 root）、`16.3.2` 🟡→✅（F-50 已修）、`16.4.1` 🟡→✅（F-51 已修）；另反向验证 5 条 ✅ 行全部为真；统计重算为 **54✅ / 28🟡 / 14❌ / 28⚪** | security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-02 | Wave 4 批次 19（合规化计划 **W4-16**）：新增 `scripts/check_verdict_sync.py`（自检 10 条）——从计划 §4 取已修复的 `F-<n>`，扫描 `security-review.md §17` 判定行，判定非 ✅ 却引用已修复编号即报告；引入 `（残留判定：…）` 显式豁免；用 `HEAD~1` 真实历史反向验证（精确报出第 38 轮修掉的 `16.3.2`/`16.4.1`，不误报 `13.3.2`）；接入 CI 与计划 §8/§9.1、`CONTRIBUTING`（门禁 6→7 道）| check_verdict_sync.py, ci.yml, CONTRIBUTING.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-02 | Wave 4 批次 20（合规化计划 **W4-17**）：抽样复核 `§17.6~17.8`（V6/V7/V9，73 条，此前未抽）——更正 `6.1.2`（❌→🟡：口令上下文词表已在 `password_policy.CONTEXT_WORDS`，只是未成文）与 `9.2.3` 的「待办/取舍」措辞矛盾；统计重算为 **54✅ / 29🟡 / 13❌ / 28⚪**；给 `check_verdict_sync.py` 补**反向方向**（自称已修复但计划未标修复 → 报矛盾），自检 10→13 条 | security-review.md, check_verdict_sync.py, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-02 | Wave 4 批次 21（合规化计划 **W4-18**）：`DEPLOY.md §六` 新增「**关键秘密清单**」（7 类秘密的存放位置/访问边界/泄漏影响 + `git check-ignore -v` 验证命令）与「**秘密轮换与泄漏处置**」（周期建议、6 类秘密的轮换命令与验证、泄漏处置四步），闭合 ASVS `13.1.4`（🟡→✅）并改善 `13.3.4`（❌→🟡）；修 **F-55**：`frontend/.dockerignore` 补 `.env*`、`.gitignore` 补 `.env.development` 并显式 `!.env.example`（双向验证：`.env.development` 命中忽略、`.env.example` 不被忽略且跟踪状态不变）；统计重算为 **55✅ / 29🟡 / 12❌ / 28⚪** | DEPLOY.md, frontend/.dockerignore, .gitignore, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 
 
 
