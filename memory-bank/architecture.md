@@ -343,6 +343,8 @@ nsh-management/
 
 | 2026-10-03 | Wave 1 批次 26（合规化计划 **W1-8 续**）：**Pillow `11.1.0` → `12.3.0`**（上游依据 `GHSA-62p4-gmf7-7g93` = `CVE-2026-54058`，high，受影响 `< 12.3.0`；**可达性：不可达**——只生成导出图、全仓无 `Image.open`）；实测导入级兼容 + 后端全量 **158 passed + 84 subtests exit 0**；`security-review.md` 新增 §14.7；新登记 **F-56**（导出路径无测试覆盖）、**W1-10**（bcrypt 直连、移除 passlib）、**W1-11**（补 image_export 覆盖） | requirements.txt, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 
+| 2026-10-03 | Wave 1 批次 27（合规化计划 **W1-11**，收口 **F-56**）：新增 `backend/tests/test_image_export.py`（6 用例）固定 `draw_members_png` 的行为契约——PNG 合法性、宽度恒定、高度按模块常量独立重算、空列表不抛异常、正式/替补/副职业分支、人数上限守卫；全量 pytest **158 → 164 passed**；`security-review.md §14.7` 的测试缺口条目标注收口；教训记入 ai-checklist 第 62 条 | test_image_export.py, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 ## 使用说明
 
 1. **开发前**：阅读本文档了解项目结构，然后按需阅读具体文档

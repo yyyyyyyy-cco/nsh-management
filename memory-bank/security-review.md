@@ -288,8 +288,8 @@
 | **passlib** | `1.7.4` | 上游 **2020 年后无发布**（未维护）；被 bcrypt ≥ 4.1 破坏（`module 'bcrypt' has no attribute '__about__'`），社区长期建议改为**直接使用 bcrypt** | 可达（口令哈希/校验必经） | 现存缓解：把 `bcrypt` 钉在 `4.0.1`。**已登记 W1-10**：改用 `bcrypt` 直连并附**哈希向后兼容测试** |
 | starlette / fastapi / uvicorn / SQLAlchemy / alembic / openpyxl / pydantic / aiosqlite / python-multipart | 见 `requirements.txt` | 本轮检索未发现**与本项目版本组合**相关的公开高危条目；`python-multipart` 的 CVE-2024-53981 已在 `0.0.32` 之上 | —— | 记录为「本期无动作」，由 Dependabot 周更继续跟踪 |
 
-**本轮同时发现（测试缺口）**：`app/utils/image_export.py` 的导出路径**无任何测试覆盖**（`tests/` 检索 `image_export`/`draw_members_png` 为空），
-故"升级后导出功能正常"目前只有**导入级 + 字体加载**证据，缺像素级断言 → **已登记 F-56 / W1-11**。
+**本轮同时发现（测试缺口，已收口）**：`app/utils/image_export.py` 的导出路径此前**无任何测试覆盖**（`tests/` 检索 `image_export`/`draw_members_png` 为空），故升级当时只有**导入级 + 字体加载**证据。
+**2026-10-03 已补（W1-11 / 收口 F-56）**：新增 `backend/tests/test_image_export.py`（6 个用例，0.30s）——断言 PNG 合法性、宽度恒定、高度按实现公式独立重算、空列表不抛异常、正式/替补/副职业分支、人数上限守卫；全量 pytest 由 **158 → 164 passed**（+6）、84 subtests、exit 0；`ruff` 通过。有意保留的覆盖边界：恰好 800 人的成功路径未执行（约 26MB 位图、耗时不可控）。
 
 
 
