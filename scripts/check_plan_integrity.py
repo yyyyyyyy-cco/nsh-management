@@ -76,12 +76,19 @@ def analyze(text: str) -> list[str]:
     for line in PROGRESS_LINE.findall(text):
         if not any(mark in line for mark in STATUS_MARKS):
             problems.append(f"§7 进度行缺少状态标记（{'/'.join(STATUS_MARKS)}）：{line[:60]}…")
+    dup = duplicate_section_numbers(text)
+    if dup:
+        problems.append(f"顶层章节号重复：{'、'.join(dup)}（计划结构要求编号唯一且单调）")
+
 
     return problems
 
 
 SELF_TEST_CASES: tuple[tuple[str, bool, str], ...] = (
-    # (样例文本, 是否应通过, 说明)
+    # (样例文本, 是否应通过, 说明),
+    # 新增（2026-10-03）：章节编号唯一性
+    ("## 9. 风险\n## 9. 验收\n", False, "顶层章节号重复应报错"),
+    ("## 9. 风险\n## 10. 验收\n", True, "编号唯一且单调应通过"),
     ("| F-01 | x |\n| W1-1 | a |\n| W1-1 名称 | ✅ 已完成 |\n| W1-2 | b |\n| W1-2 名称 | ⏳ 待开始 |\n", True, "正常：任务与进度一一对应"),
     ("| W1-1 | a |\n", False, "§5 有任务但 §7 无进度行"),
     ("| W1-1 名称 | ✅ 已完成 |\n", False, "§7 有进度但 §5 无任务"),
@@ -103,6 +110,12 @@ def run_self_test() -> int:
     total = len(SELF_TEST_CASES)
     print(f"自检：{total - failures}/{total} 通过")
     return 1 if failures else 0
+
+
+def duplicate_section_numbers(text: str) -> list[str]:
+    """返回重复的顶层章节号（如同时存在两个 `## 9.`）——纯函数，便于自检。"""
+    nums = re.findall(r"^## (\d+)\.", text, re.MULTILINE)
+    return sorted({n for n in nums if nums.count(n) > 1})
 
 
 def main(argv: list[str]) -> int:

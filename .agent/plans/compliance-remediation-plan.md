@@ -160,6 +160,7 @@
 | F-60 | **构建产物被提交入库**：`frontend/tsconfig.node.tsbuildinfo`（`vue-tsc -b` 生成）经 `git add -A` 一并提交，且 `.gitignore` 未覆盖 `*.tsbuildinfo` | `.gitignore`、`frontend/` | `.gitignore` **已补**（2026-10-03）；**移出版本库（`git rm --cached`）属删除操作，按 `AGENTS.md §5` 需用户单独授权 → 待授权（W2-13）** | P3 |
 | F-61 | **默认管理员口令是应用自身黑名单里的弱口令**：文档与 `.env.example` 的 `admin123` 同时出现在 `password_policy.CONTEXT_WORDS` 中 ✗——系统发布了「自己认为太弱」的默认口令（现由「首登后改密」要求缓解） | `.env.example`、`README.md`、`DEPLOY.md` | **待决策（W1-14）** | P2 |
 | F-62 | **弱密钥门禁的 hex 豁免通道放过了零熵密钥**：`_secret_key_is_weak` 对「≥64 字符纯 hex」恒判为强，于是 CI 里的 `0123456789abcdef…`（顺序十六进制、零熵）**能通过生产门禁** ✗ | `backend/app/core/config.py` | **已修（2026-10-03）**：豁免前增加 `_hex_is_low_entropy`（周期性 + 不同字符数 <8）+ 显式封禁该字面量 + `HexEntropyTest` 4 用例 | P2 |
+| F-63 | **计划出现重复的顶层章节号（两个 `## 9.`）**：`9. 风险登记` 与 `9. 验收清点` 同号（第 46 轮追加时未检查唯一性）；且**验收清点里的数字已过时**（后端 158→178、前端 lint 10 warning→0、构建 ≈19s→≈8.4s、扫描 353→360 个文件）——执行类文档的数字最易腐坏 | `.agent/plans/compliance-remediation-plan.md`、`scripts/check_plan_integrity.py` | **已修（2026-10-03）**：验收清点改为 **§11**（编号 1–11 唯一且单调）、数字按实测刷新、复跑清单补到 7 道；并给 `check_plan_integrity` 增加**章节编号唯一性检查**（含 2 条自检样例 + 反向验证） | P3 |
 
 ---
 
@@ -422,41 +423,41 @@ python scripts/check_verdict_sync.py --self-test && python scripts/check_verdict
 - **计数口径**：行数使用 `(Get-Content $f).Count`（含空行），与仓库既有文档的统计口径可能不同，故豁免清单中的登记行数与本计划实测值并列展示（见 F-02）。
 - **计数口径修正（2026-10-02）**：首次统计陈旧绝对路径时只检索 `*.md`，且 `Select-String` 默认**不区分大小写**，导致 ① 漏计 3 个分析脚本中的 4 处硬编码路径；② 误将 `progress.md` 中对同期另一项目 `E:\code\@Cjy\B` 的历史引用计入本仓库路径。§4 的 F-06/F-37 已按 `-CaseSensitive` + 全后缀复核结果更正。该项修正本身即为「审查结论必须可复核」的示范：凡计数结论都应记录所用命令与匹配选项。
 
-## 9. 验收清点（2026-10-02 全量回归后）
+## 11. 验收清点（2026-10-03 全量回归后）
 
 > 目的：把「已在本机真实执行并通过」与「因环境/授权/决策不可执行」分开，避免把未验证当成已验证。
 > 下表数字均为**本轮实测**输出（命令见 §8）。环境：Windows PowerShell 5.1（无 WSL/`sh`）、
 > Python 3.12（`py -3.12`；3.14 缺 `pydantic-core` wheel）、Node 24 / npm 11。
 
-### 9.1 本机真实执行并通过（可复现）
+### 11.1 本机真实执行并通过（可复现）
 
 | 项 | 命令 | 本轮结果 |
 |----|------|---------|
 | 后端静态检查 | `ruff check .`（0.12.0） | All checks passed（exit 0） |
 | 后端字节码编译 | `python -m compileall -q app backend` | exit 0 |
-| 后端测试套件 | `python -m pytest`（Python 3.12 + 锁定依赖） | **158 passed + 84 subtests，exit 0** |
-| 前端测试套件 | `npm run test`（vitest 3 + jsdom） | **60 passed / 7 文件，exit 0，无 unhandled error** |
-| 前端 lint | `npm run lint` | **0 error / 10 warning**（10 个均为既有 `vue/no-mutating-props` 债，属 W2-8） |
-| 前端类型检查 + 构建 | `npm run build`（`vue-tsc` + vite；TEMP 指向工作区） | exit 0（≈19s） |
+| 后端测试套件 | `python -m pytest`（Python 3.12 + 锁定依赖） | **178 passed + 89 subtests，exit 0**（2026-10-03 实测） |
+| 前端测试套件 | `npm run test`（vitest **4.1.11** + jsdom） | **60 passed / 7 文件，exit 0，无 unhandled error**（2026-10-03 实测） |
+| 前端 lint | `npm run lint` | **0 error / 0 warning**（W2-8 已于 2026-10-03 用 `defineModel` 清零；ESLint 无问题时**不打印 problems 行**） |
+| 前端类型检查 + 构建 | `npm run build`（`vue-tsc` + **vite 6.4.3**；TEMP 指向工作区） | exit 0（≈8.4s，2026-10-03 实测） |
 | 门禁 1 行数规则 | `check_file_length.py` | PASS（自检 9/9 + 实跑；自检为 2026-10-02 补齐，此前只有实跑） |
 | 门禁 2 依赖锁定 | `check_requirements_pins.py` | PASS（自检 12/12） |
-| 门禁 3 环境变量文档 | `check_env_docs.py` | PASS（自检全通过；17/17 已文档化 **且 17/17 已在 `DEPLOY.md` 提及**） |
+| 门禁 3 环境变量文档 | `check_env_docs.py` | PASS（自检 **14/14**；17/17 已文档化 **且 17/17 已在 `DEPLOY.md` 提及**） |
 | 门禁 4 计划结构 | `check_plan_integrity.py` | PASS（自检 8/8；任务↔进度一一对应） |
-| 门禁 5 陈旧绝对路径 | `check_stale_paths.py` | PASS（自检 5/5；扫描 353 个跟踪文件 0 命中） |
+| 门禁 5 陈旧绝对路径 | `check_stale_paths.py` | PASS（自检 5/5；扫描 **360** 个跟踪文件 0 命中，2026-10-03 实测） |
 | 门禁 6 文档数字/版本一致性 | `check_doc_numbers.py` | PASS（自检 8/8；真值 12 表 / 15 迁移 / v1.9，扫描全部当前态行） |
-| 门禁 7 判定与修复状态同步 | `check_verdict_sync.py` | PASS（自检全通过；严格模式 0 处） |
+| 门禁 7 判定与修复状态同步 | `check_verdict_sync.py` | PASS（自检 **13/13**；严格模式 0 处） |
 | 仓库卫生 | `git status --porcelain` / `git ls-files --eol` | 工作区干净；索引无 CRLF（`i/lf`） |
 
-### 9.2 本机**不可执行**（环境所限，非失败）
+### 11.2 本机**不可执行**（环境所限，非失败）
 
 | 项 | 任务 | 阻塞原因 | 替代证据 / 后续 |
 |----|------|---------|----------------|
 | 镜像构建与容器内验收 | W1-1 实构建、W1-5/W1-7 基础镜像升级、W1-9 非 root 运行 | `docker info` exit 1（守护进程未运行） | 已完成 `COPY` 输入存在性核对与 `bash -n` 语法检查；真构建交由 CI `docker-build` job（push 后） |
 | 哈希锁文件生成 | W1-4 | 哈希必须由 **3.11** 生成；本机 `py -3.11` 不存在（"No suitable Python runtime found"） | 依赖范围已精确锁定 + 门禁在位；生成建议用 CI 的 3.11 步骤 |
 | 页面级交互验收 | W4-11 自助改密入口、W2-8 props 债、既有「F01/F04 交互待验收」 | 按 `AGENTS.md §7.4` 未获浏览器授权 | 已完成类型检查、构建与**组件级 DOM 用例**（W4-11 共 7 条）；获授权后可补 |
-| CI 自身运行 | W2-1 | 仓库未 push，GitHub Actions 从未运行 | 5 个门禁已在本地以脚本形式全部实跑（见 9.1） |
+| CI 自身运行 | W2-1 | 仓库未 push，GitHub Actions 从未运行 | **7 道**门禁已在本地以脚本形式全部实跑（见 11.1） |
 
-### 9.3 待**决策**（阻塞项均为外部输入）
+### 11.3 待**决策**（阻塞项均为外部输入）
 
 | 决策 / 输入 | 阻塞任务 | 影响 |
 |------------|---------|------|
@@ -466,8 +467,10 @@ python scripts/check_verdict_sync.py --self-test && python scripts/check_verdict
 | D-4 版本联动（`frontend/package.json` 0.1.0 vs tag v1.2.x） | W3-4 | 影响发布链路一致性 |
 | D-5 生产配置去敏入库 | W1-3 | 未确认时按计划退化为 `check-config-drift.sh` diff 告警 |
 | 远端分支删除授权 | W3-5 | 3 个已合并分支仍在远端 |
+| **默认口令策略**（F-61：`admin123` 在应用自身黑名单内） | W1-14 | 影响首次部署的账号安全与使用体验 |
+| **构建产物移出版本库的删除授权**（F-60） | W2-13 | `frontend/tsconfig.node.tsbuildinfo` 仍被跟踪 |
 
-### 9.4 一键复跑顺序
+### 11.4 一键复跑顺序
 
 ```bash
 python scripts/check_file_length.py --self-test       && python scripts/check_file_length.py
@@ -475,7 +478,11 @@ python scripts/check_requirements_pins.py --self-test && python scripts/check_re
 python scripts/check_env_docs.py --self-test          && python scripts/check_env_docs.py
 python scripts/check_plan_integrity.py --self-test    && python scripts/check_plan_integrity.py
 python scripts/check_stale_paths.py --self-test       && python scripts/check_stale_paths.py
+python scripts/check_doc_numbers.py --self-test       && python scripts/check_doc_numbers.py
+python scripts/check_verdict_sync.py --self-test      && python scripts/check_verdict_sync.py --strict
 ```
 
+> 另（**仅报告**，非门禁）：`python scripts/check_doc_refs.py`（文档引用存活核对）
+
 > **门禁只写在 CI 里等于本地没有门禁**（本轮实测：陈旧路径检查原先只在 CI YAML，我手搓临时检查时口径不一致，
-> 产生 9 处假阳性）——因此本项目现在 5 道门禁**全部**是本地可跑的脚本，CI 只是调用它们。
+> 产生 9 处假阳性）——因此本项目现在 **7 道**门禁**全部**是本地可跑的脚本，CI 只是调用它们。另有 1 个**仅报告**的辅助检查 `check_doc_refs.py`（文档引用存活核对；误报率高，**有意不接入门禁**，见 §7 W4-22）。
