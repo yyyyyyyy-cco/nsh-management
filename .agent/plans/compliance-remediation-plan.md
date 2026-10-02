@@ -570,6 +570,37 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 
 > J-6 的后续（我可自主完成 ✓）：给出「若收紧，前端哪些调用会失败」的清单，使 J-6 也能一句话拍板 ✓。
 
+
+### 11.6 决策执行预案（选定后立即执行的动作与验证）
+
+> 目的：任一决策**落地即无停顿**推进；每条都写明改动点与验证方式（本机可验证部分全部可复现）。
+
+| 决策 | 若你选「建议项」，我立即执行的动作（含验证） |
+|------|------------------------------------------|
+| **J-1 推送** | `git push origin main`（141 个提交）→ 观察 CI **5 个 job** 首跑 → 记录 **Python 3.11** 全量 pytest 结果 → 用 3.11 生成 `requirements.lock`（哈希锁，补 `W1-4` 最后一环）→ 回填 §11.2「CI 自身运行」为已验证 ✓ |
+| **J-2 D-4 收敛** | 改 `frontend/package.json` 版本策略为「随 tag 发布」（或加 `scripts/set-version.mjs` 同步）→ 后端加 `version=__version__`（`app/main.py`，值取自单一来源）→ 在 `check_doc_numbers.py` 增 1 条断言（三处版本一致）→ `W3-4` 转 ✅ |
+| **J-3 权限口径（先收紧写）** | 在 `api/v1/*.py` 的**写**路由把 `current_user.guild_id` 前置为 `_require_guild()` 断言（读保留）→ 消除 mypy **40+** 条 `int \| None` → 补 403 用例（developer 访问写路径）→ `W2-14` 余量下降到 ~15 条 |
+| **J-4 F-106 声明非映射属性** | 在 `models/member.py`、`models/recording.py` 加 `__allow_unmapped__` 风格的普通注解（**不加 `Mapped`** → 不动 DB）→ `check_schema_vs_db` 复跑确认 12 表不变 ✓ → 删 3 处赋值点的类型噪声 → mypy **-3** |
+| **J-5 F-61 口令策略** | `DEPLOY.md` 增「首次部署生成随机口令」示例（`python -c "import secrets;print(secrets.token_urlsafe(12))"`）→ `README.md` 同步一句 → 可选：加「首次登录必须改密」的字段与迁移（**需你二次确认**是否要加表）|
+| **J-6 读取端点** | 维持现状 ✓（已实测：收紧会让帮众首页与成员详情 403）→ 若你要更严，我改为**新增** `GET /members/me/attendance-rate`（仅本人）→ 前端切到新端点 → 旧端点保留且不改权限 |
+| **J-7 F-80 重提交** | `recording_service.py` 加「仅 `rejected` 可重提交，`approved` 需管理员先退回」→ 补 2 条用例（approved 重提交被拒 / 管理员退回后可重提交）|
+| **J-8 F-84 总和告警** | `config_service.batch_update_profession_configs` 汇总 `target_count` → 超 60 返回**告警字段**（不阻断）→ 前端 `ConfigProfessionPanel.vue` 显示提示 → 补 1 条用例 |
+| **J-9 F-100 色调归并** | 先产出**颜色差异对照表**（5 处 → 最接近令牌的 ΔE/十六进制距离）→ 你确认后替换为 `var(--…)`→ `vitest` + 截图级 DOM 断言（无浏览器时用样式断言）|
+| **J-10 删除授权** | `git rm --cached frontend/tsconfig.node.tsbuildinfo` → `.gitignore` 复核 → 远端删除已合并分支（`git push origin --delete …`）→ `W2-13`/`W3-5` 转 ✅ |
+| **J-11/J-11a 建会路径** | 以 `/config/guilds` 为**主路径**（前端已在用）→ `/guilds`、`/developer/guilds` 保留为兼容转发（内部调用同一 service）→ `F-93` 转 ✅ → 文档标注主路径 |
+| **J-12/J-12a 改名** | 一次性改 path/name/组件文件名/跳转/文档 **15 处** → 加 `<redirect /league-overview → /member-recordings>` → `npm run build` + `vitest` + 全仓 grep 归零 |
+
+### 11.7 环境受限项 ↔ 替代证据矩阵
+
+> 回答「环境不可用时我们到底验证了什么」：左列是缺口，右列是本机已有证据与仍缺部分。
+
+| 环境受限项 | 已有替代证据（本机） | 仍缺（需 CI/Docker） |
+|-----------|-------------------|-------------------|
+| Docker 构建与容器验收（`W1-1/W1-5/W1-7/W1-9`） | `bash -n` 语法检查 ✓、`COPY` 输入存在性核对 ✓、门禁与测试全绿 ✓ | 真实 `docker build` / 容器内 `nginx -t` / 非 root 运行验证 ✗ |
+| Python 3.11 运行（`W1-4` 哈希锁） | PyPI 元数据**版本锚定**核验 **14/14** 允许 3.11 ✓ | 3.11 真实全量测试与锁文件生成 ✗ |
+| 浏览器交互验收（`W4-11`、`F01/F04`） | 类型检查 ✓、构建 ✓、**组件级 DOM 用例** ✓ | 真机交互与视觉确认 ✗ |
+| CI 自身运行（`W2-1`） | **7 道门禁**本地全部实跑 ✓ | GitHub Actions 真跑 ✗ |
+
 ### 11.4 一键复跑顺序
 
 ```bash
