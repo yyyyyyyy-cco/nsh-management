@@ -316,6 +316,8 @@ nsh-management/
 | 2026-10-03 | 批次 36（**F-63**：计划结构 + 验收数字校正）：发现计划有**两个 `## 9.`**（风险登记 / 验收清点）✗ → 验收清点重编号为 **§11**（1–11 唯一单调）+ 子节 9.x→11.x + 引用更新；**验收清点数字按本轮实测刷新**（后端 **178 passed + 89 subtests**、前端 lint **0 warning**、构建 **≈8.4s（vite 6.4.3）**、扫描 **360** 个跟踪文件、复跑清单补到 **7 道**）；`check_plan_integrity` 新增**章节编号唯一性检查**（2 条自检样例 + 反向验证）；教训记入 ai-checklist 第 71 条 | compliance-remediation-plan.md, check_plan_integrity.py, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 37（**F-64**：技术栈权威源回填 + 交叉核对门禁）：`tech-stack.md` 四处漂移（`Vite 5.x`→**6.x**、`Pillow 11.x`→**12.x**、`Vitest 3`→**4**（并删除已失效的「须为 3.x」约束）、lint `10 warning`→**0**）已按实测回填，另修 `passlib` 残留表述与 `；；`；`check_doc_numbers` 新增 **tech-stack ↔ 清单实际版本**交叉核对（`real_pins()`/`check_tech_stack()`，含反向验证）；教训记入 ai-checklist 第 72 条 | tech-stack.md, check_doc_numbers.py, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 38（**F-65**：模板作用域说明；三轮「疑似漂移」核实后**均不成立**）：为 `.env.example`（部署权威）与 `backend/.env.example`（本地参考）互相注明作用域/权威关系（**不改值**）；结清 `ai-checklist §3.1` 自 2026-08-26 悬空的检查项；核实确认「file-length 豁免表行数」是**登记基线 + 20% 容差**（非漂移）、`start.bat` 首次启动即提供 README 所述默认账号；教训记入 ai-checklist 第 73 条 | .env.example, backend/.env.example, ai-checklist.md, compliance-remediation-plan.md, architecture.md, progress.md |
+| 2026-10-03 | 批次 39（**F-66**：§8 回归命令清单校正 + 全量回归复核）：§8 补 `npm run lint`/`npm run test`、`check_commit_msg.py`、`check_doc_refs.py`（标注**仅报告**），删除「会因缺 nginx.conf 失败」等过时说明与**不可运行的 `mypy app`**（tech-stack 记其尚未引入），并声明 §8 为**权威清单**；本轮全量回归全绿（pytest **178 passed + 89 subtests**、前端 60 passed/7 文件、lint 0 warning、build exit 0、7 道门禁自检全通过）；教训记入 ai-checklist 第 74 条 | compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 
 
 

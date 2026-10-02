@@ -163,6 +163,7 @@
 | F-63 | **计划出现重复的顶层章节号（两个 `## 9.`）**：`9. 风险登记` 与 `9. 验收清点` 同号（第 46 轮追加时未检查唯一性）；且**验收清点里的数字已过时**（后端 158→178、前端 lint 10 warning→0、构建 ≈19s→≈8.4s、扫描 353→360 个文件）——执行类文档的数字最易腐坏 | `.agent/plans/compliance-remediation-plan.md`、`scripts/check_plan_integrity.py` | **已修（2026-10-03）**：验收清点改为 **§11**（编号 1–11 唯一且单调）、数字按实测刷新、复跑清单补到 7 道；并给 `check_plan_integrity` 增加**章节编号唯一性检查**（含 2 条自检样例 + 反向验证） | P3 |
 | F-64 | **技术栈权威源未随依赖升级回填**（AGENTS §2.1 规定技术栈版本权威源为 `tech-stack.md` + `requirements.txt`）：文档仍写 `Vite 5.x`（实际 **6.4.3**）、`Pillow 11.x`（实际 **12.3.0**，W1-8 升级时漏回填）、`Vitest 3` 并附「**版本须为 3.x**（5.x 需 vite ≥6.4，与 vite 5.4 冲突）」的**已失效约束**（实际 4.1.11；已核实 peer：4.1.11 → `vite ^6\|\|^7\|\|^8`、5.0.0 → `vite ^6.4\|\|^7\|\|^8`）、lint 仍写 `10 warning`（实际 **0**） | `memory-bank/tech-stack.md`、`scripts/check_doc_numbers.py` | **已修（2026-10-03）**：四处按实测回填（另修 passlib 残留表述与 `；；`）；并给 `check_doc_numbers` 增加**「tech-stack ↔ 清单实际版本」交叉核对**（`real_pins()` + `check_tech_stack()`，含反向验证） | P2 |
 | F-65 | **两份 `.env.example` 均未说明自身作用域与权威关系**：根目录是**容器/Compose 部署权威模板**（`docker-compose.yml` → `env_file: .env`，且为 `check_env_docs.py` 的校验对象），`backend/.env.example` 是**本地直接运行时的参考**（口令为占位值）——但两处都没有写明，读者（含本次审计）会把**预期差异误读为漂移**；`ai-checklist §3.1` 的对应检查项自 2026-08-26 起一直**未勾选** | `.env.example`、`backend/.env.example`、`memory-bank/ai-checklist.md` | **已修（2026-10-03）**：两份模板头部互相注明作用域/权威关系（**不改任何值**）；`ai-checklist §3.1` 悬空项按核实结论结清 | P3 |
+| F-66 | **§8 回归命令清单未随实现回填，且含过时/不可运行的命令**：缺 `npm run lint`、`npm run test`、`check_commit_msg.py`、`check_doc_refs.py`；`docker compose build` 注释仍写「当前会因缺 nginx.conf 失败」（W1-2 已补齐）；`python -m pytest -q`/`ruff check .` 仍标「W2-2/W2-3 之后」；`mypy app` **从未引入**（tech-stack 明写「尚未引入」）→ 清单里躺着跑不通的命令 | `.agent/plans/compliance-remediation-plan.md` | **已修（2026-10-03）**：补齐缺失项（含 `check_doc_refs.py` 标注**仅报告**）、删除过时说明、声明 §8 为**权威清单**（CONTRIBUTING 与 CI 同款）、登记 `mypy` 未引入 | P3 |
 
 ---
 
@@ -368,9 +369,13 @@ git diff --stat                                 # 期望：归一提交单独成
 # 3. 文档引用与索引一致性
 grep -rn 'security-review\.md' --include='*.md' memory-bank | wc -l   # 引用数应与实体匹配
 
-# 4. 前端构建（含类型检查）与镜像构建
-cd frontend && npm ci && npm run build
-docker compose build                            # 期望：双镜像构建成功（当前会因缺 nginx.conf 失败）
+# 4. 前端静态检查、单测、构建（含类型检查）与镜像构建
+cd frontend && npm ci
+npm run lint                                    # 期望：0 error / 0 warning（ESLint 干净时不打印 problems 行）
+npm run test                                    # 期望：60 passed / 7 文件
+npm run build                                   # vue-tsc 类型检查 + vite 生产构建；期望 exit 0
+# Windows 本地跑 build 需把 TEMP/TMP 指向工作区，否则 esbuild 临时文件会被拒（见 ai-checklist 第 67 条）
+docker compose build                            # 期望：双镜像构建成功（frontend/nginx.conf 已于 W1-2 补齐）
 
 # 5. 部署链路
 bash -n deploy.sh.example                       # 语法检查
@@ -379,8 +384,8 @@ grep -n 'nginx.conf' DEPLOY.md README.md        # 期望：说明构建前置
 # 6. 后端门禁与测试
 cd backend && python -m compileall -q app
 alembic upgrade head                            # 临时库
-python -m pytest -q                             # W2-2 之后
-ruff check . && mypy app                        # W2-3 之后
+python -m pytest -q                             # 期望：178 passed + 89 subtests（含 selfcheck_*.py 改造后的用例类）
+ruff check .                                    # 期望：All checks passed（CI 门禁同款）
 
 # 7. 运行时验证
 curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8000/health   # 期望 200
@@ -397,6 +402,17 @@ python scripts/check_stale_paths.py --self-test && python scripts/check_stale_pa
 python scripts/check_doc_numbers.py --self-test && python scripts/check_doc_numbers.py   # 文档数字/版本一致性
 python scripts/check_verdict_sync.py --self-test && python scripts/check_verdict_sync.py --strict   # 判定与修复状态同步
 ```
+
+```bash
+# 9. 其它仓库脚本（同样「自检 + 用法」）
+python scripts/check_commit_msg.py --self-test   # 提交消息规范（规则源：.agent/rules/git-commit-message.md）
+python scripts/check_commit_msg.py --stdin       # CI 逐个提交校验用法；本地由 .githooks/commit-msg 钩子调用
+python scripts/check_doc_refs.py --self-test     # 文档引用存活核对（自检 18/18）
+python scripts/check_doc_refs.py                 # **仅报告，非门禁**：误报率高（故意的「不存在」引用），见 §7 W4-22
+```
+
+> **权威口径**：本 §8 是回归命令的权威清单；`CONTRIBUTING.md` 与 CI `repo-hygiene` 应与其保持一致（同一批命令）。
+> 已知不可运行项：`mypy` **尚未引入**（见 `memory-bank/tech-stack.md` 开发工具表）；如需引入按 W2-3 附录执行。
 
 ---
 
