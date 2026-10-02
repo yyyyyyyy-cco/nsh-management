@@ -441,7 +441,7 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 | 1 | A1 | S 仿冒 | 伪造/盗用令牌冒用身份 | HS256 签名；`ver` 与 `users.token_version` 比对（`core/security.py:20-23`、`api/deps.py:32`）；改密自增版本号（`services/account_service.py:84`） | 令牌在 localStorage（XSS 可窃取）；**登出不递增版本号**（共享账号多人多 IP，`api/v1/auth.py:54` 已说明）→ 登出后旧令牌在过期前仍有效 | 已接受（AGENTS §6 已记录；缓解：CSP 收紧 W4-5） |
 | 2 | A1 | T 篡改 | 改载荷提升 role | 签名校验，改载荷即验签失败 | 无 | 已控制 |
 | 3 | A1 | I 泄露 | 令牌进日志/响应 | 日志敏感键脱敏（`services/log_service.py:17` 含 `token`/`access_token`/`authorization`）；响应不回传令牌 | 无 | 已控制 |
-| 4 | A2 | S 仿冒 | 撞库 / 弱口令 | bcrypt 哈希；登录限流 5 次 / 5 分钟（`core/config.py:52`、`services/auth_service.py:49`）；Nginx 限流 | 无口令复杂度要求、无 MFA | 建议（未列入计划，待决策） |
+| 4 | A2 | S 仿冒 | 撞库 / 弱口令 | bcrypt 哈希；登录限流 5 次 / 5 分钟（`core/config.py:52`、`services/auth_service.py:49`）；Nginx 限流；**口令策略**（长度 8–128 + 常见弱口令/上下文词表 + 不得含登录名，`app/core/password_policy.py`，2026-10-02 W4-10 实施） | **无 MFA**（口令策略已实施；逐条结论见 §17.6） | 建议（未列入计划，待决策） |
 | 5 | A2 | I 泄露 | `plain_password` 明文列被读走 | 仅 developer 可见，响应按角色脱敏（`api/v1/accounts.py:21-26`）；`*.db` 不入库 | **库文件泄露即全量明文口令**（业务取舍：本地工具需可见密码） | 已接受（AGENTS §6） |
 | 6 | A2 | R 抵赖 | 帮众共享账号 → 行为不可归因 | 审计记录 username/role/ip | 共享账号下无法区分到具体人 | 已接受（业务决定） |
 | 7 | A3 | S/E 越权 | 用他帮会 ID 读写（水平/垂直越权） | 服务层按 `guild_id` 过滤；路由角色依赖（`api/deps.py`）；跨帮会回归 `scripts/selfcheck_security_fixes.py`；用例 `tests/test_permissions.py` | 无 | 已控制 |
@@ -464,8 +464,8 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 2. **顺带修正一处耦合**：`utils/excel_export.py` 原在运行时 import ORM 模型，导致纯格式化逻辑无法脱离数据库测试；
    已改为 `if TYPE_CHECKING` + `from __future__ import annotations`（行为不变，回归用例因此可独立运行）。
 3. **已记录的残余风险**（业务取舍或环境限制，非漏洞）：localStorage 令牌且登出不吊销、`plain_password` 明文列、
-   共享账号不可归因、日志无防篡改、备份未加密、无口令复杂度/MFA。
-4. **建议（尚未列入整改计划，待决策）**：口令复杂度与 MFA、审计日志外发/只读副本、备份产物加密、CSP 收紧（已为 W4-5）。
+   共享账号不可归因、日志无防篡改、备份未加密、无 MFA（口令策略已于 2026-10-02 实施，见 §17.6 / §17.9）。
+4. **建议（尚未列入整改计划，待决策）**：**MFA**（口令策略已实施，见上）、审计日志外发/只读副本、备份产物加密、CSP 收紧（已为 W4-5）。
 
 ---
 
