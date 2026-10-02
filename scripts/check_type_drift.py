@@ -257,7 +257,7 @@ def self_test() -> int:
     if nullability_risks({"A": {"x": {"optional": True, "nullable": False}}}, {"M": {"x": True}}, {"A": ["M"]}):
         failures.append("前端 optional 被误报")
 
-    total = 5
+    total = 8
     if failures:
         print("[type-drift] 自检失败：")
         for f in failures:
