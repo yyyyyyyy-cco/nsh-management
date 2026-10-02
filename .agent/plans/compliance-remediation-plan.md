@@ -469,6 +469,9 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | 门禁 6 文档数字/版本一致性 | `check_doc_numbers.py` | PASS（自检 8/8；真值 12 表 / 15 迁移 / v1.9，扫描全部当前态行） |
 | 门禁 7 判定与修复状态同步 | `check_verdict_sync.py` | PASS（自检 **13/13**；严格模式 0 处） |
 | 仓库卫生 | `git status --porcelain` / `git ls-files --eol` | 工作区干净；索引无 CRLF（`i/lf`） |
+| 迁移链完整性（CI `backend` job 同款） | `alembic upgrade head`（临时空库，`DATABASE_URL` 指向 `.git/tmp/*.db`） | **exit 0**；落地 **12 张业务表** + `alembic_version`/`sqlite_sequence`，与 `database-design.md` 声明的表数一致（2026-10-03 实测） |
+| 应用可导入（CI `backend` job 同款） | `python -c "import app.main"`（`APP_ENV=development`） | exit 0，输出「app.main 导入成功」（2026-10-03 实测） |
+| **生产弱密钥启动门禁**（真实启动路径） | 进入 `app.router.lifespan_context`（`APP_ENV=production` + 占位密钥） | `SystemExit 1` + FATAL 提示 ✓；`enforce_secret_key()` / `validate_secret_key()` 亦分别抛 `SystemExit` / `InsecureSecretKeyError` ✓（2026-10-03 实测）。**注意**：该门禁**有意挂在启动期而非导入期**（F-04/W2-6）——用 `import app.main` **测不出来**，须走 lifespan 或直接调用强制函数 |
 
 ### 11.2 本机**不可执行**（环境所限，非失败）
 
