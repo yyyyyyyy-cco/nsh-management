@@ -127,6 +127,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 索引：`guild_id`、`name`、`main_profession`、`status`。
 业务约束：同一帮会内重名跳过导入（Excel 导入时校验 `name` 重复，不强制 UNIQUE，便于历史数据容错）。
+- **导入行数上限（2026-10-03 补记，与实现一致）**：单次上传最多 **5000** 行，超限**拒绝**（实现常量 `MAX_IMPORT_ROWS` 位于 `backend/app/utils/excel_import.py` ✓；边界口径由此进入权威源，闭合合规化计划 **F-83** 的残留项）。
 
 ### 2.5 schedules — 赛程表
 
