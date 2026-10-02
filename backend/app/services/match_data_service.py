@@ -6,6 +6,7 @@
 """
 import asyncio
 
+from typing import Any
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -109,7 +110,7 @@ async def list_match_data(
     records = list((await session.execute(stmt)).scalars().all())
 
     # 计算阵营统计
-    camps: dict[str, dict[str, int]] = {}
+    camps: dict[str, dict[str, Any]] = {}
     for r in records:
         if r.camp not in camps:
             camps[r.camp] = {
