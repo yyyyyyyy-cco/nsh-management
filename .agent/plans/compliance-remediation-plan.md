@@ -384,7 +384,7 @@ python scripts/check_stale_paths.py --self-test && python scripts/check_stale_pa
 | 前端测试套件 | `npm run test`（vitest 3 + jsdom） | **60 passed / 7 文件，exit 0，无 unhandled error** |
 | 前端 lint | `npm run lint` | **0 error / 10 warning**（10 个均为既有 `vue/no-mutating-props` 债，属 W2-8） |
 | 前端类型检查 + 构建 | `npm run build`（`vue-tsc` + vite；TEMP 指向工作区） | exit 0（≈19s） |
-| 门禁 1 行数规则 | `check_file_length.py`（自检 + 实跑） | PASS |
+| 门禁 1 行数规则 | `check_file_length.py` | PASS（自检 9/9 + 实跑；自检为 2026-10-02 补齐，此前只有实跑） |
 | 门禁 2 依赖锁定 | `check_requirements_pins.py` | PASS（自检 12/12） |
 | 门禁 3 环境变量文档 | `check_env_docs.py` | PASS（自检 11/11；17/17 已文档化） |
 | 门禁 4 计划结构 | `check_plan_integrity.py` | PASS（自检 8/8；任务↔进度一一对应） |

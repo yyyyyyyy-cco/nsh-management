@@ -3,7 +3,9 @@
 """文件行数规则检查（CI 门禁）。
 
 规则权威源：`.agent/rules/file-length-rule.md`
-用法：`python scripts/check_file_length.py`
+用法：
+    python scripts/check_file_length.py                # 校验
+    python scripts/check_file_length.py --self-test    # 内置样例自检（不读文件）
 退出码：0 = 通过（可含警告）；1 = 存在违规
 
 检查内容：
@@ -14,7 +16,10 @@
 
 设计说明：
 - 上限与分类必须与规则文档表格保持一致，改规则时同步修改下方 LIMITS；
-- 只做静态统计，不修改任何文件。
+- 只做静态统计，不修改任何文件；
+- 判定逻辑抽成纯函数 `judge()` / `parse_exemption_line()`，供 `--self-test` 复用
+  （2026-10-02 补：此前本门禁**没有**自检模式，而计划 §8/§9 已按「自检 + 实跑」两步书写，
+  属文档与实现不一致；现补齐，5 道门禁口径一致）。
 """
 from __future__ import annotations
 
@@ -38,9 +43,46 @@ LIMITS: list[tuple[str, str, int, str]] = [
     ("backend/app/api", "*.py", 150, "路由文件"),
 ]
 
+# 豁免清单行：`| \`path/to/file\` | 123 | ...`（含 `/` 才算文件路径，避免命中表头或说明行）
+EXEMPTION_LINE = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*(\d+)\s*\|")
+
 
 def line_count(path: Path) -> int:
     return len(path.read_text(encoding="utf-8", errors="replace").splitlines())
+
+
+def parse_exemption_line(line: str) -> tuple[str, int] | None:
+    """解析豁免清单表格的一行 → (相对路径, 登记行数)；非清单行返回 None。"""
+    m = EXEMPTION_LINE.match(line)
+    if m and "/" in m.group(1):
+        return m.group(1).strip(), int(m.group(2))
+    return None
+
+
+def judge(
+    rel: str,
+    n: int,
+    limit: int,
+    label: str,
+    *,
+    has_marker: bool = False,
+    listed: bool = False,
+    registered: int | None = None,
+    growth_warn: float = GROWTH_WARN,
+) -> tuple[str | None, str | None]:
+    """判定单个超限文件 → (错误, 警告)。未超限返回 (None, None)。纯函数。"""
+    if n <= limit:
+        return None, None
+    if not has_marker:
+        return f"{rel} 超限（{n} > {limit}，{label}）且未打「{MARKER}」标记", None
+    if not listed:
+        return f"{rel} 已打「{MARKER}」标记但未登记到规则豁免清单", None
+    if registered and n >= registered * growth_warn:
+        return (
+            None,
+            f"{rel} 登记行数 {registered} → 当前 {n}（+{(n / registered - 1) * 100:.0f}%），规则要求重新评估是否继续豁免",
+        )
+    return None, None
 
 
 def parse_exemptions() -> dict[str, int]:
@@ -50,13 +92,53 @@ def parse_exemptions() -> dict[str, int]:
         return {}
     out: dict[str, int] = {}
     for line in RULE_DOC.read_text(encoding="utf-8").splitlines():
-        m = re.match(r"^\|\s*`([^`]+)`\s*\|\s*(\d+)\s*\|", line)
-        if m and "/" in m.group(1):
-            out[m.group(1).strip()] = int(m.group(2))
+        parsed = parse_exemption_line(line)
+        if parsed:
+            out[parsed[0]] = parsed[1]
     return out
 
 
-def main() -> int:
+SELF_TEST_CASES: tuple[tuple[tuple, tuple[str | None, str | None], str], ...] = (
+    ((( "a.py", 300, 300, "服务文件（Python）"), {}), (None, None), "恰好等于上限 → 通过（边界不报）"),
+    ((("a.py", 301, 300, "服务文件（Python）"), {"has_marker": False, "listed": False}), ("超限且未打标记", None), "超限 + 无标记 → 报错"),
+    ((("a.py", 301, 300, "服务文件（Python）"), {"has_marker": True, "listed": False}), ("已打标记但未登记", None), "有标记但未登记 → 报错"),
+    ((("a.py", 301, 300, "服务文件（Python）"), {"has_marker": True, "listed": True, "registered": 280}), (None, None), "已登记且增长 <20% → 通过"),
+    ((("a.py", 340, 300, "服务文件（Python）"), {"has_marker": True, "listed": True, "registered": 280}), (None, "重新评估"), "增长 ≥20% → 警告（不失败）"),
+)
+
+
+def run_self_test() -> int:
+    failed = 0
+    for (args, kwargs), (want_err, want_warn), note in SELF_TEST_CASES:
+        err, warn = judge(*args, **kwargs)
+        ok = (err is None) == (want_err is None) and (warn is None) == (want_warn is None)
+        if ok and want_err:
+            ok = want_err in err
+        if ok and want_warn:
+            ok = want_warn in warn
+        failed += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] {note}｜err={err} warn={warn}")
+
+    for line, expect, note in (
+        ("| `frontend/src/a.vue` | 320 | 组件 |", ("frontend/src/a.vue", 320), "标准清单行 → 解析成功"),
+        ("| 文件 | 行数 | 说明 |", None, "表头 → 不解析"),
+        ("| `无斜杠说明` | 10 | x |", None, "无 `/` 的条目 → 不解析（避免命中说明表格）"),
+        ("纯文本", None, "非表格行 → 不解析"),
+    ):
+        got = parse_exemption_line(line)
+        ok = got == expect
+        failed += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] {note}｜got={got}")
+
+    total = len(SELF_TEST_CASES) + 4
+    print(f"自检：{total - failed}/{total} 通过")
+    return 1 if failed else 0
+
+
+def main(argv: list[str]) -> int:
+    if "--self-test" in argv:
+        return run_self_test()
+
     exemptions = parse_exemptions()
     if not exemptions:
         print("[ERROR] 未能从规则文档解析出豁免清单（表格格式是否被改动？）")
@@ -82,27 +164,21 @@ def main() -> int:
             n = line_count(path)
             if n <= limit:
                 continue
-
             head = "\n".join(path.read_text(encoding="utf-8", errors="replace").splitlines()[:120])
-            has_marker = MARKER in head
-            listed = rel in exemptions
-
-            if not has_marker:
-                errors.append(f"{rel} 超限（{n} > {limit}，{label}）且未打「{MARKER}」标记")
-            elif not listed:
-                errors.append(f"{rel} 已打「{MARKER}」标记但未登记到规则豁免清单")
-            else:
-                reg = exemptions[rel]
-                if n >= reg * GROWTH_WARN:
-                    warns.append(
-                        f"{rel} 登记行数 {reg} → 当前 {n}（+{(n / reg - 1) * 100:.0f}%），规则要求重新评估是否继续豁免"
-                    )
+            err, warn = judge(
+                rel, n, limit, label,
+                has_marker=MARKER in head,
+                listed=rel in exemptions,
+                registered=exemptions.get(rel),
+            )
+            errors += [err] if err else []
+            warns += [warn] if warn else []
 
     for rel in sorted(exemptions):
         if not (REPO / rel).exists():
             errors.append(f"豁免清单登记的文件不存在（清单悬空）：{rel}")
 
-    print(f"检查文件数：{checked}（分类上限：{'、'.join(sorted({f'{l}行' for _, _, l, _ in LIMITS}))}）")
+    print(f"检查文件数：{checked}（分类上限：{'、'.join(sorted({f'{limit}行' for _, _, limit, _ in LIMITS}))}）")
     print(f"豁免清单登记：{len(exemptions)} 条")
 
     if warns:
@@ -122,4 +198,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv))
