@@ -105,6 +105,8 @@ operation_logs（操作审计日志）          guild_id（可空）
 | remark | TEXT | NULL, max 255 | 职业说明（可编辑，默认空） |
 
 唯一约束：`(guild_id, profession)`。
+- **目标人数值域（2026-10-03 补记，与实现一致）**：`target_count` 为整数且限定 **0～999**（单职业端点与**批量端点**均校验；`config_service` 两条路径再做一次同界兜底；前端输入 `:min=0 :max=999` 一致）。常量 `MAX_PROFESSION_TARGET` 定义于 `backend/app/utils/constants.py`。
+- 说明：**每赛程**的职业覆盖 `profession_config` 是**另一语义**，其值域为 **0–60**（见 §2.5）；**全局目标人数之和是否应受 60 人上限约束**，属产品口径问题——**待用户确认**（见 `.agent/plans/compliance-remediation-plan.md` 的 F-84）。
 
 ### 2.4 members — 常驻库成员表
 

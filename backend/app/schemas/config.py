@@ -38,13 +38,21 @@ class ProfessionConfigOut(BaseModel):
 
 class ProfessionConfigUpdate(BaseModel):
     """职业配置更新。"""
-    target_count: int = Field(..., ge=0, description="目标人数")
+    target_count: int = Field(..., ge=0, le=999, description="目标人数（0～999）")
+    remark: str | None = Field(None, max_length=255, description="职业说明")
+
+
+class ProfessionConfigItem(BaseModel):
+    """批量配置中的单项：值域与单职业端点一致（0～999，与前端输入上限一致）。"""
+
+    profession: str = Field(..., min_length=1, max_length=16, description="职业名")
+    target_count: int = Field(..., ge=0, le=999, description="目标人数（0～999）")
     remark: str | None = Field(None, max_length=255, description="职业说明")
 
 
 class ProfessionConfigBatchUpdate(BaseModel):
     """职业配置批量更新。"""
-    configs: list[dict] = Field(..., description="配置列表，每项包含 profession 和 target_count")
+    configs: list[ProfessionConfigItem] = Field(..., description="配置列表：profession + target_count + 可选 remark")
 
 
 # ========== 账号管理 ==========

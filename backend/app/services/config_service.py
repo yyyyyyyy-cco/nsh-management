@@ -3,7 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.profession import ProfessionConfig
-from app.utils.constants import PROFESSIONS
+from app.utils.constants import MAX_PROFESSION_TARGET, PROFESSIONS
 
 
 class ConfigServiceError(Exception):
@@ -57,6 +57,8 @@ async def update_profession_config(
         raise ConfigServiceError("开发者账号无法修改职业配置，请先创建帮会")
     if profession not in PROFESSIONS:
         raise ConfigServiceError(f"无效的职业：{profession}")
+    if not isinstance(target_count, int) or not 0 <= target_count <= MAX_PROFESSION_TARGET:
+        raise ConfigServiceError(f"目标人数无效（0～{MAX_PROFESSION_TARGET}）")
 
     config = (
         await session.execute(
@@ -110,6 +112,8 @@ async def batch_update_profession_configs(
 
         if profession not in PROFESSIONS:
             continue
+        if not isinstance(target_count, int) or not 0 <= target_count <= MAX_PROFESSION_TARGET:
+            raise ConfigServiceError(f"职业「{profession}」的目标人数无效（0～{MAX_PROFESSION_TARGET}）")
 
         config = existing.get(profession)
         if config is None:
