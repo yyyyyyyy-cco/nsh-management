@@ -80,6 +80,38 @@
 > - `frontend/nginx.conf`（**占位符版**）现已入库，作为 frontend 镜像的构建输入：此前该文件不在仓库内，导致全新克隆在 `COPY nginx.conf` 一步直接构建失败。它仍在下方排除清单内，**服务器版本不受影响**；两边漂移由本节「服务器配置类文件的变更规则」管理。
 > - `frontend/nginx.conf.example` 已收窄为**边缘层（B 段）模板**，内层（A 段）以 `frontend/nginx.conf` 为唯一副本，避免同一配置两处漂移。
 
+
+### 配置漂移检查（服务器配置 vs 仓库配置）
+
+> 来源：合规化整改计划 **W1-3**（决策 **D-5** 的回退方案）。仓库提供 `scripts/check-config-drift.sh.example`。
+
+**何时运行**：在服务器上**手工改过** `docker-compose.yml` 或反向代理配置之后；或作为**部署前检查**接入。
+
+**如何运行**（在服务器仓库目录下）：
+
+```bash
+# 1) 复制为实际脚本（.example 后缀是为了不被自动执行）
+cp scripts/check-config-drift.sh.example scripts/check-config-drift.sh
+
+# 2) 报告型：只报告，不改变退出码（有漂移也返回 0）
+bash scripts/check-config-drift.sh
+
+# 3) 接入部署前检查：有漂移即失败
+bash scripts/check-config-drift.sh --strict
+
+# 4) 指定路径（服务器文件 仓库文件，可多对）
+bash scripts/check-config-drift.sh /srv/nsh-management/docker-compose.yml ./docker-compose.yml
+```
+
+**安全保证**：脚本**不打印掩码前的原值**；默认只掩码**敏感键名**的值（`KEY`/`SECRET`/`TOKEN`/`PASSWORD`/`PWD`/`CREDENTIAL`/`DSN`/`AUTH`/`SALT`），
+端口、镜像标签、路径等保留参与比对 —— 否则真正的漂移也会被一并掩掉。更谨慎的场景可加 `--mask-all`（代价：非敏感差异将不可见）。
+
+**退出码**：`0` 无漂移，或报告型下有漂移；`1` `--strict` 且有漂移；`2` 用法/环境错误。
+
+**已知局限**（如实记录）：①需要 `bash` 4 及以上（使用 `${var^^}`）；②脚本用 bash 内建实现掩码与比对，
+**不依赖** `sed`/`diff`/`grep`/`awk`（已在极简 PATH 下实测可用）；③若以 **Windows 反斜杠绝对路径**调用，
+仓库根目录推导会退化到上一层 —— 请在仓库目录内以相对路径调用（部署目标为 Linux，不受影响）。
+
 ### deploy.sh 打包排除清单（⚠️ 严禁移除）
 
 | 排除项 | 原因 |
