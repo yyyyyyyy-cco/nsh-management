@@ -5,12 +5,14 @@
 #   backend       语法编译 + 迁移可用性（空库升级到 head）+ 应用可导入（含启动门禁）
 #   frontend      npm ci + vue-tsc 类型检查 + vite 构建（与前端镜像构建同源）
 #   repo-hygiene  行数规则脚本 + 陈旧绝对路径 + 换行归一（W0-2/W2-5 的回归护栏）
+#                 + 3 个报告型对账（字段/路由/表结构漂移；continue-on-error，只告警不阻断）
 #   docker-build  双镜像构建 —— 这一项正是 F-08（frontend/Dockerfile COPY nginx.conf 缺失）的回归护栏
 #
 # 现状（2026-10-03 核对，替换原先的「后续扩展」设想——其前置条件均已满足）：
 #   - backend job 已含 `python -m pytest`（W2-2 完成）与 `ruff check .`（W2-3 完成）
 #   - frontend job 已含 `npm run lint` 与 `npm run test`（W2-3 / W1-13 完成）
 #   - repo-hygiene 已含 7 道门禁中的全部（每道均为「自检 + 实跑」两步；2026-10-03 补齐 check_file_length 的自检）
+#   - repo-hygiene 末尾另含 3 个**报告型**对账步骤（check_type_drift / check_api_paths / check_schema_drift，F-92~F-95）：均为「自检 + 严格模式」，带 continue-on-error —— 漂移只在页面告警，不阻断流水线
 #   - commit-msg 作业校验基线之后的每个提交（基线文件 .github/commit-msg-baseline）
 #   - docker-build 为双镜像构建护栏（F-08 回归）
 #   仍未接入：mypy（见计划 W2-14）；Node/Python 基座版本待 W1-5/W1-7 统一后同步
@@ -135,6 +137,24 @@ jobs:
             echo "::error::有 $bad 个文本文件以 CRLF 入库；检查 .gitattributes 并执行 git add --renormalize ."
             exit 1
           fi
+
+      # —— 报告型对账（F-92 / F-93 / F-94 / F-95）：本地全绿，带 continue-on-error ——
+      #    漂移属需要人工处置的告警：在页面上暴露，但不阻断流水线。
+      - name: 前后端字段一致性（自检 + 严格模式；仅报告）
+        continue-on-error: true
+        run: |
+          python scripts/check_type_drift.py --self-test
+          python scripts/check_type_drift.py --strict
+      - name: 前端调用 ↔ 后端路由（自检 + 严格模式；仅报告）
+        continue-on-error: true
+        run: |
+          python scripts/check_api_paths.py --self-test
+          python scripts/check_api_paths.py --strict
+      - name: 数据库权威源 ↔ 模型字段（自检 + 严格模式；仅报告）
+        continue-on-error: true
+        run: |
+          python scripts/check_schema_drift.py --self-test
+          python scripts/check_schema_drift.py --strict
 
   commit-msg:
     name: 提交消息规范（基线之后）
