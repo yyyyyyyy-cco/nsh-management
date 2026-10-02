@@ -191,12 +191,21 @@ docker compose start backend
 
 ## 六、环境变量（服务器 `~/nsh-management/.env`）
 
+> **表格口径（2026-10-02）**：§六 表格已按 `.env.example` 补全（此前只列了必需项，运行时可选变量缺失）；门禁 `scripts/check_env_docs.py` 会校验「`.env.example` 的每个键都在本文档出现」，因此**新增环境变量时必须同时更新两处**。
+
 | 键 | 用途 |
 |----|------|
 | `SECRET_KEY` | JWT 签名密钥（强随机，`openssl rand -hex 32`） |
 | `DEVELOPER_PASSWORD` / `ADMIN_PASSWORD` / `MEMBER_PASSWORD` | 三角色密码（仅首次建库生效） |
 | `CORS_ORIGINS` | 允许的跨域来源（逗号分隔，可选）。默认值仅本地开发来源；生产由 Nginx **同源**反代 `/api`，通常**无需设置**；仅当 API 被跨域直连时显式列出。**不要填 `*`**（本项目 `allow_credentials=True`） |
 | `ALERT_WEBHOOK_URL` | 错误率告警的 webhook 地址（可选）。**未配置时仍会在容器日志写 WARNING**（不静默）；阈值 / 窗口 / 检查间隔分别为 `ALERT_ERROR_THRESHOLD`（默认 20）/ `ALERT_WINDOW_MINUTES`（30）/ `ALERT_CHECK_INTERVAL_MINUTES`（15），阈值为 0 表示禁用 |
+| `APP_ENV` | 运行环境标识。Compose 已在 backend 服务固定 `production`，此处**无需重复设置**；非 Compose 部署（k8s / 裸机）**必须显式设为 `production`**，否则启动弱密钥校验的兜底判定可能失效 |
+| `DEBUG` | 调试模式（默认 `false`）。**生产必须保持 false**；生产环境下 `/docs`、`/redoc`、`/openapi.json` 亦被关闭 |
+| `DATABASE_URL` | 数据库连接串（可选）。默认 `sqlite+aiosqlite:///<数据目录>/nsh.db`（容器内为挂载卷）；改用其它路径或外部数据库时才需设置，SQLite 路径须为绝对路径（四个斜杠） |
+| `LOG_RETENTION_DAYS` | 审计日志保留天数（默认 `90`）：服务启动时清理更早的记录 |
+| `DEVELOPER_USERNAME` / `ADMIN_USERNAME` / `MEMBER_USERNAME` | 首次初始化账号的登录名（默认 `developer` / `admin` / `member`，仅首次建库生效） |
+| `DEFAULT_GUILD_NAME` | 首次建库创建的默认帮会名（默认「默认帮会」） |
+| `ALERT_ERROR_THRESHOLD` / `ALERT_WINDOW_MINUTES` / `ALERT_CHECK_INTERVAL_MINUTES` | 错误率告警的阈值（默认 20 条）/ 统计窗口（30 分钟）/ 检查间隔（15 分钟）；阈值 0 表示禁用 |
 
 敏感内容，严禁写入任何入库文件；修改 `SECRET_KEY` 会使所有登录态失效。
 

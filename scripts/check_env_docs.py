@@ -27,9 +27,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SCAN_DIR = ROOT / "backend" / "app"
 ENV_FILE = ROOT / ".env.example"
+DEPLOY_DOC = ROOT / "DEPLOY.md"
 
 GETENV = re.compile(r"os\.getenv\(\s*[\"']([A-Z][A-Z0-9_]*)[\"']")
 DOC_ENTRY = re.compile(r"^\s*#?\s*([A-Z][A-Z0-9_]{2,})\s*=")
+# 部署文档中的键引用（表格单元格、正文、代码块内均可；只用于「是否提到」的判定）
+KEY_TOKEN = re.compile(r"[A-Z][A-Z0-9_]{2,}")
 
 
 def keys_in_line(line: str) -> list[str]:
@@ -50,6 +53,21 @@ def code_keys(root: Path = SCAN_DIR) -> dict[str, set[str]]:
             for key in keys_in_line(line):
                 found.setdefault(key, set()).add(f"{path.relative_to(ROOT)}:{no}")
     return found
+
+
+def mentioned_keys(doc: Path = DEPLOY_DOC) -> set[str]:
+    """DEPLOY.md 中**出现过**的变量名集合。
+
+    为什么需要：`.env.example` 只是模板，运维真正照着做的是部署文档；两份清单必须有同一批键。
+    本轮实测：`.env.example` 文档化 17 个键，而 `DEPLOY.md §六` 的表只列了 4 行、
+    **8 个键在部署文档里根本没出现**（APP_ENV / DEBUG / DATABASE_URL / LOG_RETENTION_DAYS /
+    DEVELOPER_USERNAME / ADMIN_USERNAME / MEMBER_USERNAME / DEFAULT_GUILD_NAME）——
+    与 ai-checklist 第 34 条同一类问题（部署者只能读源码才知道）。
+    判定只看「是否作为大写词元出现」，不要求出现在表格里（ALERT_* 即在表内一行里内联说明）。
+    """
+    if not doc.exists():
+        return set()
+    return set(KEY_TOKEN.findall(doc.read_text(encoding="utf-8")))
 
 
 def documented_keys(env_file: Path = ENV_FILE) -> dict[str, int]:
@@ -76,6 +94,13 @@ SELF_TEST_DOC: tuple[tuple[str, str | None], ...] = (
     ("    # ALERT_WEBHOOK_URL=https://hooks.example.com/nsh-alert", "ALERT_WEBHOOK_URL"),
     ("普通说明文字，没有键", None),
 )
+# 部署文档「是否提到某键」的判定样例（生产与自检共用 KEY_TOKEN）
+SELF_TEST_DEPLOY: tuple[tuple[str, str | None], ...] = (
+    ("| `SECRET_KEY` | JWT 签名密钥 |", "SECRET_KEY"),
+    ("阈值为 0 表示禁用（`ALERT_ERROR_THRESHOLD` 默认 20）", "ALERT_ERROR_THRESHOLD"),
+    ("默认 sqlite+aiosqlite:///<数据目录>/nsh.db", None),
+)
+
 
 
 def run_self_test() -> int:
@@ -92,7 +117,12 @@ def run_self_test() -> int:
         ok = actual == expected
         failures += 0 if ok else 1
         print(f"[{'PASS' if ok else 'FAIL'}] 文档 {line[:46]!r} 期望={expected!r} 实际={actual!r}")
-    total = len(SELF_TEST_CASES) + len(SELF_TEST_DOC)
+    for line, expected in SELF_TEST_DEPLOY:
+        found = expected in set(KEY_TOKEN.findall(line))
+        ok = found == bool(expected)
+        failures += 0 if ok else 1
+        print(f"[{'PASS' if ok else 'FAIL'}] 部署文档 {line[:46]!r} 期望包含={expected!r} 实际={found}")
+    total = len(SELF_TEST_CASES) + len(SELF_TEST_DOC) + len(SELF_TEST_DEPLOY)
     print(f"自检：{total - failures}/{total} 通过")
     return 1 if failures else 0
 
@@ -103,18 +133,28 @@ def main(argv: list[str]) -> int:
 
     used = code_keys()
     doc = documented_keys()
+    mentioned = mentioned_keys()
     missing = {k: v for k, v in used.items() if k not in doc}
     extra = {k: v for k, v in doc.items() if k not in used}
+    not_in_deploy = sorted(k for k in doc if k not in mentioned)
 
-    print(f"[env-docs] 代码读取 {len(used)} 个环境变量；.env.example 文档化 {len(doc)} 个")
+    print(f"[env-docs] 代码读取 {len(used)} 个环境变量；.env.example 文档化 {len(doc)} 个；DEPLOY.md 提到 {len([k for k in doc if k in mentioned])}/{len(doc)} 个")
     for key, where in sorted(extra.items()):
         print(f"[env-docs][提示] 文档中有 `{key}`（第 {where} 行），但代码未读取——确认是否预留")
+    failed = False
     if missing:
         print("[env-docs] 以下变量**代码会读但未文档化**（部署者无从得知）：")
         for key, where in sorted(missing.items()):
             print(f"  {key}: {', '.join(sorted(where))}")
+        failed = True
+    if not_in_deploy:
+        print("[env-docs] 以下变量**已在 .env.example 文档化、但部署文档 DEPLOY.md 未提及**（运维照部署文档做时会漏配）：")
+        for key in not_in_deploy:
+            print(f"  {key}（.env.example 第 {doc[key]} 行）")
+        failed = True
+    if failed:
         return 1
-    print("[env-docs] 全部环境变量均已文档化 : PASS")
+    print("[env-docs] 全部环境变量均已文档化，且部署文档均已提及 : PASS")
     return 0
 
 
