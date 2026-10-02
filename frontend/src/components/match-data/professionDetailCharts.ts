@@ -5,7 +5,7 @@ import { CAMP_COLORS, fmtNum, PROF_COLORS } from './analysis'
 import { CHART_THEME } from './chartTheme'
 
 const HEALERS = new Set(['素问', '鸿音', '潮光'])
-const TANKS = new Set(['铁衣', '血河', '沧澜', '素问'])
+export const TANK_PROFESSIONS = new Set(['铁衣', '血河', '沧澜', '素问'])
 
 /** 治疗职业判定：职业名在候选列表中，且该职业整体治疗量 > 伤害量。 */
 export function isHealer(p: ProfessionStats) {
@@ -13,7 +13,7 @@ export function isHealer(p: ProfessionStats) {
 }
 
 export function isTank(p: ProfessionStats) {
-  return TANKS.has(p.profession) && p.camps.some((c) => c.avg_damage_taken > 0)
+  return TANK_PROFESSIONS.has(p.profession) && p.camps.some((c) => c.avg_damage_taken > 0)
 }
 
 export function hex(c: string): string {

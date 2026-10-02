@@ -8,9 +8,11 @@
  * 不得再复制一份（本轮 F-90 修复前它就复制了一份，改色时容易漏改）。
  */
 import { describe, expect, it } from 'vitest'
-import { PROFESSIONS } from './constants'
+import { PROFESSIONS, PROF_ORDER } from './constants'
 import { PROF_COLORS, profColor, profTagStyle } from './profession'
 import { PROF_COLORS as ANALYSIS_COLORS } from '../components/match-data/analysis'
+import { PROF_ORDER as LINEUP_BOARD_PROF_ORDER } from '../composables/lineupBoard'
+import { TANK_PROFESSIONS } from '../components/match-data/professionDetailCharts'
 
 /** ui-style-guide §7 全表：职业 → 色值 + 文字颜色 */
 const GUIDE: Record<string, { color: string; text: string }> = {
@@ -64,5 +66,20 @@ describe('职业色对齐 ui-style-guide §7', () => {
 describe('职业色单一来源（F-90）', () => {
   it('analysis 模块转出的是同一份色表（不是复制）', () => {
     expect(ANALYSIS_COLORS).toBe(PROF_COLORS)
+  })
+})
+
+describe('职业清单展示顺序与分类单一来源（F-91）', () => {
+  it('PROF_ORDER 是 PROFESSIONS 的一个排列（不漏不重）', () => {
+    expect(PROF_ORDER).toHaveLength(EXPECTED_PROFESSIONS.length)
+    expect(new Set(PROF_ORDER)).toEqual(new Set(EXPECTED_PROFESSIONS))
+  })
+
+  it('PROF_ORDER 由 utils/constants 单一定义，lineupBoard 只转出', () => {
+    expect(LINEUP_BOARD_PROF_ORDER).toBe(PROF_ORDER)
+  })
+
+  it('承伤职业集合与图表使用的一致（且已补记进数据分析规格）', () => {
+    expect([...TANK_PROFESSIONS]).toEqual(['铁衣', '血河', '沧澜', '素问'])
   })
 })

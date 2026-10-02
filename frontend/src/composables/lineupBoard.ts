@@ -5,6 +5,7 @@ import { computed, onScopeDispose, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { getLineup, getLineupCandidates, saveLineup } from '@/api/lineups'
+import { PROF_ORDER } from '@/utils/constants'
 import type { LineupCandidate, LineupSlot, LineupTeam } from '@/types/lineup'
 
 export interface CandidateItem {
@@ -30,8 +31,9 @@ export interface TeamBox {
   slots: SlotItem[][]
 }
 
-/** 职业展示顺序（依据 ui-style-guide）。 */
-export const PROF_ORDER = ['铁衣', '素问', '神相', '碎梦', '血河', '玄机', '九灵', '潮光', '龙吟', '鸿音', '沧澜']
+// 职业展示顺序：唯一来源是 `@/utils/constants`（2026-10-03，F-91）。
+// 本文件只转出，既有 `import { PROF_ORDER } from '@/composables/lineupBoard'` 调用方无需改动。
+export { PROF_ORDER }
 
 /**
  * vuedraggable 拖拽事件对象的**最小结构声明**：只覆盖本项目实际读取的字段

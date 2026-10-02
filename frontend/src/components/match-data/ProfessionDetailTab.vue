@@ -37,7 +37,7 @@
       <!-- 图表行 3：平均承伤 -->
       <div class="chart-row">
         <div class="chart-card">
-          <div class="chart-card__title">职业平均承伤（承伤职业：铁衣 / 血河 / 沧澜 / 素问）</div>
+          <div class="chart-card__title">职业平均承伤（承伤职业：{{ TANK_LABEL }}）</div>
           <EChart :option="metricBarOption('avg_damage_taken', { filterProf: isTank, fmt: fmtNum })" :height="340" />
         </div>
         <div class="chart-card">
@@ -56,6 +56,7 @@
 </template>
 
 <script setup lang="ts">
+const TANK_LABEL = [...TANK_PROFESSIONS].join(' / ')
 import { computed, ref, watch } from 'vue'
 
 import { getProfessionStats } from '@/api/matchData'
@@ -65,13 +66,7 @@ import EChart from './EChart.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ProfessionCompareTable from './ProfessionCompareTable.vue'
 import ProfessionMetricTables from './ProfessionMetricTables.vue'
-import {
-  buildCountPieOption,
-  buildMetricBarOption,
-  buildSkillBarOption,
-  isHealer,
-  isTank,
-} from './professionDetailCharts'
+import { TANK_PROFESSIONS, buildCountPieOption, buildMetricBarOption, buildSkillBarOption, isHealer, isTank } from './professionDetailCharts'
 import type { MetricKey } from './professionDetailCharts'
 
 const props = defineProps<{ scheduleId: number; roundNo: number }>()
