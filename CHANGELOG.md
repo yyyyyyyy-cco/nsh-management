@@ -6,7 +6,7 @@
 
 **维护约定**
 
-1. 新变更先写入 `## [未发布]` 段，发布时改为 `## [x.y.z] - YYYY-MM-DD`（日期用标签创建日）。
+1. 新变更先写入 `## [Unreleased]` 段，发布时改为 `## [x.y.z] - YYYY-MM-DD`（日期用标签创建日）。
 2. 分类固定六类，按需出现：`新增` / `变更` / `弃用` / `移除` / `修复` / `安全`。
 3. 只写「对人有用」的条目：内部重构若无外部可见影响，不单独成条。
 4. **不复制其他权威源**：逐条实现与整改进度见 `memory-bank/progress.md`；合规差距与路线见
@@ -40,7 +40,7 @@
 - **备份与制品归档脚本模板**：`scripts/backup-db.sh.example`（SQLite 在线 backup API、默认 dry-run、生成后完整性校验、保留轮转）与 `scripts/release-archive.sh.example`（镜像 tar + 清单，版本权威为 git 标签）。
 - **依赖精确锁定**：`fastapi`/`python-multipart` 由范围约束改为 `==` 精确版本，并显式锁定传递引入的 `starlette`；新增 CI 门禁 `scripts/check_requirements_pins.py`。
 
-## [未发布]
+## [Unreleased]
 
 合规化整改带来的**使用者可见变更**（整改进度见 `memory-bank/progress.md`；差距清单见
 `.agent/plans/compliance-remediation-plan.md`）。条目按**使用者影响**归并，非逐提交罗列。
@@ -132,7 +132,7 @@
 首个标签，记录项目初始可发布版本。本文件建立于 1.2.0 发布日，未回溯此版本的逐条变更，
 历史请查该标签对应的提交记录（`git log v1.0.0`）。
 
-[未发布]: https://github.com/yyyyyyyy-cco/nsh-management/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/yyyyyyyy-cco/nsh-management/compare/v1.2.0...HEAD
 [1.2.0]: https://github.com/yyyyyyyy-cco/nsh-management/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/yyyyyyyy-cco/nsh-management/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/yyyyyyyy-cco/nsh-management/releases/tag/v1.0.0
