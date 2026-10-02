@@ -1,14 +1,9 @@
 #!/usr/bin/env python
 """前端 API 调用 ↔ 后端路由 对账（报告型，默认不失败）。
 
-把 `frontend/src/api/*.ts` 的 `http.<m>('<url>')` 与后端路由（router 前缀 + `main.py` 挂载前缀 +
-`settings.API_PREFIX`）比对，重点发现「前端调用了、后端没有」的路由（会直接 404）。
-
-约定：
-- 报告型：默认 exit 0；`--strict` 时存在缺失则 exit 1。
-- 路径参数统一归一为 `{p}`，只比形状不比参数名。
-- 后端用 **AST** 解析（跨行装饰器 / `APIRouter(prefix=)` / `include_router(prefix=)` 均可正确取到，
-  见 ai-checklist 第 102/120 条）；前端仍按行提取（TS 侧用 `http.<m>('...')` 形态稳定）。
+比对 `frontend/src/api/*.ts` 的 `http.<m>('<url>')` 与后端路由，发现「前端调用了、后端没有」（会 404）。
+后端**全用 AST 且不硬编码路由**（模块前缀 + `api/v1/router.py` 清单 + `main.py` 直挂前缀）；前端按行提取。
+约定：默认 exit 0，`--strict` 有缺失则 exit 1；路径参数统一归一为 `{p}`，只比形状不比参数名。见 ai-checklist 第 102/120/121 条。
 """
 from __future__ import annotations
 
@@ -21,6 +16,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 FE_API = ROOT / "frontend" / "src" / "api"
 BE_API = ROOT / "backend" / "app" / "api" / "v1"
+BE_SUBROUTER = BE_API / "router.py"
 BE_MAIN = ROOT / "backend" / "app" / "main.py"
 METHODS = ("get", "post", "put", "delete", "patch")
 
@@ -60,39 +56,62 @@ def routes_from_source(source: str) -> set[tuple[str, str]]:
     return routes
 
 
-def mount_prefixes() -> dict[str, str]:
-    """从 main.py 的 include_router 推导「模块名 -> 挂载前缀」（健康检查挂在 api 前缀之外）。"""
-    out: dict[str, str] = {}
-    if not BE_MAIN.exists():
+def _includes(path: pathlib.Path) -> list[tuple[str, str]]:
+    """返回 [(模块名, 前缀表达式)]——支持 `x.router` 与 `x_router`；`prefix=` 缺省记 ""。"""
+    out: list[tuple[str, str]] = []
+    if not path.exists():
         return out
-    for node in ast.walk(ast.parse(BE_MAIN.read_text(encoding="utf-8"))):
-        if isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "include_router":
-            mod = getattr(node.args[0], "attr", "") if node.args else ""
-            pre = ""
-            for kw in node.keywords:
-                if kw.arg == "prefix" and isinstance(kw.value, ast.Constant) and isinstance(kw.value.value, str):
-                    pre = kw.value.value
-            if mod:
-                out[mod] = pre
+    for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+        if not (isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "include_router"):
+            continue
+        arg = node.args[0] if node.args else None
+        mod = ""
+        if isinstance(arg, ast.Attribute):          # auth.router -> auth
+            mod = getattr(arg.value, "id", "")
+        elif isinstance(arg, ast.Name):             # health_router -> health_router
+            mod = arg.id
+        pre = ""
+        for kw in node.keywords:
+            if kw.arg == "prefix":
+                try:
+                    pre = ast.unparse(kw.value)
+                except Exception:
+                    pre = ""
+        if mod:
+            out.append((mod, pre))
     return out
+
+
+def mounts() -> tuple[set[str], dict[str, set[str]], str]:
+    """返回 (经 api_router 挂载的模块名, 直接挂在 app 上的模块->前缀集合, API_PREFIX 实际值)。"""
+    cfg = (ROOT / "backend" / "app" / "core" / "config.py").read_text(encoding="utf-8")
+    m = re.search(r'API_PREFIX[^=]*=\s*"([^"]*)"', cfg)
+    prefix = m.group(1) if m else "/api/v1"
+    included = {mod for mod, _ in _includes(BE_SUBROUTER)}
+    direct: dict[str, set[str]] = {}
+    for mod, raw in _includes(BE_MAIN):
+        if mod == "api_router":
+            continue
+        pre = prefix if "API_PREFIX" in raw else raw.strip("'\"")
+        for key in (mod, mod.removesuffix("_router")):
+            direct.setdefault(key, set()).add(pre)
+    return included, direct, prefix
 
 
 def parse_backend() -> tuple[set[tuple[str, str]], list[str]]:
     """返回 ({(method, 归一化路径)}, 说明行)。"""
-    prefix = "/api/v1"
-    cfg = (ROOT / "backend" / "app" / "core" / "config.py").read_text(encoding="utf-8")
-    m = re.search(r'API_PREFIX[^=]*=\s*"([^"]*)"', cfg)
-    if m:
-        prefix = m.group(1)
-    mounts = mount_prefixes()
+    included, direct, prefix = mounts()
     routes: set[tuple[str, str]] = set()
     for p in sorted(BE_API.glob("*.py")):
         mod_routes = routes_from_source(p.read_text(encoding="utf-8"))
-        for method, path in mod_routes:
-            routes.add((method, normalize(prefix + path)))
-            if p.stem in mounts:
-                routes.add((method, normalize(mounts[p.stem] + path)))
-    return routes, [f"全局前缀 {prefix}", f"main.py 挂载 {len(mounts)} 处"]
+        prefs: set[str] = set()
+        if p.stem in included:
+            prefs.add(prefix)
+        prefs |= direct.get(p.stem, set())
+        for pre in prefs or {""}:
+            for method, path in mod_routes:
+                routes.add((method, normalize(pre + path)))
+    return routes, [f"前缀 {prefix}；api_router {len(included)} 模块；直挂 {len(direct)} 模块"]
 
 
 def parse_frontend() -> set[tuple[str, str]]:
@@ -129,8 +148,7 @@ def self_test() -> int:
         "from fastapi import APIRouter\n"
         "r = APIRouter(prefix='/things')\n"
         "r2 = APIRouter()\n"
-        "@r.get(\n    '/a/{x}',\n    response_model=dict,\n)\n"
-        "async def a(x: int): ...\n"
+        "@r.get(\n    '/a/{x}',\n    response_model=dict,\n)\nasync def a(x: int): ...\n"
         "@r.post('/b')\nasync def b(): ...\n"
         "@r2.get('/c')\nasync def c(): ...\n"
         "@r.websocket('/d')\nasync def d(): ...\n"
@@ -140,16 +158,10 @@ def self_test() -> int:
     if found != want_found:
         failures.append(f"AST 提取不符：{sorted(found)}，期望 {sorted(want_found)}")
     be = {("get", "/api/v1/schedules"), ("put", "/api/v1/members/{p}")}
-    miss, _ = analyze(be, set(be))
-    if miss:
-        failures.append(f"应无缺失，实得 {miss}")
-    miss2, _ = analyze(be, {("get", "/api/v1/nope")})
-    if miss2 != [("get", "/api/v1/nope")]:
-        failures.append(f"未检出缺失：{miss2}")
-    miss3, _ = analyze({("put", "/api/v1/x")}, {("get", "/api/v1/x")})
-    if miss3 != [("get", "/api/v1/x")]:
-        failures.append(f"方法不匹配未检出：{miss3}")
-    total = 1 + 5 + 4
+    if analyze(be, set(be))[0] or analyze(be, {("get", "/api/v1/nope")})[0] != [("get", "/api/v1/nope")] \
+            or analyze({("put", "/api/v1/x")}, {("get", "/api/v1/x")})[0] != [("get", "/api/v1/x")]:
+        failures.append("analyze 行为不符（应无缺失 / 应检出缺失 / 方法不匹配应检出）")
+    total = 1 + 5 + 2
     if failures:
         print("[api-paths] 自检失败：")
         for f in failures:
