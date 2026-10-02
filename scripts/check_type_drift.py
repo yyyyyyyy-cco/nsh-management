@@ -160,6 +160,9 @@ def main() -> int:
         return self_test()
 
     fe, be = _load()
+    fe_stale = [k for k in PAIRS if k not in fe]
+    if fe_stale:
+        print(f"[类型对账] 配对表中的前端类型不存在（FE 失效配对）：{fe_stale}")
     stale = [f"{k}->{n}" for k, names in PAIRS.items() for n in names if n not in be]
     if stale:
         print(f"[type-drift] 配对表指向不存在的后端模型：{stale}")

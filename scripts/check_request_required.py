@@ -136,6 +136,10 @@ def main() -> int:
             for f in failures:
                 print(f"  - {f}")
             return 1
+        # F-111：前端侧失效配对告警（与后端侧对称）
+        fe_stale = [k for k in PAIRS_REQ if k not in fe]
+        if fe_stale:
+            print(f"[类型对账] 配对表中的前端类型不存在（FE 失效配对）：{fe_stale}")
         print(f"[request-required] 自检：{CASE_COUNT}/{CASE_COUNT} 通过")
         return 0
     fe, be = _load()

@@ -24,7 +24,8 @@ PAIRS: dict[str, list[str]] = {
 
 # 前端类型名 → 后端请求模型名（*Update 类全可选，配对后天然通过）
 PAIRS_REQ: dict[str, list[str]] = {
-    "SchedulePayload": ["ScheduleCreate"],
+    # F-111：原键 `SchedulePayload` 在 F-102 拆分后失效，改用现行类型名
+    "ScheduleCreatePayload": ["ScheduleCreate"],
     "GuildCreateRequest": ["GuildCreate"],
     "AccountCreateRequest": ["AccountCreate"],
     "AccountUpdateRequest": ["AccountUpdate"],
