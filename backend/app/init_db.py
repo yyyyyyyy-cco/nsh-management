@@ -97,7 +97,7 @@ async def init() -> None:
                 print(f"创建帮众账号：{MEMBER_USERNAME}")
 
         await session.commit()
-        print(f"\n初始化完成！")
+        print("\n初始化完成！")
         print(f"开发者：{DEVELOPER_USERNAME}（可创建帮会、派发账号）")
         if guild:
             print(f"帮会「{DEFAULT_GUILD_NAME}」：{ADMIN_USERNAME}（管理员）、{MEMBER_USERNAME}（帮众）")

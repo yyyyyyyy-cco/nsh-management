@@ -6,7 +6,11 @@ A3 相关性：分路内 综合分 vs 主维贡献倍数 的排名相关性（�
 A4 钻空子检查：全场 TOP20 玩家是否本职维度确实突出（主维倍数>=1.5）
 A5 权重集中度：核心+次要占比（边际项合计不应超过 25%）
 """
-import os, sqlite3, sys, io, re, json
+import os
+import sqlite3
+import sys
+import io
+import re
 from collections import defaultdict
 from pathlib import Path
 

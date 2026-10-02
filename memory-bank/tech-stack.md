@@ -52,7 +52,7 @@
 
 ### 依赖清单
 
-> **权威源**：`backend/requirements.txt`（实际锁定版本，含 bcrypt 固定 4.0.1 等注释说明）。
+> **权威源**：`backend/requirements.txt`（运行时依赖，实际锁定版本，含 bcrypt 固定 4.0.1 等说明）；开发/CI 依赖见 `backend/requirements-dev.txt`（含 Ruff）。
 
 > 版本说明（2026-08 实际验证）：适配 Python 3.13。pydantic≥2.10、SQLAlchemy≥2.0.36 才有 Python 3.13 预编译包；bcrypt 固定 4.0.1 以兼容 passlib 1.7.4（≥4.1 会报错）；fastapi 升级到 0.115+；openpyxl 用于 Excel 导入导出；python-multipart 升级修复 CVE-2024-53981。
 
@@ -115,8 +115,9 @@
 | Git | 版本控制 |
 | VS Code | 推荐 IDE |
 | vue-tsc | 前端类型检查（`npm run build` 前置） |
+| Ruff 0.12 | 后端 Python 静态检查（配置 `backend/ruff.toml`，依赖见 `backend/requirements-dev.txt`，CI 门禁） |
 
-> ESLint / Prettier / Ruff 当前未配置（仓库内无配置文件与依赖），如需引入需先补充配置，属可选优化项。
+> **2026-10-02 更新（合规化计划 W2-3）**：Ruff 已配置并接入 CI（规则集 E4/E7/E9/F；全后端 `ruff check .` 通过，`alembic/versions/*` 与 3 个一次性分析脚本按文件豁免）。**前端 ESLint / Prettier 仍未配置**（需新增 npm devDependencies，另起提交）；`E501` 行长、`ruff format` 与 `I`/`UP`/`B` 规则待分级收敛后再纳入。
 
 ### VS Code推荐插件
 - Volar (Vue官方插件)

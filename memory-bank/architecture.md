@@ -241,6 +241,7 @@ nsh-management/
 | 2026-10-02 | Wave 1 批次 1（合规化计划 W1-1/W1-2/W1-6，P0 交付链）：①`frontend/nginx.conf` 入库（占位符版构建输入）并解除 `.gitignore` 忽略，修复全新克隆 `COPY nginx.conf` 构建失败；②`frontend/nginx.conf.example` 收窄为边缘层模板（内层以 `nginx.conf` 为唯一副本）；③新增 `deploy.sh.example`（占位符 + 排除清单 + 非零退出健康检查），`DEPLOY.md §三` 同步说明；④`README.md` 补「数据源模式（DB_MODE）」与构建前置说明 | DEPLOY.md, README.md, nginx.conf, nginx.conf.example, deploy.sh.example, architecture.md, progress.md |
 | 2026-10-02 | ai-checklist §五 新增遗漏模式 21（静默命令须判 `$LASTEXITCODE`：`git check-ignore -q` 的 `[bool]` 判定恒为 False，曾误报 deploy.sh 失去忽略）与 22（计数结论必须记录匹配范围与大小写选项：F-37 首记 23 处实为活引用 25 处 + 历史 2 处） | ai-checklist.md, progress.md, architecture.md |
 | 2026-10-02 | Wave 2 批次 1（合规化计划 W2-1/W2-5/W2-7，质量门禁）：新增 `.github/workflows/ci.yml`（backend 编译+迁移+导入 / frontend `npm ci`+`vue-tsc`+`vite` / repo-hygiene 行数+陈旧路径+换行 / docker-build 双镜像）与 `.github/dependabot.yml`；新增 `scripts/check_file_length.py`；`.agent/rules/file-length-rule.md` 增补「前端 TS」行数类别与「自动检查（CI 门禁）」小节 | ci.yml, dependabot.yml, check_file_length.py, file-length-rule.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-02 | Wave 2 批次 2（合规化计划 W2-3 后端部分）：新增 `backend/ruff.toml`（规则集 E4/E7/E9/F，按文件豁免迁移与一次性脚本）与 `backend/requirements-dev.txt`（`ruff==0.12.0`）；CI backend job 增加 dev 依赖安装与 `ruff check .`；修复 9 处告警（8 项安全自动修复 + `models/user.py` 的 `Guild` 改 `TYPE_CHECKING` 导入）；`tech-stack.md` 开发工具与依赖权威源同步 | ruff.toml, requirements-dev.txt, ci.yml, tech-stack.md, user.py, architecture.md, progress.md |
 
 ---
 

@@ -1,5 +1,5 @@
 """比赛数据分析 Pydantic Schema。"""
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.schemas.common import UtcDatetime
 

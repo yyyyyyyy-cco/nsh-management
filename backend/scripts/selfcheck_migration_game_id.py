@@ -78,7 +78,7 @@ class MigrationTests(unittest.TestCase):
             db_path = Path(tmp) / "migration.db"
 
             up_log = _run_alembic(db_path, "upgrade", "head")
-            self.assertIn(f"Running upgrade", up_log)
+            self.assertIn("Running upgrade", up_log)
             self.assertIn(HEAD_REVISION, up_log)
             self.assertEqual(_current_revision(db_path), HEAD_REVISION)
             self.assertIn(NEW_TABLE, _table_names(db_path))

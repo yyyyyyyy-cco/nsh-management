@@ -235,7 +235,7 @@
 | W1-6 README 引导补全 | ✅ 已完成 | 2026-10-02 | README 新增「数据源模式（`DB_MODE`）」小节（prod 快照 / dev 本地库、缺失回退、`.db` 不入库）与 Docker 部署段的 `nginx.conf` 构建前置说明 | fix(build): 入库 nginx.conf 与部署脚本模板 |
 | W2-1 CI 工作流 | ✅ 已完成 | 2026-10-02 | `.github/workflows/ci.yml`：4 个 job（backend 编译+迁移+导入 / frontend `npm ci`+`vue-tsc`+`vite` / repo-hygiene 行数+陈旧路径+换行 / docker-build 双镜像＝F-08 回归护栏）。**本机前置验证**：`npm ci` exit 0、`vue-tsc` 无类型错误、`vite build` 成功（12.27s）、`compileall` exit 0。**CI 本身未运行**（本会话无 GitHub Actions 环境），需 push 后观察首次结果 | ci(quality): 新增 CI 门禁与行数检查脚本 |
 | W2-2 测试体系（pytest/Vitest） | ⏳ 待开始 | | 本机无 pytest；需先建 `backend/tests/` 与 `requirements-dev.txt` | — |
-| W2-3 lint/format/类型检查 | ⏳ 待开始 | | 本机已有 ruff 0.12 可用；引入时须先跑一遍并分级收敛，避免 CI 首发即红 | — |
+| W2-3 lint/format/类型检查 | 🔄 进行中 | 2026-10-02（后端部分） | **后端 ruff 已完成**：新增 `backend/ruff.toml`（规则集 E4/E7/E9/F，迁移与 3 个一次性脚本按文件豁免）+ `backend/requirements-dev.txt`（`ruff==0.12.0`）+ CI backend job 接线。实测基线 52 项 → 修复 9 项（8 项安全自动修复 + `models/user.py` 的 F821 `Guild` 改 `TYPE_CHECKING` 导入）→ `ruff check .` **All checks passed!**、`compileall` exit 0。**待办**：前端 ESLint/Prettier（需新增 npm devDependencies，另起提交）、mypy（需安装并分级收敛）、`E501`/`ruff format`/`I`/`UP`/`B` 分级纳入 | ci(lint): 接入 ruff 静态检查并修复其告警 |
 | W2-4 pre-commit 与提交校验 | ⏳ 待开始 | | | — |
 | W2-5 行数规则补全与检查脚本 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_file_length.py`（标记+登记双重校验、清单悬空、增长 ≥20% 提醒）与规则文档「前端 TS」类别；本地实检 211 文件 / 14 条登记 **exit 0**。**偏差记录**：计划原拟 TS 上限 200，实施改为 **300**（composable 与组件同为状态控制器；若设 200，`analysis.ts` 295、`useAttendanceList.ts` 240、`useRecordingList.ts` 223 会在新门禁上线首日即失败，违背「门禁不得先红」原则），已在规则文档写明理由 | ci(quality): 新增 CI 门禁与行数检查脚本 |
 | W2-6 出勤率口径收敛 + config 副作用 | ⏳ 待开始 | | | — |

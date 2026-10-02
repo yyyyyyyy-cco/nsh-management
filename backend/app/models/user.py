@@ -1,10 +1,15 @@
 """账号表：每个帮会一个管理员账号 + 一个帮众共享账号。"""
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    # 仅供类型检查/静态分析解析 relationship 的字符串注解，运行时不导入（避免 models 间循环导入）
+    from app.models.guild import Guild
 
 
 class User(Base):

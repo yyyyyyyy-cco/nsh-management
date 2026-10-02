@@ -1,0 +1,23 @@
+# ===== Ruff 配置（合规化计划 W2-3） =====
+# 定位：后端 Python 静态检查，CI 门禁之一（.github/workflows/ci.yml 的 backend job 执行 `ruff check .`）。
+# 作用域：仅后端。前端 ESLint/Prettier 仍在计划中（W2-3 收尾项）。
+# 未启用的项（有意为之，避免新门禁上线首日即红）：
+#   · E501 行长与 `ruff format`：需一次性大改全后端，属独立提交，见计划 W2-3 收尾项；
+#   · I（导入排序）/UP（语法升级）/B（bugbear）：本机实测分别有 32 / 15 / 179 处，需分级收敛后再纳入。
+
+target-version = "py311"   # 与 backend/Dockerfile 的 python:3.11-slim 一致（W1-5 统一版本后同步）
+line-length = 120          # 仅影响 format 与 E501；当前未启用 E501
+
+exclude = [".venv", "__pycache__", "data", "logs"]
+
+[lint]
+# 规则集：E4/E7/E9 + F（pyflakes：未定义名、未使用导入/变量、f-string 缺占位符等）
+select = ["E4", "E7", "E9", "F"]
+
+[lint.per-file-ignores]
+# Alembic 迁移为 autogenerate 产物：保持生成原样，且后续生成的迁移仍会带未使用导入
+"alembic/versions/*.py" = ["F401"]
+# 2026-09-07 权重推导系列为一次性分析脚本，采用紧凑单行语句风格（与产品代码风格不同）
+"scripts/audit_weights_v4_20260907.py" = ["E701", "E702"]
+"scripts/derive_weights_v4_20260907.py" = ["E701", "E702"]
+"scripts/sim_contribution_v4_20260907.py" = ["E701", "E702"]
