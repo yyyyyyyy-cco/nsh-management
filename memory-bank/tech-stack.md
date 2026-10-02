@@ -39,7 +39,7 @@
 | SQLite | 3.x | 数据库 | 轻量级，无需额外服务，单文件存储 |
 | Pydantic | 2.x | 数据验证 | 类型安全，自动验证，与FastAPI深度集成 |
 | python-jose | 3.x | JWT认证 | Token生成和验证 |
-| passlib | 1.x | 密码加密 | 支持bcrypt等多种加密算法 |
+| bcrypt | 4.3.0 | 密码哈希（`$2b$`，cost 12） | 直接调用（2026-10-03 W1-10 起；原经未维护的 passlib 间接使用，已移除） |
 | python-multipart | 0.x | 文件上传 | 处理multipart/form-data |
 | uvicorn | 0.x | ASGI服务器 | 高性能异步服务器 |
 | aiosqlite | 0.x | 异步SQLite | 异步数据库驱动 |
@@ -52,13 +52,13 @@
 
 ### 依赖清单
 
-> **权威源**：`backend/requirements.txt`（运行时依赖，实际锁定版本，含 bcrypt 固定 4.0.1 等说明）；开发/CI 依赖见 `backend/requirements-dev.txt`（ruff、pytest、httpx2）。
+> **权威源**：`backend/requirements.txt`（运行时依赖，实际锁定版本，含 bcrypt、Pillow 等固定版本与升级依据说明）；开发/CI 依赖见 `backend/requirements-dev.txt`（ruff、pytest、httpx2）。
 >
 > **编码声明（2026-10-02）**：两个依赖清单首行均为 `# -*- coding: utf-8 -*-`——文件含中文注释，中文 Windows 的 pip 按 cp936 解码会失败（`UnicodeDecodeError`），新增中文内容时**勿删除该行**。
 > **锁定状态（2026-10-02，W1-4）**：`fastapi` 由 `>=0.115.0` 改为 **`==0.142.2`**、`python-multipart` 由 `>=0.0.18` 改为 **`==0.0.32`**，并显式锁定传递引入的 **`starlette==1.7.0`**——三者均为**本仓已实测通过**的组合（pytest 93 用例 + selfcheck 全绿；PyPI 元数据 `requires_python >=3.10`，与 3.11 基座兼容）。范围约束的漂移风险与实测证据见合规化计划 F-15；门禁 `scripts/check_requirements_pins.py` 已接入 CI，阻止再次引入范围约束。
 > **仍待完成**：带**哈希**的全量锁文件（`pip-compile` / `uv pip compile`）必须在**部署所用 Python（3.11）**环境生成，否则会锁到 cp312 等错误 wheel；本机无 3.11，故未生成——列入 W1-4 收尾。
 
-> 版本说明（2026-10-02 复核，按代码事实）：**运行时以 Python 3.11 为准**（生产镜像基座与 CI 一致；本地开发 3.11–3.13 可用）。pydantic / SQLAlchemy 固定版本均有对应 wheel；bcrypt 固定 4.0.1 以兼容 passlib 1.7.4（≥4.1 会报错）；fastapi 锁定 0.142.2；openpyxl 用于 Excel 导入导出；python-multipart 锁定 0.0.32（修复 CVE-2024-53981）。
+> 版本说明（2026-10-02 复核，按代码事实）：**运行时以 Python 3.11 为准**（生产镜像基座与 CI 一致；本地开发 3.11–3.13 可用）。pydantic / SQLAlchemy 固定版本均有对应 wheel；bcrypt 固定版本的锁定与升级依据 以兼容 passlib 1.7.4（≥4.1 会报错）；fastapi 锁定 0.142.2；openpyxl 用于 Excel 导入导出；python-multipart 锁定 0.0.32（修复 CVE-2024-53981）。
 
 ---
 

@@ -15,7 +15,7 @@ except ImportError as exc:  # pragma: no cover — 本地无依赖环境（如 P
     # 模块级跳过：避免无依赖环境在收集阶段 ImportError 报错（pytest 退出码 2）而非干净跳过
     import unittest
 
-    raise unittest.SkipTest(f"缺少运行依赖（python-jose/passlib），跳过本模块：{exc}") from exc
+    raise unittest.SkipTest(f"缺少运行依赖（python-jose/bcrypt），跳过本模块：{exc}") from exc
 
 
 class PasswordHashTests(unittest.TestCase):

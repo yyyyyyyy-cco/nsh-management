@@ -285,8 +285,12 @@
 | 依赖 | 现锁定 | 上游事实（2026-10-03 核实） | 可达性 | 处置 |
 |------|--------|------------------------|--------|------|
 | **Pillow** | `11.1.0` → **`12.3.0`** | GitHub Advisory **`GHSA-62p4-gmf7-7g93` = `CVE-2026-54058`**（high）：mmap 路径越界读（McIdas AREA），**受影响 `< 12.3.0`**；另有 `PYSEC-2026-3496` | **不可达**：只用 Pillow **生成**导出图（`image_export.py`），全仓无 `Image.open`，两处 `UploadFile` 均为 Excel | **已升级**，附导入级兼容 + 全量 pytest 证据 |
-| **passlib** | `1.7.4` | 上游 **2020 年后无发布**（未维护）；被 bcrypt ≥ 4.1 破坏（`module 'bcrypt' has no attribute '__about__'`），社区长期建议改为**直接使用 bcrypt** | 可达（口令哈希/校验必经） | 现存缓解：把 `bcrypt` 钉在 `4.0.1`。**已登记 W1-10**：改用 `bcrypt` 直连并附**哈希向后兼容测试** |
+| **passlib** | ~~`1.7.4`~~ **已移除** | 上游 **2020 年后无发布**（未维护）；被 bcrypt ≥ 4.1 破坏（`module 'bcrypt' has no attribute '__about__'`） | —— | **已移除（W1-10，2026-10-03）**：改为 `bcrypt` 直连，`bcrypt` 由 `4.0.1`（因兼容 passlib 而钉死）升至 **`4.3.0`**；既有 `$2b$12$` 哈希无需迁移（真实哈希验证 + `tests/test_password_hash_compat.py` 长期看护） |
 | starlette / fastapi / uvicorn / SQLAlchemy / alembic / openpyxl / pydantic / aiosqlite / python-multipart | 见 `requirements.txt` | 本轮检索未发现**与本项目版本组合**相关的公开高危条目；`python-multipart` 的 CVE-2024-53981 已在 `0.0.32` 之上 | —— | 记录为「本期无动作」，由 Dependabot 周更继续跟踪 |
+
+**换库过程中发现的第二个缺陷（已修，登记 F-58）**：`bcrypt` 4.x 的 Rust 实现在收到**截断/非法哈希**时会 **Rust panic**（`pyo3_runtime.PanicException`），实测继承链为 **`PanicException → BaseException → object`**、**不是 `Exception` 子类** —— 若直接把哈希交给 `bcrypt.checkpw`，库中任一损坏哈希都会让**登录接口 500**；passlib 时代对这类输入返回 `False`。已在 `verify_password` 加**格式预校验** + 宽捕获（显式重抛 `KeyboardInterrupt`/`SystemExit`）恢复「返回 False」语义，并由兼容性用例的损坏哈希场景看护。
+
+**仍存的边界（登记 F-57 / W1-12）**：bcrypt 只使用口令**前 72 字节**且**静默截断**——实测「前 72 字节相同、后缀不同」的两个口令互相通过校验；策略上限为 **128 字符**（中文可达 384 字节），故该边界可达。**本轮有意不修**：应与 bcrypt 5.0.0 对 >72 字节的行为变化一起决策，见 W1-12。
 
 **本轮同时发现（测试缺口，已收口）**：`app/utils/image_export.py` 的导出路径此前**无任何测试覆盖**（`tests/` 检索 `image_export`/`draw_members_png` 为空），故升级当时只有**导入级 + 字体加载**证据。
 **2026-10-03 已补（W1-11 / 收口 F-56）**：新增 `backend/tests/test_image_export.py`（6 个用例，0.30s）——断言 PNG 合法性、宽度恒定、高度按实现公式独立重算、空列表不抛异常、正式/替补/副职业分支、人数上限守卫；全量 pytest 由 **158 → 164 passed**（+6）、84 subtests、exit 0；`ruff` 通过。有意保留的覆盖边界：恰好 800 人的成功路径未执行（约 26MB 位图、耗时不可控）。
