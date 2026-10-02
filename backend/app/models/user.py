@@ -1,4 +1,5 @@
 """账号表：每个帮会一个管理员账号 + 一个帮众共享账号。"""
+
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
@@ -16,7 +17,9 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    guild_id: Mapped[int | None] = mapped_column(ForeignKey("guilds.id"), nullable=True, index=True)  # developer 角色可为空
+    guild_id: Mapped[int | None] = mapped_column(
+        ForeignKey("guilds.id"), nullable=True, index=True
+    )  # developer 角色可为空
     username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(128), nullable=False)
     plain_password: Mapped[str | None] = mapped_column(String(128), nullable=True)  # 仅限本地管理工具查看

@@ -1,6 +1,7 @@
 """F-2/F-3/F-4 回归：出勤隔离、Excel 来源与新旧回导兼容，仅用内存数据。
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_member_exports.py
 """
+
 # ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
 import unittest as _unittest
 
@@ -36,8 +37,10 @@ from app.utils.excel_import import ExcelImportError, _parse_workbook, import_mem
 
 
 def sample_members():
-    return [Member(id=1, guild_id=1, name="测试甲", main_profession="铁衣", status="formal"),
-            Member(id=2, guild_id=1, name="测试乙", main_profession="素问", status="substitute")]
+    return [
+        Member(id=1, guild_id=1, name="测试甲", main_profession="铁衣", status="formal"),
+        Member(id=2, guild_id=1, name="测试乙", main_profession="素问", status="substitute"),
+    ]
 
 
 class ExportFormatTests(unittest.TestCase):
@@ -47,7 +50,9 @@ class ExportFormatTests(unittest.TestCase):
         try:
             self.assertEqual(len(workbook.worksheets), 2)
             for sheet in workbook:
-                self.assertEqual((sheet["A1"].value, sheet["B1"].value, sheet["D1"].value), ("所属帮会", "测试帮会甲", 1))
+                self.assertEqual(
+                    (sheet["A1"].value, sheet["B1"].value, sheet["D1"].value), ("所属帮会", "测试帮会甲", 1)
+                )
                 self.assertEqual([cell.value for cell in sheet[2]], HEADERS)
                 self.assertEqual(sheet.freeze_panes, "A3")
         finally:
@@ -80,7 +85,7 @@ class ExportFormatTests(unittest.TestCase):
         workbook = load_workbook(BytesIO(blob), data_only=False)
         self.assertEqual(workbook.active["B1"].data_type, "s")
         workbook.close()
-        filename = member_export_filename('甲/乙\\帮会:测\n试', "20260918", "xlsx")
+        filename = member_export_filename("甲/乙\\帮会:测\n试", "20260918", "xlsx")
         self.assertEqual(filename, "常驻库_甲_乙_帮会_测_试_20260918.xlsx")
 
 
@@ -100,14 +105,27 @@ class MemberDataTests(unittest.IsolatedAsyncioTestCase):
     async def test_attendance_filters_schedule_guild_before_aggregation(self):
         self.session.add_all(sample_members())
         for sid, gid in ((1, 1), (2, 1), (3, 2)):
-            self.session.add(Schedule(id=sid, guild_id=gid, opponent="测试", rounds=1, match_time=datetime(2026, 9, 18)))
+            self.session.add(
+                Schedule(id=sid, guild_id=gid, opponent="测试", rounds=1, match_time=datetime(2026, 9, 18))
+            )
         await self.session.flush()
         # 第 3 条模拟历史脏引用：同一成员 ID 出现在外帮会赛程，不能污染本帮会出勤率。
         for sid, status in ((1, "normal"), (2, "leave"), (3, "normal")):
-            self.session.add(AttendanceRecord(schedule_id=sid, member_id=1, member_name="测试甲",
-                                              profession="铁衣", status=status, is_filler=False))
-        self.session.add(AttendanceRecord(schedule_id=1, member_id=None, member_name="补人",
-                                          profession="铁衣", status="normal", is_filler=True))
+            self.session.add(
+                AttendanceRecord(
+                    schedule_id=sid,
+                    member_id=1,
+                    member_name="测试甲",
+                    profession="铁衣",
+                    status=status,
+                    is_filler=False,
+                )
+            )
+        self.session.add(
+            AttendanceRecord(
+                schedule_id=1, member_id=None, member_name="补人", profession="铁衣", status="normal", is_filler=True
+            )
+        )
         await self.session.commit()
         data = {r["member_id"]: r for r in await attendance_rate(self.session, 1)}
         self.assertEqual(set(data), {1, 2})
@@ -131,8 +149,15 @@ class MemberDataTests(unittest.IsolatedAsyncioTestCase):
         self.session.add_all(sample_members())
         self.session.add(Member(guild_id=2, name="外帮会成员", main_profession="铁衣"))
         await self.session.commit()
-        response = await export_members(keyword=None, profession=None, status=None, sort_by=None,
-                                        sort_order="asc", current_user=SimpleNamespace(guild_id=1), session=self.session)
+        response = await export_members(
+            keyword=None,
+            profession=None,
+            status=None,
+            sort_by=None,
+            sort_order="asc",
+            current_user=SimpleNamespace(guild_id=1),
+            session=self.session,
+        )
         self.assertIn("常驻库_测试帮会甲_", unquote(response.headers["content-disposition"]))
         _, rows = _parse_workbook(response.body)
         self.assertEqual({r[0] for r in rows}, {"测试甲", "测试乙"})

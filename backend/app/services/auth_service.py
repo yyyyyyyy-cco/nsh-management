@@ -1,4 +1,5 @@
 """认证业务：密码校验、登录限流、令牌签发。"""
+
 import asyncio
 import math
 from datetime import UTC, datetime, timedelta
@@ -104,9 +105,7 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> t
     return token, user
 
 
-async def change_own_password(
-    session: AsyncSession, user: User, current_password: str, new_password: str
-) -> None:
+async def change_own_password(session: AsyncSession, user: User, current_password: str, new_password: str) -> None:
     """用户自助修改口令（ASVS 5.0.0 6.2.2 / 6.2.3；对应差距 F-53）。
 
     要点：①**必须提供当前口令**并通过 bcrypt 校验；②新口令过策略校验（含「不得含登录名」）；

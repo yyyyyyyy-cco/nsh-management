@@ -5,6 +5,7 @@
 本地受限环境（Python 3.14 装不上 `pydantic-core`）也能验证判定、负载契约与发送行为。
 服务层（查库与编排）另见 `test_alerting_service.py`。
 """
+
 import json
 import unittest
 from datetime import UTC, datetime
@@ -35,9 +36,7 @@ class BuildPayloadTests(unittest.TestCase):
 
     def test_payload_field_contract(self):
         decision = AlertDecision(count=25, threshold=20, window_minutes=30, triggered=True)
-        payload = build_payload(
-            decision, app_name="测试应用", now=datetime(2026, 10, 2, 12, 0, tzinfo=UTC)
-        )
+        payload = build_payload(decision, app_name="测试应用", now=datetime(2026, 10, 2, 12, 0, tzinfo=UTC))
         self.assertEqual(set(payload), set(PAYLOAD_FIELDS))
         self.assertEqual(payload["app"], "测试应用")
         self.assertEqual(payload["level"], "error")

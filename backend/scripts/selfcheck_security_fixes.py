@@ -1,6 +1,7 @@
 """F-1/F-3/F-5 路由回归：真实 JWT 与依赖链，仅用内存库，无第三方测试依赖。
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_security_fixes.py
 """
+
 # ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
 import unittest as _unittest
 
@@ -72,10 +73,20 @@ class SecurityFixTests(unittest.IsolatedAsyncioTestCase):
             user = self.users[actor]
             token = create_access_token(user.id, user.role, user.token_version)
             headers.append((b"authorization", f"Bearer {token}".encode()))
-        scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1",
-                 "method": method, "scheme": "http", "path": path, "raw_path": path.encode(),
-                 "query_string": b"", "root_path": "", "headers": headers,
-                 "server": ("test", 80), "client": ("127.0.0.1", 1)}
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": method,
+            "scheme": "http",
+            "path": path,
+            "raw_path": path.encode(),
+            "query_string": b"",
+            "root_path": "",
+            "headers": headers,
+            "server": ("test", 80),
+            "client": ("127.0.0.1", 1),
+        }
         events = []
 
         async def receive():
@@ -139,10 +150,12 @@ class SecurityFixTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(status, 422)
 
     async def test_batch_500_accepted_and_cross_guild_member_preserved(self):
-        self.session.add_all([
-            Member(id=1, guild_id=1, name="甲", main_profession="铁衣"),
-            Member(id=2, guild_id=2, name="乙", main_profession="素问"),
-        ])
+        self.session.add_all(
+            [
+                Member(id=1, guild_id=1, name="甲", main_profession="铁衣"),
+                Member(id=2, guild_id=2, name="乙", main_profession="素问"),
+            ]
+        )
         await self.session.commit()
         status, _ = await self.request("POST", "/members/batch-delete", {"ids": list(range(1, 501))})
         self.assertEqual(status, 200)
@@ -154,9 +167,12 @@ class SecurityFixTests(unittest.IsolatedAsyncioTestCase):
         from app.schemas.member import BatchDeleteRequest
         from app.schemas.recording import BatchApproveRequest
 
-        for model, field, extra in [(BatchDeleteRequest, "ids", {}), (BatchApproveRequest, "ids", {}),
-                                    (BatchStatusUpdate, "ids", {"status": "normal"}),
-                                    (ImportSubstitutesRequest, "member_ids", {})]:
+        for model, field, extra in [
+            (BatchDeleteRequest, "ids", {}),
+            (BatchApproveRequest, "ids", {}),
+            (BatchStatusUpdate, "ids", {"status": "normal"}),
+            (ImportSubstitutesRequest, "member_ids", {}),
+        ]:
             for size in (1, 500):
                 self.assertEqual(len(getattr(model(**{field: list(range(1, size + 1)), **extra}), field)), size)
 

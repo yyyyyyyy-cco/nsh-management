@@ -2,6 +2,7 @@
 
 由 config_service 拆出；异常沿用 ConfigServiceError。
 """
+
 import asyncio
 
 from sqlalchemy import delete, select
@@ -26,19 +27,13 @@ from app.utils.constants import PROFESSIONS
 
 async def list_guilds(session: AsyncSession) -> list[Guild]:
     """获取所有帮会列表（超级管理员功能）。"""
-    return list(
-        (await session.execute(select(Guild).order_by(Guild.name))).scalars().all()
-    )
+    return list((await session.execute(select(Guild).order_by(Guild.name))).scalars().all())
 
 
-async def create_guild(
-    session: AsyncSession, name: str, admin_password: str, member_password: str
-) -> Guild:
+async def create_guild(session: AsyncSession, name: str, admin_password: str, member_password: str) -> Guild:
     """创建帮会，并自动生成管理员和帮众账号（初始密码由创建者指定）。"""
     # 检查帮会名是否已存在
-    existing = (
-        await session.execute(select(Guild).where(Guild.name == name))
-    ).scalar_one_or_none()
+    existing = (await session.execute(select(Guild).where(Guild.name == name))).scalar_one_or_none()
     if existing:
         raise ConfigServiceError(f"帮会「{name}」已存在")
 

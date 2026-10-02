@@ -6,6 +6,7 @@
 - `profession_config` 覆盖：职业须合法（须为目标人数 0-60 的整数）；
 - 日志保留：`LOG_RETENTION_DAYS` 默认 90，`clear_old_logs` 只删除早于保留期的记录，返回删除条数。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -36,8 +37,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         self.session.add(guild)
         await self.session.flush()
         self.gid = guild.id
-        self.schedule = Schedule(guild_id=self.gid, opponent="对手",
-                                 match_time=datetime.now(UTC), rounds=2)
+        self.schedule = Schedule(guild_id=self.gid, opponent="对手", match_time=datetime.now(UTC), rounds=2)
         self.session.add(self.schedule)
         await self.session.commit()
 
@@ -48,38 +48,34 @@ class _Base(unittest.IsolatedAsyncioTestCase):
 
 class ScheduleRulesTest(_Base):
     def test_rounds_is_not_updatable_field(self) -> None:
-        self.assertNotIn("rounds", ScheduleUpdate.model_fields,
-                         "更新模型不得暴露 rounds（文档：创建后不可修改）")
+        self.assertNotIn("rounds", ScheduleUpdate.model_fields, "更新模型不得暴露 rounds（文档：创建后不可修改）")
 
     async def test_round_results_length_must_match_rounds(self) -> None:
         with self.assertRaises(ScheduleServiceError):
             await schedule_service.update_schedule(
-                self.session, self.gid, self.schedule.id,
-                ScheduleUpdate(round_results=["win", "lose", "pending"]))
+                self.session, self.gid, self.schedule.id, ScheduleUpdate(round_results=["win", "lose", "pending"])
+            )
         await self.session.rollback()
         updated = await schedule_service.update_schedule(
-            self.session, self.gid, self.schedule.id,
-            ScheduleUpdate(round_results=["win", "pending"]))
+            self.session, self.gid, self.schedule.id, ScheduleUpdate(round_results=["win", "pending"])
+        )
         self.assertEqual(updated.round_results, ["win", "pending"])
 
     async def test_round_results_value_whitelist(self) -> None:
         with self.assertRaises(ScheduleServiceError):
             await schedule_service.update_schedule(
-                self.session, self.gid, self.schedule.id,
-                ScheduleUpdate(round_results=["win", "赚了"]))
+                self.session, self.gid, self.schedule.id, ScheduleUpdate(round_results=["win", "赚了"])
+            )
         await self.session.rollback()
 
     async def test_profession_config_bounds(self) -> None:
         with self.assertRaises(ScheduleServiceError):
-            await schedule_service.update_profession_config(self.session, self.gid, self.schedule.id,
-                                                            {"铁衣": 61})
+            await schedule_service.update_profession_config(self.session, self.gid, self.schedule.id, {"铁衣": 61})
         await self.session.rollback()
         with self.assertRaises(ScheduleServiceError):
-            await schedule_service.update_profession_config(self.session, self.gid, self.schedule.id,
-                                                            {"不存在职业": 3})
+            await schedule_service.update_profession_config(self.session, self.gid, self.schedule.id, {"不存在职业": 3})
         await self.session.rollback()
-        ok = await schedule_service.update_profession_config(self.session, self.gid, self.schedule.id,
-                                                            {"铁衣": 60})
+        ok = await schedule_service.update_profession_config(self.session, self.gid, self.schedule.id, {"铁衣": 60})
         self.assertEqual(ok.profession_config, {"铁衣": 60})
 
     def test_default_retention_days_is_90(self) -> None:
@@ -87,12 +83,28 @@ class ScheduleRulesTest(_Base):
 
     async def test_clear_old_logs_keeps_recent(self) -> None:
         now = datetime.now(UTC).replace(tzinfo=None)
-        self.session.add_all([
-            OperationLog(username="u", module="other", action="update", method="PUT", path="/x",
-                         level="info", created_at=now - timedelta(days=91)),
-            OperationLog(username="u", module="other", action="update", method="PUT", path="/x",
-                         level="info", created_at=now - timedelta(days=89)),
-        ])
+        self.session.add_all(
+            [
+                OperationLog(
+                    username="u",
+                    module="other",
+                    action="update",
+                    method="PUT",
+                    path="/x",
+                    level="info",
+                    created_at=now - timedelta(days=91),
+                ),
+                OperationLog(
+                    username="u",
+                    module="other",
+                    action="update",
+                    method="PUT",
+                    path="/x",
+                    level="info",
+                    created_at=now - timedelta(days=89),
+                ),
+            ]
+        )
         await self.session.commit()
         with patch.object(log_service, "async_session_factory", self.maker):
             deleted = await log_service.clear_old_logs(90)

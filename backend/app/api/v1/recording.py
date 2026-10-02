@@ -1,4 +1,5 @@
 """录屏审核接口：列表、提交、审核、批量审核、进度。"""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,9 +26,7 @@ async def list_recordings(
     current_user: User = Depends(get_current_user),  # 帮众可查看
     session: AsyncSession = Depends(get_db),
 ) -> RecordingListResponse:
-    recordings, progress = await recording_service.list_recordings(
-        session, current_user.guild_id, schedule_id
-    )
+    recordings, progress = await recording_service.list_recordings(session, current_user.guild_id, schedule_id)
     return RecordingListResponse(
         items=[RecordingOut.model_validate(r) for r in recordings],
         progress=[RoundProgress(**p) for p in progress],
@@ -97,7 +96,5 @@ async def batch_approve(
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    count = await recording_service.batch_approve(
-        session, current_user.guild_id, schedule_id, body.ids
-    )
+    count = await recording_service.batch_approve(session, current_user.guild_id, schedule_id, body.ids)
     return {"message": f"已批量审核通过 {count} 条录屏"}

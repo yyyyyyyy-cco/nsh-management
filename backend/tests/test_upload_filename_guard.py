@@ -7,6 +7,7 @@
 本文件锁定：缺失/异常文件名一律按「仅支持 CSV 文件」拒绝（400 业务错误），不得抛 AttributeError；
 合法 `.csv`（含大小写变体）正常通过。
 """
+
 from __future__ import annotations
 
 import unittest

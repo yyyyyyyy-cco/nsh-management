@@ -6,6 +6,7 @@
 - 业务输入时间（schedule.match_time）：naive 直存，语义 = 用户本地（UTC+8）墙上时间，
   不做任何标记，保持与前端日历/按天分组/按月查询口径一致。
 """
+
 from datetime import UTC, datetime
 from typing import Annotated
 

@@ -10,6 +10,7 @@
 - 若把**新方案**哈希也重写 → 白做一次 bcrypt（且会掩盖 bug）。
 所以这里同时断言「旧哈希被升级为新方案且仍可校验」与「新方案哈希保持原样」。
 """
+
 import unittest
 
 try:
@@ -63,9 +64,7 @@ class PasswordHashMigrationTest(DbTestCase):
 
         _, logged_in = await auth_service.authenticate(self.session, "admin_bound", PASSWORD)
 
-        self.assertEqual(
-            logged_in.password_hash, original, "已是新方案的哈希不应被重写（避免无谓 bcrypt 与掩盖问题）"
-        )
+        self.assertEqual(logged_in.password_hash, original, "已是新方案的哈希不应被重写（避免无谓 bcrypt 与掩盖问题）")
 
     async def test_wrong_password_does_not_upgrade(self) -> None:
         legacy = _legacy_hash(PASSWORD)

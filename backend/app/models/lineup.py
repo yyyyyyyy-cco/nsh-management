@@ -1,4 +1,5 @@
 """排表表：与赛程 1:1，60 槽位数据以 JSON 存储。"""
+
 from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, ForeignKey, String

@@ -6,6 +6,7 @@
 需运行依赖（FastAPI/SQLAlchemy/httpx2），缺失时用例自动跳过——本地受限环境（Python 3.14
 装不上 `pydantic-core`）由 CI 的 Python 3.11 覆盖；跳过是显式的，不会伪装成通过。
 """
+
 import json
 import os
 import subprocess
@@ -78,10 +79,7 @@ class ApiDocsSurfaceTests(unittest.TestCase):
     def _app_surface(self, app_env: str) -> dict[str, str]:
         env = {k: v for k, v in os.environ.items() if k not in {"APP_ENV", "SECRET_KEY"}}
         env.update({"APP_ENV": app_env, "SECRET_KEY": STRONG_MIXED_KEY, "PYTHONIOENCODING": "utf-8"})
-        code = (
-            "import app.main as m;"
-            "print(m.app.openapi_url, m.app.docs_url, m.app.redoc_url, sep='|')"
-        )
+        code = "import app.main as m;print(m.app.openapi_url, m.app.docs_url, m.app.redoc_url, sep='|')"
         proc = subprocess.run(
             [sys.executable, "-c", code],
             cwd=BACKEND_ROOT,

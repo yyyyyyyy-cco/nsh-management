@@ -2,6 +2,7 @@
 
 落库使用独立 session 且吞掉自身异常，保证日志失败不影响主流程。
 """
+
 import json
 from datetime import UTC, datetime, timedelta, timezone
 
@@ -26,10 +27,20 @@ def escape_control(text: str, limit: int | None = None) -> str:
     escaped = "".join(ch if ch.isprintable() else f"\\x{ord(ch):02x}" for ch in text)
     return escaped[:limit] if limit else escaped
 
+
 # 模块白名单（路径首段），不在名单内的归为 other
 MODULES = {
-    "members", "schedules", "attendance", "lineups", "recordings",
-    "match-data", "config", "developer", "auth", "squad-adjustments", "my-stats",
+    "members",
+    "schedules",
+    "attendance",
+    "lineups",
+    "recordings",
+    "match-data",
+    "config",
+    "developer",
+    "auth",
+    "squad-adjustments",
+    "my-stats",
 }
 
 # 统计口径时区：用户均为北京时间，"今日"/按天分组按 UTC+8 计算
@@ -42,15 +53,14 @@ def sanitize_detail(detail: dict | str | None) -> str | None:
         return None
     if isinstance(detail, str):
         return escape_control(detail, 2000)
+
     def _clean(obj):
         if isinstance(obj, dict):
-            return {
-                k: ("***" if str(k).lower() in SENSITIVE_KEYS else _clean(v))
-                for k, v in obj.items()
-            }
+            return {k: ("***" if str(k).lower() in SENSITIVE_KEYS else _clean(v)) for k, v in obj.items()}
         if isinstance(obj, list):
             return [_clean(i) for i in obj]
         return obj
+
     try:
         return escape_control(json.dumps(_clean(detail), ensure_ascii=False), 2000)
     except (TypeError, ValueError):
@@ -103,7 +113,7 @@ async def record_log(
 def module_from_path(path: str) -> str:
     """从 API 路径提取模块名：/api/v1/members/1 -> members。"""
     prefix = "/api/v1/"
-    rest = path[len(prefix):] if path.startswith(prefix) else path.lstrip("/")
+    rest = path[len(prefix) :] if path.startswith(prefix) else path.lstrip("/")
     first = rest.split("/", 1)[0]
     return first if first in MODULES else "other"
 
@@ -154,12 +164,16 @@ async def query_logs(
 
     total = (await session.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
     items = (
-        await session.execute(
-            stmt.order_by(OperationLog.created_at.desc(), OperationLog.id.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+        (
+            await session.execute(
+                stmt.order_by(OperationLog.created_at.desc(), OperationLog.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return total, list(items)
 
 
@@ -175,9 +189,7 @@ async def get_log_stats(session: AsyncSession) -> dict:
     ).scalar_one()
     today_errors = (
         await session.execute(
-            select(func.count()).where(
-                OperationLog.created_at >= today_start, OperationLog.level == "error"
-            )
+            select(func.count()).where(OperationLog.created_at >= today_start, OperationLog.level == "error")
         )
     ).scalar_one()
 

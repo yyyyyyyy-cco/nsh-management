@@ -1,4 +1,5 @@
 """常驻库业务：CRUD、搜索筛选、出勤率统计。Excel 导入见 utils/excel_import.py。"""
+
 from typing import Any
 
 from sqlalchemy import Select, case, func, select
@@ -40,7 +41,9 @@ async def get_member(session: AsyncSession, guild_id: int, member_id: int) -> Me
     return member
 
 
-def apply_filters(stmt: Select, guild_id: int, keyword: str | None, profession: str | None, status: str | None) -> Select:
+def apply_filters(
+    stmt: Select, guild_id: int, keyword: str | None, profession: str | None, status: str | None
+) -> Select:
     stmt = stmt.where(Member.guild_id == guild_id)
     if keyword:
         stmt = stmt.where(Member.name.contains(keyword))
@@ -84,9 +87,7 @@ async def list_members(
     else:
         # 注意：必须引用子查询列 sub.c.status，若引用 ORM 列 Member.status 会令原始表加入 FROM 产生笛卡尔积
         status_rows = (
-            await session.execute(
-                select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status)
-            )
+            await session.execute(select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status))
         ).all()
         status_counts: dict[str, int] = {str(s): int(c) for s, c in status_rows}
         stats = {

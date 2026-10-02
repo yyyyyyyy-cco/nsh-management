@@ -6,6 +6,7 @@ F-04 覆盖点：门禁已由「导入配置即终止进程」改为「应用启
 含一条**子进程回归**断言「仅导入 config 不会退出」+「真正调用门禁仍拒绝启动」，
 以及应用到启动钩子的接线用例。
 """
+
 import io
 import os
 import subprocess
@@ -97,7 +98,7 @@ class SecretKeyStrengthTests(unittest.TestCase):
 
     def test_64_hex_is_exempt_from_year_and_fragment_scan(self):
         # 豁免通道：≥64 位纯十六进制恒判强（避免随机 hex 偶含 20xx 被误杀）
-        hex64 = "2012" + "abcdef" * 10          # 64 位十六进制，且含「2012」年份样式
+        hex64 = "2012" + "abcdef" * 10  # 64 位十六进制，且含「2012」年份样式
         self.assertEqual(len(hex64), 64)
         self.assertFalse(_secret_key_is_weak(hex64))
 
@@ -163,32 +164,38 @@ class SecretKeyValidationTests(unittest.TestCase):
     """校验函数行为：生产弱密钥拒绝、强密钥放行、开发仅告警。"""
 
     def test_validate_raises_insecure_error_in_production_when_weak(self):
-        with mock.patch.dict(os.environ, {"APP_ENV": "production"}), mock.patch.object(
-            settings, "SECRET_KEY", "dev-secret-key-change-in-production"
+        with (
+            mock.patch.dict(os.environ, {"APP_ENV": "production"}),
+            mock.patch.object(settings, "SECRET_KEY", "dev-secret-key-change-in-production"),
         ):
             with self.assertRaises(InsecureSecretKeyError) as ctx:
                 validate_secret_key()
         self.assertIn("FATAL", str(ctx.exception))
 
     def test_validate_passes_in_production_with_strong_key(self):
-        with mock.patch.dict(os.environ, {"APP_ENV": "production"}), mock.patch.object(
-            settings, "SECRET_KEY", STRONG_MIXED_KEY
+        with (
+            mock.patch.dict(os.environ, {"APP_ENV": "production"}),
+            mock.patch.object(settings, "SECRET_KEY", STRONG_MIXED_KEY),
         ):
             self.assertIsNone(validate_secret_key())
 
     def test_validate_warns_in_development_with_weak_key(self):
         buf = io.StringIO()
-        with mock.patch.dict(os.environ, {"APP_ENV": "development"}), mock.patch.object(
-            settings, "SECRET_KEY", "short"
-        ), mock.patch("sys.stderr", buf):
+        with (
+            mock.patch.dict(os.environ, {"APP_ENV": "development"}),
+            mock.patch.object(settings, "SECRET_KEY", "short"),
+            mock.patch("sys.stderr", buf),
+        ):
             self.assertIsNone(validate_secret_key())
         self.assertIn("WARNING", buf.getvalue())
 
     def test_enforce_exits_with_code_one(self):
         buf = io.StringIO()
-        with mock.patch.dict(os.environ, {"APP_ENV": "production"}), mock.patch.object(
-            settings, "SECRET_KEY", "short"
-        ), mock.patch("sys.stderr", buf):
+        with (
+            mock.patch.dict(os.environ, {"APP_ENV": "production"}),
+            mock.patch.object(settings, "SECRET_KEY", "short"),
+            mock.patch("sys.stderr", buf),
+        ):
             with self.assertRaises(SystemExit) as ctx:
                 enforce_secret_key()
         self.assertEqual(ctx.exception.code, 1)
@@ -208,9 +215,11 @@ class StartupGateWiringTests(unittest.TestCase):
         from app.main import startup_checks
 
         buf = io.StringIO()
-        with mock.patch.dict(os.environ, {"APP_ENV": "production"}), mock.patch.object(
-            settings, "SECRET_KEY", "short"
-        ), mock.patch("sys.stderr", buf):
+        with (
+            mock.patch.dict(os.environ, {"APP_ENV": "production"}),
+            mock.patch.object(settings, "SECRET_KEY", "short"),
+            mock.patch("sys.stderr", buf),
+        ):
             with self.assertRaises(SystemExit):
                 startup_checks()
         self.assertIn("FATAL", buf.getvalue())
@@ -218,8 +227,9 @@ class StartupGateWiringTests(unittest.TestCase):
     def test_startup_checks_passes_with_strong_development_key(self):
         from app.main import startup_checks
 
-        with mock.patch.dict(os.environ, {"APP_ENV": "development"}), mock.patch.object(
-            settings, "SECRET_KEY", STRONG_MIXED_KEY
+        with (
+            mock.patch.dict(os.environ, {"APP_ENV": "development"}),
+            mock.patch.object(settings, "SECRET_KEY", STRONG_MIXED_KEY),
         ):
             self.assertIsNone(startup_checks())
 
@@ -245,11 +255,7 @@ class CorsOriginsConfigTests(unittest.TestCase):
     """
 
     def _origins_in_subprocess(self, cors_value: str | None) -> str:
-        env = {
-            k: v
-            for k, v in os.environ.items()
-            if k not in {"APP_ENV", "SECRET_KEY", "CORS_ORIGINS"}
-        }
+        env = {k: v for k, v in os.environ.items() if k not in {"APP_ENV", "SECRET_KEY", "CORS_ORIGINS"}}
         if cors_value is not None:
             env["CORS_ORIGINS"] = cors_value
         env["PYTHONIOENCODING"] = "utf-8"

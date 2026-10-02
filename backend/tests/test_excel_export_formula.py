@@ -10,6 +10,7 @@ Excel 便按文本处理。本文件用**往返验证**（写 → 再用 openpyx
 
 依赖 openpyxl，缺失时模块级跳过（见 ai-checklist 第 32 条）。
 """
+
 import unittest
 from io import BytesIO
 

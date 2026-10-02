@@ -14,6 +14,7 @@
 设计：抛 `PasswordPolicyError(ValueError)`，Pydantic 会把它转成校验错误（422），
 服务层也可直接调用以形成第二道防线。
 """
+
 from __future__ import annotations
 
 MIN_LENGTH = 8
@@ -23,12 +24,39 @@ MAX_LENGTH = 128
 CONTEXT_WORDS = frozenset(
     {
         # 通用弱口令
-        "password", "passw0rd", "12345678", "123456789", "1234567890", "87654321",
-        "qwertyui", "qwerty123", "abc12345", "11111111", "00000000", "iloveyou",
-        "admin123", "root1234", "letmein1", "welcome1", "monkey123", "dragon123",
+        "password",
+        "passw0rd",
+        "12345678",
+        "123456789",
+        "1234567890",
+        "87654321",
+        "qwertyui",
+        "qwerty123",
+        "abc12345",
+        "11111111",
+        "00000000",
+        "iloveyou",
+        "admin123",
+        "root1234",
+        "letmein1",
+        "welcome1",
+        "monkey123",
+        "dragon123",
         # 项目/业务上下文
-        "nsh", "nsh12345", "jianshan", "qingshan", "guild", "league", "member",
-        "developer", "admin", "nishuihan", "逆水寒", "轻衫", "帮会", "联赛",
+        "nsh",
+        "nsh12345",
+        "jianshan",
+        "qingshan",
+        "guild",
+        "league",
+        "member",
+        "developer",
+        "admin",
+        "nishuihan",
+        "逆水寒",
+        "轻衫",
+        "帮会",
+        "联赛",
     }
 )
 

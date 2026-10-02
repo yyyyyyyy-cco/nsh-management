@@ -9,6 +9,7 @@
 刻意不引入 pytest-asyncio：异步用例继承 `unittest.IsolatedAsyncioTestCase` 即可被 pytest 收集，
 与既有 `backend/scripts/selfcheck_*.py` 保持同一风格，降低测试工具链的额外依赖。
 """
+
 from __future__ import annotations
 
 import unittest

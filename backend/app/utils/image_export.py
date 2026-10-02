@@ -2,6 +2,7 @@
 
 中文字体解析顺序：Linux 容器（fonts-wqy-microhei）→ Windows 本地雅黑 → PIL 默认。
 """
+
 import glob
 import os
 from datetime import UTC, datetime
@@ -36,9 +37,9 @@ WHITE = (255, 255, 255)
 LINE = (230, 223, 206)
 
 _FONT_CANDIDATES = [
-    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",   # 容器：fonts-wqy-microhei
+    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",  # 容器：fonts-wqy-microhei
     "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-    "C:/Windows/Fonts/msyh.ttc",                        # Windows 开发环境
+    "C:/Windows/Fonts/msyh.ttc",  # Windows 开发环境
     "C:/Windows/Fonts/simhei.ttf",
 ]
 
@@ -77,8 +78,14 @@ def draw_members_png(members: list[Member], guild_name: str | None = None) -> by
 
     # 预计算总高度
     total_rows = sum(ceil(len(g) / COLUMNS) for _, g in groups)
-    height = HEADER_H + len(groups) * SECTION_TITLE_H + total_rows * CELL_H \
-        + (len(groups) - 1) * SECTION_GAP + FOOTER_H + PADDING
+    height = (
+        HEADER_H
+        + len(groups) * SECTION_TITLE_H
+        + total_rows * CELL_H
+        + (len(groups) - 1) * SECTION_GAP
+        + FOOTER_H
+        + PADDING
+    )
 
     img = Image.new("RGB", (WIDTH, height), BG)
     draw = ImageDraw.Draw(img)
@@ -124,6 +131,7 @@ def draw_members_png(members: list[Member], guild_name: str | None = None) -> by
     draw.text(((WIDTH - fw) // 2, height - FOOTER_H + 2), footer, font=note_font, fill=INK_SOFT)
 
     from io import BytesIO
+
     out = BytesIO()
     img.save(out, format="PNG")
     return out.getvalue()

@@ -1,4 +1,5 @@
 """应用配置：环境变量优先，未设置时使用开发默认值。"""
+
 import os
 import re
 import sys
@@ -68,22 +69,43 @@ class Settings:
 settings = Settings()
 
 # .env.example 模板中的占位密钥，与开发默认值一样均视为弱密钥
-_WEAK_SECRET_KEYS = frozenset({
-    Settings._DEV_SECRET_KEY,
-    "your-secret-key-change-this",
-    "please-change-me-with-openssl-rand-hex-32",
-    # CI 工作流中的占位密钥（64 字符纯 hex，会走下方豁免通道）——显式封禁，
-    # 防止被粘进生产：它是**顺序十六进制**，零熵（2026-10-03 仓库密钥扫描发现 F-62）。
-    "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
-})
+_WEAK_SECRET_KEYS = frozenset(
+    {
+        Settings._DEV_SECRET_KEY,
+        "your-secret-key-change-this",
+        "please-change-me-with-openssl-rand-hex-32",
+        # CI 工作流中的占位密钥（64 字符纯 hex，会走下方豁免通道）——显式封禁，
+        # 防止被粘进生产：它是**顺序十六进制**，零熵（2026-10-03 仓库密钥扫描发现 F-62）。
+        "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    }
+)
 
 # 可猜片段黑名单（小写匹配）：拦截「长而可猜」的拼接式密钥。
 # 片段均含非十六进制字符；随机 hex 串另走豁免通道（见 _secret_key_is_weak）。
-_GUESSABLE_FRAGMENTS = frozenset({
-    "nsh", "management", "secret", "key", "change", "example", "please",
-    "password", "admin", "member", "developer", "guild", "league",
-    "qingshan", "banghui", "jwt", "token", "dev", "test", "prod",
-})
+_GUESSABLE_FRAGMENTS = frozenset(
+    {
+        "nsh",
+        "management",
+        "secret",
+        "key",
+        "change",
+        "example",
+        "please",
+        "password",
+        "admin",
+        "member",
+        "developer",
+        "guild",
+        "league",
+        "qingshan",
+        "banghui",
+        "jwt",
+        "token",
+        "dev",
+        "test",
+        "prod",
+    }
+)
 _YEAR_PATTERN = re.compile(r"20\d{2}")
 _HEX_PATTERN = re.compile(r"[0-9a-f]+")
 _MIN_DISTINCT_HEX = 8  # 随机 hex 的不同字符数通常 15–16；低于此值视为可猜

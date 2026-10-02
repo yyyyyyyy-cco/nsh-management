@@ -1,4 +1,5 @@
 """出勤库接口：列表统计、导入正式/替补、添加补人、状态切换。"""
+
 # 行数豁免（连续逻辑）：单资源薄路由（列表操作 + 导入端点声明同质）｜登记见 .agent/rules/file-length-rule.md 豁免清单
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -102,7 +103,9 @@ async def add_filler(
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> AttendanceRecordOut:
-    record = await attendance_service.add_filler(session, current_user.guild_id, schedule_id, body.name, body.profession)
+    record = await attendance_service.add_filler(
+        session, current_user.guild_id, schedule_id, body.name, body.profession
+    )
     return AttendanceRecordOut.model_validate(record)
 
 
@@ -114,9 +117,7 @@ async def update_status(
     current_user: User = Depends(require_admin),  # 仅管理员可切换出勤状态（安全收紧）
     session: AsyncSession = Depends(get_db),
 ) -> AttendanceRecordOut:
-    record = await attendance_service.update_status(
-        session, current_user.guild_id, schedule_id, record_id, body.status
-    )
+    record = await attendance_service.update_status(session, current_user.guild_id, schedule_id, record_id, body.status)
     return AttendanceRecordOut.model_validate(record)
 
 

@@ -1,4 +1,5 @@
 """出勤库请求/响应模型。"""
+
 from pydantic import BaseModel, Field, field_validator
 
 from app.schemas.common import BatchIds

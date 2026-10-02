@@ -3,6 +3,7 @@
 权威源：`backend/app/core/security.py`；权限链路见 `backend/app/api/deps.py`。
 说明：bcrypt 较慢（约 0.2-0.4s/次），故用例刻意只做必要次数的哈希。
 """
+
 import unittest
 from datetime import UTC, datetime, timedelta
 
@@ -23,7 +24,7 @@ class PasswordHashTests(unittest.TestCase):
         hashed = hash_password("s3cret-pw")
         self.assertNotEqual(hashed, "s3cret-pw")
         self.assertTrue(hashed.startswith("sha256$"), "新哈希应带 sha256$ 方案前缀（W1-12）")
-        self.assertTrue(hashed[len("sha256$"):].startswith("$2b$"), "前缀之后应为 bcrypt $2b$ 哈希")
+        self.assertTrue(hashed[len("sha256$") :].startswith("$2b$"), "前缀之后应为 bcrypt $2b$ 哈希")
         self.assertTrue(verify_password("s3cret-pw", hashed))
 
     def test_wrong_password_is_rejected(self):
@@ -52,8 +53,7 @@ class AccessTokenTests(unittest.TestCase):
 
     def test_token_signed_with_other_secret_returns_none(self):
         forged = jwt.encode(
-            {"sub": "1", "role": "developer", "ver": 0,
-             "exp": datetime.now(UTC) + timedelta(minutes=5)},
+            {"sub": "1", "role": "developer", "ver": 0, "exp": datetime.now(UTC) + timedelta(minutes=5)},
             "attacker-secret",
             algorithm=settings.ALGORITHM,
         )
@@ -61,8 +61,7 @@ class AccessTokenTests(unittest.TestCase):
 
     def test_expired_token_returns_none(self):
         expired = jwt.encode(
-            {"sub": "1", "role": "admin", "ver": 0,
-             "exp": datetime.now(UTC) - timedelta(minutes=1)},
+            {"sub": "1", "role": "admin", "ver": 0, "exp": datetime.now(UTC) - timedelta(minutes=1)},
             settings.SECRET_KEY,
             algorithm=settings.ALGORITHM,
         )

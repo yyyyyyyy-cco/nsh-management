@@ -1,4 +1,5 @@
 """比赛数据表：CSV 导入，字段与真实导出列一一对应。"""
+
 from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String

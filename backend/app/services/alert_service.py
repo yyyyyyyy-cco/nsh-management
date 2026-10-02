@@ -10,6 +10,7 @@
   进程重启后去重状态丢失（可接受：最坏多发一条，不丢告警）。
 - **失败不外抛**：统计失败或推送失败只记录异常，绝不因告警影响主服务（与 `clear_old_logs` 同风格）。
 """
+
 from __future__ import annotations
 
 import asyncio

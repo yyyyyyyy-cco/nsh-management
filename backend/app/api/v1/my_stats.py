@@ -2,6 +2,7 @@
 
 名称归属解析（merged/exact 与冲突 409）见 design-game-id-change.md §4.3/§5。
 """
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,9 +39,7 @@ async def get_my_stats(
     session: AsyncSession = Depends(get_db),
 ) -> MyStatsResponse:
     """按游戏 ID 查询历史战绩（帮众/管理员）；合并冲突返回 409，可改用 merge_aliases=false。"""
-    data = await my_stats_service.query_player_stats(
-        session, current_user.guild_id, player_name, merge_aliases
-    )
+    data = await my_stats_service.query_player_stats(session, current_user.guild_id, player_name, merge_aliases)
     identity = data["identity"]
     return MyStatsResponse(
         records=[PlayerRecordOut(**r) for r in data["records"]],

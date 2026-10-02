@@ -1,4 +1,5 @@
 """认证相关请求/响应模型。"""
+
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.password_policy import validate_password

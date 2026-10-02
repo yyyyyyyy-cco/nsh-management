@@ -8,6 +8,7 @@
 同时**特征化** bcrypt 的 72 字节边界（见 `test_bcrypt_uses_only_first_72_bytes`）：这不是"期望行为"，
 而是**记录下来**——将来升到 bcrypt 5.x 若改为报错，此用例会失败并迫使做一次有意识的决策（W1-12）。
 """
+
 import unittest
 
 try:
@@ -36,7 +37,7 @@ class PasswordHashCompatTest(unittest.TestCase):
         """新方案（W1-12）：`sha256$<bcrypt>`；前缀之后仍是标准 bcrypt `$2b$` 哈希。"""
         hashed = hash_password("new-pass-123")
         self.assertTrue(hashed.startswith("sha256$"), "新哈希应带 sha256$ 方案前缀")
-        payload = hashed[len("sha256$"):]
+        payload = hashed[len("sha256$") :]
         self.assertTrue(payload.startswith("$2b$"), "前缀之后应为 bcrypt $2b$")
         self.assertEqual(len(payload), 60, "bcrypt 部分固定 60 字符")
         self.assertEqual(len(hashed), 67, "总长度 = 7 字符前缀 + 60")
@@ -48,9 +49,9 @@ class PasswordHashCompatTest(unittest.TestCase):
         for bad in (
             "",
             "not-a-hash",
-            "$2b$12$too-short",          # 截断：bcrypt 的 Rust 实现会 panic（非 ValueError/TypeError）
-            "$2b$12$" + "x" * 53,        # 60 字符、格式合法但盐/摘要无意义
-            None,                         # 非字符串
+            "$2b$12$too-short",  # 截断：bcrypt 的 Rust 实现会 panic（非 ValueError/TypeError）
+            "$2b$12$" + "x" * 53,  # 60 字符、格式合法但盐/摘要无意义
+            None,  # 非字符串
         ):
             with self.subTest(bad=bad):
                 self.assertFalse(verify_password("any", bad))

@@ -8,6 +8,7 @@
 
 本文件锁定午夜前后与窗口最旧一天两个易错边界（`get_log_stats` 此前无测试）。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -42,16 +43,25 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         await self.engine.dispose()
 
     async def _log(self, created_at: datetime, level: str = "info") -> None:
-        self.session.add(OperationLog(username="u", module="other", action="update", method="PUT",
-                                      path="/x", level=level, created_at=created_at))
+        self.session.add(
+            OperationLog(
+                username="u",
+                module="other",
+                action="update",
+                method="PUT",
+                path="/x",
+                level=level,
+                created_at=created_at,
+            )
+        )
         await self.session.commit()
 
 
 class LogStatsTest(_Base):
     async def test_today_boundary_is_beijing_midnight(self) -> None:
         """北京零点前 1 秒不算今日；恰好到北京零点算今日。"""
-        await self._log(self.today_start - timedelta(seconds=1))   # 北京昨日 23:59:59
-        await self._log(self.today_start)                          # 北京今日 00:00:00
+        await self._log(self.today_start - timedelta(seconds=1))  # 北京昨日 23:59:59
+        await self._log(self.today_start)  # 北京今日 00:00:00
         stats = await log_service.get_log_stats(self.session)
         self.assertEqual(stats["today_requests"], 1, "只有北京零点及之后的记录计入今日")
 
@@ -80,14 +90,15 @@ class LogStatsTest(_Base):
         self.assertEqual(len(rows), 7, "近 7 天应有 7 个桶")
         labels = [r["date"] for r in rows]
         self.assertEqual(labels, sorted(labels), "桶应按日期升序（由旧到新）")
-        self.assertEqual(labels[-1], (self.today_start + timedelta(hours=8)).strftime("%Y-%m-%d"),
-                         "最后一个桶是北京今日")
+        self.assertEqual(
+            labels[-1], (self.today_start + timedelta(hours=8)).strftime("%Y-%m-%d"), "最后一个桶是北京今日"
+        )
 
     async def test_week_window_excludes_eighth_day(self) -> None:
         """窗口内（3 天前）计入；窗口外（8 天前）不计入。"""
-        await self._log(self.today_start + timedelta(hours=9), level="error")            # 今日
+        await self._log(self.today_start + timedelta(hours=9), level="error")  # 今日
         await self._log(self.today_start - timedelta(days=3) + timedelta(hours=9), level="error")
-        await self._log(self.today_start - timedelta(days=8), level="error")             # 太早
+        await self._log(self.today_start - timedelta(days=8), level="error")  # 太早
         stats = await log_service.get_log_stats(self.session)
         counts = {r["date"]: r["count"] for r in stats["weekly_errors"]}
         self.assertEqual(sum(counts.values()), 2, "窗口外错误不计入分布")

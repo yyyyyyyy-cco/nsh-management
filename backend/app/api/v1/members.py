@@ -1,4 +1,5 @@
 """常驻库接口：成员 CRUD、搜索筛选、批量删除、Excel 导入/导出、出勤率统计。"""
+
 # 行数豁免（连续逻辑）：单资源薄路由（CRUD + 导入导出端点声明同质）｜登记见 .agent/rules/file-length-rule.md 豁免清单
 import asyncio
 from datetime import UTC, datetime
@@ -153,9 +154,7 @@ async def export_image(
     session: AsyncSession = Depends(get_db),
 ) -> Response:
     """一键导出成员长图 PNG（按主职业分区，供群内分享）。"""
-    members = await member_service.export_members(
-        session, current_user.guild_id, keyword, profession, status
-    )
+    members = await member_service.export_members(session, current_user.guild_id, keyword, profession, status)
     # 长图内存占用随人数线性增长，超过上限提示分批导出（先于绘制拦截，避免内存峰值）
     if len(members) > MAX_IMAGE_MEMBERS:
         raise HTTPException(
@@ -170,7 +169,9 @@ async def export_image(
     return Response(
         content=content,
         media_type="image/png",
-        headers={"Content-Disposition": f"attachment; filename=members_{current_user.guild_id}_{date_tag}.png; filename*=UTF-8''{quoted}"},
+        headers={
+            "Content-Disposition": f"attachment; filename=members_{current_user.guild_id}_{date_tag}.png; filename*=UTF-8''{quoted}"  # noqa: E501
+        },
     )
 
 

@@ -3,6 +3,7 @@
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_game_id_requests_concurrency.py
 说明：不使用共享单连接内存库，避免"伪并发"；所有数据写入系统临时目录的独立库文件。
 """
+
 # ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
 import unittest as _unittest
 
@@ -79,7 +80,9 @@ class ConcurrencyTests(unittest.IsolatedAsyncioTestCase):
     async def _audit(self, request_id: int, action: str, reviewer_id: int = 1):
         async with await self._new_session() as session:
             reviewer = await session.get(User, reviewer_id)
-            body = GameIdRequestAudit(action=action, identity_confirmed=True, review_remark=None if action == "approve" else "并发驳回")
+            body = GameIdRequestAudit(
+                action=action, identity_confirmed=True, review_remark=None if action == "approve" else "并发驳回"
+            )
             try:
                 record = await game_id_request_service.audit_request(session, 1, request_id, reviewer, body)
                 return record.status, None
@@ -89,9 +92,7 @@ class ConcurrencyTests(unittest.IsolatedAsyncioTestCase):
     async def _pending_count(self) -> int:
         async with await self._new_session() as session:
             return await session.scalar(
-                select(func.count())
-                .select_from(MemberGameIdRequest)
-                .where(MemberGameIdRequest.status == "pending")
+                select(func.count()).select_from(MemberGameIdRequest).where(MemberGameIdRequest.status == "pending")
             )
 
     async def _member_name(self, member_id: int = 1) -> str:
@@ -182,14 +183,18 @@ class ConcurrencyTests(unittest.IsolatedAsyncioTestCase):
             if rename_result == "renamed":
                 # 直接改名必须留下一条已确认关联记录（个人战绩新旧 ID 合并依赖它）
                 confirmed = (
-                    await session.execute(
-                        select(MemberGameIdRequest).where(
-                            MemberGameIdRequest.member_id == 1,
-                            MemberGameIdRequest.status == "approved",
-                            MemberGameIdRequest.new_game_id == "甲直接改",
+                    (
+                        await session.execute(
+                            select(MemberGameIdRequest).where(
+                                MemberGameIdRequest.member_id == 1,
+                                MemberGameIdRequest.status == "approved",
+                                MemberGameIdRequest.new_game_id == "甲直接改",
+                            )
                         )
                     )
-                ).scalars().all()
+                    .scalars()
+                    .all()
+                )
                 self.assertTrue(confirmed)
         if rename_result is None and audit_result[0] is None:
             self.assertIn(audit_result[1], (409, 503))

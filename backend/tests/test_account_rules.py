@@ -10,6 +10,7 @@
   （见 `security-review.md` 的已定方案）；
 - 顺带锁定：管理员对**他帮会**账号的更新/删除按「账号不存在」处理（服务层 `guild_id` 过滤）。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -105,8 +106,7 @@ class AccountDesensitizationTest(_Base):
         rows = await list_accounts(current_user=dev, session=self.session)
         self.assertEqual(len(rows), 2, "开发者应能看到全部帮会的账号")
         self.assertTrue(all(r.plain_password == STRONG for r in rows), "开发者可见明文（已接受风险）")
-        admin_rows = await list_accounts(current_user=SimpleNamespace(role="admin", guild_id=1),
-                                         session=self.session)
+        admin_rows = await list_accounts(current_user=SimpleNamespace(role="admin", guild_id=1), session=self.session)
         self.assertEqual(len(admin_rows), 1, "管理员只看到本帮会账号")
         self.assertIsNone(admin_rows[0].plain_password)
 

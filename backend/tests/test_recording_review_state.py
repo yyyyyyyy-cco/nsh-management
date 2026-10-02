@@ -6,6 +6,7 @@
 - 帮众重新提交链接会把状态**重置为 pending** 并清空 remark/reviewed_at（覆盖既有审核结论）；
 - 跨赛程的 recording_id 视为不存在（404 语义）。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -32,10 +33,8 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         self.session.add(guild)
         await self.session.flush()
         self.gid = guild.id
-        self.s1 = Schedule(guild_id=self.gid, opponent="对手甲",
-                           match_time=datetime.now(UTC), rounds=1)
-        self.s2 = Schedule(guild_id=self.gid, opponent="对手乙",
-                           match_time=datetime.now(UTC), rounds=1)
+        self.s1 = Schedule(guild_id=self.gid, opponent="对手甲", match_time=datetime.now(UTC), rounds=1)
+        self.s2 = Schedule(guild_id=self.gid, opponent="对手乙", match_time=datetime.now(UTC), rounds=1)
         self.session.add_all([self.s1, self.s2])
         await self.session.flush()
         self.rid = None
@@ -45,8 +44,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         await self.engine.dispose()
 
     async def _make_recording(self, url: str | None = None) -> Recording:
-        rec = Recording(schedule_id=self.s1.id, member_name="甲", round_number=1,
-                        status="pending", url=url)
+        rec = Recording(schedule_id=self.s1.id, member_name="甲", round_number=1, status="pending", url=url)
         self.session.add(rec)
         await self.session.commit()
         self.rid = rec.id
@@ -68,13 +66,13 @@ class RecordingReviewStateTest(_Base):
 
     async def test_approve_then_resubmit_resets_to_pending(self) -> None:
         await self._make_recording(url="https://www.bilibili.com/video/BV1xx")
-        approved = await recording_service.approve_recording(
-            self.session, self.gid, self.s1.id, self.rid, "通过")
+        approved = await recording_service.approve_recording(self.session, self.gid, self.s1.id, self.rid, "通过")
         self.assertEqual(approved.status, "approved")
         self.assertIsNotNone(approved.reviewed_at)
         # 帮众重新提交：状态回到 pending，审核痕迹被清空
         resubmitted = await recording_service.submit_recording(
-            self.session, self.gid, self.s1.id, self.rid, "https://youtu.be/abcdefg")
+            self.session, self.gid, self.s1.id, self.rid, "https://youtu.be/abcdefg"
+        )
         self.assertEqual(resubmitted.status, "pending", "重新提交应回到待审核")
         self.assertIsNone(resubmitted.review_remark, "重新提交应清空审核备注")
         self.assertIsNone(resubmitted.reviewed_at, "重新提交应清空审核时间")
@@ -82,7 +80,9 @@ class RecordingReviewStateTest(_Base):
     async def test_rejected_can_be_approved_after_resubmit(self) -> None:
         await self._make_recording(url="https://youtu.be/abcdefg")
         await recording_service.reject_recording(self.session, self.gid, self.s1.id, self.rid, "画质差")
-        await recording_service.submit_recording(self.session, self.gid, self.s1.id, self.rid, "https://youtu.be/hijklmn")
+        await recording_service.submit_recording(
+            self.session, self.gid, self.s1.id, self.rid, "https://youtu.be/hijklmn"
+        )
         again = await recording_service.approve_recording(self.session, self.gid, self.s1.id, self.rid, "补交合格")
         self.assertEqual(again.status, "approved")
 

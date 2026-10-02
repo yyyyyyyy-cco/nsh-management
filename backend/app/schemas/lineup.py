@@ -1,4 +1,5 @@
 """排表请求/响应模型。"""
+
 from datetime import datetime
 
 from pydantic import BaseModel, Field
@@ -33,9 +34,9 @@ class LineupOut(BaseModel):
     @classmethod
     def model_validate(cls, obj):
         # 兼容性处理：DB 新列可能为 NULL
-        if hasattr(obj, 'title_remark') and obj.title_remark is None:
+        if hasattr(obj, "title_remark") and obj.title_remark is None:
             obj.title_remark = ""
-        if hasattr(obj, 'groups_remark') and obj.groups_remark is None:
+        if hasattr(obj, "groups_remark") and obj.groups_remark is None:
             obj.groups_remark = {}
         return super().model_validate(obj)
 

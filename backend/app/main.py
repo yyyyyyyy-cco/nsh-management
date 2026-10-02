@@ -1,4 +1,5 @@
 """应用入口：创建 FastAPI 实例、注册 CORS/异常处理/审计日志中间件/路由。"""
+
 import asyncio
 import logging
 from contextlib import asynccontextmanager
@@ -38,6 +39,7 @@ logger = logging.getLogger(__name__)
 # 在线 API 文档开关（合规化计划 W4-1）：生产环境关闭 `/docs`、`/redoc`、`/openapi.json`
 # （暴露完整接口与数据结构属 OWASP Top 10:2025 A02 安全配置错误）；本地开发保留以便调试。
 _DOCS_ENABLED = api_docs_enabled()
+
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
@@ -101,12 +103,7 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
         finally:
             is_error = exception is not None or (status_code is not None and status_code >= 500)
             # 授权失败留痕（F-50）：读方法 + 带凭证 + 被拒
-            denied = (
-                not is_write
-                and not excluded
-                and has_credentials
-                and status_code in (401, 403)
-            )
+            denied = not is_write and not excluded and has_credentials and status_code in (401, 403)
             # 写操作全部审计；错误（未处理异常/5xx）不限方法也落库；读操作的「带凭证被拒」同样落库
             if is_error or is_write or denied:
                 detail: dict | str | None = None

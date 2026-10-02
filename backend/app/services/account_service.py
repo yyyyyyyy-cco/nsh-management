@@ -2,6 +2,7 @@
 
 由 config_service 拆出；异常沿用 ConfigServiceError。
 """
+
 import asyncio
 
 from sqlalchemy import select
@@ -34,9 +35,7 @@ async def create_account(
         raise ConfigServiceError("目标帮会不存在", 404)
 
     # 检查用户名是否已存在
-    existing = (
-        await session.execute(select(User).where(User.username == username))
-    ).scalar_one_or_none()
+    existing = (await session.execute(select(User).where(User.username == username))).scalar_one_or_none()
     if existing:
         raise ConfigServiceError(f"用户名「{username}」已存在")
 
@@ -68,9 +67,7 @@ async def update_account(
     if username is not None:
         # 检查新用户名是否已存在
         existing = (
-            await session.execute(
-                select(User).where(User.username == username, User.id != user_id)
-            )
+            await session.execute(select(User).where(User.username == username, User.id != user_id))
         ).scalar_one_or_none()
         if existing:
             raise ConfigServiceError(f"用户名「{username}」已存在")
@@ -88,9 +85,7 @@ async def update_account(
     return user
 
 
-async def update_account_status(
-    session: AsyncSession, guild_id: int | None, user_id: int, status: str
-) -> User:
+async def update_account_status(session: AsyncSession, guild_id: int | None, user_id: int, status: str) -> User:
     """更新账号状态（启用/禁用）。"""
     if status not in ["active", "disabled"]:
         raise ConfigServiceError("无效的状态")

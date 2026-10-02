@@ -12,6 +12,7 @@
   MEMBER_USERNAME    - 帮众用户名（可选，默认"member"）
   MEMBER_PASSWORD    - 帮众密码（可选，不设置则不创建）
 """
+
 import asyncio
 import os
 import sys
@@ -44,7 +45,9 @@ async def init() -> None:
             return
 
         # 创建开发者账号（不绑定帮会）
-        if (await session.execute(select(User).where(User.username == DEVELOPER_USERNAME))).scalar_one_or_none() is None:
+        if (
+            await session.execute(select(User).where(User.username == DEVELOPER_USERNAME))
+        ).scalar_one_or_none() is None:
             session.add(
                 User(
                     guild_id=None,
@@ -71,7 +74,9 @@ async def init() -> None:
         # 创建管理员账号（可选）
         if ADMIN_PASSWORD:
             assert guild is not None  # mypy：上面的 if (ADMIN_PASSWORD or MEMBER_PASSWORD) 已赋值
-            if (await session.execute(select(User).where(User.username == ADMIN_USERNAME))).scalar_one_or_none() is None:
+            if (
+                await session.execute(select(User).where(User.username == ADMIN_USERNAME))
+            ).scalar_one_or_none() is None:
                 session.add(
                     User(
                         guild_id=guild.id,
@@ -86,7 +91,9 @@ async def init() -> None:
         # 创建帮众账号（可选）
         if MEMBER_PASSWORD:
             assert guild is not None  # mypy：上面的 if (ADMIN_PASSWORD or MEMBER_PASSWORD) 已赋值
-            if (await session.execute(select(User).where(User.username == MEMBER_USERNAME))).scalar_one_or_none() is None:
+            if (
+                await session.execute(select(User).where(User.username == MEMBER_USERNAME))
+            ).scalar_one_or_none() is None:
                 session.add(
                     User(
                         guild_id=guild.id,

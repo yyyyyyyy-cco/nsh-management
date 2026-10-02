@@ -7,6 +7,7 @@
 - 目标成员已删除时不允许通过（409）；
 - 管理员直接在常驻库改名：同一事务失效待审申请并记录一条 approved 关联（操作人快照）。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -41,8 +42,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         self.session.add(member)
         await self.session.flush()
         self.member_id = member.id
-        admin = User(guild_id=self.guild_id, username="admin1", password_hash="x", role="admin",
-                     status="active")
+        admin = User(guild_id=self.guild_id, username="admin1", password_hash="x", role="admin", status="active")
         self.session.add(admin)
         await self.session.flush()
         self.admin = admin
@@ -73,34 +73,57 @@ class _Base(unittest.IsolatedAsyncioTestCase):
 class GameIdAuditTest(_Base):
     async def test_approve_updates_member_and_records_reviewer(self) -> None:
         req = await self._add_request()
-        await audit_request(self.session, self.guild_id, req.id, self.admin,
-                            GameIdRequestAudit(action="approve", review_remark=None, identity_confirmed=True))
+        await audit_request(
+            self.session,
+            self.guild_id,
+            req.id,
+            self.admin,
+            GameIdRequestAudit(action="approve", review_remark=None, identity_confirmed=True),
+        )
         self.assertEqual(await self._member_name(), "新名", "通过后应同步常驻库名称")
-        row = (await self.session.execute(
-            select(MemberGameIdRequest).where(MemberGameIdRequest.id == req.id))).scalar_one()
+        row = (
+            await self.session.execute(select(MemberGameIdRequest).where(MemberGameIdRequest.id == req.id))
+        ).scalar_one()
         self.assertEqual(row.status, "approved")
         self.assertEqual(row.reviewer_username, "admin1", "应记录审核人快照")
 
     async def test_second_review_is_409_and_does_not_overwrite_reviewer(self) -> None:
         req = await self._add_request()
-        await audit_request(self.session, self.guild_id, req.id, self.admin,
-                            GameIdRequestAudit(action="approve", review_remark=None, identity_confirmed=True))
+        await audit_request(
+            self.session,
+            self.guild_id,
+            req.id,
+            self.admin,
+            GameIdRequestAudit(action="approve", review_remark=None, identity_confirmed=True),
+        )
         with self.assertRaises(GameIdRequestError) as ctx:
-            await audit_request(self.session, self.guild_id, req.id, self.admin,
-                                GameIdRequestAudit(action="reject", review_remark="重复审核"))
+            await audit_request(
+                self.session,
+                self.guild_id,
+                req.id,
+                self.admin,
+                GameIdRequestAudit(action="reject", review_remark="重复审核"),
+            )
         self.assertEqual(ctx.exception.status_code, 409, "重复审核必须 409")
-        row = (await self.session.execute(
-            select(MemberGameIdRequest).where(MemberGameIdRequest.id == req.id))).scalar_one()
+        row = (
+            await self.session.execute(select(MemberGameIdRequest).where(MemberGameIdRequest.id == req.id))
+        ).scalar_one()
         self.assertEqual(row.status, "approved", "重复审核不得改写已处理结果")
         self.assertEqual(row.reviewer_username, "admin1", "不得覆盖首位审核人")
 
     async def test_reject_keeps_member_name(self) -> None:
         req = await self._add_request()
-        await audit_request(self.session, self.guild_id, req.id, self.admin,
-                            GameIdRequestAudit(action="reject", review_remark="身份不符"))
+        await audit_request(
+            self.session,
+            self.guild_id,
+            req.id,
+            self.admin,
+            GameIdRequestAudit(action="reject", review_remark="身份不符"),
+        )
         self.assertEqual(await self._member_name(), "旧名", "驳回不得改动常驻库名称")
-        row = (await self.session.execute(
-            select(MemberGameIdRequest).where(MemberGameIdRequest.id == req.id))).scalar_one()
+        row = (
+            await self.session.execute(select(MemberGameIdRequest).where(MemberGameIdRequest.id == req.id))
+        ).scalar_one()
         self.assertEqual(row.status, "rejected")
 
     async def test_approve_after_member_deleted_is_409(self) -> None:
@@ -108,8 +131,13 @@ class GameIdAuditTest(_Base):
         req = await self._add_request()
         await member_service.delete_member(self.session, self.guild_id, self.member_id)
         with self.assertRaises(GameIdRequestError) as ctx:
-            await audit_request(self.session, self.guild_id, req.id, self.admin,
-                                GameIdRequestAudit(action="approve", review_remark=None, identity_confirmed=True))
+            await audit_request(
+                self.session,
+                self.guild_id,
+                req.id,
+                self.admin,
+                GameIdRequestAudit(action="approve", review_remark=None, identity_confirmed=True),
+            )
         self.assertEqual(ctx.exception.status_code, 409, "成员已删除时不允许通过")
 
     async def test_reject_without_reason_is_schema_error(self) -> None:
@@ -123,20 +151,27 @@ class AdminRenameTest(_Base):
         from app.schemas.member import MemberUpdate
 
         req = await self._add_request()
-        await member_service.update_member(self.session, self.guild_id, self.member_id,
-                                          MemberUpdate(name="管理员改名"), self.admin)
+        await member_service.update_member(
+            self.session, self.guild_id, self.member_id, MemberUpdate(name="管理员改名"), self.admin
+        )
         # 待审申请应失效
-        pending = (await self.session.execute(
-            select(MemberGameIdRequest).where(MemberGameIdRequest.id == req.id))).scalar_one()
+        pending = (
+            await self.session.execute(select(MemberGameIdRequest).where(MemberGameIdRequest.id == req.id))
+        ).scalar_one()
         self.assertEqual(pending.status, "invalidated", "管理员改名应失效该成员的待审申请")
         # 应新增一条 approved 关联（old → new，操作人快照）
-        approved = (await self.session.execute(
-            select(func.count()).select_from(MemberGameIdRequest)
-            .where(MemberGameIdRequest.guild_id == self.guild_id,
-                   MemberGameIdRequest.status == "approved",
-                   MemberGameIdRequest.old_game_id == "旧名",
-                   MemberGameIdRequest.new_game_id == "管理员改名")
-        )).scalar()
+        approved = (
+            await self.session.execute(
+                select(func.count())
+                .select_from(MemberGameIdRequest)
+                .where(
+                    MemberGameIdRequest.guild_id == self.guild_id,
+                    MemberGameIdRequest.status == "approved",
+                    MemberGameIdRequest.old_game_id == "旧名",
+                    MemberGameIdRequest.new_game_id == "管理员改名",
+                )
+            )
+        ).scalar()
         self.assertEqual(approved, 1, "应记录一条已确认的新旧 ID 关联")
         self.assertEqual(await self._member_name(), "管理员改名")
 

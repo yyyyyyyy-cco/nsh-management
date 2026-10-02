@@ -1,4 +1,5 @@
 """常驻库成员表。"""
+
 from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, String

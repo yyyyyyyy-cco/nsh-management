@@ -3,6 +3,7 @@
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_game_id_requests.py
 覆盖：角色矩阵 / 租户隔离 / 参数边界 / 重复待审 / 审核事务 / 失效联动 / 删除关联 / 响应脱敏。
 """
+
 # ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
 import unittest as _unittest
 
@@ -44,7 +45,13 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
         self.session.add_all([Guild(id=1, name="帮会甲"), Guild(id=2, name="帮会乙")])
         await self.session.flush()
         self.users = {}
-        for uid, role, gid in [(1, "admin", 1), (2, "developer", None), (3, "member", 1), (4, "admin", 2), (5, "member", 2)]:
+        for uid, role, gid in [
+            (1, "admin", 1),
+            (2, "developer", None),
+            (3, "member", 1),
+            (4, "admin", 2),
+            (5, "member", 2),
+        ]:
             user = User(id=uid, username=f"actor{uid}", role=role, guild_id=gid, password_hash="unused")
             self.session.add(user)
             self.users[uid] = user
@@ -83,10 +90,20 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
             token = create_access_token(user.id, user.role, user.token_version)
             headers.append((b"authorization", f"Bearer {token}".encode()))
         pure_path, _, query = path.partition("?")
-        scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1",
-                 "method": method, "scheme": "http", "path": pure_path, "raw_path": pure_path.encode(),
-                 "query_string": query.encode(), "root_path": "", "headers": headers,
-                 "server": ("test", 80), "client": ("127.0.0.1", 1)}
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": method,
+            "scheme": "http",
+            "path": pure_path,
+            "raw_path": pure_path.encode(),
+            "query_string": query.encode(),
+            "root_path": "",
+            "headers": headers,
+            "server": ("test", 80),
+            "client": ("127.0.0.1", 1),
+        }
         events = []
 
         async def receive():
@@ -134,9 +151,15 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(status, 422, bad)
 
     async def test_submit_rejections(self):
-        self.assertEqual((await self.request("POST", "/members/1/game-id-requests", self.submit_body(old="旧")))[0], 409)
-        self.assertEqual((await self.request("POST", "/members/1/game-id-requests", self.submit_body(new="甲")))[0], 422)
-        self.assertEqual((await self.request("POST", "/members/1/game-id-requests", self.submit_body(new="乙")))[0], 409)
+        self.assertEqual(
+            (await self.request("POST", "/members/1/game-id-requests", self.submit_body(old="旧")))[0], 409
+        )
+        self.assertEqual(
+            (await self.request("POST", "/members/1/game-id-requests", self.submit_body(new="甲")))[0], 422
+        )
+        self.assertEqual(
+            (await self.request("POST", "/members/1/game-id-requests", self.submit_body(new="乙")))[0], 409
+        )
         self.assertEqual((await self.request("POST", "/members/3/game-id-requests", self.submit_body()))[0], 404)
         body = {**self.submit_body(), "guild_id": 2}
         self.assertEqual((await self.request("POST", "/members/1/game-id-requests", body))[0], 422)
@@ -144,9 +167,15 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.request("POST", "/members/1/game-id-requests", body))[0], 422)
 
     async def test_role_matrix(self):
-        self.assertEqual((await self.request("POST", "/members/1/game-id-requests", self.submit_body(), actor=1))[0], 403)
-        self.assertEqual((await self.request("POST", "/members/1/game-id-requests", self.submit_body(), actor=2))[0], 403)
-        self.assertEqual((await self.request("POST", "/members/1/game-id-requests", self.submit_body(), actor=None))[0], 401)
+        self.assertEqual(
+            (await self.request("POST", "/members/1/game-id-requests", self.submit_body(), actor=1))[0], 403
+        )
+        self.assertEqual(
+            (await self.request("POST", "/members/1/game-id-requests", self.submit_body(), actor=2))[0], 403
+        )
+        self.assertEqual(
+            (await self.request("POST", "/members/1/game-id-requests", self.submit_body(), actor=None))[0], 401
+        )
         self.assertEqual((await self.request("GET", "/members/game-id-options", actor=1))[0], 403)
         self.assertEqual((await self.request("GET", "/members/game-id-options", actor=2))[0], 403)
         status, data = await self.request("GET", "/members/game-id-options")
@@ -160,7 +189,9 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await self.request("POST", "/members/1/game-id-requests", self.submit_body()))[0], 201)
         self.assertEqual((await self.request("POST", "/members/1/game-id-requests", self.submit_body()))[0], 409)
         # 共享账号可为不同成员分别提交
-        self.assertEqual((await self.request("POST", "/members/2/game-id-requests", self.submit_body(old="乙", new="乙改")))[0], 201)
+        self.assertEqual(
+            (await self.request("POST", "/members/2/game-id-requests", self.submit_body(old="乙", new="乙改")))[0], 201
+        )
 
     # ---- 审核 ----
 
@@ -170,8 +201,10 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
         status, _ = await self.request("PUT", f"/members/game-id-requests/{rid}/audit", {"action": "approve"}, actor=1)
         self.assertEqual(status, 422)  # 未确认身份
         status, data = await self.request(
-            "PUT", f"/members/game-id-requests/{rid}/audit",
-            {"action": "approve", "identity_confirmed": True, "review_remark": " 已核实 "}, actor=1,
+            "PUT",
+            f"/members/game-id-requests/{rid}/audit",
+            {"action": "approve", "identity_confirmed": True, "review_remark": " 已核实 "},
+            actor=1,
         )
         self.assertEqual(status, 200)
         self.assertEqual(data["status"], "approved")
@@ -180,13 +213,17 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self._member_name(), "甲改")
         # 重放：不能覆盖首位审核人
         status, _ = await self.request(
-            "PUT", f"/members/game-id-requests/{rid}/audit",
-            {"action": "reject", "review_remark": "改主意"}, actor=4,
+            "PUT",
+            f"/members/game-id-requests/{rid}/audit",
+            {"action": "reject", "review_remark": "改主意"},
+            actor=4,
         )
         self.assertEqual(status, 404)  # 跨帮会不可见
         status, _ = await self.request(
-            "PUT", f"/members/game-id-requests/{rid}/audit",
-            {"action": "approve", "identity_confirmed": True}, actor=1,
+            "PUT",
+            f"/members/game-id-requests/{rid}/audit",
+            {"action": "approve", "identity_confirmed": True},
+            actor=1,
         )
         self.assertEqual(status, 409)
         record = await self.session.get(MemberGameIdRequest, rid)
@@ -196,11 +233,14 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
     async def test_audit_reject_then_resubmit(self):
         await self.request("POST", "/members/1/game-id-requests", self.submit_body())
         rid = await self.session.scalar(select(MemberGameIdRequest.id))
-        self.assertEqual((await self.request(
-            "PUT", f"/members/game-id-requests/{rid}/audit", {"action": "reject"}, actor=1))[0], 422)
+        self.assertEqual(
+            (await self.request("PUT", f"/members/game-id-requests/{rid}/audit", {"action": "reject"}, actor=1))[0], 422
+        )
         status, data = await self.request(
-            "PUT", f"/members/game-id-requests/{rid}/audit",
-            {"action": "reject", "review_remark": "请核实原 ID"}, actor=1,
+            "PUT",
+            f"/members/game-id-requests/{rid}/audit",
+            {"action": "reject", "review_remark": "请核实原 ID"},
+            actor=1,
         )
         self.assertEqual((status, data["status"]), (200, "rejected"))
         self.assertEqual(await self._member_name(), "甲")
@@ -212,8 +252,10 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
         rid = await self.session.scalar(select(MemberGameIdRequest.id))
         await self.request("PUT", "/members/2", {"name": "乙改"}, actor=1)
         status, data = await self.request(
-            "PUT", f"/members/game-id-requests/{rid}/audit",
-            {"action": "approve", "identity_confirmed": True}, actor=1,
+            "PUT",
+            f"/members/game-id-requests/{rid}/audit",
+            {"action": "approve", "identity_confirmed": True},
+            actor=1,
         )
         self.assertEqual(status, 409)
         self.assertIn("已存在", data["message"])
@@ -232,12 +274,22 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
             )
 
         first, second = await rid_of(1), await rid_of(2)
-        self.assertEqual((await self.request(
-            "PUT", f"/members/game-id-requests/{first}/audit",
-            {"action": "approve", "identity_confirmed": True}, actor=1))[0], 200)
+        self.assertEqual(
+            (
+                await self.request(
+                    "PUT",
+                    f"/members/game-id-requests/{first}/audit",
+                    {"action": "approve", "identity_confirmed": True},
+                    actor=1,
+                )
+            )[0],
+            200,
+        )
         status, _ = await self.request(
-            "PUT", f"/members/game-id-requests/{second}/audit",
-            {"action": "approve", "identity_confirmed": True}, actor=1,
+            "PUT",
+            f"/members/game-id-requests/{second}/audit",
+            {"action": "approve", "identity_confirmed": True},
+            actor=1,
         )
         self.assertEqual(status, 409)
 
@@ -266,9 +318,17 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((auto.requester_username, auto.reviewer_username), ("actor1", "actor1"))
         self.assertIsNotNone(auto.reviewed_at)
         self.assertIn("自动记录", auto.review_remark or "")
-        self.assertEqual((await self.request(
-            "PUT", f"/members/game-id-requests/{rid}/audit",
-            {"action": "approve", "identity_confirmed": True}, actor=1))[0], 409)
+        self.assertEqual(
+            (
+                await self.request(
+                    "PUT",
+                    f"/members/game-id-requests/{rid}/audit",
+                    {"action": "approve", "identity_confirmed": True},
+                    actor=1,
+                )
+            )[0],
+            409,
+        )
         self.assertEqual(await self._member_name(), "甲新")
 
     async def test_member_delete_detaches_and_invalidates(self):
@@ -277,11 +337,20 @@ class GameIdRequestTests(unittest.IsolatedAsyncioTestCase):
         await self.request("DELETE", "/members/1", actor=1)
         record = await self.session.get(MemberGameIdRequest, rid)
         await self.session.refresh(record)
-        self.assertEqual((record.status, record.invalidated_reason, record.member_id),
-                         ("invalidated", "member_deleted", None))
-        self.assertEqual((await self.request(
-            "PUT", f"/members/game-id-requests/{rid}/audit",
-            {"action": "approve", "identity_confirmed": True}, actor=1))[0], 409)
+        self.assertEqual(
+            (record.status, record.invalidated_reason, record.member_id), ("invalidated", "member_deleted", None)
+        )
+        self.assertEqual(
+            (
+                await self.request(
+                    "PUT",
+                    f"/members/game-id-requests/{rid}/audit",
+                    {"action": "approve", "identity_confirmed": True},
+                    actor=1,
+                )
+            )[0],
+            409,
+        )
 
     async def test_history_visibility_and_admin_list(self):
         await self.request("POST", "/members/1/game-id-requests", self.submit_body())

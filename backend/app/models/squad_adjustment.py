@@ -2,6 +2,7 @@
 
 与正式排表（lineups）完全独立，修改仅作用于小队分析视图，不改变最终排表。
 """
+
 from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, ForeignKey

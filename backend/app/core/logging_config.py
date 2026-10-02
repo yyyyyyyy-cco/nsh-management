@@ -2,6 +2,7 @@
 
 用法：main.py 启动时调用 setup_logging()。
 """
+
 import logging
 import logging.handlers
 import sys

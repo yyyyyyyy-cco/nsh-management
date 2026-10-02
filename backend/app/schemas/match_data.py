@@ -1,4 +1,5 @@
 """比赛数据分析 Pydantic Schema。"""
+
 from pydantic import BaseModel
 
 from app.schemas.common import UtcDatetime
@@ -6,6 +7,7 @@ from app.schemas.common import UtcDatetime
 
 class MatchDataOut(BaseModel):
     """比赛数据输出。"""
+
     id: int
     schedule_id: int
     round_no: int
@@ -32,6 +34,7 @@ class MatchDataOut(BaseModel):
 
 class PlayerRanking(BaseModel):
     """玩家排行数据。"""
+
     player_name: str
     profession: str | None
     camp: str
@@ -40,6 +43,7 @@ class PlayerRanking(BaseModel):
 
 class CampStats(BaseModel):
     """阵营统计数据。"""
+
     camp: str
     player_count: int
     total_kills: int
@@ -50,6 +54,7 @@ class CampStats(BaseModel):
 
 class MatchDataListResponse(BaseModel):
     """比赛数据列表响应。"""
+
     items: list[MatchDataOut]
     camps: list[CampStats]
     import_count: int
@@ -59,6 +64,7 @@ class MatchDataListResponse(BaseModel):
 
 class RankingsResponse(BaseModel):
     """排行榜响应。"""
+
     kills_ranking: list[PlayerRanking]
     damage_ranking: list[PlayerRanking]
     building_ranking: list[PlayerRanking]
@@ -69,6 +75,7 @@ class RankingsResponse(BaseModel):
 
 class ProfessionCampStats(BaseModel):
     """职业×阵营均值（供 我方/敌方 对比图表）。"""
+
     camp: str
     count: int
     avg_kills: float
@@ -81,6 +88,7 @@ class ProfessionCampStats(BaseModel):
 
 class ProfessionComparison(BaseModel):
     """职业差值/波动值（基于分阵营均值）。"""
+
     metric: str
     camp1: str
     camp2: str
@@ -98,6 +106,7 @@ class ProfessionStats(BaseModel):
     player_damage_ratio/building_ratio/taken_ratio/death_ratio/heal_ratio/
     revive_rate/fen_gu_rate）。avg_kills/avg_damage/avg_healing 为兼容旧消费方保留。
     """
+
     profession: str
     count: int
     avg_kills: float
@@ -125,11 +134,13 @@ class ProfessionStats(BaseModel):
 
 class ProfessionStatsResponse(BaseModel):
     """职业统计响应。"""
+
     items: list[ProfessionStats]
 
 
 class CampTotals(BaseModel):
     """阵营汇总（占比分母/对比用）。"""
+
     camp: str
     player_count: int
     kills: int
@@ -146,6 +157,7 @@ class CampTotals(BaseModel):
 
 class IndicatorOut(BaseModel):
     """带 16 项衍生指标的玩家数据（不含 resource，遵循“资源忽略不显示”约束）。"""
+
     id: int
     schedule_id: int
     round_no: int
@@ -184,18 +196,21 @@ class IndicatorOut(BaseModel):
 
 class IndicatorsResponse(BaseModel):
     """衍生指标数据列表响应。"""
+
     items: list[IndicatorOut]
     camps: list[CampTotals]
 
 
 class CampCompareResponse(BaseModel):
     """阵营对比响应。"""
+
     camps: dict[str, CampTotals]
     comparison: dict[str, dict[str, float | int]]
 
 
 class SquadMemberOut(BaseModel):
     """小队成员（含 16 项衍生指标全量）。"""
+
     player_name: str
     profession: str | None
     camp: str
@@ -229,6 +244,7 @@ class SquadMemberOut(BaseModel):
 
 class SquadTotalsOut(BaseModel):
     """小队汇总。"""
+
     player_count: int
     kills: int
     assists: int
@@ -243,6 +259,7 @@ class SquadTotalsOut(BaseModel):
 
 class SquadIndicatorsOut(BaseModel):
     """小队指标（成员衍生指标均值）。"""
+
     kda: float
     dps: float
     kpa_damage: float
@@ -256,6 +273,7 @@ class SquadIndicatorsOut(BaseModel):
 
 class SquadOut(BaseModel):
     """小队维度分析单元。"""
+
     squad_name: str
     category: str
     team_index: int
@@ -266,4 +284,5 @@ class SquadOut(BaseModel):
 
 class SquadAnalysisResponse(BaseModel):
     """小队维度分析响应。"""
+
     squads: list[SquadOut]

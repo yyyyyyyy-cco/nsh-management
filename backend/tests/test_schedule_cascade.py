@@ -6,6 +6,7 @@ recordings → match_data → squad_adjustments → attendance_records → lineu
 FK 也未声明 ondelete="CASCADE"，故 ORM/DB 都不会级联）——删赛程后留下孤儿行；
 又因未启用 `sqlite_autoincrement`，`schedules.id` 可能被复用，新赛程会"继承"旧分析调整。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -43,31 +44,37 @@ class ScheduleCascadeTest(unittest.TestCase):
                 guild = Guild(name="级联测试帮会")
                 session.add(guild)
                 await session.flush()
-                schedule = Schedule(guild_id=guild.id, opponent="对手",
-                                    match_time=datetime.now(UTC), rounds=1)
+                schedule = Schedule(guild_id=guild.id, opponent="对手", match_time=datetime.now(UTC), rounds=1)
                 session.add(schedule)
                 await session.flush()
                 sid = schedule.id
-                session.add_all([
-                    SquadAdjustment(schedule_id=sid, data={"甲": "0:0"}),
-                    AttendanceRecord(schedule_id=sid, member_name="甲", profession="铁衣", status="normal"),
-                    Lineup(schedule_id=sid, data=[]),
-                    Recording(schedule_id=sid, member_name="甲", round_number=1, status="pending"),
-                    MatchData(schedule_id=sid, player_name="甲", camp="己方", round_no=1),
-                ])
+                session.add_all(
+                    [
+                        SquadAdjustment(schedule_id=sid, data={"甲": "0:0"}),
+                        AttendanceRecord(schedule_id=sid, member_name="甲", profession="铁衣", status="normal"),
+                        Lineup(schedule_id=sid, data=[]),
+                        Recording(schedule_id=sid, member_name="甲", round_number=1, status="pending"),
+                        MatchData(schedule_id=sid, player_name="甲", camp="己方", round_no=1),
+                    ]
+                )
                 await session.commit()
 
                 await schedule_service.delete_schedule(session, guild.id, sid)
 
-                for model, label in ((SquadAdjustment, "squad_adjustments"), (AttendanceRecord, "attendance_records"),
-                                     (Lineup, "lineups"), (Recording, "recordings"), (MatchData, "match_data")):
-                    left = (await session.execute(
-                        select(func.count()).select_from(model).where(model.schedule_id == sid)
-                    )).scalar()
+                for model, label in (
+                    (SquadAdjustment, "squad_adjustments"),
+                    (AttendanceRecord, "attendance_records"),
+                    (Lineup, "lineups"),
+                    (Recording, "recordings"),
+                    (MatchData, "match_data"),
+                ):
+                    left = (
+                        await session.execute(select(func.count()).select_from(model).where(model.schedule_id == sid))
+                    ).scalar()
                     self.assertEqual(left, 0, f"删除赛程后 {label} 仍残留 {left} 行（级联删除不完整）")
-                left_sched = (await session.execute(
-                    select(func.count()).select_from(Schedule).where(Schedule.id == sid)
-                )).scalar()
+                left_sched = (
+                    await session.execute(select(func.count()).select_from(Schedule).where(Schedule.id == sid))
+                ).scalar()
                 self.assertEqual(left_sched, 0, "赛程本身应已删除")
             await engine.dispose()
 
@@ -96,36 +103,45 @@ class GuildCascadeTest(unittest.TestCase):
                 session.add(guild)
                 await session.flush()
                 gid = guild.id
-                schedule = Schedule(guild_id=gid, opponent="对手",
-                                    match_time=datetime.now(UTC), rounds=1)
+                schedule = Schedule(guild_id=gid, opponent="对手", match_time=datetime.now(UTC), rounds=1)
                 session.add(schedule)
                 await session.flush()
                 sid = schedule.id
-                session.add_all([
-                    SquadAdjustment(schedule_id=sid, data={"甲": "0:0"}),
-                    AttendanceRecord(schedule_id=sid, member_name="甲", profession="铁衣", status="normal"),
-                    Lineup(schedule_id=sid, data=[]),
-                    Recording(schedule_id=sid, member_name="甲", round_number=1, status="pending"),
-                    MatchData(schedule_id=sid, player_name="甲", camp="己方", round_no=1),
-                    Member(guild_id=gid, name="甲", main_profession="铁衣", status="active"),
-                    ProfessionConfig(guild_id=gid, profession="铁衣", target_count=3),
-                ])
+                session.add_all(
+                    [
+                        SquadAdjustment(schedule_id=sid, data={"甲": "0:0"}),
+                        AttendanceRecord(schedule_id=sid, member_name="甲", profession="铁衣", status="normal"),
+                        Lineup(schedule_id=sid, data=[]),
+                        Recording(schedule_id=sid, member_name="甲", round_number=1, status="pending"),
+                        MatchData(schedule_id=sid, player_name="甲", camp="己方", round_no=1),
+                        Member(guild_id=gid, name="甲", main_profession="铁衣", status="active"),
+                        ProfessionConfig(guild_id=gid, profession="铁衣", target_count=3),
+                    ]
+                )
                 await session.commit()
 
                 await guild_service.delete_guild(session, gid)
 
-                for model, label in ((SquadAdjustment, "squad_adjustments"), (AttendanceRecord, "attendance_records"),
-                                     (Lineup, "lineups"), (Recording, "recordings"), (MatchData, "match_data"),
-                                     (Schedule, "schedules"), (Member, "members"),
-                                     (ProfessionConfig, "profession_configs")):
+                for model, label in (
+                    (SquadAdjustment, "squad_adjustments"),
+                    (AttendanceRecord, "attendance_records"),
+                    (Lineup, "lineups"),
+                    (Recording, "recordings"),
+                    (MatchData, "match_data"),
+                    (Schedule, "schedules"),
+                    (Member, "members"),
+                    (ProfessionConfig, "profession_configs"),
+                ):
                     left = (await session.execute(select(func.count()).select_from(model))).scalar()
                     self.assertEqual(left, 0, f"删除帮会后 {label} 仍残留 {left} 行")
-                left_guild = (await session.execute(
-                    select(func.count()).select_from(Guild).where(Guild.id == gid))).scalar()
+                left_guild = (
+                    await session.execute(select(func.count()).select_from(Guild).where(Guild.id == gid))
+                ).scalar()
                 self.assertEqual(left_guild, 0, "帮会本身应已删除")
                 # users 表：developer 不绑定帮会，故按 guild_id 统计即可
-                left_users = (await session.execute(
-                    select(func.count()).select_from(User).where(User.guild_id == gid))).scalar()
+                left_users = (
+                    await session.execute(select(func.count()).select_from(User).where(User.guild_id == gid))
+                ).scalar()
                 self.assertEqual(left_users, 0, "该帮会账号应已删除")
             await engine.dispose()
 
@@ -156,35 +172,42 @@ class MemberDetachTest(unittest.TestCase):
                 session.add(member)
                 await session.flush()
                 mid = member.id
-                schedule = Schedule(guild_id=gid, opponent="对手",
-                                    match_time=datetime.now(UTC), rounds=1)
+                schedule = Schedule(guild_id=gid, opponent="对手", match_time=datetime.now(UTC), rounds=1)
                 session.add(schedule)
                 await session.flush()
                 sid = schedule.id
-                session.add_all([
-                    AttendanceRecord(schedule_id=sid, member_id=mid, member_name="甲",
-                                     profession="铁衣", status="normal"),
-                    Recording(schedule_id=sid, member_id=mid, member_name="甲", round_number=1,
-                              status="pending"),
-                ])
+                session.add_all(
+                    [
+                        AttendanceRecord(
+                            schedule_id=sid, member_id=mid, member_name="甲", profession="铁衣", status="normal"
+                        ),
+                        Recording(schedule_id=sid, member_id=mid, member_name="甲", round_number=1, status="pending"),
+                    ]
+                )
                 await session.commit()
 
                 await member_service.delete_member(session, gid, mid)
 
-                left_att = (await session.execute(
-                    select(func.count()).select_from(AttendanceRecord).where(AttendanceRecord.schedule_id == sid)
-                )).scalar()
-                left_rec = (await session.execute(
-                    select(func.count()).select_from(Recording).where(Recording.schedule_id == sid)
-                )).scalar()
+                left_att = (
+                    await session.execute(
+                        select(func.count()).select_from(AttendanceRecord).where(AttendanceRecord.schedule_id == sid)
+                    )
+                ).scalar()
+                left_rec = (
+                    await session.execute(
+                        select(func.count()).select_from(Recording).where(Recording.schedule_id == sid)
+                    )
+                ).scalar()
                 self.assertEqual(left_att, 1, "出勤历史行应保留（姓名快照）")
                 self.assertEqual(left_rec, 1, "录屏历史行应保留")
-                dangling_att = (await session.execute(
-                    select(func.count()).select_from(AttendanceRecord).where(AttendanceRecord.member_id == mid)
-                )).scalar()
-                dangling_rec = (await session.execute(
-                    select(func.count()).select_from(Recording).where(Recording.member_id == mid)
-                )).scalar()
+                dangling_att = (
+                    await session.execute(
+                        select(func.count()).select_from(AttendanceRecord).where(AttendanceRecord.member_id == mid)
+                    )
+                ).scalar()
+                dangling_rec = (
+                    await session.execute(select(func.count()).select_from(Recording).where(Recording.member_id == mid))
+                ).scalar()
                 self.assertEqual(dangling_att, 0, "出勤行的 member_id 应已置空（防主键复用误关联）")
                 self.assertEqual(dangling_rec, 0, "录屏行的 member_id 应已置空")
             await engine.dispose()

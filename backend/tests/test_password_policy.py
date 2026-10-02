@@ -10,6 +10,7 @@
 - 上下文词表与常见弱口令拦截（6.1.2 / 6.2.11）；
 - 不得含登录名、不得为单一重复字符。
 """
+
 import unittest
 
 from app.core.password_policy import MAX_LENGTH, MIN_LENGTH, PasswordPolicyError, validate_password

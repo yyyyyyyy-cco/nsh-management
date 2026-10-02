@@ -1,4 +1,5 @@
 """系统配置业务：职业配置（账号管理见 account_service，帮会管理见 guild_service）。"""
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,13 +25,7 @@ async def get_profession_configs(session: AsyncSession, guild_id: int | None) ->
         return []
 
     configs = list(
-        (
-            await session.execute(
-                select(ProfessionConfig).where(ProfessionConfig.guild_id == guild_id)
-            )
-        )
-        .scalars()
-        .all()
+        (await session.execute(select(ProfessionConfig).where(ProfessionConfig.guild_id == guild_id))).scalars().all()
     )
 
     # 缺少某些职业的配置，内存补齐默认配置（不落库）
@@ -86,20 +81,14 @@ async def update_profession_config(
     return config
 
 
-async def batch_update_profession_configs(
-    session: AsyncSession, guild_id: int | None, configs_data: list[dict]
-) -> int:
+async def batch_update_profession_configs(session: AsyncSession, guild_id: int | None, configs_data: list[dict]) -> int:
     """批量更新职业配置（一次载入、内存 diff、单次 commit）。"""
     if guild_id is None:
         raise ConfigServiceError("开发者账号无法修改职业配置，请先创建帮会")
 
     existing = {
         c.profession: c
-        for c in (
-            await session.execute(
-                select(ProfessionConfig).where(ProfessionConfig.guild_id == guild_id)
-            )
-        )
+        for c in (await session.execute(select(ProfessionConfig).where(ProfessionConfig.guild_id == guild_id)))
         .scalars()
         .all()
     }

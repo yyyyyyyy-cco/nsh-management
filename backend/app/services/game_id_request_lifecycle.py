@@ -3,6 +3,7 @@
 只依赖模型，不导入其他业务服务，避免循环依赖；辅助函数一律不自行 commit，
 由调用方（member_service / account_service / guild_service）统一提交或回滚。
 """
+
 from datetime import UTC, datetime
 
 from sqlalchemy import delete, update
@@ -95,9 +96,7 @@ async def detach_member(session: AsyncSession, member_ids: list[int]) -> None:
         )
     )
     await session.execute(
-        update(MemberGameIdRequest)
-        .where(MemberGameIdRequest.member_id.in_(member_ids))
-        .values(member_id=None)
+        update(MemberGameIdRequest).where(MemberGameIdRequest.member_id.in_(member_ids)).values(member_id=None)
     )
 
     # 出勤/录屏的历史行同时解除成员引用（姓名快照 member_name 仍在，展示不受影响）。
@@ -106,27 +105,19 @@ async def detach_member(session: AsyncSession, member_ids: list[int]) -> None:
     await session.execute(
         update(AttendanceRecord).where(AttendanceRecord.member_id.in_(member_ids)).values(member_id=None)
     )
-    await session.execute(
-        update(Recording).where(Recording.member_id.in_(member_ids)).values(member_id=None)
-    )
+    await session.execute(update(Recording).where(Recording.member_id.in_(member_ids)).values(member_id=None))
 
 
 async def detach_user(session: AsyncSession, user_id: int) -> None:
     """账号被删除：清空申请人/审核人引用，保留账号名快照（待审申请不丢失）。"""
     await session.execute(
-        update(MemberGameIdRequest)
-        .where(MemberGameIdRequest.requester_id == user_id)
-        .values(requester_id=None)
+        update(MemberGameIdRequest).where(MemberGameIdRequest.requester_id == user_id).values(requester_id=None)
     )
     await session.execute(
-        update(MemberGameIdRequest)
-        .where(MemberGameIdRequest.reviewer_id == user_id)
-        .values(reviewer_id=None)
+        update(MemberGameIdRequest).where(MemberGameIdRequest.reviewer_id == user_id).values(reviewer_id=None)
     )
 
 
 async def purge_guild(session: AsyncSession, guild_id: int) -> None:
     """删除整个帮会：先删本帮会申请记录，再由调用方删除成员与账号。"""
-    await session.execute(
-        delete(MemberGameIdRequest).where(MemberGameIdRequest.guild_id == guild_id)
-    )
+    await session.execute(delete(MemberGameIdRequest).where(MemberGameIdRequest.guild_id == guild_id))

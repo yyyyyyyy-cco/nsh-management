@@ -5,6 +5,7 @@
 - **同一成员不得占用多个槽位**（正式按 `member_id`、补人按姓名分别去重）；
 - 反向：正式成员与补人**同名**是合法的（与出勤库补人唯一性口径一致），不得被误拒。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -30,8 +31,10 @@ class StructureValidationTest(unittest.TestCase):
     def test_empty_lineup_matches_documented_layout(self) -> None:
         data = _valid()
         self.assertEqual(len(data), sum(c for _, c in LINEUP_LAYOUT))
-        self.assertEqual([(t["category"], t["team_index"]) for t in data],
-                         [(cat, idx) for cat, count in LINEUP_LAYOUT for idx in range(count)])
+        self.assertEqual(
+            [(t["category"], t["team_index"]) for t in data],
+            [(cat, idx) for cat, count in LINEUP_LAYOUT for idx in range(count)],
+        )
         for team in data:
             self.assertEqual(len(team["slots"]), SLOTS_PER_TEAM)
             self.assertEqual([s["slot_index"] for s in team["slots"]], list(range(SLOTS_PER_TEAM)))
@@ -94,8 +97,7 @@ class StructureValidationThroughSaveTest(unittest.IsolatedAsyncioTestCase):
         self.maker = async_sessionmaker(self.engine, expire_on_commit=False)
         self.session = self.maker()
         self.session.add(Guild(id=1, name="排表结构测试"))
-        self.session.add(Schedule(id=1, guild_id=1, opponent="对手", rounds=1,
-                                  match_time=datetime.now(UTC)))
+        self.session.add(Schedule(id=1, guild_id=1, opponent="对手", rounds=1, match_time=datetime.now(UTC)))
         await self.session.commit()
 
     async def asyncTearDown(self) -> None:

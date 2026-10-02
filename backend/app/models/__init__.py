@@ -1,4 +1,5 @@
 """模型汇总导出。"""
+
 from app.models.attendance import AttendanceRecord
 from app.models.game_id_request import MemberGameIdRequest
 from app.models.guild import Guild

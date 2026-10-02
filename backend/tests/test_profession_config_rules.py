@@ -4,6 +4,7 @@
 而每赛程覆盖在另一条路径上校验 0–60——同一语义三层不一致。
 修复后统一为 **0～999**（与前端输入 `:min=0 :max=999` 一致）：schema 层 + service 层兜底均校验。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -46,8 +47,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
 class ProfessionConfigSchemaTest(unittest.TestCase):
     def test_single_endpoint_bounds(self) -> None:
         self.assertEqual(ProfessionConfigUpdate(target_count=0).target_count, 0)
-        self.assertEqual(ProfessionConfigUpdate(target_count=MAX_PROFESSION_TARGET).target_count,
-                         MAX_PROFESSION_TARGET)
+        self.assertEqual(ProfessionConfigUpdate(target_count=MAX_PROFESSION_TARGET).target_count, MAX_PROFESSION_TARGET)
         with self.assertRaises(ValidationError):
             ProfessionConfigUpdate(target_count=-1)
         with self.assertRaises(ValidationError):
@@ -57,9 +57,11 @@ class ProfessionConfigSchemaTest(unittest.TestCase):
         """批量入口不再是 list[dict]：逐项类型化校验。"""
         ok = ProfessionConfigBatchUpdate(configs=[{"profession": PROF, "target_count": 12}])
         self.assertEqual(ok.configs[0].target_count, 12)
-        for bad in ({"profession": PROF, "target_count": -1},
-                    {"profession": PROF, "target_count": MAX_PROFESSION_TARGET + 1},
-                    {"profession": PROF, "target_count": "abc"}):
+        for bad in (
+            {"profession": PROF, "target_count": -1},
+            {"profession": PROF, "target_count": MAX_PROFESSION_TARGET + 1},
+            {"profession": PROF, "target_count": "abc"},
+        ):
             with self.assertRaises(ValidationError):
                 ProfessionConfigBatchUpdate(configs=[bad])
         with self.assertRaises(ValidationError):
@@ -78,13 +80,18 @@ class ProfessionConfigServiceTest(_Base):
     async def test_batch_path_validates_bounds(self) -> None:
         with self.assertRaises(ConfigServiceError):
             await config_service.batch_update_profession_configs(
-                self.session, 1, [{"profession": PROF, "target_count": MAX_PROFESSION_TARGET + 1}])
+                self.session, 1, [{"profession": PROF, "target_count": MAX_PROFESSION_TARGET + 1}]
+            )
         await self.session.rollback()
         count = await config_service.batch_update_profession_configs(
-            self.session, 1, [{"profession": PROF, "target_count": 7, "remark": "测试"}])
+            self.session, 1, [{"profession": PROF, "target_count": 7, "remark": "测试"}]
+        )
         self.assertEqual(count, 1)
-        row = (await self.session.execute(
-            select(ProfessionConfig).where(ProfessionConfig.guild_id == 1))).scalars().first()
+        row = (
+            (await self.session.execute(select(ProfessionConfig).where(ProfessionConfig.guild_id == 1)))
+            .scalars()
+            .first()
+        )
         self.assertEqual(row.target_count, 7)
 
     async def test_unbound_guild_rejected(self) -> None:
@@ -93,7 +100,8 @@ class ProfessionConfigServiceTest(_Base):
             await config_service.update_profession_config(self.session, None, PROF, 1)
         with self.assertRaises(ConfigServiceError):
             await config_service.batch_update_profession_configs(
-                self.session, None, [{"profession": PROF, "target_count": 1}])
+                self.session, None, [{"profession": PROF, "target_count": 1}]
+            )
 
 
 if __name__ == "__main__":

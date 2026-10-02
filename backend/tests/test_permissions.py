@@ -5,6 +5,7 @@
 
 说明：直连依赖函数（不经 HTTP），用真实 JWT + 内存库，故无需启动服务。
 """
+
 try:
     from fastapi import HTTPException
     from fastapi.security import HTTPAuthorizationCredentials
@@ -67,9 +68,7 @@ class TokenChainTests(DbTestCase):
         self.assertEqual(ctx.exception.status_code, 401)
 
     async def test_unknown_user_id_returns_401(self):
-        ghost = HTTPAuthorizationCredentials(
-            scheme="Bearer", credentials=create_access_token(9999, "admin", 0)
-        )
+        ghost = HTTPAuthorizationCredentials(scheme="Bearer", credentials=create_access_token(9999, "admin", 0))
         with self.assertRaises(HTTPException) as ctx:
             await self._resolve(ghost)
         self.assertEqual(ctx.exception.status_code, 401)
@@ -114,10 +113,10 @@ class RoleMatrixTests(DbTestCase):
         self.assertEqual(ctx.exception.status_code, status)
 
     async def test_require_admin_allows_admin_and_developer(self):
-        await self._assert_allowed(require_admin, 1)   # admin（已绑定帮会）
-        await self._assert_allowed(require_admin, 4)   # admin（未绑定帮会）——本依赖不校验帮会绑定
-        await self._assert_allowed(require_admin, 2)   # developer 视同管理员
-        await self._assert_denied(require_admin, 3)    # member 拒绝
+        await self._assert_allowed(require_admin, 1)  # admin（已绑定帮会）
+        await self._assert_allowed(require_admin, 4)  # admin（未绑定帮会）——本依赖不校验帮会绑定
+        await self._assert_allowed(require_admin, 2)  # developer 视同管理员
+        await self._assert_denied(require_admin, 3)  # member 拒绝
 
     async def test_require_developer_only_developer(self):
         await self._assert_allowed(require_developer, 2)
@@ -131,9 +130,9 @@ class RoleMatrixTests(DbTestCase):
 
     async def test_require_admin_strict_excludes_developer_and_unbound(self):
         await self._assert_allowed(require_admin_strict, 1)
-        await self._assert_denied(require_admin_strict, 2)   # developer 不属于帮会管理
-        await self._assert_denied(require_admin_strict, 3)   # member
-        await self._assert_denied(require_admin_strict, 4)   # 未绑定帮会 → 403
+        await self._assert_denied(require_admin_strict, 2)  # developer 不属于帮会管理
+        await self._assert_denied(require_admin_strict, 3)  # member
+        await self._assert_denied(require_admin_strict, 4)  # 未绑定帮会 → 403
 
     async def test_require_member_or_admin(self):
         await self._assert_allowed(require_member_or_admin, 3)

@@ -4,6 +4,7 @@
 需运行依赖（SQLAlchemy / aiosqlite），缺失时整体跳过——本地受限环境由 CI 的 Python 3.11 覆盖；
 跳过是显式的（`skipUnless`），不会伪装成通过。策略层用例见 `test_alerting_policy.py`（无需依赖）。
 """
+
 import unittest
 from datetime import UTC, datetime, timedelta
 from unittest import mock
@@ -45,11 +46,11 @@ class CountRecentErrorsTests(DbTestCase):
         await self.session.commit()
 
     async def test_counts_only_errors_inside_window(self):
-        await self._add_log("error", 5)      # 窗口内
-        await self._add_log("error", 29)     # 窗口内（< 30）
-        await self._add_log("error", 31)     # 窗口外
-        await self._add_log("warning", 5)    # 级别不符
-        await self._add_log("info", 3)       # 级别不符
+        await self._add_log("error", 5)  # 窗口内
+        await self._add_log("error", 29)  # 窗口内（< 30）
+        await self._add_log("error", 31)  # 窗口外
+        await self._add_log("warning", 5)  # 级别不符
+        await self._add_log("info", 3)  # 级别不符
         self.assertEqual(await alert_service.count_recent_errors(self.session, 30), 2)
 
     async def test_empty_table_counts_zero(self):
@@ -86,8 +87,9 @@ class RunAlertCheckTests(DbTestCase):
 
     async def test_not_triggered_below_threshold(self):
         await self._seed_errors(3)
-        with mock.patch.object(alert_service, "async_session_factory", self.factory), mock.patch.object(
-            settings, "ALERT_ERROR_THRESHOLD", 20
+        with (
+            mock.patch.object(alert_service, "async_session_factory", self.factory),
+            mock.patch.object(settings, "ALERT_ERROR_THRESHOLD", 20),
         ):
             decision = await alert_service.run_alert_check(webhook_url="")
         self.assertEqual(decision.count, 3)
@@ -95,9 +97,11 @@ class RunAlertCheckTests(DbTestCase):
 
     async def test_triggered_without_webhook_logs_only(self):
         await self._seed_errors(25)
-        with mock.patch.object(alert_service, "async_session_factory", self.factory), mock.patch.object(
-            settings, "ALERT_ERROR_THRESHOLD", 20
-        ), mock.patch.object(alert_service, "post_json") as post:
+        with (
+            mock.patch.object(alert_service, "async_session_factory", self.factory),
+            mock.patch.object(settings, "ALERT_ERROR_THRESHOLD", 20),
+            mock.patch.object(alert_service, "post_json") as post,
+        ):
             decision = await alert_service.run_alert_check(webhook_url="")
         self.assertTrue(decision.triggered)
         self.assertEqual(decision.count, 25)
@@ -105,9 +109,11 @@ class RunAlertCheckTests(DbTestCase):
 
     async def test_triggered_pushes_webhook_once_within_dedup_window(self):
         await self._seed_errors(25)
-        with mock.patch.object(alert_service, "async_session_factory", self.factory), mock.patch.object(
-            settings, "ALERT_ERROR_THRESHOLD", 20
-        ), mock.patch.object(alert_service, "post_json", return_value=200) as post:
+        with (
+            mock.patch.object(alert_service, "async_session_factory", self.factory),
+            mock.patch.object(settings, "ALERT_ERROR_THRESHOLD", 20),
+            mock.patch.object(alert_service, "post_json", return_value=200) as post,
+        ):
             first = await alert_service.run_alert_check(webhook_url="https://hook.example/x")
             second = await alert_service.run_alert_check(webhook_url="https://hook.example/x")
         self.assertTrue(first.triggered)
@@ -116,8 +122,9 @@ class RunAlertCheckTests(DbTestCase):
 
     async def test_threshold_disabled_never_triggers(self):
         await self._seed_errors(50)
-        with mock.patch.object(alert_service, "async_session_factory", self.factory), mock.patch.object(
-            settings, "ALERT_ERROR_THRESHOLD", 0
+        with (
+            mock.patch.object(alert_service, "async_session_factory", self.factory),
+            mock.patch.object(settings, "ALERT_ERROR_THRESHOLD", 0),
         ):
             decision = await alert_service.run_alert_check(webhook_url="")
         self.assertFalse(decision.triggered)

@@ -1,4 +1,5 @@
 """认证接口：登录、登出、当前用户。"""
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,9 +17,7 @@ router = APIRouter(prefix="/auth", tags=["认证"])
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(
-    request: Request, body: LoginRequest, session: AsyncSession = Depends(get_db)
-) -> LoginResponse:
+async def login(request: Request, body: LoginRequest, session: AsyncSession = Depends(get_db)) -> LoginResponse:
     ip = get_client_ip(request)
     try:
         token, user = await authenticate(session, body.username, body.password)

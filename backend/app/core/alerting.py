@@ -8,6 +8,7 @@
 背景：审计日志此前「只写不告警」——错误落库了但无人被通知，对应
 OWASP Top 10:2025 A09（Security Logging **and Alerting** Failures）的后半段。
 """
+
 from __future__ import annotations
 
 import json
@@ -51,8 +52,7 @@ def build_payload(decision: AlertDecision, *, app_name: str, now: datetime | Non
         "app": app_name,
         "level": "error",
         "message": (
-            f"最近 {decision.window_minutes} 分钟内错误日志 {decision.count} 条，"
-            f"已达到阈值 {decision.threshold}"
+            f"最近 {decision.window_minutes} 分钟内错误日志 {decision.count} 条，已达到阈值 {decision.threshold}"
         ),
         "count": decision.count,
         "threshold": decision.threshold,

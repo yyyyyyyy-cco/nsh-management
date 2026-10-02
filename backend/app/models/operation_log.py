@@ -1,4 +1,5 @@
 """操作日志表：写操作审计与错误落库，供开发者查看。"""
+
 from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, Integer, String, Text

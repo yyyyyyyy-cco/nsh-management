@@ -4,6 +4,7 @@
 `AGENTS §4` / `.agent/rules/file-length-rule.md` 规定 Python 服务 ≤ 300 行、工具函数 ≤ 200 行）。
 `lineup_service` 继续转出这两个名字，调用方无需改动。
 """
+
 from app.services.lineup_attendance import LineupServiceError
 from app.utils.constants import LINEUP_LAYOUT, SLOTS_PER_TEAM
 from app.utils.member_names import normalize_member_name

@@ -7,6 +7,7 @@
 
 本文件锁定：路由侧必须做 `model_dump()` 转换，与服务契约一致；并显式记录"模型没有 .get"这一成因。
 """
+
 from __future__ import annotations
 
 import inspect

@@ -8,6 +8,7 @@
 - 不在候选池的成员 -> 槽位留空（member_id=None、member_name=""）；
 - 成员改名后，用**出勤库当前姓名**替换历史排表里的旧名快照。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -45,8 +46,16 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         await self.engine.dispose()
 
     async def _attend(self, schedule_id: int, name: str, member_id: int | None) -> None:
-        self.session.add(AttendanceRecord(schedule_id=schedule_id, member_id=member_id, member_name=name,
-                                          profession="铁衣", status="normal", is_filler=member_id is None))
+        self.session.add(
+            AttendanceRecord(
+                schedule_id=schedule_id,
+                member_id=member_id,
+                member_name=name,
+                profession="铁衣",
+                status="normal",
+                is_filler=member_id is None,
+            )
+        )
         await self.session.commit()
 
     async def _source_lineup(self, slots: list[dict]) -> None:
@@ -63,15 +72,17 @@ class _Base(unittest.IsolatedAsyncioTestCase):
 
     async def _import(self, keys=None):
         default_keys = [self._key(empty_lineup_data()[0])]
-        return await lineup_service.import_lineup(self.session, self.gid, self.dst.id, self.src.id,
-                                                 keys or default_keys)
+        return await lineup_service.import_lineup(
+            self.session, self.gid, self.dst.id, self.src.id, keys or default_keys
+        )
 
 
 class LineupImportTest(_Base):
     async def test_cannot_import_from_self(self) -> None:
         with self.assertRaises(LineupServiceError):
-            await lineup_service.import_lineup(self.session, self.gid, self.dst.id, self.dst.id,
-                                                 [self._key(empty_lineup_data()[0])])
+            await lineup_service.import_lineup(
+                self.session, self.gid, self.dst.id, self.dst.id, [self._key(empty_lineup_data()[0])]
+            )
 
     async def test_source_without_lineup_is_404(self) -> None:
         with self.assertRaises(LineupServiceError) as ctx:
@@ -82,11 +93,13 @@ class LineupImportTest(_Base):
         await self._attend(self.dst.id, "在池甲", 11)
         # 补人（member_id=None）也可作为候选池成员按姓名保留
         await self._attend(self.dst.id, "补人乙", None)
-        await self._source_lineup([
-            {"member_id": 11, "member_name": "在池甲"},
-            {"member_id": 99, "member_name": "不在池"},
-            {"member_id": None, "member_name": "补人乙"},
-        ])
+        await self._source_lineup(
+            [
+                {"member_id": 11, "member_name": "在池甲"},
+                {"member_id": 99, "member_name": "不在池"},
+                {"member_id": None, "member_name": "补人乙"},
+            ]
+        )
         lineup, imported = await self._import()
         slots = lineup.data[0]["slots"]
         self.assertEqual(imported, 2, "只有候选池中的两条应被导入")
@@ -100,8 +113,9 @@ class LineupImportTest(_Base):
         await self._source_lineup([{"member_id": 21, "member_name": "旧名字"}])
         lineup, imported = await self._import()
         self.assertEqual(imported, 1)
-        self.assertEqual(lineup.data[0]["slots"][0]["member_name"], "新名字",
-                         "导入时应以出勤库当前姓名为准（替换历史快照）")
+        self.assertEqual(
+            lineup.data[0]["slots"][0]["member_name"], "新名字", "导入时应以出勤库当前姓名为准（替换历史快照）"
+        )
 
     async def test_unselected_teams_are_untouched(self) -> None:
         await self._attend(self.dst.id, "在池甲", 31)
@@ -111,8 +125,7 @@ class LineupImportTest(_Base):
         self.session.add(Lineup(schedule_id=self.dst.id, data=existing, title_remark="", groups_remark={}))
         await self.session.commit()
         lineup, _ = await self._import([self._key(empty_lineup_data()[0])])
-        self.assertEqual(lineup.data[1]["slots"][0]["member_name"], "目标队自有",
-                         "未选中的小队应保持原样")
+        self.assertEqual(lineup.data[1]["slots"][0]["member_name"], "目标队自有", "未选中的小队应保持原样")
 
 
 if __name__ == "__main__":

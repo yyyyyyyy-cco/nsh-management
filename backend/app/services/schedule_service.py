@@ -1,4 +1,5 @@
 """联赛日程业务：CRUD、级联创建（空排表）、级联删除。"""
+
 from datetime import datetime
 
 from sqlalchemy import delete, select

@@ -1,4 +1,5 @@
 """系统配置接口：帮会管理（自 config.py 拆出，URL 前缀不变）。"""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +14,7 @@ router = APIRouter(prefix="/config", tags=["系统配置"])
 
 
 # ========== 帮会管理 ==========
+
 
 @router.get("/guilds", response_model=list[GuildOut])
 async def list_guilds(
@@ -30,7 +32,9 @@ async def create_guild(
     session: AsyncSession = Depends(get_db),
 ) -> GuildOut:
     """创建帮会，并自动生成管理员和帮众账号（初始密码由创建者指定，仅开发者）。"""
-    return GuildOut.model_validate(await guild_service.create_guild(session, body.name, body.admin_password, body.member_password))
+    return GuildOut.model_validate(
+        await guild_service.create_guild(session, body.name, body.admin_password, body.member_password)
+    )
 
 
 @router.delete("/guilds/{guild_id}", response_model=dict)

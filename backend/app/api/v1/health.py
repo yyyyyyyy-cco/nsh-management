@@ -8,6 +8,7 @@
 对外表现为「应用崩溃」而非「依赖不可用」，不利于排查；同时 `SELECT 1` 只验证连通性，
 不触碰业务表，避免探针在迁移未执行时把服务判死。
 """
+
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from sqlalchemy import text

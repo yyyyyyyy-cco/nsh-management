@@ -1,4 +1,5 @@
 """开发者接口：创建帮会、派发账号。"""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,7 +31,5 @@ async def create_account_for_guild(
     session: AsyncSession = Depends(get_db),
 ) -> AccountOut:
     """为指定帮会创建账号（仅开发者）。"""
-    account = await account_service.create_account(
-        session, guild_id, body.username, body.password, body.role
-    )
+    account = await account_service.create_account(session, guild_id, body.username, body.password, body.role)
     return AccountOut.model_validate(account)

@@ -17,6 +17,7 @@
 
 依赖缺失时模块级跳过（见 ai-checklist 第 32 条）。
 """
+
 from __future__ import annotations
 
 import pathlib
@@ -80,8 +81,13 @@ class ApiEndpointTestCase(unittest.TestCase):
             ):
                 conn.execute(
                     User.__table__.insert().values(
-                        id=uid, username=username, role=role, guild_id=guild_id,
-                        password_hash=hash_password(PASSWORD), status="active", token_version=0,
+                        id=uid,
+                        username=username,
+                        role=role,
+                        guild_id=guild_id,
+                        password_hash=hash_password(PASSWORD),
+                        status="active",
+                        token_version=0,
                     )
                 )
         engine.dispose()
@@ -132,7 +138,6 @@ class ApiEndpointTestCase(unittest.TestCase):
 
     def _login(self, username: str, password: str):
         return self.client.post(LOGIN, json={"username": username, "password": password})
-
 
     # ---------- 登录 ----------
     def test_login_success_returns_token(self):
@@ -287,9 +292,7 @@ class ApiEndpointTestCase(unittest.TestCase):
             LOGIN,
             headers={"Origin": "http://localhost:5173", "Access-Control-Request-Method": "POST"},
         )
-        self.assertEqual(
-            allowed.headers.get("access-control-allow-origin"), "http://localhost:5173"
-        )
+        self.assertEqual(allowed.headers.get("access-control-allow-origin"), "http://localhost:5173")
         denied = self.client.options(
             LOGIN,
             headers={"Origin": "https://evil.example", "Access-Control-Request-Method": "POST"},

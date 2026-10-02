@@ -1,4 +1,5 @@
 """排表接口：读取排表（帮众可看）、保存排表（管理员）、候选池（管理员）。"""
+
 from datetime import UTC, datetime
 from typing import Any
 
@@ -52,8 +53,12 @@ async def save_lineup(
     session: AsyncSession = Depends(get_db),
 ) -> LineupOut:
     lineup = await lineup_service.save_lineup(
-        session, current_user.guild_id, schedule_id, [t.model_dump() for t in body.data],
-        title_remark=body.title_remark, groups_remark=body.groups_remark,
+        session,
+        current_user.guild_id,
+        schedule_id,
+        [t.model_dump() for t in body.data],
+        title_remark=body.title_remark,
+        groups_remark=body.groups_remark,
     )
     return LineupOut.model_validate(lineup)
 

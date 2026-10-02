@@ -1,4 +1,5 @@
 """安全工具：密码哈希（bcrypt）与 JWT 令牌。"""
+
 import base64
 import hashlib
 import re
@@ -18,11 +19,10 @@ def hash_password(password: str) -> str:
     passlib 产出 `$2b$12$…`（60 字符）可被 `bcrypt.checkpw` 校验通过，且 `bcrypt.gensalt()` 默认同样产出 `$2b$12$`；
     向后兼容由 `tests/test_password_hash_compat.py` 用 passlib 生成的固定哈希长期看护。
 
-    **F-57 已修（W1-12）**：新哈希先做 `base64(SHA-256(口令))` 预哈希（见 `_prehash`），任意长度口令都被完整使用；历史哈希（无前缀）仍走直连 bcrypt，故既有用户登录不受影响。
+    **F-57 已修（W1-12）**：新哈希先做 `base64(SHA-256(口令))` 预哈希（见 `_prehash`），任意长度口令都被完整使用；历史
+    哈希（无前缀）仍走直连 bcrypt，故既有用户登录不受影响。
     """
-    return _SCHEME_PREFIX + bcrypt.hashpw(
-        _prehash(password).encode("ascii"), bcrypt.gensalt()
-    ).decode("ascii")
+    return _SCHEME_PREFIX + bcrypt.hashpw(_prehash(password).encode("ascii"), bcrypt.gensalt()).decode("ascii")
 
 
 # 哈希方案前缀（2026-10-03，W1-12）：新哈希形如 `sha256$<bcrypt>`；**旧哈希无前缀**，仍按直连 bcrypt 校验。
@@ -67,7 +67,7 @@ def verify_password(plain: str, hashed: str) -> bool:
     if hashed.startswith(_SCHEME_PREFIX):
         # 新方案：口令先 SHA-256 + base64（44 字符 < 72 字节），故任意长度都被**完整**使用
         candidate = _prehash(plain)
-        stored = hashed[len(_SCHEME_PREFIX):]
+        stored = hashed[len(_SCHEME_PREFIX) :]
     else:
         # 旧方案（直连 bcrypt，含 passlib 时代）：行为保持不变 → 既有用户不受影响
         candidate, stored = plain, hashed

@@ -4,6 +4,7 @@
 覆盖：合并/精确模式、连续改名与改回、新名无数据、可检测冲突（当前重名 / 他人批准记录 /
 失效引用 / 同局双名）、冲突在最近 10 场之外仍被发现、跨帮会隔离、候选补全、最近 10 场截取。
 """
+
 # ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
 import unittest as _unittest
 
@@ -120,10 +121,24 @@ class MyStatsAliasTests(unittest.IsolatedAsyncioTestCase):
 
     async def add_record(self, schedule_id: int, name: str, round_no: int = 1, camp: str = "我方", **overrides) -> None:
         data = dict(
-            schedule_id=schedule_id, round_no=round_no, player_name=name, profession="神相", camp=camp,
-            kills=10, springs=1, assists=5, resource=0, player_damage=1000, armor_break_damage=0,
-            building_damage=100, tower_break_damage=0, healing=0, damage_taken=500, deaths=1,
-            revives=0, fen_gu=0,
+            schedule_id=schedule_id,
+            round_no=round_no,
+            player_name=name,
+            profession="神相",
+            camp=camp,
+            kills=10,
+            springs=1,
+            assists=5,
+            resource=0,
+            player_damage=1000,
+            armor_break_damage=0,
+            building_damage=100,
+            tower_break_damage=0,
+            healing=0,
+            damage_taken=500,
+            deaths=1,
+            revives=0,
+            fen_gu=0,
         )
         data.update(overrides)
         self.session.add(MatchData(**data))
@@ -138,10 +153,20 @@ class MyStatsAliasTests(unittest.IsolatedAsyncioTestCase):
         headers = [(b"content-type", b"application/json")]
         if actor is not None:
             headers.append((b"authorization", f"Bearer {self.tokens[actor]}".encode()))
-        scope = {"type": "http", "asgi": {"version": "3.0"}, "http_version": "1.1",
-                 "method": method, "scheme": "http", "path": pure_path, "raw_path": pure_path.encode(),
-                 "query_string": query.encode(), "root_path": "", "headers": headers,
-                 "server": ("test", 80), "client": ("127.0.0.1", 1)}
+        scope = {
+            "type": "http",
+            "asgi": {"version": "3.0"},
+            "http_version": "1.1",
+            "method": method,
+            "scheme": "http",
+            "path": pure_path,
+            "raw_path": pure_path.encode(),
+            "query_string": query.encode(),
+            "root_path": "",
+            "headers": headers,
+            "server": ("test", 80),
+            "client": ("127.0.0.1", 1),
+        }
         events = []
 
         async def receive():
@@ -248,9 +273,7 @@ class MyStatsAliasTests(unittest.IsolatedAsyncioTestCase):
 
         # 自动记录：approved + 操作管理员快照 + 备注标注来源
         record = (
-            await self.session.execute(
-                select(MemberGameIdRequest).where(MemberGameIdRequest.new_game_id == "丑")
-            )
+            await self.session.execute(select(MemberGameIdRequest).where(MemberGameIdRequest.new_game_id == "丑"))
         ).scalar_one()
         self.assertEqual((record.status, record.old_game_id), ("approved", "子"))
         self.assertEqual((record.requester_username, record.reviewer_username), ("actor1", "actor1"))

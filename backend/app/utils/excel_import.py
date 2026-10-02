@@ -1,4 +1,5 @@
 """Excel 成员导入解析：自动识别表头，重名跳过，返回导入结果。"""
+
 import asyncio
 from io import BytesIO
 
@@ -114,9 +115,7 @@ async def import_members(session: AsyncSession, guild_id: int | None, content: b
         raise MemberServiceError("当前账号未绑定帮会，无法导入成员", 403)
     header, data_rows = await asyncio.to_thread(_parse_workbook, content)
 
-    existing = set(
-        (await session.execute(select(Member.name).where(Member.guild_id == guild_id))).scalars()
-    )
+    existing = set((await session.execute(select(Member.name).where(Member.guild_id == guild_id))).scalars())
 
     imported = 0
     skipped = 0

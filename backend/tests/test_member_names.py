@@ -3,6 +3,7 @@
 权威源：`backend/app/utils/member_names.py`（出勤与排表共用）；
 历史背景：出勤库姓名与排表槽位姓名精确匹配失败曾导致槽位职业为空（见 progress.md 2026-09-15）。
 """
+
 import unittest
 
 from app.utils.member_names import normalize_member_name

@@ -8,6 +8,7 @@ Excel 导入失败时抛出的异常在处理器里会再触发 `AttributeError`
 - `ExcelImportError(msg).message` 与 `str(exc)`；
 - `main.excel_import_error_handler` 返回 **400** 且响应体带上原始消息（不再 AttributeError）。
 """
+
 from __future__ import annotations
 
 import json

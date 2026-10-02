@@ -1,4 +1,5 @@
 """个人战绩查询业务：按游戏 ID 聚合历史比赛数据（支持已确认的新旧 ID 合并查询）。"""
+
 from collections import Counter
 
 from sqlalchemy import func, select
@@ -78,13 +79,7 @@ async def query_player_stats(
 
     # 3. 这 10 场的全量记录：按局分组，计算阵营汇总 + 排名（一次查询替代逐场查询）
     all_records = list(
-        (
-            await session.execute(
-                select(MatchData).where(MatchData.schedule_id.in_(recent_schedule_ids))
-            )
-        )
-        .scalars()
-        .all()
+        (await session.execute(select(MatchData).where(MatchData.schedule_id.in_(recent_schedule_ids)))).scalars().all()
     )
     schedule_ids = recent_schedule_ids
 
@@ -116,31 +111,33 @@ async def query_player_stats(
         camp_total = len(camp_recs)
         rankings_camp = _calc_rankings(md, camp_recs, camp_total)
 
-        records.append({
-            "schedule_id": md.schedule_id,
-            "opponent": sc.opponent,
-            "match_time": sc.match_time.isoformat(),
-            "schedule_result": sc.result,
-            "round_no": md.round_no,
-            "player_name": md.player_name,
-            "profession": md.profession,
-            "camp": md.camp,
-            "kills": md.kills,
-            "springs": md.springs,
-            "assists": md.assists,
-            "player_damage": md.player_damage,
-            "armor_break_damage": md.armor_break_damage,
-            "building_damage": md.building_damage,
-            "tower_break_damage": md.tower_break_damage,
-            "healing": md.healing,
-            "damage_taken": md.damage_taken,
-            "deaths": md.deaths,
-            "revives": md.revives,
-            "fen_gu": md.fen_gu,
-            **indicators,
-            "rankings": rankings_all,
-            "rankings_camp": rankings_camp,
-        })
+        records.append(
+            {
+                "schedule_id": md.schedule_id,
+                "opponent": sc.opponent,
+                "match_time": sc.match_time.isoformat(),
+                "schedule_result": sc.result,
+                "round_no": md.round_no,
+                "player_name": md.player_name,
+                "profession": md.profession,
+                "camp": md.camp,
+                "kills": md.kills,
+                "springs": md.springs,
+                "assists": md.assists,
+                "player_damage": md.player_damage,
+                "armor_break_damage": md.armor_break_damage,
+                "building_damage": md.building_damage,
+                "tower_break_damage": md.tower_break_damage,
+                "healing": md.healing,
+                "damage_taken": md.damage_taken,
+                "deaths": md.deaths,
+                "revives": md.revives,
+                "fen_gu": md.fen_gu,
+                **indicators,
+                "rankings": rankings_all,
+                "rankings_camp": rankings_camp,
+            }
+        )
 
     # 概览统计
     total_rounds = len(records)
@@ -209,9 +206,18 @@ def _empty_summary(player_name: str) -> dict:
 def _zero_camp_totals(camp: str) -> dict:
     """阵营汇总兜底。"""
     return {
-        "camp": camp, "player_count": 0, "kills": 0, "assists": 0,
-        "player_damage": 0, "building_damage": 0, "healing": 0,
-        "damage_taken": 0, "deaths": 0, "springs": 0, "revives": 0, "fen_gu": 0,
+        "camp": camp,
+        "player_count": 0,
+        "kills": 0,
+        "assists": 0,
+        "player_damage": 0,
+        "building_damage": 0,
+        "healing": 0,
+        "damage_taken": 0,
+        "deaths": 0,
+        "springs": 0,
+        "revives": 0,
+        "fen_gu": 0,
     }
 
 

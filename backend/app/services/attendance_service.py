@@ -1,4 +1,5 @@
 """出勤库业务：列表统计、添加补人、状态切换、删除与保存校验。导入逻辑见 utils/attendance_import.py。"""
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,11 +45,13 @@ async def check_normal_capacity(session: AsyncSession, schedule_id: int, add_cou
     ).scalar_one()
     if normal + add_count > MAX_NORMAL_COUNT:
         raise AttendanceServiceError(
-            f"正常状态人数已达上限（{MAX_NORMAL_COUNT} 人），当前 {normal} 人，最多还能添加 {MAX_NORMAL_COUNT - normal} 人"
+            f"正常状态人数已达上限（{MAX_NORMAL_COUNT} 人），当前 {normal} 人，最多还能添加 {MAX_NORMAL_COUNT - normal} 人"  # noqa: E501
         )
 
 
-async def list_attendance(session: AsyncSession, guild_id: int, schedule_id: int) -> tuple[list[AttendanceRecord], dict]:
+async def list_attendance(
+    session: AsyncSession, guild_id: int, schedule_id: int
+) -> tuple[list[AttendanceRecord], dict]:
     await get_schedule(session, guild_id, schedule_id)
     rows = (
         await session.execute(
@@ -117,7 +120,9 @@ async def update_record_remark(
     return record
 
 
-async def add_filler(session: AsyncSession, guild_id: int, schedule_id: int, name: str, profession: str) -> AttendanceRecord:
+async def add_filler(
+    session: AsyncSession, guild_id: int, schedule_id: int, name: str, profession: str
+) -> AttendanceRecord:
     """添加补人：仅当前场次，不录入常驻库。"""
     await get_schedule(session, guild_id, schedule_id)
     name = normalize_member_name(name)
@@ -128,10 +133,10 @@ async def add_filler(session: AsyncSession, guild_id: int, schedule_id: int, nam
     if profession not in PROFESSIONS:
         raise AttendanceServiceError(f"无效的职业：{profession}")
     existing_names = (
-        await session.execute(
-            select(AttendanceRecord.member_name).where(AttendanceRecord.schedule_id == schedule_id)
-        )
-    ).scalars().all()
+        (await session.execute(select(AttendanceRecord.member_name).where(AttendanceRecord.schedule_id == schedule_id)))
+        .scalars()
+        .all()
+    )
     # Python 统一处理全角等空白；同时兼容历史记录，防止与常驻成员的姓名映射冲突。
     if any(normalize_member_name(existing) == name for existing in existing_names):
         raise AttendanceServiceError(f"姓名「{name}」已在本场出勤表中（忽略首尾空白）")

@@ -8,6 +8,7 @@
 - 帮会重名 → 业务错误；
 - 初始密码受口令策略约束（schema 层；service 层另有兜底）。
 """
+
 from __future__ import annotations
 
 import unittest
@@ -63,29 +64,39 @@ class GuildCreateServiceTest(_Base):
     async def test_creates_guild_accounts_and_profession_configs(self) -> None:
         guild = await guild_service.create_guild(self.session, "帮会甲", STRONG, STRONG + "x")
 
-        users = (await self.session.execute(
-            select(User).where(User.guild_id == guild.id).order_by(User.username))).scalars().all()
+        users = (
+            (await self.session.execute(select(User).where(User.guild_id == guild.id).order_by(User.username)))
+            .scalars()
+            .all()
+        )
         self.assertEqual([u.username for u in users], ["帮会甲_admin", "帮会甲_member"])
         self.assertEqual({u.role for u in users}, {"admin", "member"})
         self.assertEqual({u.status for u in users}, {"active"})
 
-        configs = (await self.session.execute(
-            select(ProfessionConfig).where(ProfessionConfig.guild_id == guild.id))).scalars().all()
+        configs = (
+            (await self.session.execute(select(ProfessionConfig).where(ProfessionConfig.guild_id == guild.id)))
+            .scalars()
+            .all()
+        )
         self.assertEqual(len(configs), len(PROFESSIONS), "应为全部职业建配置")
         self.assertEqual({c.target_count for c in configs}, {0})
 
     async def test_passwords_hashed_and_verifiable(self) -> None:
         guild = await guild_service.create_guild(self.session, "帮会乙", STRONG, STRONG)
-        admin = (await self.session.execute(
-            select(User).where(User.guild_id == guild.id, User.role == "admin"))).scalars().one()
-        member = (await self.session.execute(
-            select(User).where(User.guild_id == guild.id, User.role == "member"))).scalars().one()
+        admin = (
+            (await self.session.execute(select(User).where(User.guild_id == guild.id, User.role == "admin")))
+            .scalars()
+            .one()
+        )
+        member = (
+            (await self.session.execute(select(User).where(User.guild_id == guild.id, User.role == "member")))
+            .scalars()
+            .one()
+        )
         self.assertTrue(verify_password(STRONG, admin.password_hash), "哈希应可校验原口令")
         self.assertNotEqual(admin.password_hash, STRONG, "不得明文落库")
-        self.assertTrue(admin.password_hash.startswith("sha256$"),
-                        "应为 sha256$ 预哈希方案（W1-12 / F-57）")
-        self.assertTrue(admin.password_hash[len("sha256$"):].startswith("$2b$"),
-                        "预哈希之后应接 bcrypt（$2b$）")
+        self.assertTrue(admin.password_hash.startswith("sha256$"), "应为 sha256$ 预哈希方案（W1-12 / F-57）")
+        self.assertTrue(admin.password_hash[len("sha256$") :].startswith("$2b$"), "预哈希之后应接 bcrypt（$2b$）")
         self.assertNotEqual(admin.password_hash, member.password_hash, "相同口令的哈希应因盐不同而不同")
         self.assertEqual(admin.plain_password, STRONG, "明文列按已接受风险保留")
 

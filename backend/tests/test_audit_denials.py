@@ -11,6 +11,7 @@
 aiosqlite 连接绑定创建它的事件循环——用 TestClient 的测试循环去读会报「attached to a different loop」。
 改用**临时文件库**：应用经 aiosqlite 写，断言用标准库 sqlite3 直接读同一文件，互不依赖事件循环，且可轮询等待。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -67,14 +68,24 @@ class AuditDenialTests(unittest.TestCase):
             conn.execute(Guild.__table__.insert().values(id=1, name="测试帮会"))
             conn.execute(
                 User.__table__.insert().values(
-                    id=1, username="a_admin", role="admin", guild_id=1,
-                    password_hash="unused", status="active", token_version=0,
+                    id=1,
+                    username="a_admin",
+                    role="admin",
+                    guild_id=1,
+                    password_hash="unused",
+                    status="active",
+                    token_version=0,
                 )
             )
             conn.execute(
                 User.__table__.insert().values(
-                    id=2, username="a_member", role="member", guild_id=1,
-                    password_hash="unused", status="active", token_version=0,
+                    id=2,
+                    username="a_member",
+                    role="member",
+                    guild_id=1,
+                    password_hash="unused",
+                    status="active",
+                    token_version=0,
                 )
             )
         engine.dispose()

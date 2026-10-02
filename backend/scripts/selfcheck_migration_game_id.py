@@ -3,6 +3,7 @@
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_migration_game_id.py
 校验：迁移链完整、member_game_id_requests 表与索引/部分唯一索引真实落库、downgrade 可回退。
 """
+
 # ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
 import unittest as _unittest
 
@@ -97,9 +98,7 @@ class MigrationTests(unittest.TestCase):
             self.assertIn("WHERE status = 'pending'", indexes["uq_game_id_requests_pending_member"])
             self.assertIn("ix_game_id_requests_old_approved", indexes)
             self.assertIn("ix_game_id_requests_new_approved", indexes)
-            self.assertIn(
-                "WHERE status = 'approved'", indexes["ix_game_id_requests_new_approved"]
-            )
+            self.assertIn("WHERE status = 'approved'", indexes["ix_game_id_requests_new_approved"])
 
             # 约束真实生效：状态白名单 + 同一成员仅一条待审
             now = "2026-09-20 00:00:00"
@@ -110,7 +109,9 @@ class MigrationTests(unittest.TestCase):
             conn = sqlite3.connect(db_path)
             try:
                 conn.execute(insert_sql, (1, 1, "甲", "乙", "actor", "pending", now, now))
-                self.assertTrue(_fails_with_integrity(conn, insert_sql, (1, 1, "甲", "丙", "actor", "pending", now, now)))
+                self.assertTrue(
+                    _fails_with_integrity(conn, insert_sql, (1, 1, "甲", "丙", "actor", "pending", now, now))
+                )
                 self.assertTrue(_fails_with_integrity(conn, insert_sql, (1, 1, "甲", "乙", "actor", "bogus", now, now)))
                 # 其他成员、其他状态不受唯一索引限制
                 conn.execute(insert_sql, (1, 2, "戊", "己", "actor", "pending", now, now))

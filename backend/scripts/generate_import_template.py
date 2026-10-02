@@ -1,4 +1,5 @@
 """生成帮众 Excel 一键导入模板（backend/templates/member_import_template.xlsx）。"""
+
 from pathlib import Path
 
 from openpyxl import Workbook

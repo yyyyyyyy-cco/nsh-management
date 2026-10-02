@@ -1,4 +1,5 @@
 """录屏审核业务：列表、提交、审核、批量审核、进度统计。"""
+
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -32,18 +33,16 @@ def _recording_key(r: Recording) -> tuple:
 
 
 async def _load_recording_map(session: AsyncSession, schedule_id: int) -> dict[tuple, Recording]:
-    existing = (
-        await session.execute(
-            select(Recording).where(Recording.schedule_id == schedule_id)
-        )
-    ).scalars().all()
+    existing = (await session.execute(select(Recording).where(Recording.schedule_id == schedule_id))).scalars().all()
     existing_map: dict[tuple, Recording] = {}
     for r in existing:
         existing_map.setdefault(_recording_key(r), r)
     return existing_map
 
 
-async def ensure_recordings(session: AsyncSession, schedule: Schedule, attendance_records: list[AttendanceRecord]) -> list[Recording]:
+async def ensure_recordings(
+    session: AsyncSession, schedule: Schedule, attendance_records: list[AttendanceRecord]
+) -> list[Recording]:
     """确保录屏占位记录存在。
 
     缺失占位用单条 INSERT OR IGNORE 批量插入（并发下撞唯一约束时静默跳过，避免 500），
@@ -76,9 +75,7 @@ async def ensure_recordings(session: AsyncSession, schedule: Schedule, attendanc
                 )
 
     if to_insert:
-        await session.execute(
-            sqlite_insert(Recording).values(to_insert).on_conflict_do_nothing()
-        )
+        await session.execute(sqlite_insert(Recording).values(to_insert).on_conflict_do_nothing())
         await session.commit()
         # 重新查询：取回本请求前已存在的记录与刚插入的记录（含数据库生成的 id）
         existing_map = await _load_recording_map(session, schedule.id)
@@ -101,9 +98,7 @@ async def ensure_recordings(session: AsyncSession, schedule: Schedule, attendanc
     return recordings
 
 
-async def list_recordings(
-    session: AsyncSession, guild_id: int, schedule_id: int
-) -> tuple[list[Recording], list[dict]]:
+async def list_recordings(session: AsyncSession, guild_id: int, schedule_id: int) -> tuple[list[Recording], list[dict]]:
     """获取录屏列表和各局审核进度。"""
     schedule = await get_schedule(session, guild_id, schedule_id)
 
@@ -142,13 +137,15 @@ async def list_recordings(
         rejected = sum(1 for r in round_records if r.status == "rejected")
         # 待审 = 已填写链接且未审核；未填链接的占位记录不计入
         pending = sum(1 for r in round_records if r.status == "pending" and r.url)
-        progress.append({
-            "round_number": round_num,
-            "total": total,
-            "approved": approved,
-            "rejected": rejected,
-            "pending": pending,
-        })
+        progress.append(
+            {
+                "round_number": round_num,
+                "total": total,
+                "approved": approved,
+                "rejected": rejected,
+                "pending": pending,
+            }
+        )
 
     return recordings, progress
 
@@ -234,9 +231,7 @@ async def reject_recording(
     return recording
 
 
-async def batch_approve(
-    session: AsyncSession, guild_id: int, schedule_id: int, ids: list[int]
-) -> int:
+async def batch_approve(session: AsyncSession, guild_id: int, schedule_id: int, ids: list[int]) -> int:
     """批量审核通过（管理员）。"""
     await get_schedule(session, guild_id, schedule_id)
 
@@ -263,9 +258,7 @@ async def batch_approve(
     return len(recordings)
 
 
-async def get_recording_by_id(
-    session: AsyncSession, guild_id: int, schedule_id: int, recording_id: int
-) -> Recording:
+async def get_recording_by_id(session: AsyncSession, guild_id: int, schedule_id: int, recording_id: int) -> Recording:
     """获取单条录屏记录。"""
     await get_schedule(session, guild_id, schedule_id)
 

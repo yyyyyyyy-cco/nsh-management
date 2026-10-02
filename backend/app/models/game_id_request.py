@@ -2,6 +2,7 @@
 
 设计依据：memory-bank/design-game-id-change.md；表结构见 database-design.md §2.12。
 """
+
 from datetime import UTC, datetime
 
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, text

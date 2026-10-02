@@ -15,6 +15,7 @@
 
 依赖 Pillow；缺失时模块级跳过（ai-checklist 第 32 条）。
 """
+
 import unittest
 from io import BytesIO
 from math import ceil
@@ -86,9 +87,7 @@ class ImageExportTest(unittest.TestCase):
     def test_height_grows_with_profession_sections(self) -> None:
         one = _size_of([_Member("甲")])
         two = _size_of([_Member("甲"), _Member("乙", main_profession="素问")])
-        expected_delta = (
-            image_export.SECTION_TITLE_H + image_export.CELL_H + image_export.SECTION_GAP
-        )
+        expected_delta = image_export.SECTION_TITLE_H + image_export.CELL_H + image_export.SECTION_GAP
         self.assertEqual(two[1] - one[1], expected_delta)
         self.assertEqual(two[1], _expected_height({"铁衣": 1, "素问": 1}))
 

@@ -1,4 +1,5 @@
 """系统配置 Pydantic Schema。"""
+
 from pydantic import BaseModel, Field, field_validator
 
 from app.core.password_policy import validate_password
@@ -25,8 +26,10 @@ def _validate_password_optional(value: str | None) -> str | None:
 
 # ========== 职业配置 ==========
 
+
 class ProfessionConfigOut(BaseModel):
     """职业配置输出。"""
+
     id: int
     guild_id: int
     profession: str
@@ -38,6 +41,7 @@ class ProfessionConfigOut(BaseModel):
 
 class ProfessionConfigUpdate(BaseModel):
     """职业配置更新。"""
+
     target_count: int = Field(..., ge=0, le=999, description="目标人数（0～999）")
     remark: str | None = Field(None, max_length=255, description="职业说明")
 
@@ -52,13 +56,16 @@ class ProfessionConfigItem(BaseModel):
 
 class ProfessionConfigBatchUpdate(BaseModel):
     """职业配置批量更新。"""
+
     configs: list[ProfessionConfigItem] = Field(..., description="配置列表：profession + target_count + 可选 remark")
 
 
 # ========== 账号管理 ==========
 
+
 class AccountOut(BaseModel):
     """账号输出。"""
+
     id: int
     guild_id: int | None
     guild_name: str | None = None
@@ -73,9 +80,12 @@ class AccountOut(BaseModel):
 
 class AccountCreate(BaseModel):
     """创建账号。"""
+
     username: str = Field(..., min_length=3, max_length=64, description="登录名")
     password: str = Field(
-        ..., min_length=8, max_length=128,
+        ...,
+        min_length=8,
+        max_length=128,
         description="密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
     role: str = Field("member", description="角色：admin/member")
@@ -86,9 +96,12 @@ class AccountCreate(BaseModel):
 
 class AccountUpdate(BaseModel):
     """更新账号。"""
+
     username: str | None = Field(None, min_length=3, max_length=64, description="登录名")
     password: str | None = Field(
-        None, min_length=8, max_length=128,
+        None,
+        min_length=8,
+        max_length=128,
         description="密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
 
@@ -97,11 +110,13 @@ class AccountUpdate(BaseModel):
 
 class AccountStatusUpdate(BaseModel):
     """更新账号状态。"""
+
     status: str = Field(..., description="状态：active/disabled")
 
 
 class GuildOut(BaseModel):
     """帮会输出。"""
+
     id: int
     name: str
     icon_char: str | None = None
@@ -112,13 +127,18 @@ class GuildOut(BaseModel):
 
 class GuildCreate(BaseModel):
     """创建帮会（管理员/帮众初始密码由创建者指定，按密码策略校验）。"""
+
     name: str = Field(..., min_length=2, max_length=64, description="帮会名称")
     admin_password: str = Field(
-        ..., min_length=8, max_length=128,
+        ...,
+        min_length=8,
+        max_length=128,
         description="管理员初始密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
     member_password: str = Field(
-        ..., min_length=8, max_length=128,
+        ...,
+        min_length=8,
+        max_length=128,
         description="帮众初始密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
 
@@ -128,9 +148,11 @@ class GuildCreate(BaseModel):
 
 class GuildRename(BaseModel):
     """帮会更名。"""
+
     name: str = Field(..., min_length=2, max_length=64, description="新帮会名称")
 
 
 class GuildIconUpdate(BaseModel):
     """帮会图标字设置（空串表示清除）。"""
+
     icon_char: str = Field("", max_length=4, description="显示的首字，空串清除")
