@@ -237,6 +237,7 @@ nsh-management/
 | 2026-10-02 | 新增项目合规化与工程完善计划（`.agent/plans/compliance-remediation-plan.md`，登记为本索引 §21 并补目录树 `.agent/plans/`）：以行业权威规范为基准的全仓静态审查结论与整改路线——42 项差距证据清单（含 3 项 P0 交付阻断项）、Wave 0～4 共 31 项任务与逐项验收命令、6 项待确认决策；本轮仅新增计划文档，未改动代码与配置 | compliance-remediation-plan.md, architecture.md, AGENTS.md, progress.md |
 | 2026-10-02 | Wave 0 文档一致性批次 1（合规化计划 W0-3/4/5/7）：①本索引 19 处「路径」条目由陈旧绝对路径 `e:\code\@Cjy\nsh-management\...` 改为仓库相对路径（`.agent/rules/code_rule.md` 2 处同步）；②`memory-bank/SECURITY-REVIEW.md` **实际**改名为 `security-review.md`（2026-08-26 曾记录改名但未落地，本次两步 `git mv` 落实，历史记录中的旧名按 §3.3 保留）；③`README.md` 删除复制的代码目录树，改为引用本索引与 `progress.md`；④`backend/.dockerignore`、`frontend/.dockerignore` 旧目录名 `.claude` → `.agent`；⑤3 个一次性分析脚本移除 4 处硬编码绝对路径（改由 `NSH_DB_PATH`/`NSH_ANALYSIS_TS` 覆盖）；⑥`analysis.ts` 计分口径脚本引用 v3 → v4 | architecture.md, code_rule.md, security-review.md, README.md, progress.md |
 | 2026-10-02 | Wave 0 批次 2（合规化计划 W0-6/W0-8）：①`tech-stack.md` §部署方案 按 `DEPLOY.md` 权威源重写——删除「前端容器 80/443 HTTPS」「后端容器多阶段构建」「deploy.sh（Linux 一键部署）」等失实描述，改为单层 TLS 摘要 + 引用（不复制 DEPLOY 内容），并在 `docker-compose.yml` 顶部标注「本地/单机演示拓扑」；②`.qoder/plans/` 3 份外部工具草案登记为本索引 §22 并补目录树（明确标注非项目权威文档） | tech-stack.md, architecture.md, progress.md |
+| 2026-10-02 | Wave 0 批次 3（合规化计划 W0-2）：新增 `.gitattributes`（`* text=auto eol=lf`；`*.bat`/`*.cmd`/`*.ps1` 保持 CRLF；常见二进制标 `binary`）与 `.editorconfig`；配套执行 `git add --renormalize .` 归一存量换行（改造前实测 `i/crlf` 260 / `i/lf` 75），归一作为独立提交以便回溯 | .gitattributes, .editorconfig, architecture.md, progress.md |
 
 ---
 

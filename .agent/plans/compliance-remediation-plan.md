@@ -220,7 +220,7 @@
 | 任务 | 状态 | 完成日期 | 验证证据 | 关联提交 |
 |------|------|---------|---------|---------|
 | W0-1 新增 LICENSE | ⛔ 阻塞 | | 阻塞项：需用户提供版权人名称/年份（见 §3.1 D-1） | — |
-| W0-2 .gitattributes / .editorconfig | ⏳ 待开始 | | | |
+| W0-2 .gitattributes / .editorconfig | ✅ 已完成 | 2026-10-02 | 新增 `.gitattributes`（`* text=auto eol=lf`；`*.bat`/`*.cmd`/`*.ps1` = CRLF；常见二进制标 `binary`）与 `.editorconfig`；配套 `git add --renormalize .` 归一存量换行（改造前 `git ls-files --eol` = i/crlf 260 / i/lf 75），归一独立成提交以便回溯 | chore(repo): 统一换行策略与编辑器配置 |
 | W0-3 清理绝对路径（活引用 21 处） | ✅ 已完成 | 2026-10-02 | `Select-String -CaseSensitive 'e:\code\@Cjy'` 仅剩本计划自身证据行（§10 已说明计数口径修正）；`architecture.md` 19 处 + `code_rule.md` 2 处改为仓库相对路径，diff 逐行复核通过 | chore(repo): 统一路径引用与陈旧引用 |
 | W0-4 security-review 大小写 | ✅ 已完成 | 2026-10-02 | `git ls-files memory-bank` → `memory-bank/security-review.md`；两步 `git mv` exit 0；`ai-checklist` 警示的「改名文件自身自引用」已核查（L95 本就小写） | 同上 |
 | W0-5 陈旧引用与 .dockerignore | ✅ 已完成 | 2026-10-02 | `analysis.ts:44` v3→v4；两个 `.dockerignore` `.claude`→`.agent`；3 个分析脚本 4 处硬编码路径改由 `NSH_DB_PATH`/`NSH_ANALYSIS_TS` 覆盖；`python -m py_compile` 三脚本 exit 0 | 同上 |
