@@ -20,6 +20,8 @@
 
 ### 安全
 
+- **依赖安全性**：`python-jose` 由 3.3.0（2021 年）升级到 **3.5.0**（上游 3.4.0 即为修复 JWT 相关 CVE 发布）；同时把测试用 HTTP 客户端由 `httpx` 换成 `httpx2`，全量测试**告警清零**（0 warnings）。
+
 - **错误率告警**：新增后台告警循环——最近 `ALERT_WINDOW_MINUTES`（默认 30）分钟内 `level=error` 审计日志达 `ALERT_ERROR_THRESHOLD`（默认 20）条即触发；配置 `ALERT_WEBHOOK_URL` 时 POST JSON，**未配置时也会写 WARNING 日志**（不静默）。阈值 0 表示禁用（`DEPLOY.md §四/§六`、`.env.example`）。
 - **CSP 收紧**：边缘 Nginx 的 `script-src` 去掉 `'unsafe-inline'` 与 `'unsafe-eval'`（构建产物无内联脚本，唯一 `new Function` 为 core-js 的带 `window` 回退的全局探测），并补 `object-src 'none'`、`base-uri 'self'`、`form-action 'self'`；`X-XSS-Protection` 置 `0`（现代浏览器已弃用该过滤器）。
 

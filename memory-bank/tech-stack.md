@@ -52,7 +52,7 @@
 
 ### 依赖清单
 
-> **权威源**：`backend/requirements.txt`（运行时依赖，实际锁定版本，含 bcrypt 固定 4.0.1 等说明）；开发/CI 依赖见 `backend/requirements-dev.txt`（ruff、pytest、httpx）。
+> **权威源**：`backend/requirements.txt`（运行时依赖，实际锁定版本，含 bcrypt 固定 4.0.1 等说明）；开发/CI 依赖见 `backend/requirements-dev.txt`（ruff、pytest、httpx2）。
 >
 > **编码声明（2026-10-02）**：两个依赖清单首行均为 `# -*- coding: utf-8 -*-`——文件含中文注释，中文 Windows 的 pip 按 cp936 解码会失败（`UnicodeDecodeError`），新增中文内容时**勿删除该行**。
 > **锁定状态（2026-10-02，W1-4）**：`fastapi` 由 `>=0.115.0` 改为 **`==0.142.2`**、`python-multipart` 由 `>=0.0.18` 改为 **`==0.0.32`**，并显式锁定传递引入的 **`starlette==1.7.0`**——三者均为**本仓已实测通过**的组合（pytest 93 用例 + selfcheck 全绿；PyPI 元数据 `requires_python >=3.10`，与 3.11 基座兼容）。范围约束的漂移风险与实测证据见合规化计划 F-15；门禁 `scripts/check_requirements_pins.py` 已接入 CI，阻止再次引入范围约束。

@@ -3,7 +3,7 @@
 权威源：`backend/app/api/v1/health.py`（探针语义）、`backend/app/main.py`（文档开关接线）、
 `docker-compose.yml`（healthcheck 探针路径）、OWASP Top 10:2025 A02（安全配置错误）。
 
-需运行依赖（FastAPI/SQLAlchemy/httpx），缺失时用例自动跳过——本地受限环境（Python 3.14
+需运行依赖（FastAPI/SQLAlchemy/httpx2），缺失时用例自动跳过——本地受限环境（Python 3.14
 装不上 `pydantic-core`）由 CI 的 Python 3.11 覆盖；跳过是显式的，不会伪装成通过。
 """
 import json

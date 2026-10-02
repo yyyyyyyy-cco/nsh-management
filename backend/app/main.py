@@ -1,6 +1,7 @@
 """应用入口：创建 FastAPI 实例、注册 CORS/异常处理/审计日志中间件/路由。"""
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -38,8 +39,28 @@ logger = logging.getLogger(__name__)
 # （暴露完整接口与数据结构属 OWASP Top 10:2025 A02 安全配置错误）；本地开发保留以便调试。
 _DOCS_ENABLED = api_docs_enabled()
 
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """应用生命周期（2026-10-02 迁移：替代 FastAPI 已弃用的 `@app.on_event("startup")`）。
+
+    语义与迁移前一致：先过**启动安全门禁**（生产弱密钥拒绝启动），再启动两个后台循环；
+    退出时取消循环，避免测试/重启场景下后台任务悬挂（原写法没有关闭钩子）。
+    """
+    startup_checks()
+    application.state.log_cleanup_task = asyncio.create_task(_log_cleanup_loop())
+    application.state.alert_task = asyncio.create_task(_alert_loop())
+    try:
+        yield
+    finally:
+        for attr in ("log_cleanup_task", "alert_task"):
+            task = getattr(application.state, attr, None)
+            if task is not None:
+                task.cancel()
+
+
 app = FastAPI(
     title=settings.APP_NAME,
+    lifespan=lifespan,
     docs_url="/docs" if _DOCS_ENABLED else None,
     redoc_url="/redoc" if _DOCS_ENABLED else None,
     openapi_url="/openapi.json" if _DOCS_ENABLED else None,
@@ -157,14 +178,6 @@ def startup_checks() -> None:
     运维可见文案与退出行为不变（见 DEPLOY.md §六），且可被单元测试直接调用。
     """
     enforce_secret_key()
-
-
-@app.on_event("startup")
-async def on_startup() -> None:
-    """启动：先过安全门禁，再启动后台日志清理与错误率告警循环。"""
-    startup_checks()
-    app.state.log_cleanup_task = asyncio.create_task(_log_cleanup_loop())
-    app.state.alert_task = asyncio.create_task(_alert_loop())
 
 
 async def _alert_loop() -> None:
