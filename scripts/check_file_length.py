@@ -24,6 +24,7 @@ LIMITS: list[tuple[str, str, int, str]] = [
     ("frontend/src", "*.ts", 300, "前端 TS（composable / 组件内逻辑）"),
     ("backend/app/services", "*.py", 300, "服务文件（Python）"),
     ("backend/app/api", "*.py", 150, "路由文件"),
+    ("backend/scripts", "*.py", 200, "检查脚本"),
     ("scripts", "*.py", 200, "检查脚本"),
 ]
 

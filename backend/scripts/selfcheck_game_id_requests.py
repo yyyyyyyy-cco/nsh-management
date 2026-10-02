@@ -3,6 +3,7 @@
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_game_id_requests.py
 覆盖：角色矩阵 / 租户隔离 / 参数边界 / 重复待审 / 审核事务 / 失效联动 / 删除关联 / 响应脱敏。
 """
+# 行数豁免（连续逻辑）：改名申请端到端回归：真实 JWT + ASGI 路由 + 内存库，认证夹具与库生命周期贯穿全过程｜登记见 .agent/rules/file-length-rule.md 豁免清单
 
 # ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
 import unittest as _unittest

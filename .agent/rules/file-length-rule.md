@@ -12,7 +12,7 @@ trigger: always_on
 | 服务文件（Python） | 100-200行 | 300行 |
 | 工具函数文件（`utils/` 下的 py / ts） | 50-150行 | 200行 |
 | 路由文件（Python `api/`） | 50-100行 | 150行 |
-| 检查脚本（`scripts/` 下的 py） | 100-150行 | 200行 |
+| 检查脚本（`scripts/`、`backend/scripts/` 下的 py） | 100-150行 | 200行 |
 
 > **2026-10-02 补充（合规化计划 W2-5）**：新增「前端 TS（composable / 组件内逻辑）」类别。此前规则只覆盖 Vue / Python 服务 / 工具 / 路由四类，`frontend/src/**/*.ts`（composable、组件内聚合逻辑）**无上限可依**——实测 `lineupBoard.ts` 484 行等文件既不受限也不在豁免清单内，导致「规则 100% 合规」的度量失真。该类文件性质与 Vue 组件同为「状态控制器」，故沿用 300 行；`frontend/src/utils/**/*.ts` 仍按工具函数 200 行执行。
 
@@ -83,6 +83,11 @@ utils/
 | `scripts/check_doc_numbers.py` | 211 | 检查脚本：单一关注点（与主体、其它检查项互不依赖），拆分会引入跨模块状态转发 |
 | `scripts/check_doc_refs.py` | 230 | 检查脚本：单一关注点（与主体、其它检查项互不依赖），拆分会引入跨模块状态转发 |
 | `scripts/check_schema_drift.py` | 209 | 检查脚本：单一关注点（与主体、其它检查项互不依赖），拆分会引入跨模块状态转发 |
+| `backend/scripts/selfcheck_game_id_requests.py` | 384 | 改名申请端到端回归：真实 JWT + ASGI 路由 + 内存库，认证夹具与库生命周期贯穿全过程，拆分需跨文件传递二者 |
+| `backend/scripts/selfcheck_my_stats_aliases.py` | 355 | 个人战绩新旧 ID 关联回归：同上（真实 JWT + ASGI + 内存库），断言围绕同一关联链路 |
+| `backend/scripts/selfcheck_indicators.py` | 352 | 衍生指标自检（unittest 用例类）：用例类共享同一指标样本与断言辅助，拆分会复制样本构造 |
+| `backend/scripts/audit_weights_v4_20260907.py` | 229 | 一次性权重审计：A1–A5 检查共用同一 1440 条样本与权重表，属一次性分析脚本 |
+| `backend/scripts/selfcheck_game_id_requests_concurrency.py` | 204 | 并发回归：隔离临时 SQLite + 独立连接，事务与唯一约束验证不可分 |
 
 ### 自动检查（CI 门禁）
 
