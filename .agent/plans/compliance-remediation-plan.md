@@ -637,6 +637,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | `requirements*.txt` | 存在 |
 | actions 版本 | tag 固定（v4 / v5，属已记录的既定选择） |
 | **F-68 复验**：7 道门禁是否都跑 `--self-test` | **7/7 既有自检又有实跑** ✓ |
+| `CONTRIBUTING.md` 提交前核对段引用的脚本 | **0 缺失**；且它点名的 **7 道门禁 ⊂ CI 的 13 个脚本**，`npm run build/lint/test` 与 `install_git_hooks.sh` 均存在，并含 `--self-test`（与 F-68 口径一致） |
 
 
 #### 容器链静态核对（2026-10-03，可复跑）

@@ -511,6 +511,7 @@ nsh-management/
 | 2026-10-03 | 批次 178（容器链静态核对；仅文档）：①COPY 上下文源全部存在（跨阶段 --from= 除外）；②后端入口链一致（uvicorn 8000 = EXPOSE 8000 = healthcheck /health = 路由存在）；③nginx proxy_pass → backend:8000 且 backend 为 compose 服务名；④entrypoint 引用文件均存在、后端 gosu 降权；⑤前端未设 USER 属已登记的 J-13 项。⑥首轮把跨阶段 COPY 当上下文源产生一处假缺失，已修正 |
 | 2026-10-03 | 批次 179（.gitignore 审计；含代码/配置修复）：①17 类代表路径实测，env/db/构建产物/缓存/日志/临时目录均被忽略；428 个已跟踪文件中无危险类型。②F-115 已修：补 *.pem/*.key/*.p12/*.pfx/*.jks 五条规则，验证生效且未命中已跟踪文件。③F-116 登记待授权：tsconfig.node.tsbuildinfo 既被跟踪又被忽略，清除需 git rm --cached（删除操作需用户允许） |
 | 2026-10-03 | 批次 180（周期核对 + 清单补充；仅文档）：①新增 ai-checklist 第 137 条（check-ignore 退出码不区分忽略/放行，须看 -v）。②7 门禁 + 8 报告型检查器全绿。③F-115 规则仍生效、F-116 仍待授权 |
+| 2026-10-03 | 批次 181（轮换抽查 + CONTRIBUTING 核对；仅文档）：①容器链三条不变式仍成立；②CONTRIBUTING 引用 0 缺失、其 7 道门禁 ⊂ CI 的 13 个脚本；③「仅 X 有」两行为我的前缀抽取伪影，已更正，无缺口 |
 
 
 
