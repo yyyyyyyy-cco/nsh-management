@@ -140,6 +140,10 @@
 | F-40 | `README.md:88-119` 复制了代码目录树（权威源应仅 `progress.md`） | `README.md:88-119` vs `AGENTS.md:36` | 单一权威源 | W0-7 ✅（已修） | P2 |
 | F-41 | 部署章权威源冲突：`tech-stack.md` 称「前端容器 80/443 HTTPS」「后端多阶段构建」「启动脚本 deploy.sh」 | `tech-stack.md:121-126`；`backend/Dockerfile:1-25` 实为单阶段；`deploy.sh` 不在库 | 单一权威源 | W0-8 | P1 |
 | F-42 | 引导文档不完整：`start.bat` 默认 `DB_MODE=prod` 指向生产快照 `nsh-server-20260907.db`，README 未提 | `start.bat` 前 25 行；`README.md:40-60` | 12-Factor III / 引导完整性 | W1-6 | P2 |
+| F-43 | CSP 过宽：`script-src` 含 `unsafe-inline` / `unsafe-eval`，削弱 XSS 防护（另 `X-XSS-Protection` 为已被 CSP 取代的历史头） | `frontend/nginx.conf.example:71`；安全审查 §十五 15.4-1/6 | OWASP Top 10:2025 A02 / ASVS 配置域 | W4-5 | P2 |
+| F-44 | 无告警通道：审计日志已落库，但异常/错误率上升无人被告知（日志与告警只做了前者） | `backend/app/main.py` AuditLogMiddleware；安全审查 §十五 15.4-2 | OWASP Top 10:2025 A09 | W4-6 | P2 |
+| F-45 | 无威胁建模留痕（STRIDE/攻击面分析）：有权限矩阵与设计文档，但缺建模记录 | `memory-bank/design-document-v2.md`；安全审查 §十五 15.4-4 | OWASP Top 10:2025 A06 | W4-7 | P3 |
+| F-46 | ASVS 5.0.0 仅做**域级**对照，未做条目级逐条核对（编号格式 `v5.0.0-x.y.z`） | 安全审查 §十五 15.3；官方编号格式实取自 owasp.org/projects/asvs | OWASP ASVS 5.0.0 | W4-8 | P3 |
 
 ---
 
@@ -203,6 +207,10 @@
 | W4-2 | `SECURITY-REVIEW.md` 新增「暴露面清单」小节，按 OWASP ASVS 5.0.0（配置/认证/会话/访问控制/日志）与 Top 10:2025 条目逐项对照并标注结论 | `memory-bank/security-review.md`、`architecture.md` | 命令 3 | W0-4 | 低 | L |
 | W4-3 | `CORS_ORIGINS` 外置为环境变量；执行前端与后端依赖漏洞审计（`npm audit` / `pip-audit`）并记录结论 | `core/config.py`、`.env.example`、`memory-bank/security-review.md` | 命令 6 | — | 中：升级依赖需回归 | M |
 | W4-4 | 按 D-1 决策补 `SECURITY.md`/`CONTRIBUTING.md`/`CODE_OF_CONDUCT.md`（引用规范而非复制既有内容） | 根目录文件 | 命令 1 | D-1 | 低 | M |
+| W4-5 | 收紧安全响应头：CSP 改为外部脚本 + nonce/hash（先评估 Element Plus 与内联脚本依赖），`X-XSS-Protection` 置 `0` 或移除 | `frontend/nginx.conf.example`、`frontend/index.html`、`frontend/vite.config.ts` | 命令 7 + 浏览器验收 | W4-2 | 中：CSP 收紧可能误伤前端功能，需逐页验收 | M |
+| W4-6 | 告警通道：异常/错误率阈值触发通知（webhook 或邮件），或在日志界面增加阈值提示 | `backend/app/services/log_service.py`、`DEPLOY.md` | 命令 7 | — | 低：先仅记录不阻断 | M |
+| W4-7 | 威胁建模留痕：按 STRIDE 对关键资产（JWT/账号体系/帮会隔离/文件上传）建模并归档 | `memory-bank/security-review.md`、`backend/docs/README.md` | 命令 3 | — | 低 | M |
+| W4-8 | ASVS 5.0.0 条目级核对：按官方 CSV/JSON 逐条标注结论（`v5.0.0-x.y.z`），先覆盖配置/认证/会话/访问控制/日志五个域 | `memory-bank/security-review.md` | 命令 3 | W4-2 | 低 | L |
 
 ---
 
@@ -249,9 +257,13 @@
 | W3-5 分支治理 | ⏳ 待开始 | | | |
 | W3-6 远端策略落地 | ⏳ 待开始 | | | |
 | W4-1 关闭生产 API 文档 | ✅ 已完成 | 2026-10-02 | `core/config.py` 新增 `api_docs_enabled()`（生产 False / 开发 True，复用既有 `_is_production()`）；`app/main.py` 按该开关设置 `docs_url` / `redoc_url` / `openapi_url`（生产为 `None` → 404），本地开发保留。**未采用 `DEBUG` 作判据**：`DEBUG` 控制异常详情脱敏，与「部署环境」语义不同，用 `APP_ENV`/容器特征更贴合本任务原意。验证（子进程断言，因开关在 import 时求值）：`APP_ENV=production|prod` → 三者均 `None`；`development` → `/docs`、`/redoc`、`/openapi.json` 均在。文档同步 `DEPLOY.md §二`。`security-review.md` 的 ASVS/Top10 逐项对照仍由 W4-2 完成 | feat(ops): 新增健康检查端点并关闭生产 API 文档 |
-| W4-2 ASVS/Top10 对照补审查 | ⏳ 待开始 | | | |
+| W4-2 ASVS/Top10 对照补审查 | ✅ 已完成 | 2026-10-02 | `memory-bank/security-review.md` 新增 **§十五 暴露面清单与 OWASP 对照**：①**15.1 暴露面清单**（读配置得出，非推测）：仅边缘 Nginx 443 对外（TLS 1.2/1.3）、:80 仅跳转与 ACME 校验；frontend/backend 容器端口与 SQLite 文件均不对外；路径级处置表含 `/api/v1/auth/login` 独立限流 5r/m、`/api/*` 20r/s、生产 `/docs` 等 404。②**15.2 Top 10:2025 条目级对照**（依据官方 `top10.owasp.org/2025/` 本轮实取清单，含 2025 新增 A03/A10）：A01/A05/A07 已覆盖；A02/A03/A04/A06/A08/A09/A10 部分满足并逐条给出证据与缺口。③**15.3 ASVS 5.0.0 域级对照**（配置/认证/会话/访问控制/日志与错误处理）：ASVS 5.0.0 为当前稳定版、官方编号格式 `v5.0.0-x.y.z`、V1 为 Encoding and Sanitization——三项均本轮实取核实；**条目级未做**（已登记 W4-8）。④**15.4 新识别 6 项不足**（CSP 过宽、无告警通道、供应链完整性、无威胁建模、ASVS 条目级缺口、历史响应头），已登记为差距 F-43~F-46 与任务 W4-5~W4-8。**边界**：结论基于仓库内配置与代码证据，**未做**渗透测试或动态扫描 | docs(security): 补齐暴露面清单与 OWASP 对照 |
 | W4-3 CORS 外置与依赖审计 | ✅ 已完成 | 2026-10-02 | ①**CORS 外置**（F-19）：`core/config.py` 新增 `_parse_cors_origins()`（逗号分隔、去空白与空项）与 `CORS_ORIGINS` 环境变量（未设置回退本地开发来源）；`.env.example` 与 `DEPLOY.md §六` 同步说明（生产由 Nginx **同源**反代，通常无需配置；**禁止 `*`**，因 `allow_credentials=True`）。②**依赖审计结论**写入 `memory-bank/security-review.md` §十四——前端 `npm audit`：初始 7 项（4 high）→ 非破坏性修复后 **4 项（1 high）**（`nanoid` high 已消除；lockfile 变更后 lint 0 error / test 44 passed / build exit 0）；剩余 `vite 5.4`(high)、`esbuild`(mod)、`vitest 3`(mod)、`@vitest/mocker`(mod) 均需 semver-major（vite 8 / vitest 5），**可达性判定：全部属开发/构建工具链，生产运行时（Nginx 静态资源 + 同源反代）不受影响**；后端 `pip-audit`：`pillow 11.1.0`（多条 PYSEC）与 `ecdsa 0.19.2`（PYSEC-2026-1325）——**均不可达**（全仓无 `Image.open`，Pillow 只用 `Image.new`/`ImageDraw` 生成图片；`ecdsa` 仅服务 ECDSA 而本项目 `ALGORITHM=HS256`）。③后续项（需回归，本次不升级）：vite8+vitest5 升级通道、Pillow 12.x + 图像导出回归、`python-jose`→`PyJWT` 评估、依赖审计是否接入 CI。验证：`ruff check .` All checks passed（另按 CI pin `ruff==0.12.0` 复核）；`compileall` exit 0；`pytest tests/test_config_gate.py tests/test_member_names.py` 全通过（新增 4 条 CORS 用例，含子进程端到端生效断言） | chore(deps): 外置 CORS 白名单并完成依赖漏洞审计 |
 | W4-4 SECURITY/CONTRIBUTING/CoC | ✅ 已完成 | 2026-10-02 | 按 D-1（公开仓库）补齐三份根文档：`SECURITY.md`（支持版本范围 / GitHub 私有安全公告为首选渠道 / 备用邮箱占位符 / 处理时限目标 / 已知接受风险指向 `security-review.md` 权威源）、`CONTRIBUTING.md`（协作约定摘要 + 权威源链接 + 与 `.github/workflows/ci.yml` 对应的本地门禁命令，**未复制**权威源内容）、`CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 官方简体中文译本逐字采用，保留 CC BY-SA 4.0 署名）。验证：三文件与 `CHANGELOG.md` 均入库、互相引用链接有效、`scripts/check_file_length.py` 通过。**未完成**：SECURITY.md 与 CoC 的备用联系邮箱为占位符（需用户提供后填写） | docs(changelog): 新增更新日志与社区政策文档 |
+| W4-5 安全响应头收紧（CSP） | ⏳ 待开始 | | | |
+| W4-6 告警通道 | ⏳ 待开始 | | | |
+| W4-7 威胁建模留痕 | ⏳ 待开始 | | | |
+| W4-8 ASVS 条目级核对 | ⏳ 待开始 | | | |
 
 状态图例：⏳ 待开始 / 🔄 进行中 / ✅ 已完成 / ⛔ 阻塞（写明阻塞项与所需决策）
 

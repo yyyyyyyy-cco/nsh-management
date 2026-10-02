@@ -318,3 +318,77 @@
 `CORS_ORIGINS` 由硬编码改为环境变量（逗号分隔，解析见 `core/config.py` 的 `_parse_cors_origins`），
 默认值仅本地开发来源。生产由 Nginx **同源**反代 `/api`，浏览器不触发跨域，通常无需配置；
 **禁止配置为 `*`**——本项目 `allow_credentials=True`，通配会放宽浏览器侧凭证策略。
+
+---
+
+## 十五、暴露面清单与 OWASP 对照（W4-2，2026-10-02）
+
+### 15.1 对外暴露面清单（读配置得出，非推测）
+
+| 层 / 端点 | 是否对外可达 | 证据 |
+|-----------|--------------|------|
+| 边缘 Nginx `:443`（TLS 1.2/1.3） | ✅ 对外 | `frontend/nginx.conf.example:54-60` |
+| 边缘 Nginx `:80` | ✅ 仅跳转 443 + ACME 校验路径 | `nginx.conf.example:24-48` |
+| frontend 容器 `:80` | ❌ 无宿主端口映射 | `docker-compose.yml`、`DEPLOY.md §二` |
+| backend 容器 `:8000` | ❌ 仅 compose 内网 | `docker-compose.yml`（`nsh-net`） |
+| SQLite 数据库文件 | ❌ 卷内文件，无网络监听 | `docker-compose.yml`（`nsh-data` 卷） |
+
+被代理路径与处置：
+
+| 路径 | 处置 |
+|------|------|
+| `/assets/*` | 静态资源强缓存 `immutable`（内层 Nginx） |
+| `/index.html` | `no-store` + Pragma/Expires（修微信端旧页面缓存） |
+| `/api/v1/auth/login` | **独立限流** `5r/m`、burst 3、429 |
+| `/api/*` | 全局限流 `20r/s`、burst 40、429；**`/api/v1/health` 亦经此路径对外可达**（如需关闭见 `DEPLOY.md §二`） |
+| `/docs`、`/redoc`、`/openapi.json` | **生产环境 404**（W4-1，2026-10-02） |
+| `/` | SPA 回退 |
+
+已配置的边缘层安全响应头与加固（`nginx.conf.example`）：`server_tokens off`、`client_max_body_size 20m`、
+HSTS（`max-age=31536000; includeSubDomains`）、`X-Frame-Options: SAMEORIGIN`、
+`X-Content-Type-Options: nosniff`、`Referrer-Policy: strict-origin-when-cross-origin`、
+CSP（`default-src 'self'` + `frame-ancestors 'self'`）、`X-XSS-Protection`（历史头，见 15.4）。
+
+### 15.2 OWASP Top 10:2025 逐项对照（**条目级**）
+
+标准依据：官方 `top10.owasp.org/2025/` 清单（本轮实取，A03/A10 为 2025 新增条目）。
+
+| 条目 | 本项目结论 | 证据 |
+|------|------------|------|
+| **A01** Broken Access Control | ✅ 已覆盖 | 6 个角色依赖矩阵 + 成员数据隔离 + 跨帮会越权修复；回归见 `backend/tests/test_permissions.py`、`scripts/selfcheck_security_fixes.py`；历史修复见本文件 §十/§六 |
+| **A02** Security Misconfiguration | 🟡 部分满足 | 生产关闭 API 文档（W4-1）、`server_tokens off`、HSTS、CORS 外置（W4-3）、`DEBUG` 默认关闭；**不足**：CSP 允许 `unsafe-inline`/`unsafe-eval`（见 15.4-1） |
+| **A03** Software Supply Chain Failures（2025 新增） | 🟡 部分满足 | 已有：Dependabot、CI 镜像构建护栏、依赖漏洞审计（§十四）；**不足**：依赖无哈希锁定、无 SBOM、无签名（A03/A08 共同缺口） |
+| **A04** Cryptographic Failures | 🟡 部分满足 | TLS 1.2+ 与 HSTS；密码 bcrypt；JWT HS256 + 生产弱密钥**拒绝启动**；**已知接受风险**：Token 存 localStorage（本文件已知风险清单） |
+| **A05** Injection | ✅ 已覆盖 | SQLAlchemy 参数化查询、Pydantic 入参校验、图表 HTML tooltip 转义（本文件 §十二）、Excel 导入校验 |
+| **A06** Insecure Design | 🟡 部分满足 | 有产品设计/权限矩阵权威源与录屏审核流程；**不足**：无威胁建模记录（见 15.4-4） |
+| **A07** Authentication Failures | ✅ 已覆盖 | bcrypt、双层登录限流（应用侧 5 次/5 分钟 + Nginx `5r/m`）、账号锁定并回传剩余秒数、Token 版本吊销、弱密钥启动门禁 |
+| **A08** Software or Data Integrity Failures | 🟡 部分满足 | CI 门禁、提交消息校验、依赖审计；**不足**：制品（镜像）未签名、无可校验摘要（SLSA 未达 L2） |
+| **A09** Security Logging and Alerting Failures | 🟡 部分满足 | 写操作审计中间件 + 失败详情 + 90 天保留 + 每日清理；**不足：无告警通道**——日志有人写，没人被通知（见 15.4-2） |
+| **A10** Mishandling of Exceptional Conditions（2025 新增） | 🟡 部分满足 | 全局异常处理 + 生产不泄露异常详情（`DEBUG` 脱敏）；`/health` 建立依赖降级语义（W3-1）；**不足**：未做异常路径演练与依赖超时/熔断设计 |
+
+### 15.3 OWASP ASVS 5.0.0 对照（**域级**）
+
+口径与边界（重要）：ASVS **5.0.0** 为当前稳定版本（本轮实取 `owasp.org/projects/asvs` 核实），
+官方要求编号格式为 `v5.0.0-x.y.z`（同页核实）。本轮按计划点名的控制域对照，
+**未做条目级逐条核对**，故下表只给域级结论；条目级核对列为后续项（见 15.4-5）。
+另：ASVS 5.0 第 1 章为 *Encoding and Sanitization*（官方页实取），其余章节编号未逐一核实故不在此引用编号。
+
+| ASVS 5.0 控制域 | 结论 | 证据 |
+|-----------------|------|------|
+| 配置（Configuration） | 🟡 部分满足 | 生产关闭在线文档、`server_tokens off`、HSTS、CORS 外置、容器 `no-new-privileges` + 资源限制 + 非 root（`entrypoint.sh` gosu）；不足：CSP 弱、`.env` 依赖人工核对 |
+| 认证（Authentication） | ✅ 域级满足 | bcrypt + 双层限流 + 锁定提示 + Token 版本吊销 + 弱密钥启动门禁 |
+| 会话（Session） | 🟡 部分满足 | 无服务端会话（无状态 JWT，10 小时有效期 + 版本吊销可强制下线）；已知接受风险：Token 存于 localStorage（XSS 场景下可被读取，已有 CSP 作为缓解） |
+| 访问控制（Authorization） | ✅ 域级满足 | 角色依赖矩阵 + 帮会级数据隔离 + 越权回归用例（含跨帮会写入拦截） |
+| 日志与错误处理（Logging & Error Handling） | 🟡 部分满足 | 审计中间件、异常脱敏、保留策略；不足：无告警、日志无完整性/防篡改保护 |
+
+### 15.4 本次识别的新增不足（可执行后续项，已登记到整改计划）
+
+1. **CSP 过宽**：`script-src` 含 `unsafe-inline`/`unsafe-eval`（`frontend/nginx.conf.example:71`），削弱 XSS 防护。
+   收紧需先评估 Element Plus / 内联脚本依赖，改为外部脚本 + nonce/hash。
+2. **无告警通道**（A09 alerting 部分）：审计日志已落库，但异常/错误率上升无人被通知。建议接入 webhook 或
+   在日志界面增加阈值提示。
+3. **供应链完整性**：依赖无哈希锁定、无 SBOM、镜像未签名（A03/A08，与计划 W1-4 依赖锁定、SLSA L2 相关）。
+4. **无威胁建模记录**（A06）：权限矩阵与数据流已有设计文档，但缺 STRIDE/攻击面分析留痕。
+5. **ASVS 条目级核对未做**：本轮为域级对照；条目级需按官方 JSON/CSV 逐条标注（编号格式 `v5.0.0-x.y.z`）。
+6. **历史响应头**：`X-XSS-Protection: 1; mode=block` 已被 CSP 取代，现代浏览器已移除该过滤器，
+   建议置 `0` 或移除，避免旧浏览器过滤器的副作用。
