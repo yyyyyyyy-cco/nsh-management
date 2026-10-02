@@ -565,6 +565,7 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | J-6a | **`GET /members/attendance-rate` 的调用者**（本轮实测） | 前端 `api/members.ts:92` ✓；`views/HomeView.vue:116` 注释「获取出勤率（**非开发者**）」✓ → **帮众/管理员首页仪表盘**依赖它 ✓ | — | **若收紧为 `require_admin`，帮众首页「出勤率排行」将 403 失效** ✗✗ | 建议 **①保持现状** ✓（或为帮众单列一个只读端点 ✓） |
 | J-6b | **`GET /config/professions` 的调用者**（本轮实测） | 前端 `api/config.ts:17`（`getProfessionConfigs`）✓；其组件调用者见下表 ✓ | — | 收紧后**任何依赖职业目标配置的界面**会失效 ✗（含排表/赛程弹窗的职业配置块 ✓） | 建议 **①保持现状** ✓（数据属帮会内公开 ✓），仅对**写**保持 `require_admin` ✓ |
 | J-11 | **`F-93` 两个「创建帮会」路由是否整合**（新登记到就绪包） | `POST /developer/guilds`（`api/v1/developer.py:14` ✓）与 `POST /guilds`（`api/v1/guilds.py:26` ✓）**并存** ✓，能力重叠 ✓ | ① 保留两者（现状）② 合并为一处、另一处保留转发 ✓ ③ 删除其一 ✓ | ②/③ 会改动 API 形状 ✓（需同步前端与文档 ✓）；① 现状无功能风险 ✓ 仅有认知负担 ✗ | **②**（保留兼容、内部收敛 ✓） |
+| J-11a | **`F-93` 建会路径核实为 2 条**（原记录正确 ✓；先前"3 条"的扩展是错的 ✗，已更正 ✓） | **实测**：`POST /config/guilds`（= `api/v1/guilds.py:27` + `APIRouter(prefix="/config")` ✓，**AST 确认** ✓；前端 `api/config.ts:66` **实际调用** ✓）与 `POST /developer/guilds`（`api/v1/developer.py:15` ✓，前端调用者 **0** ✓，仅测试 ✓）| ① 保留两者 ② 收敛为 1 条主路径 + 其余兼容转发 ③ 删除未用者 | 前端**只用** `/config/guilds` ✓ → ②/③ 前端风险低 ✓，但需确认外部/脚本依赖 ✗ | **②**（保留兼容、文档标注主路径 ✓） |
 | J-12 | **`F-97` `league-overview` 是否改名** | 前端路由 **`league-overview`** ✓（`router/index.ts:56-57` ✓），侧栏标题却是「**录屏上传**」✗，且**仅 member 可见** ✓（`AppSidebar.vue:16` ✓） | ① 改名（如 `my-recordings` / `member-overview`）② 保留 ✓ | ① 需同步路由名、侧栏、深链与文档 ✓（影响面小但需全仓 grep ✓）；② 保留则命名持续误导 ✗ | **①**（我可给出**全仓引用清单**后再改 ✓） |
 | J-12a | **`F-97` 改名影响面（全仓实测 15 处）** | 代码 6 处：`router/index.ts:56-58`（path/name/component ✓）、`AppSidebar.vue:16` ✓、`MemberQuickActions.vue:27` ✓、`ScheduleDetailView.vue:111`（**跳转目标** ✓）、组件**文件名** `views/schedules/LeagueOverviewView.vue` ✓（含 `<div class="league-overview">` ✓）；文档 4 处：`progress.md:75` ✓、`stats-report-plan.md:90` ✓、`.agent/rules/file-length-rule.md:74` ✓、遗留 `.qoder/plans/…` ✓ | ① 改名（建议 `member-recordings` ✓）② 保留 | ① 需**同时**改 path/name/组件名/跳转/文档 ✓ 且**深链会失效** ✗ → 加**重定向**缓解 ✓；② 命名持续误导 ✗ | **①+重定向**（改动清单已可执行 ✓） |
 
@@ -600,6 +601,31 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 | Python 3.11 运行（`W1-4` 哈希锁） | PyPI 元数据**版本锚定**核验 **14/14** 允许 3.11 ✓ | 3.11 真实全量测试与锁文件生成 ✗ |
 | 浏览器交互验收（`W4-11`、`F01/F04`） | 类型检查 ✓、构建 ✓、**组件级 DOM 用例** ✓ | 真机交互与视觉确认 ✗ |
 | CI 自身运行（`W2-1`） | **7 道门禁**本地全部实跑 ✓ | GitHub Actions 真跑 ✗ |
+
+
+### 11.8 Docker 与基础镜像的静态核验（环境受限项的替代证据，2026-10-03 实测）
+
+> 目的：`docker info` 在本机不可用 ✗（守护进程未运行 ✓），但仍可对 **Dockerfile 与 compose 做静态核验** ✓，
+> 把「卡在 Docker」拆成「**静态已核验的项**」与「**仅剩运行期验证的项**」✓。命令：`AST`/正则解析 `backend/Dockerfile`、`frontend/Dockerfile`、`docker-compose.yml` ✓。
+
+| 项 | 实测结果 | 判定 | 对应任务 |
+|----|---------|------|---------|
+| 后端基础镜像 | `python:3.11-slim`（**与生产基座声明一致** ✓） | ✓ | W1-5 |
+| 后端 pip 缓存 | 含 `--no-cache-dir` ✓ | ✓ | W1-1 |
+| 后端多阶段构建 | 单阶段（`FROM` ×1）| 可接受 ✓（纯 Python 应用无编译产物 ✓）| — |
+| 后端 `HEALTHCHECK` | **无** ✗ | 缺口 | W1-1 |
+| 后端非 root `USER` | **无** ✗（默认 root ✓；镜像内含 `adduser` 语句 ✓ 但未切换 ✗）| 缺口（原计划已把非 root 范围**收窄为前端** ✓；此为**信息项** ✓）| W1-9 |
+| 前端多阶段构建 | `node:18-alpine AS build` → `nginx:alpine` ✓ | ✓ | W1-7 |
+| 前端基础镜像**钉版本** | `node:18-alpine`、`nginx:alpine` **均未钉具体版本/摘要** ✗ | 缺口 | W1-5 / W1-7 |
+| 前端非 root | **无 `USER`** ✗（nginx 默认 root ✓）| 缺口 | **W1-9** |
+| 前端 `HEALTHCHECK` | **无** ✗ | 缺口 | W1-1 |
+| compose `security_opt` | `no-new-privileges:true` ✓（两服务均有 ✓）| ✓ | W4 |
+| compose `restart` | `unless-stopped` ✓（两服务 ✓）| ✓ | — |
+| compose `healthcheck` | **仅一个服务**有 ✗ | 缺口 | W1-1 |
+
+**结论** ✓：Docker 侧**已有静态替代证据**（基座一致性 ✓、多阶段 ✓、`--no-cache-dir` ✓、`no-new-privileges` ✓）；
+**缺口 5 项**（两个 `HEALTHCHECK` ✗、两个非 root ✗、基础镜像未钉版本 ✗、compose 仅一个 healthcheck ✗）
+→ **均为可静态完成的改动** ✓，但**运行期验证仍需 Docker/CI** ✗（见 §11.7）。
 
 ### 11.4 一键复跑顺序
 
