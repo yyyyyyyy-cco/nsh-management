@@ -36,6 +36,13 @@ backend/logs/
 .env.production
 .env.staging
 !.env.example
+# 证书与私钥：绝不允许入库（DEPLOY.md §二：证书只存在于宿主机，不入仓库）
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
 
 # ===== 数据库文件 =====
 *.db
