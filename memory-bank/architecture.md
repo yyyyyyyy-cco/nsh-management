@@ -328,6 +328,8 @@ nsh-management/
 | 2026-10-03 | 批次 46（**F-73** 角色矩阵 ↔ 端点守卫核对）：解析 **80 个端点**的 `Depends(...)` 与 `design-document-v2.md §3.2` 矩阵逐行比对——**写操作侧一致** ✓；**读取类不一致** ✗（`GET /attendance`、`GET /lineups` 实现为 `get_current_user` 且代码注释写明「帮众可查看」，而矩阵写帮众 ❌）→ 按 `AGENTS §3.2` **以代码为准对齐矩阵**并补「读取类接口口径」；`security-review.md` 新增 **§14.10**（差异表 + 处置 + **待用户确认是否收紧代码**）；**未改运行时鉴权**；教训记入 ai-checklist 第 83 条 | design-document-v2.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 47（**F-74** CHANGELOG 未发布小节重写）：核对 `v1.2.0..HEAD` **83 个提交**，发现「未发布」小节停在 2026-10-02，自助改密 / 健康检查 / 错误率告警 / 备份归档模板 / 长口令截断修复 / CSP 与静态资源收紧 / 前端工具链升级等**使用者可见变更全未记录** ✗，且以「Wave 0～2 已完成」承载进度（违反 `AGENTS §3.4`）✗ → 已按**使用者影响**重写四条分类（新增/变更/修复/安全），清除进度类表述并指向 `progress.md` 与整改计划；教训记入 ai-checklist 第 84 条 | CHANGELOG.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 48（UI 规范权威源核对：**无缺陷**，验证型收获）：`ui-style-guide.md` 令牌表 23 对值与 `theme.css` 实际声明逐对归一化比对——**22/22 真实令牌对完全一致** ✓（唯一差异 `--gold-gradient` 属记法差异）；颜色字面量归一化并纳入 `.ts` 图表色后，规范独有 **2** 个 ✓；已把该实测回填计划 §11.1；两处自查误报（记法差异 / 十六进制大小写未归一）记入 ai-checklist 第 85 条 | compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | 批次 49（**F-75 修复**：赛程级联删除漏删 `squad_adjustments`；**F-76 登记**）：`schedule_service.delete_schedule` 补齐 `SquadAdjustment` 删除（文档 §3.2 的 6 表规则），新增回归测试 `backend/tests/test_schedule_cascade.py`（6 张从表逐一断言 0 残留）；登记 F-76（`AppSidebar.vue` 硬编码侧边栏渐变色调，建议 token 化，零视觉变化但需人工视觉确认）；教训记入 ai-checklist 第 86 条 | schedule_service.py, test_schedule_cascade.py, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 
 
 
