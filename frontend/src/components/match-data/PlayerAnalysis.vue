@@ -30,7 +30,14 @@
         <div class="chart-card__head">
           <span class="chart-card__title">玩家综合能力雷达图（对比）</span>
           <div class="radar-selectors">
-            <el-select v-model="radarLeft" filterable placeholder="搜索左侧玩家" size="small" style="width: 180px">
+            <el-select
+              aria-label="搜索左侧玩家"
+              v-model="radarLeft"
+              filterable
+              placeholder="搜索左侧玩家"
+              size="small"
+              style="width: 180px"
+            >
               <el-option
                 v-for="p in allPlayers"
                 :key="'L-' + p.player_name"
@@ -39,7 +46,14 @@
               />
             </el-select>
             <span class="radar-vs">VS</span>
-            <el-select v-model="radarRight" filterable placeholder="搜索右侧玩家" size="small" style="width: 180px">
+            <el-select
+              aria-label="搜索右侧玩家"
+              v-model="radarRight"
+              filterable
+              placeholder="搜索右侧玩家"
+              size="small"
+              style="width: 180px"
+            >
               <el-option
                 v-for="p in allPlayers"
                 :key="'R-' + p.player_name"

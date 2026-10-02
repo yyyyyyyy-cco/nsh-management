@@ -48,12 +48,26 @@
       </el-table-column>
       <el-table-column label="目标人数" min-width="150">
         <template #default="{ row }">
-          <el-input-number v-model="row.target_count" :min="0" :max="999" size="small" style="width: 120px" />
+          <el-input-number
+            aria-label="目标人数"
+            v-model="row.target_count"
+            :min="0"
+            :max="999"
+            size="small"
+            style="width: 120px"
+          />
         </template>
       </el-table-column>
       <el-table-column label="说明">
         <template #default="{ row }">
-          <el-input v-model="row.remark" placeholder="说明（可选）" size="small" maxlength="255" clearable />
+          <el-input
+            aria-label="说明"
+            v-model="row.remark"
+            placeholder="说明（可选）"
+            size="small"
+            maxlength="255"
+            clearable
+          />
         </template>
       </el-table-column>
     </el-table>

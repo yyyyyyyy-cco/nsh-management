@@ -1,7 +1,13 @@
 <template>
   <el-dialog v-model="visible" title="导入请假" width="480px" append-to-body>
     <p class="dialog-tip">粘贴请假名单（纯文本，每行一个，支持「1.ID 原因」序号格式）：</p>
-    <el-input v-model="rawText" type="textarea" :rows="6" placeholder="1.11 有事情&#10;2.秋与 有事情" />
+    <el-input
+      aria-label="粘贴请假名单"
+      v-model="rawText"
+      type="textarea"
+      :rows="6"
+      placeholder="1.11 有事情&#10;2.秋与 有事情"
+    />
     <template v-if="result.matched.length">
       <div class="match-block">
         <div class="match-title">

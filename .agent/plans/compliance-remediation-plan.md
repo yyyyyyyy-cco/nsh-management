@@ -216,7 +216,8 @@
 | F-116 | **构建产物被跟踪却又命中忽略规则**：`frontend/tsconfig.node.tsbuildinfo` 已在版本库中，而 `.gitignore` 的 `*.tsbuildinfo` 又将其忽略 → 状态自相矛盾（后续改动既不显示也不易被注意）。| `.gitignore`、`frontend/` | **待用户授权**：清除需 `git rm --cached frontend/tsconfig.node.tsbuildinfo`（属**删除**操作，按 `AGENTS §5` 须经用户允许）→ 授权后执行并复跑 `npm run build` 验证重建。 | **P3** |
 | F-117 | **（建议级，非规范强制）缺少 PR 模板 / Issue 模板 / `CODEOWNERS`**：`.github/` 现仅有 `workflows/ci.yml`、`dependabot.yml`、`commit-msg-baseline`；三项均为 **GitHub 社区档案的推荐项**，本项目所引用的规范（Contributor Covenant 2.1 / SLSA v1.2 / OWASP ASVS 5.0 等）**并未强制要求** → 故**不判为不合规**，仅作为完善建议。 | `.github/**` | **待用户决定**：若要补齐，最小内容为 ①PR 模板（说明「已跑 7 道门禁 + 自检」、关联 F 编号、截图要求）②Issue 模板（复现步骤/期望/实际/环境）③`CODEOWNERS`（默认指 `@<维护者>`，会启用自动评审请求）。**注意**：`CODEOWNERS` 与模板会改变仓库协作流程（影响面：GitHub 侧行为），故不擅自添加。 | **P3** |
 | F-118 | **`.agent/rules/function_rule.md` 与仓库实际文档结构脱节**：规则要求「每个功能模块都必须有独立的开发文档」并给出 `模块名称/docs/README.md` 目录树，且写明「未按要求创建或更新文档的模块，不允许合并到主分支」；而仓库已按 `AGENTS §2.1/§2.2` 收敛为**两份按端文档**（`backend/docs/README.md`、`frontend/docs/README.md`，含功能清单 + 勾选清单）→ 按规则字面，多数模块都不合规 ✗，构成**规则与实践的治理级不一致**。| `.agent/rules/function_rule.md`、`backend/docs/README.md`、`frontend/docs/README.md` | **待用户决定**：方案①（推荐）按 `AGENTS §3.2`「以实际为准修正文档」把规则改为「**按端**维护一份开发文档，模块以小节/条目标注」；方案②按规则字面补 17 个模块目录 README（成本高，且与 §2.1 权威源收敛相冲突）。本轮已先行补齐 `backend/models`、`frontend/assets` 两处条目缺口 ✓。| **P3** |
-| F-119 | **独立输入控件缺可访问名称（WCAG 3.3.2 / 4.1.2）**：全前端静态扫描发现 **24** 处独立控件（`el-select`/`el-input`/`el-input-number` 等）既无 `aria-label` 也无带 `label` 的 `el-form-item` 包裹；其中多数以 `placeholder` 充当提示，而 placeholder **不是**可靠的可访问名称。| `frontend/src/**` | **部分已修复（批次 187）**：对**语义无歧义**的 22 处（有明确中文 placeholder）已补 `aria-label` ✓ 并跑通 lint/test/build ✓；**剩余 2 处**因无 placeholder 需人工判定（多为对话框内的数字输入，其名来自上下文）→ 列为待办。 **追加（批次 188）**：剩余 2 处依据**同文件既有中文文案**补名（`目标人数`、`清理天数`）✓ → 全量复扫描 **0** ✓；过程中我曾因前缀陷阱与 lambda 重复尖括号两次破坏标记，**均被断言/lint 在写入或提交前拦下** ✓。| **P3** |
+| F-119 | **独立输入控件缺可访问名称（WCAG 3.3.2 / 4.1.2）**：全前端静态扫描发现 **24** 处独立控件（`el-select`/`el-input`/`el-input-number` 等）既无 `aria-label` 也无带 `label` 的 `el-form-item` 包裹；其中多数以 `placeholder` 充当提示，而 placeholder **不是**可靠的可访问名称。| `frontend/src/**` | **部分已修复（批次 187）**：对**语义无歧义**的 22 处（有明确中文 placeholder）已补 `aria-label` ✓ 并跑通 lint/test/build ✓；**剩余 2 处**因无 placeholder 需人工判定（多为对话框内的数字输入，其名来自上下文）→ 列为待办。 **追加（批次 188）**：剩余 2 处依据**同文件既有中文文案**补名（`目标人数`、`清理天数`）✓ → 全量复扫描 **0** ✓；过程中我曾因前缀陷阱与 lambda 重复尖括号两次破坏标记，**均被断言/lint 在写入或提交前拦下** ✓。| **P3** **追加（批次 200）**：**补修 7 处** ✓（`AttendanceToolbar`/`ImportMemberDialog` 搜索 ID 过滤、`LeaveImportDialog` 粘贴请假名单、`PlayerAnalysis` 搜索左/右侧玩家、`ConfigProfessionPanel` 桌面列 目标人数/说明 ✓；名称取自各控件自有文案 ✓）；**同时发现度量本身不可信** ✗：旧「逐行」扫描与新的「标签块」扫描对同一批文件结果**矛盾**（0 ✗ vs 16 ✗）→ 新增 **F-120** ✓ 登记 16 处**待人工复核** ✓，**不批量插入属性** ✗（避免盲改 ✓）；核对表口径已改为「已修 31 处 + 16 处待复核」✓。**扫描器已升级为标签块感知**（跨行正则 + 只看自身属性 ✓）。 |
+| F-120 | P2 | 自动化健康检查 | 前端独立控件可访问名口径不统一 | 两种扫描口径对同一批文件给出的「缺名」结果不一致（旧逐行扫描 0 ✗ / 新标签块扫描 16 ✗），说明该项**尚无可信度量**；16 处（见 §11.x 无障碍核对表附注）**待逐一人工复核**后决定是否补名 | ✅ 已登记；待复核 |
 
 ---
 
@@ -665,7 +666,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | 页面标题 `<title>` / viewport | WCAG 2.4.2 | 均有 ✓ |
 | `<img>` 缺 `alt` | WCAG 1.1.1 | **0** 处 ✓ |
 | `el-form-item` 缺 `label`/`aria-label` | WCAG 3.3.2 / 4.1.2 | **0** 处 ✓（F-112③ 已修） |
-| 独立控件缺可访问名 | WCAG 3.3.2 / 4.1.2 | **0** 处 ✓（F-119 清零 24/24） |
+| 独立控件缺可访问名 | WCAG 3.3.2 / 4.1.2 | **0** 处 ✓（F-119 清零 24/24；批次 200 经逐一查看后补修 7 处 ✓；**另有 16 处待人工复核，见 F-120**） |
 | 图标按钮缺可访问名 | WCAG 4.1.2 | **0** 处 ✓（F-112① 复核实为已满足） |
 | 全站 `aria-label` 计数（回归观察点） | — | **28** |
 | 非交互元素 `@click` 缺 `role`/`tabindex`/`@keydown` | WCAG 2.1.1 / 4.1.2 | **15** 处 ✗ —— **F-112② 待用户同意**（会改变键盘焦点顺序） |
