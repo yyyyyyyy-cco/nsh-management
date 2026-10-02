@@ -65,7 +65,7 @@
 - M-9 顶栏非半透明无毛玻璃 + padding 26px≠规范 24px（`frontend/src/layouts/AppHeader.vue`）。
 - M-10 `frontend/src/views/logs/` 整套 Bootstrap 3 残留（`LogStatsCards.vue` 等）：`#d9534f/#c9302c` 冲突朱砂色、fallback 值错误、monospace 未用 `--font-num`、筛选栏无 media query。需系统性令牌化。
 - M-11 靛青浅色族未令牌化跨 5 文件重复（`--indigo` 无浅色阶）。
-- M-12 奖牌渐变 4 文件重复且阴影分叉（应抽 `styles/medals.css`）。
+- M-12 奖牌渐变 4 文件重复且阴影分叉（应抽 `styles/medals.css`（已移除，历史记录））。
 - M-13 图表 option 未包 computed 致动画重放（`PlayerAnalysis.vue`、`frontend/src/components/my-stats/StatsTrendChart.vue`）：切换下拉框时全页图表集体闪烁。RankingTab 已正确包 computed，为项目正面范式。
 - M-14 `hideOverlap` 静默丢弃 Top-20 玩家名（`frontend/src/components/match-data/paretoChart.ts`）：信息丢失，建议改横向条形图。
 - M-15 `interval:0` + 28 个 10px 柱顶标签移动端碰撞（`frontend/src/components/match-data/squadCompareCharts.ts`）。
