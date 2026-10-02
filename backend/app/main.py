@@ -11,7 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.api.v1.router import api_router
 from app.core.client_ip import get_client_ip
-from app.core.config import settings
+from app.core.config import enforce_secret_key, settings
 from app.core.logging_config import setup_logging
 from app.core.security import decode_access_token
 from app.core.database import async_session_factory
@@ -133,9 +133,20 @@ app.add_middleware(
 app.include_router(api_router, prefix=settings.API_PREFIX)
 
 
+def startup_checks() -> None:
+    """启动前置安全门禁（合规化计划 F-04）：生产环境弱 SECRET_KEY 打印 FATAL 并拒绝启动。
+
+    该门禁原先在 `app.core.config` **导入期**执行，导致 alembic、测试收集、一次性脚本等
+    只要 import 配置就会被终止（也使门禁本身无法被测试）；现改为显式启动校验：
+    运维可见文案与退出行为不变（见 DEPLOY.md §六），且可被单元测试直接调用。
+    """
+    enforce_secret_key()
+
+
 @app.on_event("startup")
 async def on_startup() -> None:
-    """启动时后台清理超过保留期的审计日志，此后每 24 小时执行一次。"""
+    """启动：先过安全门禁，再启动后台日志清理（启动即清一次，此后每 24 小时一次）。"""
+    startup_checks()
     app.state.log_cleanup_task = asyncio.create_task(_log_cleanup_loop())
 
 

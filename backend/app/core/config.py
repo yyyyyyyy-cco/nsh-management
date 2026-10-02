@@ -20,7 +20,8 @@ class Settings:
     API_PREFIX: str = "/api/v1"
 
     # 安全
-    # 开发默认值：仅供本地开发使用，生产环境（APP_ENV=production 或容器特征兜底）启动时强制校验，见 _validate_secret_key
+    # 开发默认值：仅供本地开发使用，生产环境（APP_ENV=production 或容器特征兜底）由**应用启动入口**强制校验，
+    # 见 validate_secret_key / enforce_secret_key 与 app/main.py 的 startup_checks（导入期不再校验，见文件末尾说明）
     _DEV_SECRET_KEY = "dev-secret-key-change-in-production"
     SECRET_KEY: str = os.getenv("SECRET_KEY", _DEV_SECRET_KEY)
     ALGORITHM: str = "HS256"
@@ -101,30 +102,57 @@ def _is_production() -> bool:
         return False
 
 
-def _validate_secret_key() -> None:
-    """SECRET_KEY 安全校验：生产环境弱密钥拒绝启动，开发环境仅告警放行。
+class InsecureSecretKeyError(RuntimeError):
+    """生产环境 SECRET_KEY 强度不足（由启动门禁抛出，见 validate_secret_key）。"""
+
+
+# 运维可见文案（centrally defined，测试断言关键句）：FATAL 文案保持与改造前逐字一致
+FATAL_SECRET_KEY_MESSAGE = (
+    "FATAL: 生产环境 SECRET_KEY 未设置、仍为默认/占位值或强度不足\n"
+    "（要求：至少 32 字符，且不含项目名/单词/年份等可猜片段）。\n"
+    "请在部署 .env 文件中配置强随机密钥（生成命令：openssl rand -hex 32），\n"
+    "否则任何持有默认密钥的人都可伪造登录 Token。"
+)
+WEAK_SECRET_KEY_WARNING = (
+    "WARNING: 当前 SECRET_KEY 为弱密钥（开发默认值或可猜片段）。\n"
+    "本地开发可忽略；生产/容器部署前请用 openssl rand -hex 32 生成强随机密钥\n"
+    "并在 .env 中设置 APP_ENV=production（生产环境下弱密钥将拒绝启动）。"
+)
+
+
+def validate_secret_key() -> None:
+    """SECRET_KEY 安全校验：生产环境弱密钥抛 `InsecureSecretKeyError`，开发环境仅告警放行。
 
     开发环境保持可用：允许未设置时使用默认值，不影响本地开发与现有 .env；
     但弱密钥会打印 WARNING，避免生产判定 fail-open 时被静默跳过。
+
+    返回 `None` 表示通过（无返回值语义）；调用方在启动入口用 `enforce_secret_key()`。
     """
     weak = _secret_key_is_weak(settings.SECRET_KEY)
     if _is_production():
         if weak:
-            print(
-                "FATAL: 生产环境 SECRET_KEY 未设置、仍为默认/占位值或强度不足\n"
-                "（要求：至少 32 字符，且不含项目名/单词/年份等可猜片段）。\n"
-                "请在部署 .env 文件中配置强随机密钥（生成命令：openssl rand -hex 32），\n"
-                "否则任何持有默认密钥的人都可伪造登录 Token。",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+            raise InsecureSecretKeyError(FATAL_SECRET_KEY_MESSAGE)
     elif weak:
-        print(
-            "WARNING: 当前 SECRET_KEY 为弱密钥（开发默认值或可猜片段）。\n"
-            "本地开发可忽略；生产/容器部署前请用 openssl rand -hex 32 生成强随机密钥\n"
-            "并在 .env 中设置 APP_ENV=production（生产环境下弱密钥将拒绝启动）。",
-            file=sys.stderr,
-        )
+        print(WEAK_SECRET_KEY_WARNING, file=sys.stderr)
 
 
-_validate_secret_key()
+def enforce_secret_key() -> None:
+    """启动门禁：把弱密钥转成「打印 FATAL + 退出码 1」（部署侧既有可见行为）。
+
+    应用入口（`app/main.py` 的 startup 钩子）与任何自定义入口都应调用本函数；
+    进程被 uvicorn 的 lifespan 路径终止时 uvicorn 会以「启动失败」退出（非零），
+    直接调用本函数时退出码恒为 1。
+    """
+    try:
+        validate_secret_key()
+    except InsecureSecretKeyError as exc:
+        print(str(exc), file=sys.stderr)
+        sys.exit(1)
+
+
+# 注意（F-04 / 合规化计划 W2-6）：这里**不再**在导入期调用校验。
+# 原因：`app.core.config` 被 alembic、测试收集、一次性脚本等大量非服务场景导入，
+# 导入期 `sys.exit` 会让这些场景在生产环境下被无谓终止，也使门禁本身无法被测试。
+# 门禁现由应用启动入口显式执行：`app/main.py` → `startup_checks()`。
+# 目录创建（DATA_DIR / LOG_DIR）保留在导入期：幂等、不中止进程，且被
+# `logging_config`（LOG_DIR）与 SQLite 路径（DATA_DIR）在导入期依赖。

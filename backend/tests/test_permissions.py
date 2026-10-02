@@ -5,8 +5,6 @@
 
 说明：直连依赖函数（不经 HTTP），用真实 JWT + 内存库，故无需启动服务。
 """
-import unittest
-
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 from starlette.requests import Request
