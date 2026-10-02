@@ -60,7 +60,12 @@ class CountRecentErrorsTests(DbTestCase):
 class RunAlertCheckTests(DbTestCase):
     """编排行为：未达阈值不通知、达阈值通知、去重、禁用阈值、异常不外抛。"""
 
-    def setUp(self) -> None:
+    async def asyncSetUp(self) -> None:
+        """必须在 `asyncSetUp` 里取 `self.engine`：`IsolatedAsyncioTestCase` 的同步 `setUp()` 早于
+        `DbTestCase.asyncSetUp()` 执行，那时引擎尚未创建（本用例首次真正执行即因此报
+        `AttributeError: 'RunAlertCheckTests' object has no attribute 'engine'`）。
+        """
+        await super().asyncSetUp()
         alert_service.reset_dedup_state()
         self.factory = async_sessionmaker(self.engine, expire_on_commit=False)
 

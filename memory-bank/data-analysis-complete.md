@@ -588,7 +588,7 @@ frontend/src/components/match-data/ | 职业深度分析（含图表） |
 - [x] 删除 HTML 报告导出：`generate_html_report()`、`/report` 接口、前端「导出报告」按钮全部移除
 - [x] 前端：`IndicatorsTab.vue`（数据列表 + 指标列 + 排序）、`CampCompareTab.vue`（对比柱状图 + 差值/波动值进度条）、`SquadAnalysisTab.vue`（击杀/伤害/塔伤柱状图 + 职业分布饼图）、`ProfessionDetailTab.vue`（职业深度 17 项 + 对比图表）
 - [x] 玩家维度图表：`PlayerAnalysis.vue` 补 KDA 散点、伤害-治疗气泡、综合雷达图；`OverviewTab.vue` 补伤害分布饼图
-- [x] 自检脚本：`backend/scripts/selfcheck_indicators.py`（纯函数断言）；端到端验证当时使用临时脚本（`verify_e2e.py`），已不在仓库
+- [x] 自检脚本：`backend/scripts/selfcheck_indicators.py`——**2026-10-02 已由模块级断言脚本改造为 unittest 用例类**（`DerivedIndicatorTests` / `CampTotalsTests` / `ResponseModelTests`，共 8 个用例），可被 pytest 直接收集，也仍支持 `python scripts/selfcheck_indicators.py` 直接运行；端到端验证当时使用临时脚本（`verify_e2e.py`），已不在仓库
 
 ### 验证状态
 
