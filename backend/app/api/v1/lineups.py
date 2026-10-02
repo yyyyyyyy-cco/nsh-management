@@ -1,7 +1,7 @@
 """排表接口：读取排表（帮众可看）、保存排表（管理员）、候选池（管理员）。"""
 from datetime import datetime, timezone
-
 from typing import Any
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 

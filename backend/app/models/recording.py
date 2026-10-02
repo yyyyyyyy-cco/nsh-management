@@ -1,8 +1,7 @@
 """录屏表：按局数提交链接，审核状态流转。"""
 from datetime import datetime, timezone
 
-from sqlalchemy import Index, text
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base

@@ -2,9 +2,9 @@
 # 行数豁免（连续逻辑）：单资源薄路由（CRUD + 导入导出端点声明同质）｜登记见 .agent/rules/file-length-rule.md 豁免清单
 import asyncio
 from datetime import datetime, timezone
+from typing import Any
 from urllib.parse import quote
 
-from typing import Any
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession

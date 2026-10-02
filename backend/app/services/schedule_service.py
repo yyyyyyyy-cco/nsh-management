@@ -5,11 +5,11 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attendance import AttendanceRecord
-from app.models.squad_adjustment import SquadAdjustment
 from app.models.lineup import Lineup
 from app.models.match_data import MatchData
 from app.models.recording import Recording
 from app.models.schedule import Schedule
+from app.models.squad_adjustment import SquadAdjustment
 from app.schemas.schedule import ScheduleCreate, ScheduleUpdate
 from app.utils.constants import PROFESSIONS
 

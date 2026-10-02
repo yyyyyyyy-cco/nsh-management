@@ -1,7 +1,7 @@
 """数据库连接：异步引擎、Session 工厂、ORM 基类。"""
-from sqlalchemy import event
 from collections.abc import AsyncGenerator
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 

@@ -7,8 +7,8 @@ from app.core.database import get_db
 from app.models.user import User
 from app.schemas.match_data import (
     CampCompareResponse,
-    CampTotals,
     CampStats,
+    CampTotals,
     IndicatorOut,
     IndicatorsResponse,
     MatchDataListResponse,

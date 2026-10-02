@@ -12,11 +12,11 @@ exclude = [".venv", "__pycache__", "data", "logs"]
 
 [lint]
 # 规则集：E4/E7/E9 + F（pyflakes：未定义名、未使用导入/变量、f-string 缺占位符等）
-select = ["E4", "E7", "E9", "F"]
+select = ["E4", "E7", "E9", "F", "I"]
 
 [lint.per-file-ignores]
 # Alembic 迁移为 autogenerate 产物：保持生成原样，且后续生成的迁移仍会带未使用导入
-"alembic/versions/*.py" = ["F401"]
+"alembic/versions/*.py" = ["F401", "I001"]  # 自动生成迁移不做导入排序（价值低、churn 大）
 # 2026-09-07 权重推导系列为一次性分析脚本，采用紧凑单行语句风格（与产品代码风格不同）
 "scripts/audit_weights_v4_20260907.py" = ["E701", "E702"]
 "scripts/derive_weights_v4_20260907.py" = ["E701", "E702"]

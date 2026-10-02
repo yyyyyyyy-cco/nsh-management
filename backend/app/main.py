@@ -14,9 +14,9 @@ from app.api.v1.health import router as health_router
 from app.api.v1.router import api_router
 from app.core.client_ip import get_client_ip
 from app.core.config import api_docs_enabled, enforce_secret_key, settings
+from app.core.database import async_session_factory
 from app.core.logging_config import setup_logging
 from app.core.security import decode_access_token
-from app.core.database import async_session_factory
 from app.models.user import User
 from app.services import alert_service, log_service
 from app.services.attendance_service import AttendanceServiceError

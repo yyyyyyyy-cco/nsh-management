@@ -1,8 +1,7 @@
 """出勤记录表：补人以姓名快照存储，不关联常驻库。"""
 from datetime import datetime, timezone
 
-from sqlalchemy import text
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, UniqueConstraint, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base

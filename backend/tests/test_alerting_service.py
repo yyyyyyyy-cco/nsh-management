@@ -11,11 +11,11 @@ from unittest import mock
 try:
     import sqlalchemy  # noqa: F401
     from sqlalchemy.ext.asyncio import async_sessionmaker
+    from support import DbTestCase
 
     from app.core.config import settings
     from app.models.operation_log import OperationLog
     from app.services import alert_service
-    from support import DbTestCase
 
     HAS_RUNTIME = True
 except ImportError as exc:  # pragma: no cover — 本地无依赖环境（如 Python 3.14 装不上 pydantic-core）

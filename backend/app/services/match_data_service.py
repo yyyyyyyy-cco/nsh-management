@@ -5,8 +5,8 @@
 - 职业深度 / 指标列表 / 阵营对比聚合：match_data_aggregate
 """
 import asyncio
-
 from typing import Any
+
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 

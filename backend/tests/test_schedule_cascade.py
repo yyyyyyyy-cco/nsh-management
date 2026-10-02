@@ -79,6 +79,7 @@ class GuildCascadeTest(unittest.TestCase):
 
     def test_delete_guild_removes_schedule_children_and_guild_rows(self) -> None:
         import asyncio
+
         from app.models.guild import Guild
         from app.models.member import Member
         from app.models.profession import ProfessionConfig
@@ -136,6 +137,7 @@ class MemberDetachTest(unittest.TestCase):
 
     def test_delete_member_nulls_history_references(self) -> None:
         import asyncio
+
         from app.models.guild import Guild
         from app.models.member import Member
         from app.services import member_service

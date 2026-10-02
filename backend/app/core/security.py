@@ -1,14 +1,14 @@
 """安全工具：密码哈希（bcrypt）与 JWT 令牌。"""
-import re
-from datetime import datetime, timedelta, timezone
-
 import base64
 import hashlib
+import re
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from jose import JWTError, jwt
 
 from app.core.config import settings
+
 
 def hash_password(password: str) -> str:
     """bcrypt 哈希（`$2b$`，默认 cost 12）。

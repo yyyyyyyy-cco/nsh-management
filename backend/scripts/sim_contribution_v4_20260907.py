@@ -6,11 +6,11 @@
   边际 0.5<=rs<1 且职业内非零占比>=50%（每项 0.05；运行时倍数封顶 2.0）
   正向权重归一化；重伤统一 -15×重伤倍数；轮内指标全组为 0 时权重摊给其余项
 """
+import io
 import os
 import sqlite3
 import sys
-import io
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')

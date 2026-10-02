@@ -29,10 +29,10 @@ from app.models.guild import Guild
 from app.models.member import Member
 from app.models.user import User
 from app.schemas.game_id_request import GameIdRequestAudit, GameIdRequestCreate
+from app.schemas.member import MemberUpdate
 from app.services import game_id_request_service
 from app.services.game_id_request_service import GameIdRequestError
 from app.services.member_service import update_member
-from app.schemas.member import MemberUpdate
 
 
 class ConcurrencyTests(unittest.IsolatedAsyncioTestCase):

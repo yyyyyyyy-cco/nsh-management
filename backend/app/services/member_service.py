@@ -1,5 +1,6 @@
 """常驻库业务：CRUD、搜索筛选、出勤率统计。Excel 导入见 utils/excel_import.py。"""
 from typing import Any
+
 from sqlalchemy import Select, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 

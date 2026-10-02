@@ -8,9 +8,9 @@ from datetime import datetime, timezone
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.attendance import AttendanceRecord
 from app.models.game_id_request import MemberGameIdRequest
 from app.models.recording import Recording
-from app.models.attendance import AttendanceRecord
 
 # 管理员直接在常驻库改名的自动记录备注（用于与帮众申请审核记录区分）
 ADMIN_DIRECT_RENAME_REMARK = "管理员直接在常驻库改名（自动记录，无提交申请）"

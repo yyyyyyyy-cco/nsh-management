@@ -3,10 +3,10 @@
 v3 规则 + 边际资格收紧：rs<1 且 rs>=0.5 且职业内非零占比>=50%（挡掉小均值噪声指标）
 边际项倍数在运行时封顶 2.0（前端按 权重<0.06 判别边际项），本脚本不计 cap
 """
+import io
 import os
 import sqlite3
 import sys
-import io
 from collections import defaultdict
 from pathlib import Path
 
