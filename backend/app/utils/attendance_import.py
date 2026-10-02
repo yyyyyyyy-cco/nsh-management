@@ -9,17 +9,16 @@ from app.services.schedule_service import get_schedule
 
 
 async def _imported_member_ids(session: AsyncSession, schedule_id: int) -> set[int]:
-    return set(
-        (
-            await session.execute(
-                select(AttendanceRecord.member_id).where(
-                    AttendanceRecord.schedule_id == schedule_id,
-                    AttendanceRecord.member_id.is_not(None),
-                )
+    rows = (
+        await session.execute(
+            select(AttendanceRecord.member_id).where(
+                AttendanceRecord.schedule_id == schedule_id,
+                AttendanceRecord.member_id.is_not(None),
             )
         )
-        .scalars()
-    )
+    ).scalars().all()
+    # 查询已过滤 NULL；此处再做 None 安全网，保证返回类型确为 set[int]
+    return {int(x) for x in rows if x is not None}
 
 
 async def import_formal(session: AsyncSession, guild_id: int, schedule_id: int) -> dict:

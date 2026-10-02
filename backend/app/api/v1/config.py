@@ -53,6 +53,6 @@ async def batch_update_profession_configs(
 ) -> dict:
     """批量更新职业配置（管理员）。"""
     count = await config_service.batch_update_profession_configs(
-        session, current_user.guild_id, body.configs
+        session, current_user.guild_id, [c.model_dump() for c in body.configs]
     )
     return {"message": f"已更新 {count} 个职业配置"}
