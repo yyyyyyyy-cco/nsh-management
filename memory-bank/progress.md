@@ -527,6 +527,7 @@ nsh-management/
 | 2026-10-03 | 批次 193（W2-14 ① 落地）：①前端早已是业界正确组合（flat/essential + skip-formatting + Prettier），① 只剩跑一次 Prettier。②prettier --write src/ 重排 175 文件；.prettierignore 增 5 条（格式化会越界者，仍受 ESLint）。③验收 format:check/lint/test 69-8/build/行数门禁 全绿。④有意不引入 flat/recommended 排版规则（与 Prettier 冲突），已记录；⑤两次路径基准出错被断言拦下；新增清单第 147 条 |
 | 2026-10-03 | 批次 194（W2-14 ③ 度量）：①临时启用 recommendedTypeChecked 实测 151 problems，但含配置导致的解析错误 -> 真实规则命中约 40 条（no-floating-promises 16、no-unnecessary-type-assertion 10 等）。②临时配置哈希校验还原、lint 回到 0（零残留）。③结论：先修 projectService 接线取真实计数，再按行为中性子集优先分批纳入。④新增清单第 148 条 |
 | 2026-10-03 | 批次 195（撤回误提交的工具残留）：①npm exec 参数被 PowerShell 拆分，在 frontend/ 下意外创建垃圾文件，被 git add -A 一并提交（违反清单 #27 既有教训）。②核对绝对路径后 git rm -f 移除并单独提交撤回。③固化：每次提交前核对 git diff --staged --name-only（清单第 149 条） |
+| 2026-10-03 | 批次 196（W2-14 ③ 更正度量）：①方案 A 得 102 problems/1 解析错误；方案 B 得 149/111 解析错误 -> 仅 A 可信。②真实命中约 101 条（no-floating-promises 76、no-unnecessary-type-assertion 17 等），「约 40」偏低已更正。③分期方案：先清 17 条断言、接入时暂降 no-floating-promises 为 warn。④临时配置哈希还原、无残留。⑤新增清单第 150 条；#145 引号陷阱第四次重犯（预检拦下） |
 
 
 
