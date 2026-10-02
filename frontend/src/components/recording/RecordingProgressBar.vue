@@ -32,9 +32,7 @@ defineEmits<{ 'toggle-round': [round: number]; 'clear-round': [] }>()
 
 /** 进度条鎏金渐变（el-progress color 函数必须返回字符串，不可返回对象）。 */
 const gradient = (percentage: number) =>
-  percentage >= 100
-    ? 'linear-gradient(90deg, #61a57e, #2e8b57)'
-    : 'linear-gradient(90deg, #f2dfa0, #c9a13b)'
+  percentage >= 100 ? 'linear-gradient(90deg, #61a57e, #2e8b57)' : 'linear-gradient(90deg, #f2dfa0, #c9a13b)'
 </script>
 
 <style scoped>
@@ -58,7 +56,9 @@ const gradient = (percentage: number) =>
   padding: 6px 10px;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
-  transition: background var(--dur-fast), border-color var(--dur-fast);
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast);
 }
 
 .progress-item:hover {
@@ -81,7 +81,10 @@ const gradient = (percentage: number) =>
   border-radius: var(--radius-xl);
   padding: 4px 14px;
   cursor: pointer;
-  transition: color var(--dur-fast), background var(--dur-fast), border-color var(--dur-fast);
+  transition:
+    color var(--dur-fast),
+    background var(--dur-fast),
+    border-color var(--dur-fast);
   white-space: nowrap;
 }
 

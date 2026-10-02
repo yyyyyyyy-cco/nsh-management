@@ -54,7 +54,10 @@ export function buildCountPieOption(profStats: ProfessionStats[]) {
           itemStyle: { color: hex(PROF_COLORS[p.profession] || '#999'), borderColor: '#fff', borderWidth: 2 },
         })),
         label: { show: false },
-        emphasis: { label: { show: true, fontWeight: 'bold' }, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+        emphasis: {
+          label: { show: true, fontWeight: 'bold' },
+          itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' },
+        },
       },
     ],
   }
@@ -114,20 +117,42 @@ export function buildSkillBarOption(profStats: ProfessionStats[]) {
       data: list.map((p) => p.profession),
       axisLabel: { ...CHART_THEME.axis.axisLabel, interval: 0 },
     },
-    yAxis: { type: 'value', axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => v.toFixed(1) }, splitLine: CHART_THEME.axis.splitLine },
+    yAxis: {
+      type: 'value',
+      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => v.toFixed(1) },
+      splitLine: CHART_THEME.axis.splitLine,
+    },
     series: [
-      { name: '清泉羽化率', type: 'bar', barWidth: 14, itemStyle: { color: '#c9a13b', borderRadius: [3, 3, 0, 0] }, data: list.map((p) => p.avg_revive_rate) },
-      { name: '焚骨率', type: 'bar', barWidth: 14, itemStyle: { color: '#5b7a9d', borderRadius: [3, 3, 0, 0] }, data: list.map((p) => p.avg_fen_gu_rate) },
+      {
+        name: '清泉羽化率',
+        type: 'bar',
+        barWidth: 14,
+        itemStyle: { color: '#c9a13b', borderRadius: [3, 3, 0, 0] },
+        data: list.map((p) => p.avg_revive_rate),
+      },
+      {
+        name: '焚骨率',
+        type: 'bar',
+        barWidth: 14,
+        itemStyle: { color: '#5b7a9d', borderRadius: [3, 3, 0, 0] },
+        data: list.map((p) => p.avg_fen_gu_rate),
+      },
     ],
   }
 }
 
 /** 职业差值/波动值行数据（可按职业筛选） */
 export function buildComparisonRows(profStats: ProfessionStats[], profFilter: string) {
-  const rows: { profession: string; label: string; value1: number; value2: number; diff: number; wave: number; metric: string }[] = []
-  const list = profFilter
-    ? profStats.filter((p) => p.profession === profFilter)
-    : profStats
+  const rows: {
+    profession: string
+    label: string
+    value1: number
+    value2: number
+    diff: number
+    wave: number
+    metric: string
+  }[] = []
+  const list = profFilter ? profStats.filter((p) => p.profession === profFilter) : profStats
   for (const p of list) {
     for (const cmp of p.comparison) {
       rows.push({

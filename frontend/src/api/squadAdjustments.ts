@@ -12,16 +12,10 @@ export function getSquadAdjustments(scheduleId: number): Promise<SquadAdjustment
   return http.get(`/schedules/${scheduleId}/squad-adjustments`)
 }
 
-export function saveSquadAdjustments(
-  scheduleId: number,
-  data: Record<string, string>,
-): Promise<SquadAdjustments> {
+export function saveSquadAdjustments(scheduleId: number, data: Record<string, string>): Promise<SquadAdjustments> {
   return http.put(`/schedules/${scheduleId}/squad-adjustments`, { data })
 }
 
-export function removeSquadAdjustment(
-  scheduleId: number,
-  playerName: string,
-): Promise<SquadAdjustments> {
+export function removeSquadAdjustment(scheduleId: number, playerName: string): Promise<SquadAdjustments> {
   return http.delete(`/schedules/${scheduleId}/squad-adjustments/${encodeURIComponent(playerName)}`)
 }

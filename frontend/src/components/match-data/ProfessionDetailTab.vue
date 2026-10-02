@@ -4,7 +4,14 @@
     <template v-else>
       <!-- 工具栏 -->
       <div class="toolbar">
-        <el-select aria-label="阵营筛选" v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px" @change="load">
+        <el-select
+          aria-label="阵营筛选"
+          v-model="campFilter"
+          placeholder="阵营筛选"
+          clearable
+          style="width: 150px"
+          @change="load"
+        >
           <el-option v-for="c in campOptions" :key="c" :label="c" :value="c" />
         </el-select>
         <span class="toolbar__count">{{ profStats.length }} 个职业 · 17 项指标</span>
@@ -66,7 +73,14 @@ import EChart from './EChart.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ProfessionCompareTable from './ProfessionCompareTable.vue'
 import ProfessionMetricTables from './ProfessionMetricTables.vue'
-import { TANK_PROFESSIONS, buildCountPieOption, buildMetricBarOption, buildSkillBarOption, isHealer, isTank } from './professionDetailCharts'
+import {
+  TANK_PROFESSIONS,
+  buildCountPieOption,
+  buildMetricBarOption,
+  buildSkillBarOption,
+  isHealer,
+  isTank,
+} from './professionDetailCharts'
 import type { MetricKey } from './professionDetailCharts'
 
 const props = defineProps<{ scheduleId: number; roundNo: number }>()
@@ -98,7 +112,15 @@ async function load() {
   }
 }
 
-watch(() => props.roundNo, () => { campOptions.value = []; campFilter.value = ''; load() }, { immediate: true })
+watch(
+  () => props.roundNo,
+  () => {
+    campOptions.value = []
+    campFilter.value = ''
+    load()
+  },
+  { immediate: true },
+)
 
 // 图表 option（构建逻辑见 professionDetailCharts）
 const countPieOption = computed(() => buildCountPieOption(profStats.value))

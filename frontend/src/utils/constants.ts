@@ -23,7 +23,19 @@ export const PROFESSIONS = [
  * `professionSource.spec.ts` 与 F-91）。2026-10-03：原先这串顺序单独住在
  * `composables/lineupBoard.ts`，属同一批数据的第二份副本，已上移到本文件统一维护。
  */
-export const PROF_ORDER: readonly string[] = ['铁衣', '素问', '神相', '碎梦', '血河', '玄机', '九灵', '潮光', '龙吟', '鸿音', '沧澜']
+export const PROF_ORDER: readonly string[] = [
+  '铁衣',
+  '素问',
+  '神相',
+  '碎梦',
+  '血河',
+  '玄机',
+  '九灵',
+  '潮光',
+  '龙吟',
+  '鸿音',
+  '沧澜',
+]
 
 export const MEMBER_STATUSES = [
   { value: 'formal', label: '正式' },

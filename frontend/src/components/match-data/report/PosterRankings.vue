@@ -8,7 +8,9 @@
         <div v-for="item in col.items" :key="item.player_name" class="rk-item">
           <span class="rk-badge" :class="`rk-badge--${item.rank}`">{{ item.rank }}</span>
           <span class="rk-name" :title="`${item.player_name}（第 ${item.round_no} 局）`">{{ item.player_name }}</span>
-          <span v-if="item.profession" class="rk-prof" :style="profTagStyle(item.profession)">{{ item.profession }}</span>
+          <span v-if="item.profession" class="rk-prof" :style="profTagStyle(item.profession)">{{
+            item.profession
+          }}</span>
           <span class="rk-value num">{{ fmtNum(item.value) }}</span>
         </div>
         <div v-if="col.items.length === 0" class="rk-empty">暂无数据</div>

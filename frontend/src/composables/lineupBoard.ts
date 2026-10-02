@@ -194,7 +194,9 @@ export function useLineupBoard(scheduleId: number) {
     autoSaveTimer = null
     if (saveTask) return saveTask
     if (disposed || savedVersion === editVersion) return Promise.resolve()
-    saveTask = persistChanges().finally(() => { saveTask = null })
+    saveTask = persistChanges().finally(() => {
+      saveTask = null
+    })
     return saveTask
   }
 
@@ -206,7 +208,9 @@ export function useLineupBoard(scheduleId: number) {
     autoSaveStatus.value = 'pending'
     autoSaveTimer = setTimeout(() => {
       autoSaveTimer = null
-      void flushSave().catch(() => { /* HTTP 层已提示，保留待保存状态 */ })
+      void flushSave().catch(() => {
+        /* HTTP 层已提示，保留待保存状态 */
+      })
     }, 3000)
   }
 
@@ -243,7 +247,10 @@ export function useLineupBoard(scheduleId: number) {
     candidates.value.push(toCandidateItem(el))
   }
 
-  function onCandidateChange(evt: { added?: { element: SlotItem | CandidateItem }; removed?: { element: SlotItem | CandidateItem } }) {
+  function onCandidateChange(evt: {
+    added?: { element: SlotItem | CandidateItem }
+    removed?: { element: SlotItem | CandidateItem }
+  }) {
     // 候选池分组列表是派生数组，vuedraggable 的增删不会反映到源数据，这里手动同步
     if (evt.removed) {
       // 拖出候选池：从源数据删除（补人/正式成员填入槽位后不再显示）
@@ -382,7 +389,10 @@ export function useLineupBoard(scheduleId: number) {
   /** 保存函数引用，供外部调用。 */
   const titleRemark = ref('')
   const groupsRemark = ref<Record<string, string>>({
-    '进攻1': '', '进攻2': '', '防守1': '', '防守2': '',
+    进攻1: '',
+    进攻2: '',
+    防守1: '',
+    防守2: '',
   })
 
   async function editTitleRemark() {
@@ -393,11 +403,20 @@ export function useLineupBoard(scheduleId: number) {
       })
       titleRemark.value = value.trim()
       scheduleAutoSave()
-    } catch { /* 取消 */ }
+    } catch {
+      /* 取消 */
+    }
   }
 
   async function editGroupRemark(groupCategory: string) {
-    const label = groupCategory === '进攻1' ? '进攻一' : groupCategory === '进攻2' ? '进攻二' : groupCategory === '防守1' ? '防守一' : '防守二'
+    const label =
+      groupCategory === '进攻1'
+        ? '进攻一'
+        : groupCategory === '进攻2'
+          ? '进攻二'
+          : groupCategory === '防守1'
+            ? '防守一'
+            : '防守二'
     try {
       const { value } = await ElMessageBox.prompt(`为「${label}」添加备注`, '团备注', {
         inputValue: groupsRemark.value[groupCategory] || '',
@@ -405,7 +424,9 @@ export function useLineupBoard(scheduleId: number) {
       })
       groupsRemark.value = { ...groupsRemark.value, [groupCategory]: value.trim() }
       scheduleAutoSave()
-    } catch { /* 取消 */ }
+    } catch {
+      /* 取消 */
+    }
   }
 
   /** 清除槽位成员（放回候选池）。 */
@@ -435,10 +456,7 @@ export function useLineupBoard(scheduleId: number) {
       await flushSave()
       if (disposed || seq !== loadSeq || savedVersion !== editVersion) return false
       const version = editVersion
-      const [lineup, pool] = await Promise.all([
-        getLineup(scheduleId),
-        getLineupCandidates(scheduleId),
-      ])
+      const [lineup, pool] = await Promise.all([getLineup(scheduleId), getLineupCandidates(scheduleId)])
       // 旧请求、加载期间的新编辑以及卸载后的响应都不能覆盖看板。
       if (disposed || seq !== loadSeq || version !== editVersion) return false
       teams.value = lineup.data.map((t) => ({
@@ -449,7 +467,7 @@ export function useLineupBoard(scheduleId: number) {
       // 读取团/标题备注
       titleRemark.value = lineup.title_remark || ''
       const gr = lineup.groups_remark || {}
-      groupsRemark.value = { '进攻1': '', '进攻2': '', '防守1': '', '防守2': '', ...gr }
+      groupsRemark.value = { 进攻1: '', 进攻2: '', 防守1: '', 防守2: '', ...gr }
       // 候选池剔除已排成员（正式按 ID、补人按姓名）
       const placed = new Set<string>()
       for (const t of teams.value) {

@@ -14,7 +14,11 @@
       </el-tag>
       <span class="dh-rate">
         <span class="dh-rate-label">出勤率</span>
-        <span v-if="attendanceRate !== null" class="dh-rate-value num" :class="{ warn: isLowAttendance(attendanceRate) }">
+        <span
+          v-if="attendanceRate !== null"
+          class="dh-rate-value num"
+          :class="{ warn: isLowAttendance(attendanceRate) }"
+        >
           {{ formatRatePercent(attendanceRate) }}
         </span>
         <span v-else class="dh-rate-none">无记录</span>

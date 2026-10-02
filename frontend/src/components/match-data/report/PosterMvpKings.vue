@@ -10,10 +10,22 @@
       <span v-if="mvp.profession" class="mk-mvp__prof" :style="profTagStyle(mvp.profession)">{{ mvp.profession }}</span>
       <span class="mk-mvp__round">第 {{ mvp.round_no }} 局</span>
       <span class="mk-mvp__stats">
-        <span class="mk-stat"><b class="num">{{ mvp.score }}</b><i>评分</i></span>
-        <span class="mk-stat"><b class="num">{{ mvp.kda.toFixed(1) }}</b><i>KDA</i></span>
-        <span class="mk-stat"><b class="num">{{ mvp.kills }}</b><i>击杀</i></span>
-        <span class="mk-stat"><b class="num">{{ fmtNum(mvp.playerDamage) }}</b><i>伤害</i></span>
+        <span class="mk-stat"
+          ><b class="num">{{ mvp.score }}</b
+          ><i>评分</i></span
+        >
+        <span class="mk-stat"
+          ><b class="num">{{ mvp.kda.toFixed(1) }}</b
+          ><i>KDA</i></span
+        >
+        <span class="mk-stat"
+          ><b class="num">{{ mvp.kills }}</b
+          ><i>击杀</i></span
+        >
+        <span class="mk-stat"
+          ><b class="num">{{ fmtNum(mvp.playerDamage) }}</b
+          ><i>伤害</i></span
+        >
       </span>
     </div>
 

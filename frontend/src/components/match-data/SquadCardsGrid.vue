@@ -5,14 +5,17 @@
       <div class="card-toolbar">
         <span class="card-toolbar__count">共 {{ squads.length }} 个小队 · {{ totalPlayers }} 人</span>
         <el-tag v-if="adjustedCount" size="small" type="warning" effect="plain">已调整 {{ adjustedCount }} 人</el-tag>
-        <el-button v-if="adjustedCount && isAdmin" link type="warning" size="small" @click="$emit('reset-adjustments')">重置调整</el-button>
+        <el-button v-if="adjustedCount && isAdmin" link type="warning" size="small" @click="$emit('reset-adjustments')"
+          >重置调整</el-button
+        >
         <el-checkbox v-model="compareModeProxy" label="对比模式" />
         <el-button
           v-if="compareModeProxy && compareSelectedCount >= 2"
           type="primary"
           size="small"
           @click="$emit('open-compare')"
-        >对比所选小队（{{ compareSelectedCount }}）</el-button>
+          >对比所选小队（{{ compareSelectedCount }}）</el-button
+        >
       </div>
     </div>
 
@@ -27,11 +30,7 @@
           @click="$emit('open-detail', s.squad_name)"
         >
           <div class="squad-card__header">
-            <el-checkbox
-              v-if="compareModeProxy"
-              v-model="compareChecked[s.squad_name]"
-              @click.stop
-            />
+            <el-checkbox v-if="compareModeProxy" v-model="compareChecked[s.squad_name]" @click.stop />
             <span class="squad-card__name">{{ s.squad_name }}</span>
             <span class="squad-card__count">{{ s.totals.player_count }}人</span>
           </div>
@@ -84,7 +83,8 @@
               type="warning"
               size="small"
               @click.stop="$emit('open-adjust')"
-            >分配成员</el-button>
+              >分配成员</el-button
+            >
             <el-button text type="primary" size="small">查看详情 →</el-button>
           </div>
         </div>

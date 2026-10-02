@@ -29,12 +29,25 @@
         <el-input v-model="guildForm.name" placeholder="请输入帮会名称" />
       </el-form-item>
       <el-form-item label="管理员密码" prop="admin_password">
-        <el-input v-model="guildForm.admin_password" type="password" show-password placeholder="8-128 位，不得为常见弱口令" />
+        <el-input
+          v-model="guildForm.admin_password"
+          type="password"
+          show-password
+          placeholder="8-128 位，不得为常见弱口令"
+        />
       </el-form-item>
       <el-form-item label="帮众密码" prop="member_password">
-        <el-input v-model="guildForm.member_password" type="password" show-password placeholder="8-128 位，不得为常见弱口令" />
+        <el-input
+          v-model="guildForm.member_password"
+          type="password"
+          show-password
+          placeholder="8-128 位，不得为常见弱口令"
+        />
       </el-form-item>
-      <p class="dialog-tip">将自动创建该帮会的管理员账号和帮众账号。密码保存后无法回查，请妥善保管，忘记可用重置密码功能。初始密码需为 8-128 位且不得为常见弱口令（**不限制字符组成**）。</p>
+      <p class="dialog-tip">
+        将自动创建该帮会的管理员账号和帮众账号。密码保存后无法回查，请妥善保管，忘记可用重置密码功能。初始密码需为 8-128
+        位且不得为常见弱口令（**不限制字符组成**）。
+      </p>
     </el-form>
     <template #footer>
       <el-button @click="guildDialogVisible = false">取消</el-button>

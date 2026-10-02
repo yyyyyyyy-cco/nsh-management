@@ -2,7 +2,14 @@
   <div class="chart-card">
     <div class="chart-card__head">
       <span class="chart-card__title">职业差值 / 波动值（基于分阵营均值）</span>
-      <el-select aria-label="按职业筛选" v-model="profFilter" placeholder="按职业筛选" clearable size="small" style="width: 160px">
+      <el-select
+        aria-label="按职业筛选"
+        v-model="profFilter"
+        placeholder="按职业筛选"
+        clearable
+        size="small"
+        style="width: 160px"
+      >
         <el-option v-for="p in allProfs" :key="p" :label="p" :value="p" />
       </el-select>
     </div>
@@ -17,7 +24,9 @@
       </el-table-column>
       <el-table-column label="差值" min-width="90" align="right">
         <template #default="{ row }">
-          <span :class="row.diff >= 0 ? 'diff-pos' : 'diff-neg'">{{ row.diff >= 0 ? '+' : '' }}{{ fmtCmpValue(row, row.diff) }}</span>
+          <span :class="row.diff >= 0 ? 'diff-pos' : 'diff-neg'"
+            >{{ row.diff >= 0 ? '+' : '' }}{{ fmtCmpValue(row, row.diff) }}</span
+          >
         </template>
       </el-table-column>
       <el-table-column label="波动值" min-width="150">

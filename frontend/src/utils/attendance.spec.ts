@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  ATTENDANCE_LOW_THRESHOLD,
-  attendanceProgressColor,
-  formatRatePercent,
-  isLowAttendance,
-} from './attendance'
+import { ATTENDANCE_LOW_THRESHOLD, attendanceProgressColor, formatRatePercent, isLowAttendance } from './attendance'
 
 describe('出勤率展示口径（utils/attendance.ts 为前端唯一来源）', () => {
   it('阈值常量为 0.5（此前散落在 3 个组件共 4 处）', () => {

@@ -35,10 +35,30 @@ import { squadBarOption } from './squadCharts'
 const props = defineProps<{ squads: SquadAnalysis[] }>()
 
 const names = computed(() => props.squads.map((s) => s.squad_name))
-const killsBarOption = computed(() => squadBarOption(names.value, props.squads.map((s) => s.totals.kills)))
-const damageBarOption = computed(() => squadBarOption(names.value, props.squads.map((s) => +(s.totals.player_damage / 10000).toFixed(0))))
-const towerBarOption = computed(() => squadBarOption(names.value, props.squads.map((s) => +(s.totals.building_damage / 10000).toFixed(0))))
-const deathsBarOption = computed(() => squadBarOption(names.value, props.squads.map((s) => s.totals.deaths)))
+const killsBarOption = computed(() =>
+  squadBarOption(
+    names.value,
+    props.squads.map((s) => s.totals.kills),
+  ),
+)
+const damageBarOption = computed(() =>
+  squadBarOption(
+    names.value,
+    props.squads.map((s) => +(s.totals.player_damage / 10000).toFixed(0)),
+  ),
+)
+const towerBarOption = computed(() =>
+  squadBarOption(
+    names.value,
+    props.squads.map((s) => +(s.totals.building_damage / 10000).toFixed(0)),
+  ),
+)
+const deathsBarOption = computed(() =>
+  squadBarOption(
+    names.value,
+    props.squads.map((s) => s.totals.deaths),
+  ),
+)
 </script>
 
 <style scoped>

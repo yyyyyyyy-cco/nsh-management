@@ -22,19 +22,27 @@
           {{ camp.camp }}
         </span>
         <span class="value num">{{ camp.player_count }} 人</span>
-        <span class="detail">击杀 <em class="num">{{ camp.total_kills }}</em> · 伤害 <em class="num">{{ formatNumber(camp.total_damage) }}</em></span>
+        <span class="detail"
+          >击杀 <em class="num">{{ camp.total_kills }}</em> · 伤害
+          <em class="num">{{ formatNumber(camp.total_damage) }}</em></span
+        >
       </div>
     </div>
 
     <!-- 工具栏 -->
     <div class="toolbar">
-      <el-button v-if="auth.isAdmin" type="primary" :loading="importing" @click="onImport">
-        导入 CSV
-      </el-button>
+      <el-button v-if="auth.isAdmin" type="primary" :loading="importing" @click="onImport"> 导入 CSV </el-button>
       <el-select aria-label="阵营筛选" v-model="selectedCamp" placeholder="阵营筛选" clearable style="width: 150px">
         <el-option v-for="camp in camps" :key="camp.camp" :label="camp.camp" :value="camp.camp" />
       </el-select>
-      <el-input aria-label="按ID搜索" v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
+      <el-input
+        aria-label="按ID搜索"
+        v-model="nameFilter"
+        placeholder="按ID搜索"
+        clearable
+        style="width: 180px"
+        :prefix-icon="Search"
+      />
       <div class="spacer" />
       <!-- 生成战报：整场聚合（不随当前局），无任何已导入局时禁用 -->
       <el-tooltip
@@ -65,7 +73,12 @@
       <el-button v-if="auth.isAdmin" type="primary" @click="onImport">导入 CSV</el-button>
     </EmptyState>
     <!-- 有数据但被筛选过滤为空 -->
-    <EmptyState v-else-if="filteredItems.length === 0" v-loading="loading" variant="search" description="无符合当前筛选条件的数据" />
+    <EmptyState
+      v-else-if="filteredItems.length === 0"
+      v-loading="loading"
+      variant="search"
+      description="无符合当前筛选条件的数据"
+    />
 
     <!-- 标签页切换（切局/加载时整体遮罩）；lazy：子 Tab 首次激活时才挂载并发请求，
          不再进入页面即并发 8 个子 Tab 的加载请求与聚合计算 -->

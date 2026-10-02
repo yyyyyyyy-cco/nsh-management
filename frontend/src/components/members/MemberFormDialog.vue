@@ -71,7 +71,13 @@ watch(
   () => props.modelValue,
   (value) => {
     if (!value) return
-    const member = props.member as { name?: string; main_profession?: string; sub_profession?: string; status?: string; remark?: string } | null
+    const member = props.member as {
+      name?: string
+      main_profession?: string
+      sub_profession?: string
+      status?: string
+      remark?: string
+    } | null
     form.name = member?.name || ''
     form.main_profession = member?.main_profession || ''
     form.sub_profession = member?.sub_profession || undefined

@@ -43,9 +43,7 @@ describe('validatePasswordForm', () => {
 
   it('新密码超过上限时提示', () => {
     const tooLong = 'a'.repeat(PASSWORD_MAX_LENGTH + 1)
-    expect(validatePasswordForm(values({ newPassword: tooLong, confirmPassword: tooLong }))).toContain(
-      '长度',
-    )
+    expect(validatePasswordForm(values({ newPassword: tooLong, confirmPassword: tooLong }))).toContain('长度')
   })
 
   it('恰好等于下限/上限时通过', () => {
@@ -57,15 +55,13 @@ describe('validatePasswordForm', () => {
 
   it('新密码与当前密码相同时提示', () => {
     const same = 'same-pass-2026'
-    expect(
-      validatePasswordForm(values({ currentPassword: same, newPassword: same, confirmPassword: same })),
-    ).toBe('新密码不能与当前密码相同')
+    expect(validatePasswordForm(values({ currentPassword: same, newPassword: same, confirmPassword: same }))).toBe(
+      '新密码不能与当前密码相同',
+    )
   })
 
   it('两次输入不一致时提示', () => {
-    expect(validatePasswordForm(values({ confirmPassword: 'other-pass-2026' }))).toBe(
-      '两次输入的新密码不一致',
-    )
+    expect(validatePasswordForm(values({ confirmPassword: 'other-pass-2026' }))).toBe('两次输入的新密码不一致')
   })
 
   it('长度校验不吞掉纯字母/纯数字口令（与服务端 6.2.5 口径一致）', () => {

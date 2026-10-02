@@ -33,7 +33,9 @@
           <el-option v-for="p in row.professions" :key="p" :label="p" :value="p" />
         </el-select>
         <span v-else class="prof-name" :style="{ color: profColor(row.profession) }">{{ row.profession }}</span>
-        <el-icon v-if="isAdmin" class="ar-remark-edit" title="编辑备注" @click="$emit('edit-remark', row)"><EditPen /></el-icon>
+        <el-icon v-if="isAdmin" class="ar-remark-edit" title="编辑备注" @click="$emit('edit-remark', row)"
+          ><EditPen
+        /></el-icon>
         <el-button v-if="isAdmin" class="ar-act" type="danger" plain @click="$emit('delete', row)">移除</el-button>
       </div>
       <div v-if="isAdmin && row.remark" class="ar-remark">备注：{{ row.remark }}</div>

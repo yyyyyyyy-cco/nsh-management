@@ -52,7 +52,9 @@ function goTodaySchedule() {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
-  transition: box-shadow var(--dur-fast), transform var(--dur-fast);
+  transition:
+    box-shadow var(--dur-fast),
+    transform var(--dur-fast);
 }
 
 .today-banner:hover {

@@ -7,8 +7,10 @@
 //   · typescript-eslint 使用 @vue/eslint-config-typescript 的默认配置（不做类型感知，保持检查速度）；
 //   · skipFormatting 关闭与 Prettier 冲突的规则（Prettier 配置见 .prettierrc.json）。
 //
-// 后续收紧（见计划 W2-3 收尾项）：导入排序、`flat/recommended` 排版规则、类型感知规则，
-// 以及与后端 ruff 的 E501 对应关系，均需一次性格式化提交后再纳入。
+// 后续收紧（见计划 W2-14）：类型感知规则；导入排序仍可继续评估。
+// 2026-10-03（批次 193，W2-14 ①）：**已执行 Prettier 一次性格式化**（`npm run format`，175 文件）；
+//   `flat/recommended` 的**排版规则明确不引入**——排版归 Prettier，ESLint 只保留防错类（essential），
+//   二者混用会互相打架（这正是本配置采用 skip-formatting 的原因）。
 import pluginVue from 'eslint-plugin-vue'
 import vueTsEslintConfig from '@vue/eslint-config-typescript'
 import skipFormatting from '@vue/eslint-config-prettier/skip-formatting'

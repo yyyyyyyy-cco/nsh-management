@@ -94,7 +94,10 @@ function pieOption(field: 'count' | 'total_player_damage', showCount: boolean) {
             itemStyle: { color: hex(PROF_COLORS[p.profession] || '#999'), borderColor: '#fff', borderWidth: 2 },
           })),
         label: { show: false },
-        emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' }, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+        emphasis: {
+          label: { show: true, fontSize: 14, fontWeight: 'bold' },
+          itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' },
+        },
       },
     ],
   }
@@ -130,7 +133,11 @@ const barOption = computed(() => {
           value: +(p.total_player_damage / 10000).toFixed(0),
           itemStyle: {
             color: {
-              type: 'linear', x: 0, y: 0, x2: 1, y2: 0,
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 1,
+              y2: 0,
               colorStops: [
                 { offset: 0, color: hex(PROF_COLORS[p.profession] || '#999') },
                 { offset: 1, color: hex(PROF_COLORS[p.profession] || '#999') + 'aa' },
@@ -148,7 +155,11 @@ const barOption = computed(() => {
           value: +(p.total_building_damage / 10000).toFixed(0),
           itemStyle: {
             color: {
-              type: 'linear', x: 0, y: 0, x2: 1, y2: 0,
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 1,
+              y2: 0,
               colorStops: [
                 { offset: 0, color: hex(PROF_COLORS[p.profession] || '#999') + '80' },
                 { offset: 1, color: hex(PROF_COLORS[p.profession] || '#999') + '40' },

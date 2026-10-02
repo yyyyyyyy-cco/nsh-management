@@ -11,8 +11,8 @@
     <div class="card__body">
       <!-- 加载中：骨架 -->
       <div v-if="!ready" class="hl-skeleton">
-        <div class="sk sk-block" style="height:84px;border-radius:var(--radius-md)" />
-        <div class="sk sk-block" style="height:150px;border-radius:var(--radius-md)" />
+        <div class="sk sk-block" style="height: 84px; border-radius: var(--radius-md)" />
+        <div class="sk sk-block" style="height: 150px; border-radius: var(--radius-md)" />
       </div>
 
       <!-- 无数据 -->

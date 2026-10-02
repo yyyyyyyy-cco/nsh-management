@@ -126,7 +126,9 @@ router.beforeEach(async (to) => {
 })
 
 router.afterEach((to) => {
-  document.title = to.meta.title ? `${String(to.meta.title)} - 轻衫都会用的帮会联赛管理系统` : '轻衫都会用的帮会联赛管理系统'
+  document.title = to.meta.title
+    ? `${String(to.meta.title)} - 轻衫都会用的帮会联赛管理系统`
+    : '轻衫都会用的帮会联赛管理系统'
 })
 
 /** 预取路由懒加载分包：菜单 hover 时预热，冷启动切换更跟手。

@@ -45,11 +45,11 @@
   --edge-faint: #f4efe5;
 
   /* ===== 功能色（中式色名） ===== */
-  --cinnabar: #c0392b;        /* 朱砂：危险 */
+  --cinnabar: #c0392b; /* 朱砂：危险 */
   --cinnabar-dark: #a93226;
-  --jade: #2e8b57;            /* 黛绿：成功 */
-  --ochre: #d97706;           /* 赭黄：警告 */
-  --indigo: #5b7a9d;          /* 靛青：信息 */
+  --jade: #2e8b57; /* 黛绿：成功 */
+  --ochre: #d97706; /* 赭黄：警告 */
+  --indigo: #5b7a9d; /* 靛青：信息 */
 
   /* ===== 字体 ===== */
   --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;

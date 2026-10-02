@@ -67,7 +67,10 @@ describe('calcKDA（辅助型玩家折算）', () => {
   })
 
   it('非辅助且死亡为 0 时分母取下限 1（避免除零）', () => {
-    expect(calcKDA(rec({ profession: '血河', kills: 10, assists: 6, deaths: 0, player_damage: 999 }))).toBeCloseTo(16, 5)
+    expect(calcKDA(rec({ profession: '血河', kills: 10, assists: 6, deaths: 0, player_damage: 999 }))).toBeCloseTo(
+      16,
+      5,
+    )
   })
 
   it('铁衣恒按辅助折算（助攻 ×0.8、死亡 ×1.2）', () => {

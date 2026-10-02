@@ -3,9 +3,13 @@
   <div class="calendar">
     <div class="calendar-header">
       <el-button-group>
-        <el-button size="small" class="nav-btn" @click="changeMonth(-1)" aria-label="上一月"><el-icon><ArrowLeft /></el-icon></el-button>
+        <el-button size="small" class="nav-btn" @click="changeMonth(-1)" aria-label="上一月"
+          ><el-icon><ArrowLeft /></el-icon
+        ></el-button>
         <el-button size="small" class="today-btn" @click="goToday">今天</el-button>
-        <el-button size="small" class="nav-btn" @click="changeMonth(1)" aria-label="下一月"><el-icon><ArrowRight /></el-icon></el-button>
+        <el-button size="small" class="nav-btn" @click="changeMonth(1)" aria-label="下一月"
+          ><el-icon><ArrowRight /></el-icon
+        ></el-button>
       </el-button-group>
       <span class="month-title">{{ viewMonth.format('YYYY年MM月') }}</span>
       <span class="header-hint">{{ isAdmin ? '点击日期创建赛程 · ' : '' }}点击赛程查看详情</span>
@@ -266,7 +270,9 @@ function goToday() {
   text-overflow: ellipsis;
   background: var(--gold-100);
   color: var(--gold-700);
-  transition: transform var(--dur-fast), box-shadow var(--dur-fast);
+  transition:
+    transform var(--dur-fast),
+    box-shadow var(--dur-fast);
   cursor: pointer;
 }
 

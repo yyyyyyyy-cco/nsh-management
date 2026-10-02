@@ -9,8 +9,8 @@
     <div class="card__body profession-grid">
       <template v-if="showSkeleton && professionStats.length === 0">
         <div v-for="i in 6" :key="i" class="profession-item">
-          <span class="sk" style="width:10px;height:10px;border-radius:50%" />
-          <span class="sk sk-line" style="width:52px" />
+          <span class="sk" style="width: 10px; height: 10px; border-radius: 50%" />
+          <span class="sk sk-line" style="width: 52px" />
           <span class="sk sk-line sk-kpi-sm" />
         </div>
       </template>

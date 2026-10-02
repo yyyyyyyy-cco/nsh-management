@@ -89,7 +89,9 @@ const cards = computed(() => [
   border-radius: var(--radius-lg);
   padding: 16px 18px 14px;
   box-shadow: var(--shadow-sm);
-  transition: transform var(--dur-normal) var(--ease-out), box-shadow var(--dur-normal) var(--ease-out);
+  transition:
+    transform var(--dur-normal) var(--ease-out),
+    box-shadow var(--dur-normal) var(--ease-out);
 }
 
 .stat-card:hover {

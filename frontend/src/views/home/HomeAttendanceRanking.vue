@@ -13,7 +13,9 @@
       <SkeletonTable v-if="showSkeleton && topAttendance.length === 0" variant="rows" :rows="5" />
       <template v-else-if="topAttendance.length === 0">
         <div class="empty-state">
-          <div class="empty-state__icon"><el-icon :size="36"><UserFilled /></el-icon></div>
+          <div class="empty-state__icon">
+            <el-icon :size="36"><UserFilled /></el-icon>
+          </div>
           <div class="empty-state__text">暂无出勤数据</div>
         </div>
       </template>
@@ -146,9 +148,15 @@ const router = useRouter()
 }
 
 @keyframes medal-shimmer {
-  0% { left: -100%; }
-  50% { left: 150%; }
-  100% { left: 150%; }
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 150%;
+  }
+  100% {
+    left: 150%;
+  }
 }
 
 .rank-item__dot {

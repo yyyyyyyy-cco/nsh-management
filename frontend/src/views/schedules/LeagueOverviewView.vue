@@ -24,19 +24,15 @@
         description="当前筛选下暂无场次"
         :image-size="72"
       />
-      <button
-        v-for="row in filteredSchedules"
-        :key="row.id"
-        type="button"
-        class="match-card"
-        @click="goRecording(row)"
-      >
+      <button v-for="row in filteredSchedules" :key="row.id" type="button" class="match-card" @click="goRecording(row)">
         <span class="mc-body">
           <span class="mc-top">
             <span class="time-date num">{{ formatDate(row.match_time) }}</span>
             <span class="time-clock num">{{ formatClock(row.match_time) }}</span>
             <span class="rounds">{{ row.rounds }}局</span>
-            <el-tag class="mc-result" :type="resultType(row.result)" effect="light">{{ resultLabel(row.result) }}</el-tag>
+            <el-tag class="mc-result" :type="resultType(row.result)" effect="light">{{
+              resultLabel(row.result)
+            }}</el-tag>
           </span>
           <span class="opponent">vs {{ row.opponent }}</span>
         </span>
@@ -244,7 +240,9 @@ function goRecording(schedule: ScheduleInfo) {
   text-align: left;
   cursor: pointer;
   touch-action: manipulation;
-  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
 .match-card:active {

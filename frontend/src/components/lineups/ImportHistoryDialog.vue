@@ -7,7 +7,12 @@
     <template v-else>
       <!-- 第一步：选择历史赛程 -->
       <p class="dialog-tip">选择历史赛程：</p>
-      <el-select aria-label="请选择历史赛程" v-model="selectedSchedule" placeholder="请选择历史赛程" style="width: 100%">
+      <el-select
+        aria-label="请选择历史赛程"
+        v-model="selectedSchedule"
+        placeholder="请选择历史赛程"
+        style="width: 100%"
+      >
         <el-option v-for="h in history" :key="h.schedule_id" :value="h.schedule_id" :label="scheduleLabel(h)" />
       </el-select>
 
@@ -46,18 +51,15 @@
           </div>
         </div>
 
-        <p class="dialog-hint">导入规则：仅当前候选池（出勤正常）中出现的成员按原位置排入，未出现的槽位留空，其余小队不受影响。</p>
+        <p class="dialog-hint">
+          导入规则：仅当前候选池（出勤正常）中出现的成员按原位置排入，未出现的槽位留空，其余小队不受影响。
+        </p>
       </template>
     </template>
 
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
-      <el-button
-        type="primary"
-        :disabled="selectedTeams.size === 0"
-        :loading="saving"
-        @click="onConfirm"
-      >
+      <el-button type="primary" :disabled="selectedTeams.size === 0" :loading="saving" @click="onConfirm">
         确认导入（{{ selectedTeams.size }} 个小队）
       </el-button>
     </template>
@@ -271,7 +273,9 @@ async function onConfirm() {
   padding: 8px 10px;
   background: var(--ink-bg-cream);
   cursor: pointer;
-  transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+  transition:
+    border-color var(--dur-fast),
+    box-shadow var(--dur-fast);
 }
 
 .team-card:hover {

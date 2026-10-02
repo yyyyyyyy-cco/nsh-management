@@ -30,9 +30,7 @@ const GUIDE: Record<string, { color: string; text: string }> = {
 }
 
 /** 后端 PROFESSIONS 的顺序（与 backend/app/utils/constants.py 一致） */
-const EXPECTED_PROFESSIONS = [
-  '铁衣', '血河', '沧澜', '龙吟', '潮光', '玄机', '碎梦', '神相', '九灵', '鸿音', '素问',
-]
+const EXPECTED_PROFESSIONS = ['铁衣', '血河', '沧澜', '龙吟', '潮光', '玄机', '碎梦', '神相', '九灵', '鸿音', '素问']
 
 describe('职业清单与后端一致', () => {
   it('11 种且顺序与后端一致', () => {

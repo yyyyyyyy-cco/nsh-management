@@ -8,12 +8,7 @@
       @keyup.enter="$emit('search')"
     />
     <el-select aria-label="全部帮会" v-model="filters.guild_id" placeholder="全部帮会" clearable style="width: 160px">
-      <el-option
-        v-for="g in guilds"
-        :key="g.id"
-        :label="g.name"
-        :value="g.id"
-      />
+      <el-option v-for="g in guilds" :key="g.id" :label="g.name" :value="g.id" />
     </el-select>
     <el-select aria-label="全部模块" v-model="filters.module" placeholder="全部模块" clearable style="width: 140px">
       <el-option v-for="(label, key) in moduleLabels" :key="key" :label="label" :value="key" />

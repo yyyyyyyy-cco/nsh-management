@@ -27,9 +27,7 @@
           </template>
         </el-alert>
         <p class="note">若该 ID 已被其他成员占用，或存在名称归属冲突，审核会被拒绝并保持待审状态。</p>
-        <el-checkbox v-model="identityConfirmed" class="confirm">
-          我已核实申请人身份（游戏内或群内确认）
-        </el-checkbox>
+        <el-checkbox v-model="identityConfirmed" class="confirm"> 我已核实申请人身份（游戏内或群内确认） </el-checkbox>
       </template>
 
       <template v-else>

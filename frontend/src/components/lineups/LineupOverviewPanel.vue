@@ -5,7 +5,13 @@
         <div class="overview-header">
           <span class="overview-title">排表总览</span>
           <span class="overview-sub">按ID查找位置</span>
-          <el-button class="overview-export" size="small" :loading="exporting" :icon="Picture" @click="onExportOverview">
+          <el-button
+            class="overview-export"
+            size="small"
+            :loading="exporting"
+            :icon="Picture"
+            @click="onExportOverview"
+          >
             导出 PNG
           </el-button>
         </div>
@@ -27,7 +33,11 @@
             :key="p"
             class="prof-stats__item"
             :class="{ active: (profCount[p] || 0) > 0 }"
-            :style="(profCount[p] || 0) > 0 ? { color: profColor(p), borderColor: profColor(p) + '55', background: profColor(p) + '1a' } : {}"
+            :style="
+              (profCount[p] || 0) > 0
+                ? { color: profColor(p), borderColor: profColor(p) + '55', background: profColor(p) + '1a' }
+                : {}
+            "
           >
             {{ p }} <strong>{{ profCount[p] || 0 }}</strong>
           </span>
@@ -73,15 +83,11 @@ const GROUPS = [
 const groupViews = computed(() =>
   GROUPS.map((g) => ({
     ...g,
-    teams: teams.value
-      .filter((t) => t.category === g.category)
-      .sort((a, b) => a.team_index - b.team_index),
+    teams: teams.value.filter((t) => t.category === g.category).sort((a, b) => a.team_index - b.team_index),
   })),
 )
 
-const totalPlaced = computed(() =>
-  teams.value.reduce((n, t) => n + t.slots.filter((s) => s.member_name).length, 0),
-)
+const totalPlaced = computed(() => teams.value.reduce((n, t) => n + t.slots.filter((s) => s.member_name).length, 0))
 
 /** 已排成员职业计数。 */
 const profCount = computed(() => {

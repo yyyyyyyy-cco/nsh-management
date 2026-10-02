@@ -180,11 +180,9 @@ export function useRecordingList(props: { scheduleId: number }) {
   }
 
   async function onBatchApprove() {
-    await ElMessageBox.confirm(
-      `确定批量审核通过选中的 ${selectedIds.value.length} 条录屏吗？`,
-      '提示',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确定批量审核通过选中的 ${selectedIds.value.length} 条录屏吗？`, '提示', {
+      type: 'warning',
+    })
     const result = await batchApprove(props.scheduleId, selectedIds.value)
     ElMessage.success(result.message)
     load()

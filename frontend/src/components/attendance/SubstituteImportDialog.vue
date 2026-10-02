@@ -1,12 +1,6 @@
 <template>
   <el-dialog v-model="visible" title="导入替补成员" width="480px" destroy-on-close append-to-body>
-    <el-alert
-      v-if="candidates.length === 0"
-      type="info"
-      :closable="false"
-      class="tip"
-      title="暂无可导入的替补成员"
-    />
+    <el-alert v-if="candidates.length === 0" type="info" :closable="false" class="tip" title="暂无可导入的替补成员" />
     <el-table v-else :data="candidates" size="small" max-height="360" @selection-change="onSelectionChange">
       <el-table-column type="selection" width="44" />
       <el-table-column prop="name" label="ID" min-width="100" />

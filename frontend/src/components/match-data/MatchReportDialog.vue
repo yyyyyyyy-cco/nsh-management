@@ -11,10 +11,10 @@
   >
     <!-- 加载骨架（固定高度块，避免布局跳动） -->
     <div v-if="loading" class="report-skeleton">
-      <div class="sk sk-block" style="height:170px;border-radius:var(--radius-lg)" />
-      <div class="sk sk-block" style="height:200px;border-radius:var(--radius-lg)" />
-      <div class="sk sk-block" style="height:300px;border-radius:var(--radius-lg)" />
-      <div class="sk sk-block" style="height:260px;border-radius:var(--radius-lg)" />
+      <div class="sk sk-block" style="height: 170px; border-radius: var(--radius-lg)" />
+      <div class="sk sk-block" style="height: 200px; border-radius: var(--radius-lg)" />
+      <div class="sk sk-block" style="height: 300px; border-radius: var(--radius-lg)" />
+      <div class="sk sk-block" style="height: 260px; border-radius: var(--radius-lg)" />
     </div>
 
     <!-- 加载失败 -->
@@ -31,7 +31,9 @@
 
     <template #footer>
       <el-button @click="visible = false">关闭</el-button>
-      <el-button type="primary" :loading="exporting" :disabled="!report || loading" @click="onExport">导出 PNG</el-button>
+      <el-button type="primary" :loading="exporting" :disabled="!report || loading" @click="onExport"
+        >导出 PNG</el-button
+      >
     </template>
   </el-dialog>
 </template>

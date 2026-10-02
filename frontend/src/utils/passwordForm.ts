@@ -68,9 +68,6 @@ export function buildPasswordRules(values: () => PasswordFormValues): Record<str
       rule(lengthError),
       rule((v) => sameAsCurrentError(v, values().currentPassword)),
     ],
-    confirmPassword: [
-      rule((v) => requiredError(v, '新密码')),
-      rule((v) => mismatchError(v, values().newPassword)),
-    ],
+    confirmPassword: [rule((v) => requiredError(v, '新密码')), rule((v) => mismatchError(v, values().newPassword))],
   }
 }

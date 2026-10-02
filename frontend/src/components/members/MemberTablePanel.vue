@@ -33,7 +33,8 @@
 
   <!-- 桌面端：表格形态保持不变 -->
   <SkeletonTable v-else-if="showSkeleton && !items.length" variant="table" :rows="5" />
-  <el-table v-else
+  <el-table
+    v-else
     :data="items"
     :default-sort="{ prop: 'name', order: 'ascending' }"
     @selection-change="onSelectionChange"
@@ -42,7 +43,9 @@
     <el-table-column type="selection" width="48" />
     <el-table-column prop="name" label="ID" min-width="120" sortable="custom">
       <template #default="{ row }">
-        <span class="member-name member-name--link" title="查看成员详情" @click="$emit('detail', row)">{{ row.name }}</span>
+        <span class="member-name member-name--link" title="查看成员详情" @click="$emit('detail', row)">{{
+          row.name
+        }}</span>
       </template>
     </el-table-column>
     <el-table-column prop="main_profession" label="主职业" min-width="100" sortable="custom">

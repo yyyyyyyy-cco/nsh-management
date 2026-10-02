@@ -19,8 +19,7 @@ export function computeGuildStats(schedules: ScheduleInfo[]) {
   const wins = last5.filter((s) => s.result === 'win').length
   const loses = last5.filter((s) => s.result === 'lose').length
   const draws = last5.filter((s) => s.result === 'draw').length
-  const recentRecord =
-    wins + loses + draws === 0 ? '-' : `${wins}胜${draws > 0 ? `${draws}平` : ''}${loses}负`
+  const recentRecord = wins + loses + draws === 0 ? '-' : `${wins}胜${draws > 0 ? `${draws}平` : ''}${loses}负`
   const rounds = last5.flatMap((s) => (s.round_results ?? []).filter(Boolean))
   const roundWinRate = rounds.length
     ? Math.round((rounds.filter((r) => r === 'win').length / rounds.length) * 100)

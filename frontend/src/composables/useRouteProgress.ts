@@ -14,7 +14,9 @@ export function useRouteProgress() {
     // 路由进度：懒加载分包加载期 >150ms 显示鎏金线
     removeBeforeEach = router.beforeEach(() => {
       if (progressTimer !== undefined) window.clearTimeout(progressTimer)
-      progressTimer = window.setTimeout(() => { routeLoading.value = true }, 150)
+      progressTimer = window.setTimeout(() => {
+        routeLoading.value = true
+      }, 150)
     })
     removeAfterEach = router.afterEach(() => {
       if (progressTimer !== undefined) {

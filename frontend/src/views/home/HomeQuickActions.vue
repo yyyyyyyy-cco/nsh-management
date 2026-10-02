@@ -14,7 +14,9 @@
         :style="{ '--action-color': action.color }"
         @click="router.push(action.path)"
       >
-        <el-icon class="quick-action__icon" :style="{ background: action.color }"><component :is="action.icon" /></el-icon>
+        <el-icon class="quick-action__icon" :style="{ background: action.color }"
+          ><component :is="action.icon"
+        /></el-icon>
         <span class="quick-action__label">{{ action.label }}</span>
       </div>
     </div>
@@ -33,9 +35,7 @@ const auth = useAuthStore()
 
 const quickActions = computed(() => {
   if (auth.isDeveloper) {
-    return [
-      { label: '系统配置', icon: Setting, path: '/config', color: '#D97706' },
-    ]
+    return [{ label: '系统配置', icon: Setting, path: '/config', color: '#D97706' }]
   }
   return [
     { label: '常驻库', icon: UserFilled, path: '/members', color: '#2E8B57' },

@@ -18,8 +18,8 @@
       <!-- 信息卡骨架 -->
       <div v-if="showSkeleton && !schedule" class="sk-desc">
         <div v-for="i in 4" :key="i" class="sk-desc__row">
-          <span class="sk sk-line" style="width:80px" />
-          <span class="sk sk-line" style="width:1fr;flex:1" />
+          <span class="sk sk-line" style="width: 80px" />
+          <span class="sk sk-line" style="width: 1fr; flex: 1" />
         </div>
       </div>
       <el-descriptions v-else-if="schedule" :column="2" border>
@@ -154,9 +154,20 @@ async function onDelete() {
 /* finesse · register=product · shell=member-detail: row-list(≤768px) + table(桌面) */
 
 /* ===== 信息卡骨架：2×2 描述格占位 ===== */
-.sk-desc { display: flex; flex-direction: column; gap: 12px; padding: 4px 0; }
-.sk-desc__row { display: flex; align-items: center; gap: 16px; }
-.sk-desc__row .sk { height: 14px; }
+.sk-desc {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+.sk-desc__row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.sk-desc__row .sk {
+  height: 14px;
+}
 
 .card-header {
   display: flex;

@@ -524,6 +524,7 @@ nsh-management/
 | 2026-10-03 | 批次 191（W2-14 ② 第二片）：①启用 UP；忽略 UP009（保留刻意编码声明）与 UP038（ruff 标其修复 unsafe、仅 1 处）；迁移豁免 UP。②ruff 全绿、pytest 266+89 与 mypy 59 不变、声明 15->15、迁移 0 改动。③同步 ruff.toml 头部自述。④三次被拦下（替换前提、引号嵌套、UP038 unsafe）均在写入/提交前；新增清单第 145 条 |
 | 2026-10-03 | 批次 192（W2-14 ② 收官）：①E501 与 ruff format 合并执行；format 重排 123 文件、迁移豁免、超限 42->4。②收尾：脚本追加 E501 豁免、2 处代码行 f-string 用 noqa、1 处 docstring 长行折行。③验收 ruff check 与 format --check 双全绿、pytest 266+89、mypy 59 不变。④观察：E501 按显示宽度计；noqa 对 docstring/字符串内无效。⑤两次按行号定位出错（未提交即被拦下），改按宽度扫描；新增清单第 146 条 |
 | 2026-10-03 | 批次 192 附记：①格式化使该服务 296->301 越界（门禁正确）；文件呈规则冲突。②处置：仅关闭其格式化（[format].exclude，仍受 lint）+ 单列 E501 豁免（写明原因）；未给门禁加豁免。③验证 ruff/format/行数/pytest/mypy 全通过；scripts 未被门禁检查与 F-107 吻合 |
+| 2026-10-03 | 批次 193（W2-14 ① 落地）：①前端早已是业界正确组合（flat/essential + skip-formatting + Prettier），① 只剩跑一次 Prettier。②prettier --write src/ 重排 175 文件；.prettierignore 增 5 条（格式化会越界者，仍受 ESLint）。③验收 format:check/lint/test 69-8/build/行数门禁 全绿。④有意不引入 flat/recommended 排版规则（与 Prettier 冲突），已记录；⑤两次路径基准出错被断言拦下；新增清单第 147 条 |
 
 
 

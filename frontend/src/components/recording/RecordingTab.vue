@@ -9,7 +9,14 @@
 
     <!-- 工具栏：按ID搜索（帮众/管理员）+ 管理员操作 -->
     <div class="toolbar">
-      <el-input aria-label="按ID搜索" v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 200px" :prefix-icon="Search" />
+      <el-input
+        aria-label="按ID搜索"
+        v-model="nameFilter"
+        placeholder="按ID搜索"
+        clearable
+        style="width: 200px"
+        :prefix-icon="Search"
+      />
       <template v-if="auth.isAdmin">
         <el-button type="success" plain :disabled="selectedIds.length === 0" @click="onBatchApprove">
           批量审核通过（{{ selectedIds.length }}）

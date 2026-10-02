@@ -49,18 +49,31 @@
             <span class="record-id">{{ record.old_game_id }}</span>
             <span class="record-arrow">→</span>
             <span class="record-new">{{ record.new_game_id }}</span>
-            <el-tag :type="statusType(record.status)" effect="light" size="small">{{ statusLabel(record.status) }}</el-tag>
+            <el-tag :type="statusType(record.status)" effect="light" size="small">{{
+              statusLabel(record.status)
+            }}</el-tag>
           </div>
           <div class="record-meta">
             当前：{{ record.current_game_id || '成员已删除' }} · 提交账号：{{ record.requester_username }}
           </div>
           <div class="record-meta">申请时间：{{ formatTime(record.created_at) }}</div>
-          <div v-if="record.status === 'invalidated'" class="record-meta">{{ invalidatedLabel(record.invalidated_reason) }}</div>
+          <div v-if="record.status === 'invalidated'" class="record-meta">
+            {{ invalidatedLabel(record.invalidated_reason) }}
+          </div>
           <div v-if="record.review_remark" class="remark">审核意见：{{ record.review_remark }}</div>
           <div class="rr-line actions-line">
             <div class="rr-actions">
-              <el-button v-if="isPending(record)" size="small" type="primary" plain @click="openDialog(record, 'approve')">通过</el-button>
-              <el-button v-if="isPending(record)" size="small" type="danger" plain @click="openDialog(record, 'reject')">驳回</el-button>
+              <el-button
+                v-if="isPending(record)"
+                size="small"
+                type="primary"
+                plain
+                @click="openDialog(record, 'approve')"
+                >通过</el-button
+              >
+              <el-button v-if="isPending(record)" size="small" type="danger" plain @click="openDialog(record, 'reject')"
+                >驳回</el-button
+              >
               <span v-else class="record-meta">{{ reviewerText(record) }}</span>
             </div>
           </div>
@@ -96,16 +109,24 @@
         <el-table-column label="审核信息" min-width="180">
           <template #default="{ row }">
             <span v-if="row.review_remark" class="remark">{{ row.review_remark }}</span>
-            <span v-else-if="row.status === 'invalidated'" class="remark">{{ invalidatedLabel(row.invalidated_reason) }}</span>
-            <span v-else-if="row.reviewer_username" class="remark">{{ row.reviewer_username }} · {{ formatTime(row.reviewed_at) }}</span>
+            <span v-else-if="row.status === 'invalidated'" class="remark">{{
+              invalidatedLabel(row.invalidated_reason)
+            }}</span>
+            <span v-else-if="row.reviewer_username" class="remark"
+              >{{ row.reviewer_username }} · {{ formatTime(row.reviewed_at) }}</span
+            >
             <span v-else class="remark remark--empty">—</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="140" align="right">
           <template #default="{ row }">
             <template v-if="isPending(row)">
-              <el-button size="small" type="primary" plain class="row-btn" @click="openDialog(row, 'approve')">通过</el-button>
-              <el-button size="small" type="danger" plain class="row-btn" @click="openDialog(row, 'reject')">驳回</el-button>
+              <el-button size="small" type="primary" plain class="row-btn" @click="openDialog(row, 'approve')"
+                >通过</el-button
+              >
+              <el-button size="small" type="danger" plain class="row-btn" @click="openDialog(row, 'reject')"
+                >驳回</el-button
+              >
             </template>
             <span v-else class="remark remark--empty">{{ reviewerText(row) }}</span>
           </template>

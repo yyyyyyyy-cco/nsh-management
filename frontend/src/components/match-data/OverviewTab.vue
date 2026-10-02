@@ -23,12 +23,7 @@
         />
       </div>
       <div class="kill-bar__labels">
-        <span
-          v-for="(c, i) in camps"
-          :key="c.camp"
-          class="kill-bar__label"
-          :style="{ color: campColor(i) }"
-        >
+        <span v-for="(c, i) in camps" :key="c.camp" class="kill-bar__label" :style="{ color: campColor(i) }">
           {{ c.camp }} {{ killPct[i].toFixed(1) }}%
         </span>
       </div>

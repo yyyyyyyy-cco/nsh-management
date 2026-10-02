@@ -48,9 +48,7 @@ const activeMetric = ref('kills')
 
 // X 轴：按时间正序
 const sorted = computed(() => [...props.records].reverse())
-const xLabels = computed(() =>
-  sorted.value.map((r) => `${r.match_time.slice(5, 10)} 第${r.round_no}局`)
-)
+const xLabels = computed(() => sorted.value.map((r) => `${r.match_time.slice(5, 10)} 第${r.round_no}局`))
 
 function buildOption(m: MetricDef) {
   const data = sorted.value.map((r) => (r as unknown as Record<string, number>)[m.value])
@@ -79,26 +77,31 @@ function buildOption(m: MetricDef) {
         formatter: (v: number) => m.formatter(v),
       },
     },
-    series: [{
-      name: m.label,
-      type: 'line' as const,
-      smooth: true,
-      symbol: 'circle',
-      symbolSize: 8,
-      lineStyle: { width: 3, color: m.color },
-      itemStyle: { color: m.color },
-      areaStyle: {
-        color: {
-          type: 'linear' as const,
-          x: 0, y: 0, x2: 0, y2: 1,
-          colorStops: [
-            { offset: 0, color: m.color + '30' },
-            { offset: 1, color: m.color + '05' },
-          ],
+    series: [
+      {
+        name: m.label,
+        type: 'line' as const,
+        smooth: true,
+        symbol: 'circle',
+        symbolSize: 8,
+        lineStyle: { width: 3, color: m.color },
+        itemStyle: { color: m.color },
+        areaStyle: {
+          color: {
+            type: 'linear' as const,
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: m.color + '30' },
+              { offset: 1, color: m.color + '05' },
+            ],
+          },
         },
+        data,
       },
-      data,
-    }],
+    ],
   }
 }
 </script>

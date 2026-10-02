@@ -9,15 +9,29 @@
     <div class="login-card">
       <div class="card-topline" />
       <div class="brand">
-        <h1 class="brand-title">轻衫都会用的<br>帮会联赛管理系统</h1>
+        <h1 class="brand-title">轻衫都会用的<br />帮会联赛管理系统</h1>
         <div class="brand-line" />
       </div>
       <el-form ref="formRef" :model="form" :rules="rules" size="large" @keyup.enter="onSubmit">
         <el-form-item prop="username" aria-label="用户名">
-          <el-input v-model="form.username" placeholder="用户名" :prefix-icon="User" :disabled="locked" @input="errorMsg = ''" />
+          <el-input
+            v-model="form.username"
+            placeholder="用户名"
+            :prefix-icon="User"
+            :disabled="locked"
+            @input="errorMsg = ''"
+          />
         </el-form-item>
         <el-form-item prop="password" aria-label="密码">
-          <el-input v-model="form.password" type="password" placeholder="密码" show-password :prefix-icon="Lock" :disabled="locked" @input="errorMsg = ''" />
+          <el-input
+            v-model="form.password"
+            type="password"
+            placeholder="密码"
+            show-password
+            :prefix-icon="Lock"
+            :disabled="locked"
+            @input="errorMsg = ''"
+          />
         </el-form-item>
         <el-alert
           v-if="errorMsg"
@@ -27,7 +41,9 @@
           :closable="false"
           class="login-error"
         />
-        <el-button type="primary" class="submit" :loading="loading" :disabled="locked" @click="onSubmit">登 录</el-button>
+        <el-button type="primary" class="submit" :loading="loading" :disabled="locked" @click="onSubmit"
+          >登 录</el-button
+        >
       </el-form>
     </div>
 

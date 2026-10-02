@@ -26,7 +26,13 @@ import { fmtNum } from '@/components/match-data/analysis'
 const props = defineProps<{ summary: PlayerSummary }>()
 
 const cards = computed(() => [
-  { key: 'matches', label: '参战场次', value: `${props.summary.total_matches} 场 / ${props.summary.total_rounds} 局`, icon: Document, suffix: '' },
+  {
+    key: 'matches',
+    label: '参战场次',
+    value: `${props.summary.total_matches} 场 / ${props.summary.total_rounds} 局`,
+    icon: Document,
+    suffix: '',
+  },
   { key: 'profession', label: '主力职业', value: props.summary.main_profession || '-', icon: Trophy, suffix: '' },
   { key: 'kda', label: '场均 KDA', value: props.summary.avg_kda.toFixed(2), icon: DataLine, suffix: '' },
   { key: 'kills', label: '场均击杀', value: props.summary.avg_kills.toFixed(1), icon: Trophy, suffix: '' },
@@ -63,8 +69,14 @@ const cards = computed(() => [
 }
 
 @keyframes cardUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .stat-card__header {

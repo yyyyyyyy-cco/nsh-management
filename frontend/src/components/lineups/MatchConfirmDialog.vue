@@ -1,7 +1,8 @@
 <template>
   <el-dialog v-model="visible" :title="`匹配到 ${matches.length} 名成员`" width="420px" append-to-body>
     <p class="match-tip">
-      关键词：<b class="keyword">{{ keyword }}</b>，点击选择要填入的成员
+      关键词：<b class="keyword">{{ keyword }}</b
+      >，点击选择要填入的成员
     </p>
     <div class="match-list">
       <div

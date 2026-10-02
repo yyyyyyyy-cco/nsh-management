@@ -17,13 +17,7 @@
 
   <!-- ID 搜索 + 职业筛选 -->
   <div class="filter-row">
-    <el-input
-      v-model="keyword"
-      placeholder="搜索 ID 过滤"
-      clearable
-      :prefix-icon="Search"
-      class="keyword-input"
-    />
+    <el-input v-model="keyword" placeholder="搜索 ID 过滤" clearable :prefix-icon="Search" class="keyword-input" />
     <el-select aria-label="职业筛选" v-model="professionFilter" placeholder="职业筛选" clearable class="prof-filter">
       <el-option v-for="p in PROF_ORDER" :key="p" :label="p" :value="p" />
     </el-select>

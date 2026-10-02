@@ -16,8 +16,8 @@
       <!-- 信息卡骨架 -->
       <div v-if="showSkeleton && !member && !loadFailed" class="sk-desc">
         <div v-for="i in 2" :key="i" class="sk-desc__row">
-          <span class="sk sk-line" style="width:80px" />
-          <span class="sk sk-line" style="flex:1" />
+          <span class="sk sk-line" style="width: 80px" />
+          <span class="sk sk-line" style="flex: 1" />
         </div>
       </div>
 

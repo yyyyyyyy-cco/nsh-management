@@ -10,10 +10,24 @@
         @keyup.enter="$emit('search')"
         @clear="$emit('search')"
       />
-      <el-select aria-label="职业筛选" v-model="query.profession" placeholder="职业筛选" clearable class="filter" @change="$emit('search')">
+      <el-select
+        aria-label="职业筛选"
+        v-model="query.profession"
+        placeholder="职业筛选"
+        clearable
+        class="filter"
+        @change="$emit('search')"
+      >
         <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p" />
       </el-select>
-      <el-select aria-label="状态筛选" v-model="query.status" placeholder="状态筛选" clearable class="filter" @change="$emit('search')">
+      <el-select
+        aria-label="状态筛选"
+        v-model="query.status"
+        placeholder="状态筛选"
+        clearable
+        class="filter"
+        @change="$emit('search')"
+      >
         <el-option v-for="s in MEMBER_STATUSES" :key="s.value" :label="s.label" :value="s.value" />
       </el-select>
     </div>
@@ -22,13 +36,7 @@
       <el-button :icon="Upload" @click="$emit('import')">Excel 导入</el-button>
       <el-button :icon="Download" :loading="exporting" @click="$emit('export', 'xlsx')">导出 Excel</el-button>
       <el-button :icon="Download" :loading="exporting" @click="$emit('export', 'png')">导出图片</el-button>
-      <el-button
-        type="danger"
-        plain
-        :icon="Delete"
-        :disabled="selectedCount === 0"
-        @click="$emit('batch-delete')"
-      >
+      <el-button type="danger" plain :icon="Delete" :disabled="selectedCount === 0" @click="$emit('batch-delete')">
         批量删除
         <span v-if="selectedCount" class="batch-count num">{{ selectedCount }}</span>
       </el-button>

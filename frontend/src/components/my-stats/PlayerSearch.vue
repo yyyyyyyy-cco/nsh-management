@@ -15,13 +15,7 @@
     </div>
     <div v-if="history.length" class="history">
       <span class="history-label">最近查询</span>
-      <el-tag
-        v-for="name in history"
-        :key="name"
-        class="history-tag"
-        effect="plain"
-        @click="onHistoryClick(name)"
-      >
+      <el-tag v-for="name in history" :key="name" class="history-tag" effect="plain" @click="onHistoryClick(name)">
         {{ name }}
       </el-tag>
     </div>

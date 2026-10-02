@@ -99,7 +99,9 @@ const router = useRouter()
 // 子标签状态经 URL query 持久化（刷新后保持）
 const metricSubTab = ref((route.query.metricSub as string) || 'efficiency')
 
-watch(metricSubTab, (v) => { router.replace({ query: { ...route.query, metricSub: v } }) })
+watch(metricSubTab, (v) => {
+  router.replace({ query: { ...route.query, metricSub: v } })
+})
 </script>
 
 <style scoped>

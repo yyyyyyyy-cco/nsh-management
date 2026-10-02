@@ -31,7 +31,9 @@
         </el-table-column>
         <el-table-column label="差值" min-width="90" align="right">
           <template #default="{ row }">
-            <span :class="row.diff >= 0 ? 'diff-pos' : 'diff-neg'">{{ row.diff >= 0 ? '+' : '' }}{{ row.diffStr }}</span>
+            <span :class="row.diff >= 0 ? 'diff-pos' : 'diff-neg'"
+              >{{ row.diff >= 0 ? '+' : '' }}{{ row.diffStr }}</span
+            >
           </template>
         </el-table-column>
         <el-table-column label="波动值" min-width="150">

@@ -82,7 +82,9 @@ export function buildHeatmapOption(items: MatchData[], allProfs: string[]) {
           borderWidth: 2,
           borderRadius: 3,
         },
-        emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0, 0, 0, 0.3)', borderColor: '#fff', borderWidth: 2 } },
+        emphasis: {
+          itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0, 0, 0, 0.3)', borderColor: '#fff', borderWidth: 2 },
+        },
       },
     ],
   }
@@ -90,7 +92,9 @@ export function buildHeatmapOption(items: MatchData[], allProfs: string[]) {
 
 /** 玩家四维数据：Top10 按综合评分降序，玩家伤害/建筑伤害/治疗/承伤分组柱。 */
 export function buildPlayerBarsOption(items: MatchData[]) {
-  const top = computeScores(items).slice(0, 10).map((s) => s.player)
+  const top = computeScores(items)
+    .slice(0, 10)
+    .map((s) => s.player)
   return {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', ...CHART_THEME.tooltip, valueFormatter: (v: number) => fmtNum(v) },
@@ -103,14 +107,44 @@ export function buildPlayerBarsOption(items: MatchData[]) {
     },
     yAxis: {
       type: 'value',
-      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 60,
+        overflow: 'truncate',
+      },
       splitLine: CHART_THEME.axis.splitLine,
     },
     series: [
-      { name: '玩家伤害', type: 'bar', barWidth: 8, barGap: '25%', itemStyle: { color: '#c9a13b', borderRadius: [2, 2, 0, 0] }, data: top.map((r) => r.player_damage) },
-      { name: '建筑伤害', type: 'bar', barWidth: 8, itemStyle: { color: '#5b7a9d', borderRadius: [2, 2, 0, 0] }, data: top.map((r) => r.building_damage) },
-      { name: '治疗', type: 'bar', barWidth: 8, itemStyle: { color: '#2e8b57', borderRadius: [2, 2, 0, 0] }, data: top.map((r) => r.healing) },
-      { name: '承伤', type: 'bar', barWidth: 8, itemStyle: { color: '#c0392b', borderRadius: [2, 2, 0, 0] }, data: top.map((r) => r.damage_taken) },
+      {
+        name: '玩家伤害',
+        type: 'bar',
+        barWidth: 8,
+        barGap: '25%',
+        itemStyle: { color: '#c9a13b', borderRadius: [2, 2, 0, 0] },
+        data: top.map((r) => r.player_damage),
+      },
+      {
+        name: '建筑伤害',
+        type: 'bar',
+        barWidth: 8,
+        itemStyle: { color: '#5b7a9d', borderRadius: [2, 2, 0, 0] },
+        data: top.map((r) => r.building_damage),
+      },
+      {
+        name: '治疗',
+        type: 'bar',
+        barWidth: 8,
+        itemStyle: { color: '#2e8b57', borderRadius: [2, 2, 0, 0] },
+        data: top.map((r) => r.healing),
+      },
+      {
+        name: '承伤',
+        type: 'bar',
+        barWidth: 8,
+        itemStyle: { color: '#c0392b', borderRadius: [2, 2, 0, 0] },
+        data: top.map((r) => r.damage_taken),
+      },
     ],
   }
 }
@@ -138,10 +172,19 @@ export function buildStackOption(
     },
     legend: { top: 0, ...CHART_THEME.legend, type: 'scroll' },
     grid: { left: 16, right: 20, top: 40, bottom: 8, containLabel: true },
-    xAxis: { type: 'category', data: camps.map((c) => c.camp), axisLabel: { ...CHART_THEME.axis.axisLabel, interval: 0 } },
+    xAxis: {
+      type: 'category',
+      data: camps.map((c) => c.camp),
+      axisLabel: { ...CHART_THEME.axis.axisLabel, interval: 0 },
+    },
     yAxis: {
       type: 'value',
-      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 60,
+        overflow: 'truncate',
+      },
       splitLine: CHART_THEME.axis.splitLine,
     },
     series: allProfs.map((prof) => ({
@@ -171,7 +214,7 @@ export function buildDamagePieOption(items: MatchData[]) {
       trigger: 'item',
       ...CHART_THEME.tooltip,
       formatter: (p: { name: string; value: number; percent: number }) =>
-        `${tooltipText(p.name)}: ${fmtNum(p.value)} (${tooltipText(p.percent)}%)`
+        `${tooltipText(p.name)}: ${fmtNum(p.value)} (${tooltipText(p.percent)}%)`,
     },
     legend: { orient: 'vertical', right: 5, top: 'center', ...CHART_THEME.legend },
     series: [
@@ -185,7 +228,10 @@ export function buildDamagePieOption(items: MatchData[]) {
           itemStyle: { color: ['#c9a13b', '#5b7a9d', '#2e8b57'][i], borderColor: '#fff', borderWidth: 2 },
         })),
         label: { show: false },
-        emphasis: { label: { show: true, fontWeight: 'bold' }, itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+        emphasis: {
+          label: { show: true, fontWeight: 'bold' },
+          itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' },
+        },
       },
     ],
   }

@@ -1,9 +1,13 @@
 <template>
   <el-dialog v-model="visible" title="分配未排表成员" width="560px" append-to-body>
-    <div class="adjust-tip">
-      将未排表成员手动分配到目标队伍。调整保存在<b>分析副本</b>中，不会修改正式排表。
-    </div>
-    <el-select aria-label="选择目标队伍" v-model="adjustTarget" placeholder="选择目标队伍" size="small" style="width: 100%">
+    <div class="adjust-tip">将未排表成员手动分配到目标队伍。调整保存在<b>分析副本</b>中，不会修改正式排表。</div>
+    <el-select
+      aria-label="选择目标队伍"
+      v-model="adjustTarget"
+      placeholder="选择目标队伍"
+      size="small"
+      style="width: 100%"
+    >
       <el-option
         v-for="t in teams"
         :key="`${t.category}:${t.team_index}`"
@@ -16,7 +20,9 @@
         <el-checkbox-group v-model="adjustSelected">
           <el-checkbox v-for="m in members" :key="m.player_name" :value="m.player_name">
             <span class="adjust-member__name">{{ m.player_name }}</span>
-            <span class="adjust-member__prof" :style="{ color: profColor(m.profession ?? '') }">{{ m.profession || '未知' }}</span>
+            <span class="adjust-member__prof" :style="{ color: profColor(m.profession ?? '') }">{{
+              m.profession || '未知'
+            }}</span>
           </el-checkbox>
         </el-checkbox-group>
       </template>
@@ -30,7 +36,8 @@
         :disabled="!adjustTarget || !adjustSelected.length"
         :loading="saving"
         @click="onConfirm"
-      >确定分配</el-button>
+        >确定分配</el-button
+      >
     </template>
   </el-dialog>
 </template>

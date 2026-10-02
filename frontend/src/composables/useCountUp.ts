@@ -9,9 +9,7 @@
  */
 import { ref, watch, type Ref } from 'vue'
 
-const prefersReduced =
-  typeof window !== 'undefined' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches
+const prefersReduced = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 export function useCountUp(
   target: Ref<number | string | null | undefined>,

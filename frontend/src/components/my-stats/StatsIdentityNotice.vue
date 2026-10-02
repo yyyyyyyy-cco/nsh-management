@@ -19,8 +19,8 @@
         <span class="identity__title">已合并历史 ID</span>
       </div>
       <p class="identity__text">
-        当前 ID <b class="identity__strong">{{ identity.current_game_id }}</b>；
-        输入 <b class="identity__strong">{{ identity.query_player_name }}</b> 与全部关联 ID 查询结果一致，
+        当前 ID <b class="identity__strong">{{ identity.current_game_id }}</b
+        >； 输入 <b class="identity__strong">{{ identity.query_player_name }}</b> 与全部关联 ID 查询结果一致，
         统计范围为合并后的最近 10 场（各场明细保留当时的 ID）。
       </p>
       <div class="identity__tags">
