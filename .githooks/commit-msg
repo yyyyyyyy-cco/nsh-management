@@ -1,0 +1,23 @@
+#!/bin/sh
+# ===== git commit-msg 钩子（版本化于仓库，启用方式见下） =====
+# 启用（任选其一）：
+#   1) 一次性：git config core.hooksPath .githooks      # 让本目录整体生效（推荐）
+#   2) 脚本化：sh scripts/install_git_hooks.sh
+# 校验规则权威源：.agent/rules/git-commit-message.md
+# 校验实现：scripts/check_commit_msg.py（含 --self-test 自检用例）
+#
+# 说明：git 会把消息文件路径作为 $1 传入（含注释行）；脚本只读该文件。
+set -e
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+if command -v python >/dev/null 2>&1; then
+    PY=python
+elif command -v python3 >/dev/null 2>&1; then
+    PY=python3
+else
+    echo "[commit-msg] 未找到 python/python3，跳过提交消息校验" >&2
+    exit 0
+fi
+
+exec "$PY" "$REPO_ROOT/scripts/check_commit_msg.py" "$1"

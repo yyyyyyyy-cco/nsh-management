@@ -111,6 +111,38 @@ jobs:
             exit 1
           fi
 
+  commit-msg:
+    name: 提交消息规范（基线之后）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 需要基线提交可达，才能对「基线..HEAD」范围逐个校验
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: 校验脚本自检（内置用例）
+        run: python scripts/check_commit_msg.py --self-test
+      - name: 校验本次范围内的提交消息
+        run: |
+          set -e
+          BASE=$(tr -d '[:space:]' < .github/commit-msg-baseline)
+          echo "校验基线：$BASE"
+          if ! git cat-file -e "${BASE}^{commit}" 2>/dev/null; then
+            echo "::error::基线提交 $BASE 不可达；请确认 actions/checkout 使用 fetch-depth: 0"
+            exit 2
+          fi
+          fail=0; n=0
+          for sha in $(git rev-list "${BASE}..HEAD" --no-merges); do
+            n=$((n+1))
+            if ! git log -1 --format='%B' "$sha" | python scripts/check_commit_msg.py --stdin --quiet; then
+              echo "::error::提交 $sha 的消息不符合 .agent/rules/git-commit-message.md"
+              fail=$((fail+1))
+            fi
+          done
+          echo "校验提交数=$n，违规=$fail"
+          [ "$fail" -eq 0 ]
+
   docker-build:
     name: 镜像构建（后端 + 前端）
     runs-on: ubuntu-latest
