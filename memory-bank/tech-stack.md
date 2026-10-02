@@ -89,41 +89,22 @@
 | Nginx | 反向代理 | 高性能，静态资源服务，负载均衡 |
 
 ### 部署架构
-```
-┌─────────────────────────────────────────────────────────┐
-│                      云服务器                            │
-│  ┌─────────────────────────────────────────────────┐    │
-│  │               Nginx（前端容器内）                 │    │
-│  │  - 静态资源服务（前端打包文件）                    │    │
-│  │  - 反向代理（/api → 后端服务:8000）               │    │
-│  │  - HTTPS 终止（SSL 证书）                        │    │
-│  │  - SPA 回退（try_files $uri /index.html）        │    │
-│  │  - 上传限制 20MB（client_max_body_size）         │    │
-│  └─────────────────────────────────────────────────┘    │
-│                          │                               │
-│          ┌───────────────┴───────────────┐               │
-│          │                               │               │
-│  ┌───────▼───────┐               ┌──────▼──────┐        │
-│  │   前端容器     │               │  后端容器    │        │
-│  │  (Nginx:80)   │               │  (FastAPI    │        │
-│  │               │               │   :8000)     │        │
-│  └───────────────┘               └─────────────┘        │
-│                                     │                    │
-│                               ┌─────▼─────┐             │
-│                               │ data/     │             │
-│                               │ nsh.db    │             │
-│                               └───────────┘             │
-└─────────────────────────────────────────────────────────┘
-```
+
+> **权威源**：[`DEPLOY.md`](../DEPLOY.md)（生产架构、日常更新流程、日志、备份与恢复、常见问题）。本节仅保留摘要，不复制其内容。
+
+生产为**单层 TLS**（2026-09-15 改造）：同机全局 `nginx-proxy` 容器是**唯一 TLS 终止点**——证书、限流（API 20r/s、登录 5r/m）、安全响应头、HTTP→HTTPS 跳转、默认 server 兜底全部只在这一层；本项目 frontend 容器退化为「静态资源 + `/api` 反代」，容器内明文 `:80`、**不映射宿主端口**、不挂载证书；backend 容器为内网 FastAPI `:8000`，以非 root（`gosu appuser`）运行，SQLite 数据落在命名卷 `nsh-data`（WAL 模式）。
 
 ### Docker Compose 配置
-实际配置见项目根目录 `docker-compose.yml`，关键特性：
-- **前端容器**：多阶段构建（npm build → Nginx 静态托管），端口 80/443（HTTPS），依赖后端健康检查
-- **后端容器**：多阶段构建（pip install → uvicorn），端口 8000，SQLite 数据卷持久化
-- **数据卷**：命名卷 `nsh-data:/app/data`（SQLite 持久化）与 `nsh-logs:/app/logs`（日志）
-- **健康检查**：后端根路径 `/` 探活（Python urllib），前端 depends_on 等待 `service_healthy`
-- **环境变量**：通过 `.env` 文件注入（SECRET_KEY、DEVELOPER_PASSWORD、ADMIN_PASSWORD、MEMBER_PASSWORD）
-- **启动脚本**：`deploy.sh`（Linux 一键部署）、`start.bat`（Windows 本地开发）
+
+> 实际配置见项目根目录 `docker-compose.yml`。注意：**仓库内该文件是「本地/单机演示拓扑」**（frontend 映射 80/443 并挂载证书），生产服务器版本与之不同（frontend 无宿主端口 + `proxy-net` 外部网络），且服务器配置类文件按 `DEPLOY.md` §三 规则单独维护。
+
+- **前端容器**：多阶段构建（`npm run build:only` → Nginx 静态托管，类型检查在本地/CI 执行）；生产**不映射宿主端口**，由边缘反代回源；依赖后端健康检查
+- **后端容器**：**单阶段**构建（`pip install` → uvicorn，见 `backend/Dockerfile`）；`:8000` 仅容器网络可达；SQLite 数据卷持久化
+- **数据卷**：命名卷 `nsh-data:/app/data`（SQLite，WAL 模式）与 `nsh-logs:/app/logs`（文件日志，`RotatingFileHandler` 10MB×5）
+- **健康检查**：后端根路径 `/` 探活（Python urllib），前端 `depends_on` 等待 `service_healthy`
+- **环境变量**：通过 `.env` 注入（`SECRET_KEY`、`DEVELOPER_PASSWORD`、`ADMIN_PASSWORD`、`MEMBER_PASSWORD`；`docker-compose.yml` 已固定 `APP_ENV=production`）
+- **本地开发**：`start.bat`（Windows 一键启动，含 `DB_MODE` 数据源切换，见 `README.md`）
+- **一键部署**：本地 `deploy.sh` 打包上传后 `docker compose up -d --build`；该脚本**不入库**（含服务器 IP/凭据），模板化与配置漂移治理见 [`.agent/plans/compliance-remediation-plan.md`](../.agent/plans/compliance-remediation-plan.md) 的 W1-2 / W1-3
 
 ---
 

@@ -1,3 +1,7 @@
+# 本地/单机演示拓扑：frontend 映射宿主 80/443 并挂载 Let's Encrypt 证书。
+# 生产服务器使用「单层 TLS」拓扑：由同机 nginx-proxy 独占 TLS/限流/安全响应头，
+# frontend 无宿主端口、不挂证书，且服务器上的该文件与本文件不同（单独维护）。
+# 权威源：DEPLOY.md §二（部署架构）与 §三（服务器配置类文件的变更规则）。
 services:
   backend:
     build: ./backend

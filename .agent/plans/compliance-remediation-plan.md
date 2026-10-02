@@ -224,9 +224,9 @@
 | W0-3 清理绝对路径（活引用 21 处） | ✅ 已完成 | 2026-10-02 | `Select-String -CaseSensitive 'e:\code\@Cjy'` 仅剩本计划自身证据行（§10 已说明计数口径修正）；`architecture.md` 19 处 + `code_rule.md` 2 处改为仓库相对路径，diff 逐行复核通过 | chore(repo): 统一路径引用与陈旧引用 |
 | W0-4 security-review 大小写 | ✅ 已完成 | 2026-10-02 | `git ls-files memory-bank` → `memory-bank/security-review.md`；两步 `git mv` exit 0；`ai-checklist` 警示的「改名文件自身自引用」已核查（L95 本就小写） | 同上 |
 | W0-5 陈旧引用与 .dockerignore | ✅ 已完成 | 2026-10-02 | `analysis.ts:44` v3→v4；两个 `.dockerignore` `.claude`→`.agent`；3 个分析脚本 4 处硬编码路径改由 `NSH_DB_PATH`/`NSH_ANALYSIS_TS` 覆盖；`python -m py_compile` 三脚本 exit 0 | 同上 |
-| W0-6 `.qoder` 登记或忽略 | ⏳ 待开始 | | | |
-| W0-7 README 目录树去重 | ✅ 已完成 | 2026-10-02 | `git diff --stat README.md` = 35 行变更（删除 32 行树体，改为引用 `progress.md`/`architecture.md`） | 同上 |
-| W0-8 tech-stack 部署章对齐 | ⏳ 待开始 | | | |
+| W0-6 `.qoder` 登记或忽略 | ✅ 已完成 | 2026-10-02 | 选择「登记」：`architecture.md` 目录树 + §22 + 更新记录三处登记，并标注「非项目权威文档、仅存档」 | docs(deploy): 对齐部署权威源与外部草案登记 |
+| W0-7 README 目录树去重 | ✅ 已完成 | 2026-10-02 | `git diff --stat README.md` = 35 行变更（删除 32 行树体，改为引用 `progress.md`/`architecture.md`） | chore(repo): 统一路径引用与陈旧引用 |
+| W0-8 tech-stack 部署章对齐 | ✅ 已完成 | 2026-10-02 | `tech-stack.md` §部署方案 重写为 `DEPLOY.md` 摘要 + 引用；`grep -n '多阶段' tech-stack.md` 仅剩前端一处（后端已改单阶段）；`docker-compose.yml` 顶部标注演示拓扑 | docs(deploy): 对齐部署权威源与外部草案登记 |
 | W1-1 nginx.conf 入库 | ⏳ 待开始 | | | |
 | W1-2 deploy.sh.example | ⏳ 待开始 | | | |
 | W1-3 配置漂移治理 | ⏳ 待开始 | | | |
