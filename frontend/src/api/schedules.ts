@@ -1,6 +1,6 @@
 /** 联赛日程接口。 */
 import http from './http'
-import type { ScheduleInfo, SchedulePayload } from '@/types/schedule'
+import type { ScheduleCreatePayload, ScheduleInfo, ScheduleUpdatePayload } from '@/types/schedule'
 
 export function listSchedules(params?: { start?: string; end?: string }): Promise<ScheduleInfo[]> {
   return http.get('/schedules', { params })
@@ -10,11 +10,11 @@ export function getSchedule(id: number): Promise<ScheduleInfo> {
   return http.get(`/schedules/${id}`)
 }
 
-export function createSchedule(data: SchedulePayload): Promise<ScheduleInfo> {
+export function createSchedule(data: ScheduleCreatePayload): Promise<ScheduleInfo> {
   return http.post('/schedules', data)
 }
 
-export function updateSchedule(id: number, data: SchedulePayload): Promise<ScheduleInfo> {
+export function updateSchedule(id: number, data: ScheduleUpdatePayload): Promise<ScheduleInfo> {
   return http.put(`/schedules/${id}`, data)
 }
 
