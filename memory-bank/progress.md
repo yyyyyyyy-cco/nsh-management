@@ -18,6 +18,9 @@ nsh-management/
 │   ├── data/                  # SQLite 数据库（nsh.db）
 │   ├── docs/README.md         # 后端模块开发文档
 │   ├── scripts/               # 工具脚本、check_type_drift.py（前后端字段一致性，仅报告）、check_api_paths.py（前后端路由对账，仅报告）、check_schema_drift.py（DB 权威源与模型字段对账，仅报告）、check_schema_vs_db.py（文档 ↔ 真实迁移产物，仅报告）
+│   ├├── check_nullability.py              # 空值契约核对（仅报告：后端可空但前端非 null 且非可选）
+│   ├├── check_request_required.py         # 请求侧必填核对（仅报告：后端必填但前端标 ?）
+│   ├├── _pairs.py                         # 前后端配对表（check_type_drift / check_nullability / check_request_required 共用）
 │   │   ├── audit_weights_v4_20260907.py   # 贡献度权重审计（v4）
 │   │   ├── derive_weights_v4_20260907.py  # 贡献度权重推导（v4）
 │   │   ├── generate_import_template.py    # 生成成员导入模板
@@ -454,6 +457,7 @@ nsh-management/
 | 2026-10-03 | 批次 97（S1：拆分 `check_type_drift.py`；含 4 个脚本文件改动）：①**拆分依据** ✓：该文件含**三个可独立修改的关注点**（字段漂移 ✓ / 空值契约 ✓ / 请求侧必填 ✓）→ 规则原文要求此时**拆分而非豁免** ✓✓。②**拆法** ✓：主体只留漂移（`parse_ts_interfaces`/`parse_py_models`/`resolve`/`analyze`/`_load` ✓）并**原样保留输出前缀与格式** ✓；两个子模块各自可独立运行 ✓（各有 `--self-test`/`--strict` ✓，并暴露 `self_test_cases()` 供主体聚合 ✓）；共用配对表抽到 `_pairs.py` ✓（避免三处口径漂移 ✓）。③**金标准等价验证** ✓✓：`git show HEAD:scripts/check_type_drift.py` → 临时文件运行得到**拆分前真实输出** ✓，与新版**逐字节比对 = 差异 0 处** ✓（4 行全同 ✓）；风险计数保持 **0/0/0** ✓。④**自检计数修正** ✓：原 `10/10` ✗ 与实际 9 项不符 ✓ → 新版 **11/11** ✓（5+3+3 ✓）真实 ✓。⑤**行数与门禁** ✓：421 → 191 / 129 / 150 / 34 ✓ 全部 ≤200 ✓；7 道门禁 PASS ✓。⑥**过程教训（再次踩到）** ✗✓：我曾在记录文本里**先写死"163 行"** ✗ —— 实测却是 **223** ✓ → 幸好验证步骤在写记录**之前**失败 ✓，计划/记录**未被污染** ✓✓；随后改为**由脚本实测值替换占位符** ✓（第 117 条 ✓）。⑦**下一步** ✓：三个单一关注点文件（210/229/208 ✓）按 J-14 走**豁免登记** ✓，随后 **S2** 纳入规则与 `LIMITS` ✓ |
 | 2026-10-03 | 批次 98（**F-107 S2 闭环**：`scripts/*.py` 纳入行数规则与门禁）：规则文档类别表新增「检查脚本（`scripts/` 下的 py）·200 行」✓；门禁 `LIMITS` 新增 `("scripts", "*.py", 200, "检查脚本")` ✓ 并新增「已扫描 scripts 类别」自检断言 ✓；三个单一关注点脚本**打「行数豁免」标记 + 按标记后实测行数登记豁免清单** ✓；**自指风险**处理 ✓ —— 门禁纳入自身扫描后超 200 行 ✗，按 §2.1「单一权威源」删去与规则文档重复的说明并压缩 docstring ✓（现 ≤200 ✓）；结果 **7 道门禁全 PASS** ✓，**F-107 闭环** ✓ | .agent/rules/file-length-rule.md, scripts/check_file_length.py, scripts/check_doc_numbers.py, scripts/check_doc_refs.py, scripts/check_schema_drift.py, compliance-remediation-plan.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 99（接线/登记核查；仅文档）：①**CI 核查** ✓：`check_type_drift.py` 仍被 CI 运行 ✓，拆分后主入口聚合子模块 ✓ → **不改 CI** ✓，也**不重复**加子模块步骤 ✓（重复信号只会增噪 ✗）。②**子模块独立可用** ✓：`--self-test` 3/3 ✓、`--strict` exit 0 ✓（本轮复验 ✓）。③**目录登记** ✓：按 §3.3 核查两个目录树是否含 `scripts/` 与新文件 ✓（结果入 §11.11 ✓）。④**经验入库** ✓：新增 ai-checklist 第 123 条 （自扫即硬约束 ✓ / `re.match` 会被 shebang 挡住 ✓（上轮已踩 ✗）/ 记录先写再 `git add` ✓ （上轮已踩 ✗）/ 死循环是“兜底逻辑为空”的信号 ✓）；并把 **F-107 闭环状态** ✓ 写入计划 ✓。⑤**本轮无代码改动** ✓ |
+| 2026-10-03 | 批次 99c（目录树补登记；含 2 个 memory-bank 文件改动）：①**发现** ✗：新增三个脚本后，代码目录树（`progress.md`）**未逐文件登记** ✗，而该树的约定**确实是逐文件列举** ✓（L20 可见 ✓）。②**定位方法** ✓：按**目录树 glyph（│├└）行 + 行内含目标脚本名**双条件精确匹配** ✓，而非“整文件是否含某字符串”✗✗ —— 后者正是本会话反复踩的守卫坑 ✗（且 `progress.md` L419 已记录过同类失误 ✗）。③**结果** ✓：两个目录树均已补 `check_nullability.py` / `check_request_required.py` / `_pairs.py` ✓（复验以 glyph 行命中 ✓）；7 道门禁 PASS ✓。④**教训** ✓：「新增文件 → 两个目录树都检查」不能靠“文件里提到过它”来代替 ✓（必须看**目录树行** ✓）|
 
 
 
