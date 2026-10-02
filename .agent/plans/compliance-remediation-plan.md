@@ -144,6 +144,7 @@
 | F-44 | 无告警通道：审计日志已落库，但异常/错误率上升无人被告知（日志与告警只做了前者） | `backend/app/main.py` AuditLogMiddleware；安全审查 §十五 15.4-2 | OWASP Top 10:2025 A09 | **W4-6 ✅（2026-10-02 已实现：阈值告警循环 + webhook 可选，未配置时写 WARNING 不静默）** | P2 |
 | F-45 | 无威胁建模留痕（STRIDE/攻击面分析）：有权限矩阵与设计文档，但缺建模记录 | `memory-bank/design-document-v2.md`；安全审查 §十五 15.4-4 | OWASP Top 10:2025 A06 | W4-7 | P3 |
 | F-46 | ASVS 5.0.0 仅做**域级**对照，未做条目级逐条核对（编号格式 `v5.0.0-x.y.z`） | 安全审查 §十五 15.3；官方编号格式实取自 owasp.org/projects/asvs | OWASP ASVS 5.0.0 | W4-8 | P3 |
+| F-47 | **导出文件公式注入**：成员姓名/备注等用户输入以 `=`/`+`/`-`/`@` 开头时，openpyxl 会写成公式（`data_type='f'`），管理员打开导出的 xlsx 时 Excel 可能求值（可构造 `HYPERLINK`/`DDE` 对外请求）| 威胁建模 §十六 | **W4-7（2026-10-02 已修复：导出统一 `_text_cell` 显式声明文本单元格 + 往返回归 5 用例）** | P2 |
 
 ---
 
@@ -264,7 +265,7 @@
 | W4-4 SECURITY/CONTRIBUTING/CoC | ✅ 已完成 | 2026-10-02 | 按 D-1（公开仓库）补齐三份根文档：`SECURITY.md`（支持版本范围 / GitHub 私有安全公告为首选渠道 / 备用邮箱占位符 / 处理时限目标 / 已知接受风险指向 `security-review.md` 权威源）、`CONTRIBUTING.md`（协作约定摘要 + 权威源链接 + 与 `.github/workflows/ci.yml` 对应的本地门禁命令，**未复制**权威源内容）、`CODE_OF_CONDUCT.md`（Contributor Covenant 2.1 官方简体中文译本逐字采用，保留 CC BY-SA 4.0 署名）。验证：三文件与 `CHANGELOG.md` 均入库、互相引用链接有效、`scripts/check_file_length.py` 通过。**未完成**：SECURITY.md 与 CoC 的备用联系邮箱为占位符（需用户提供后填写） | docs(changelog): 新增更新日志与社区政策文档 |
 | W4-5 安全响应头收紧（CSP） | ⏳ 待开始 | | | |
 | W4-6 告警通道 | ✅ 已完成 | 2026-10-02 | 新增**错误率告警**：`app/core/alerting.py`（纯策略层：`decide_alert` 阈值判定 / `build_payload` 稳定负载契约 / `post_json` 标准库发送，**不引入新依赖**）与 `app/services/alert_service.py`（`count_recent_errors` 窗口统计 + `run_alert_check` 编排 + 进程内去重）；`app/main.py` 启动时挂后台循环（启动即查一次，之后每 `ALERT_CHECK_INTERVAL_MINUTES` 分钟）。**语义选择**：最近 `ALERT_WINDOW_MINUTES`（默认 30）分钟内 `level=error` 达 `ALERT_ERROR_THRESHOLD`（默认 20）条即触发；**未配置 `ALERT_WEBHOOK_URL` 时仍写 WARNING 日志（不静默）**；阈值为 0 表示禁用；统计/推送失败只记异常、绝不影响主服务（与 `clear_old_logs` 同风格）。环境变量与运维说明已同步 `.env.example`、`DEPLOY.md §四/§六`。测试：`tests/test_alerting_policy.py`（策略层，**无需依赖即可本地运行**：阈值边界、负载字段契约与 JSON 可序列化、POST 行为用桩替换 urlopen、网络错误上抛）+ `tests/test_alerting_service.py`（窗口/级别过滤、未达阈值不通知、未配置 webhook 仅写日志、去重窗口内不重复推送、阈值禁用、库故障不外抛）。**同时修复测试收集期的依赖硬失败**：原先 `from support import DbTestCase` 等第三方 import 留在 try 之外，无依赖环境会 `ERROR collecting`（pytest 退出码 2）而非跳过——现已把 `tests/test_core_security.py`、`tests/test_permissions.py`、`tests/test_alerting_service.py` 与 7 个 `scripts/selfcheck_*.py` 改为**模块级 SkipTest**；本地全量 `pytest`（Python 3.14 无第三方依赖）实测 **exit 0 / 0 error / 依赖模块干净跳过**。教训记入 ai-checklist 第 32 条 | feat(ops): 新增错误率告警并修复测试收集期的依赖硬失败 |
-| W4-7 威胁建模留痕 | ⏳ 待开始 | | | |
+| W4-7 威胁建模留痕 | ✅ 已完成 | 2026-10-02 | 新增 `security-review.md` **§十六 威胁建模（STRIDE）**：7 类资产（JWT / 账号凭据 / 帮会数据 / 导入导出文件 / SECRET_KEY / 库与备份 / 审计日志）+ 5 个信任边界 + **18 条 STRIDE 核对**（每条给出威胁场景、现有控制及 `文件:行` 证据、残余风险、处置）。建模产出：①**发现并修复 F-47 导出文件公式注入**（`utils/excel_export.py` 统一 `_text_cell`，对 `=`/`+`/`-`/`@` 开头的值显式置 `data_type='s'`；新增 `tests/test_excel_export_formula.py` 往返验证 5 用例，另以独立脚本直接读回单元格类型复核）；②**修正一处耦合**：该工具原在运行时 import ORM，致纯格式化逻辑无法脱库测试，改为 `TYPE_CHECKING` + `from __future__ import annotations`（行为不变）；③记录 6 项已接受的残余风险（localStorage 令牌且登出不吊销、`plain_password` 明文列、共享账号不可归因、日志无防篡改、备份未加密、无口令复杂度/MFA）与 4 项待决策建议（口令策略/MFA、审计日志外发、备份加密、CSP 收紧）；④§15.3/§15.4 对应结论已同步更正 | docs(security): 补威胁建模并修复导出文件的公式注入 |
 | W4-8 ASVS 条目级核对 | ⏳ 待开始 | | | |
 
 状态图例：⏳ 待开始 / 🔄 进行中 / ✅ 已完成 / ⛔ 阻塞（写明阻塞项与所需决策）

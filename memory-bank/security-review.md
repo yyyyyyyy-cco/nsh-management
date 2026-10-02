@@ -379,7 +379,7 @@ CSP（`default-src 'self'` + `frame-ancestors 'self'`）、`X-XSS-Protection`（
 | 认证（Authentication） | ✅ 域级满足 | bcrypt + 双层限流 + 锁定提示 + Token 版本吊销 + 弱密钥启动门禁 |
 | 会话（Session） | 🟡 部分满足 | 无服务端会话（无状态 JWT，10 小时有效期 + 版本吊销可强制下线）；已知接受风险：Token 存于 localStorage（XSS 场景下可被读取，已有 CSP 作为缓解） |
 | 访问控制（Authorization） | ✅ 域级满足 | 角色依赖矩阵 + 帮会级数据隔离 + 越权回归用例（含跨帮会写入拦截） |
-| 日志与错误处理（Logging & Error Handling） | 🟡 部分满足 | 审计中间件、异常脱敏、保留策略；不足：无告警、日志无完整性/防篡改保护 |
+| 日志与错误处理（Logging & Error Handling） | 🟡 部分满足 | 审计中间件、异常脱敏、保留策略、**错误率告警（W4-6）**；不足：日志无完整性/防篡改保护 |
 
 ### 15.4 本次识别的新增不足（可执行后续项，已登记到整改计划）
 
@@ -388,7 +388,64 @@ CSP（`default-src 'self'` + `frame-ancestors 'self'`）、`X-XSS-Protection`（
 2. **无告警通道**（A09 alerting 部分）——**已于 2026-10-02 修复（W4-6）**：新增后台告警循环（`app/core/alerting.py` 纯策略 + `app/services/alert_service.py` 查库与编排），最近 30 分钟内 `level=error` 达 20 条即触发；**未配置 webhook 时也写 WARNING 日志（不静默）**，配置 `ALERT_WEBHOOK_URL` 后 POST JSON（标准库发送，无新依赖）；同一窗口内去重，阈值为 0 可禁用。
    环境变量与运维说明见 `DEPLOY.md §四/§六` 与 `.env.example`。
 3. **供应链完整性**：依赖无哈希锁定、无 SBOM、镜像未签名（A03/A08，与计划 W1-4 依赖锁定、SLSA L2 相关）。
-4. **无威胁建模记录**（A06）：权限矩阵与数据流已有设计文档，但缺 STRIDE/攻击面分析留痕。
+4. **无威胁建模记录**（A06）——**已于 2026-10-02 修复（W4-7）**：新增 **§十六 威胁建模（STRIDE）**（7 类资产、5 个信任边界、18 条威胁核对）；建模过程**发现并修复导出文件公式注入**（F-47，`tests/test_excel_export_formula.py` 往返验证）。
 5. **ASVS 条目级核对未做**：本轮为域级对照；条目级需按官方 JSON/CSV 逐条标注（编号格式 `v5.0.0-x.y.z`）。
 6. **历史响应头**：`X-XSS-Protection: 1; mode=block` 已被 CSP 取代，现代浏览器已移除该过滤器，
    建议置 `0` 或移除，避免旧浏览器过滤器的副作用。
+
+---
+
+## 十六、威胁建模（STRIDE，2026-10-02，W4-7）
+
+> **定位与边界**：为补齐 A06（Insecure Design）缺口而做的**轻量威胁建模留痕**——按 STRIDE 枚举关键资产的
+> 主要威胁，逐条核对**现有控制与代码证据**，并给出残余风险与处置。
+> **不覆盖**：云/主机/网络层加固、内部人员滥用、物理安全、供应链完整性（后者见 §十四 与计划 W1-4）。
+> 方法：以本项目**自身代码与部署配置**为对象，每条结论都附文件与行为证据，便于复核。
+
+### 16.1 资产与信任边界
+
+| 编号 | 资产 | 位置 | 泄露/破坏的影响 |
+|------|------|------|----------------|
+| A1 | JWT 访问令牌（含 `ver` 吊销版本） | 浏览器 localStorage → 请求头 | 冒用身份、越权操作 |
+| A2 | 账号凭据（bcrypt 哈希 + `plain_password` 明文列） | `users` 表 | 全量账号接管 |
+| A3 | 帮会业务数据（成员/出勤/排表/战绩/日志） | SQLite | 跨帮会泄露、赛程被篡改 |
+| A4 | 导入与导出文件（Excel/CSV ≤5MB、长图 ≤800 人、录屏外链） | 请求体 / 响应 | 恶意内容注入、资源耗尽 |
+| A5 | `SECRET_KEY` | 服务器 `.env` | 伪造任意令牌 |
+| A6 | SQLite 库文件与备份产物 | 命名卷 / 备份目录 | 全量数据泄露 |
+| A7 | 审计日志 | `operation_logs` + 容器日志 | 抵赖、事后无法追溯 |
+
+信任边界：①浏览器 ↔ 边缘 Nginx（TLS 终止）②Nginx ↔ frontend 容器（内网明文）③frontend ↔ backend（内网 `:8000`）
+④backend ↔ SQLite 卷 ⑤运维 ↔ 服务器（SSH / `.env`）。
+
+### 16.2 STRIDE 核对表
+
+| # | 资产 | STRIDE | 威胁场景 | 现有控制（证据） | 残余风险 | 处置 |
+|---|------|--------|----------|------------------|----------|------|
+| 1 | A1 | S 仿冒 | 伪造/盗用令牌冒用身份 | HS256 签名；`ver` 与 `users.token_version` 比对（`core/security.py:20-23`、`api/deps.py:32`）；改密自增版本号（`services/account_service.py:84`） | 令牌在 localStorage（XSS 可窃取）；**登出不递增版本号**（共享账号多人多 IP，`api/v1/auth.py:54` 已说明）→ 登出后旧令牌在过期前仍有效 | 已接受（AGENTS §6 已记录；缓解：CSP 收紧 W4-5） |
+| 2 | A1 | T 篡改 | 改载荷提升 role | 签名校验，改载荷即验签失败 | 无 | 已控制 |
+| 3 | A1 | I 泄露 | 令牌进日志/响应 | 日志敏感键脱敏（`services/log_service.py:17` 含 `token`/`access_token`/`authorization`）；响应不回传令牌 | 无 | 已控制 |
+| 4 | A2 | S 仿冒 | 撞库 / 弱口令 | bcrypt 哈希；登录限流 5 次 / 5 分钟（`core/config.py:52`、`services/auth_service.py:49`）；Nginx 限流 | 无口令复杂度要求、无 MFA | 建议（未列入计划，待决策） |
+| 5 | A2 | I 泄露 | `plain_password` 明文列被读走 | 仅 developer 可见，响应按角色脱敏（`api/v1/accounts.py:21-26`）；`*.db` 不入库 | **库文件泄露即全量明文口令**（业务取舍：本地工具需可见密码） | 已接受（AGENTS §6） |
+| 6 | A2 | R 抵赖 | 帮众共享账号 → 行为不可归因 | 审计记录 username/role/ip | 共享账号下无法区分到具体人 | 已接受（业务决定） |
+| 7 | A3 | S/E 越权 | 用他帮会 ID 读写（水平/垂直越权） | 服务层按 `guild_id` 过滤；路由角色依赖（`api/deps.py`）；跨帮会回归 `scripts/selfcheck_security_fixes.py`；用例 `tests/test_permissions.py` | 无 | 已控制 |
+| 8 | A3 | I 泄露 | 列表/导出接口绕过帮会过滤 | 列表与导出均带 guild 作用域；账号响应脱敏 | 无 | 已控制 |
+| 9 | A3/A7 | R 抵赖 | 否认执行过写操作 | 审计中间件记录 module/action/path/status/detail（已脱敏） | 日志无防篡改（无 WORM/签名），developer 可手动清理（清理动作自身被审计） | 已接受（单机自托管）；建议：日志外发/只读副本 |
+| 10 | A4 | T/I 注入 | 导入恶意 Excel/CSV | 大小双检（声明 + 读取后二次校验，`api/v1/members.py:107-112`；CSV `api/v1/match_data.py:39`）；行数上限 5000（`utils/excel_import.py:79`）；Nginx `client_max_body_size` | 无 | 已控制 |
+| 11 | A4 | T 注入 | **导出**文件携带公式（姓名/备注以 `=` 开头） | **2026-10-02 已修复**：导出统一走 `_text_cell`，对 `=`/`+`/`-`/`@` 开头的值显式声明 `data_type='s'`（`utils/excel_export.py`）；往返回归 `tests/test_excel_export_formula.py` | 无（修复前 Excel 打开可能触发对外请求） | **已修复（F-47）** |
+| 12 | A4 | D 耗尽 | 超大导出/长图耗尽 CPU/内存 | 长图 800 人上限（`utils/image_export.py:60`）；compose 资源上限（`docker-compose.yml` 的 `deploy.resources.limits`：内存 + cpus） | 无 | 已控制 |
+| 13 | A4 | S/I 伪协议 | 提交 `javascript:` 等链接，管理员点击即执行 | 后端入参 `pattern=^https?://`（`schemas/recording.py:28`）；前端 `normalizeUrl` + `rel="noopener"`（`components/recording/RecordingTablePanel.vue:25`、`RecordingMobileList.vue:71`） | 外链目标站不可控（钓鱼/恶意页），非本项目可控面 | 已控制（技术面）；链接来自帮众，点击前自行判断 |
+| 14 | A4 | — | 是否存在任意视频上传面 | **录屏不落服务器**：`submit_recording(url)` 仅保存外链（`services/recording_service.py:156-172`），无文件上传路径 | 无 | 已消除（架构选择） |
+| 15 | A5 | I/S | 弱/默认密钥导致令牌可伪造 | 启动门禁：生产弱密钥直接拒绝启动（`core/config.py` `validate_secret_key`/`enforce_secret_key`；`tests/test_config_gate.py` 19 用例） | 密钥在 `.env` 明文，服务器文件权限即边界 | 已控制（§十三） |
+| 16 | A6 | I/D | 备份泄露 / WAL 下直接 `cp` 得到损坏库 | 备份脚本用 SQLite 在线 backup API、默认 dry-run、生成后完整性校验、保留轮转（`scripts/backup-db.sh.example`）；`.db` 与 `_backup/` 不入库 | 备份产物未加密（磁盘权限即边界） | 已接受（§五、`DEPLOY.md §五/§九`） |
+| 17 | A7 | D 耗尽 | 日志暴涨占满磁盘 | 90 天保留 + 启动清理（`services/log_service.py:192`）；错误率告警（W4-6） | 无 | 已控制 |
+| 18 | 全局 | I/E | 经 `/docs`、调试异常获取内部信息 | 生产关闭 `docs_url`/`redoc_url`/`openapi_url`（`main.py`）；DEBUG 异常脱敏 | 无 | 已控制 |
+
+### 16.3 本次建模产出
+
+1. **发现并修复 1 个真实缺陷**：导出文件的**公式注入**（F-47，见核对表第 11 行）。修复后以「写 → 读回断言
+   `data_type='s'`」往返验证（5 用例），另用独立脚本直接读单元格类型复核（`=1+1`、`=cmd|calc` 均为**文本**）。
+2. **顺带修正一处耦合**：`utils/excel_export.py` 原在运行时 import ORM 模型，导致纯格式化逻辑无法脱离数据库测试；
+   已改为 `if TYPE_CHECKING` + `from __future__ import annotations`（行为不变，回归用例因此可独立运行）。
+3. **已记录的残余风险**（业务取舍或环境限制，非漏洞）：localStorage 令牌且登出不吊销、`plain_password` 明文列、
+   共享账号不可归因、日志无防篡改、备份未加密、无口令复杂度/MFA。
+4. **建议（尚未列入整改计划，待决策）**：口令复杂度与 MFA、审计日志外发/只读副本、备份产物加密、CSP 收紧（已为 W4-5）。
