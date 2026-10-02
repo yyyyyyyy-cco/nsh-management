@@ -81,7 +81,7 @@ const activeMenu = computed(() => route.path)
   transition: width var(--dur-normal) var(--ease-out);
   background:
     radial-gradient(320px 240px at 50% 0%, rgba(217, 182, 74, 0.12), transparent 70%),
-    linear-gradient(180deg, #fdfaf3 0%, #f8f2e6 100%);
+    linear-gradient(180deg, var(--ink-sidebar-from) 0%, var(--ink-sidebar-to) 100%);
   display: flex;
   flex-direction: column;
   position: relative;

@@ -38,6 +38,8 @@
 | `--ink-bg-paper` | `#FFFDF8` | 卡片背景 |
 | `--ink-bg-cream` | `#FAF6EE` | 面板/候选池背景 |
 | `--ink-bg-wash` | `#F4EEE1` | 表格表头、次级背景 |
+| `--ink-sidebar-from` | `#FDFAF3` | 侧边栏竖向渐变起始（原 §1.1 记值，2026-10-03 令牌化，F-76） |
+| `--ink-sidebar-to` | `#F8F2E6` | 侧边栏竖向渐变结束（同上） |
 
 ### 2.2 鎏金主色
 | 变量 | 色值 | 用途 |

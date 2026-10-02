@@ -8,6 +8,9 @@
   --ink-bg-paper: #fffdf8;
   --ink-bg-cream: #faf6ee;
   --ink-bg-wash: #f4eee1;
+  /* 侧边栏竖向渐变（2026-10-03，F-76）：与组件内原硬编码值完全一致，仅令牌化 */
+  --ink-sidebar-from: #fdfaf3;
+  --ink-sidebar-to: #f8f2e6;
 
   /* ===== 鎏金主色（亮金） ===== */
   --gold-50: #fdf9ec;
