@@ -112,3 +112,7 @@ deploy.sh
 .tmp-*/
 pip-metadata-*/
 pip-unpack-*/
+
+# 构建/类型检查产物与缓存（2026-10-03，F-60）
+*.tsbuildinfo
+.eslintcache
