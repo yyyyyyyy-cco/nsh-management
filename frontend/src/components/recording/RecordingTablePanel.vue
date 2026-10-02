@@ -62,6 +62,7 @@
         <template v-else>
           <div v-if="editingNoteId === row.id" class="note-edit">
             <el-input
+              aria-label="备注"
               v-model="editingNote"
               type="textarea"
               :autosize="{ minRows: 2, maxRows: 5 }"

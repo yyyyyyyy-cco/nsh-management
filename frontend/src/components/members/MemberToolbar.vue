@@ -2,6 +2,7 @@
   <div class="toolbar">
     <div class="toolbar-filters">
       <el-input
+        aria-label="搜索ID"
         v-model="query.keyword"
         placeholder="搜索ID"
         clearable

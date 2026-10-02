@@ -16,6 +16,7 @@
     <div class="field">
       <label class="field__label">常驻成员</label>
       <el-select
+        aria-label="常驻成员"
         v-model="selectedId"
         filterable
         remote
@@ -45,6 +46,7 @@
     <div class="field">
       <label class="field__label">新游戏 ID</label>
       <el-input
+        aria-label="请输入新的游戏 ID（1～32 个字符）"
         v-model="newGameId"
         maxlength="32"
         show-word-limit

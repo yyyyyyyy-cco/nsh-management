@@ -17,6 +17,7 @@
       </el-radio-group>
       <span class="review-toolbar__spacer" />
       <el-input
+        aria-label="按原/新 ID 搜索"
         v-model="keyword"
         size="small"
         clearable

@@ -1,6 +1,7 @@
 <template>
   <div class="filter-bar">
     <el-input
+      aria-label="账号名"
       v-model="filters.username"
       placeholder="账号名"
       clearable
@@ -19,6 +20,7 @@
       <el-option label="错误" value="error" />
     </el-select>
     <el-date-picker
+      aria-label="时间范围"
       v-model="dateRange"
       type="datetimerange"
       range-separator="至"

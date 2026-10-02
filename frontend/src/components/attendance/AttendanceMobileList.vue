@@ -25,6 +25,7 @@
       </div>
       <div class="ar-meta" :class="{ 'ar-meta--indent': isAdmin }">
         <el-select
+          aria-label="职业"
           v-if="isAdmin && (row.professions?.length || 0) > 1"
           :model-value="row.profession"
           class="ar-prof-select"

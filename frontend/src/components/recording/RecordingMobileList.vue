@@ -41,7 +41,7 @@
 
       <!-- 行内编辑：备注（仅管理员可见，提交后不回显） -->
       <div v-else-if="editingNoteId === row.id" class="rec-row__edit">
-        <el-input
+        <el-input aria-label="备注"
           v-model="editingNote"
           type="textarea"
           :autosize="{ minRows: 2, maxRows: 5 }"

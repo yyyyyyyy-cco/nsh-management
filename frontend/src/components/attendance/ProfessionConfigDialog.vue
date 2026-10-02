@@ -17,6 +17,7 @@
       <div v-for="p in PROF_ORDER" :key="p" class="cfg-row">
         <span class="prof-name" :style="{ color: profColor(p) }">{{ p }}</span>
         <el-input-number
+          :aria-label="p"
           v-model="form[p]"
           :min="0"
           :max="60"

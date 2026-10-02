@@ -26,6 +26,7 @@
           />
         </div>
         <el-input
+          aria-label="说明（可选）"
           v-model="row.remark"
           placeholder="说明（可选）"
           size="small"

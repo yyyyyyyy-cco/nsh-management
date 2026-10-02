@@ -52,6 +52,7 @@
           <el-icon class="pool-close" @click="poolOpen = false"><Close /></el-icon>
         </div>
         <el-input
+          aria-label="搜索成员"
           v-model="poolKeyword"
           size="small"
           placeholder="搜索成员"
@@ -139,6 +140,7 @@
                 <template #item="{ element }">
                   <div v-if="isEditing(team, si)" :data-key="element.key" class="slot-card slot-card--edit">
                     <el-input
+                      aria-label="输入姓名"
                       v-model="inputName"
                       size="small"
                       placeholder="输入姓名"

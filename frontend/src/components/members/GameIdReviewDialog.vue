@@ -32,6 +32,7 @@
 
       <template v-else>
         <el-input
+          aria-label="备注"
           v-model="remark"
           type="textarea"
           :rows="3"

@@ -2,6 +2,7 @@
   <div class="player-search">
     <div class="search-row">
       <el-autocomplete
+        aria-label="输入当前或历史游戏 ID 查询战绩"
         v-model="inputName"
         placeholder="输入当前或历史游戏 ID 查询战绩"
         clearable
