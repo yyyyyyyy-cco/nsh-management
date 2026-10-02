@@ -244,6 +244,7 @@ nsh-management/
 | 2026-10-02 | Wave 2 批次 2（合规化计划 W2-3 后端部分）：新增 `backend/ruff.toml`（规则集 E4/E7/E9/F，按文件豁免迁移与一次性脚本）与 `backend/requirements-dev.txt`（`ruff==0.12.0`）；CI backend job 增加 dev 依赖安装与 `ruff check .`；修复 9 处告警（8 项安全自动修复 + `models/user.py` 的 `Guild` 改 `TYPE_CHECKING` 导入）；`tech-stack.md` 开发工具与依赖权威源同步 | ruff.toml, requirements-dev.txt, ci.yml, tech-stack.md, user.py, architecture.md, progress.md |
 | 2026-10-02 | ai-checklist §五 新增遗漏模式 24：提交消息经 PowerShell 传参被拆参（`\|` 被当成 pathspec 致提交失败）与 `git commit -F` 漏写首行主题（整段正文被取为 subject，需 `--amend -F` 修正）；附「提交后复核 `%s` 与摘要长度」约定 | ai-checklist.md, progress.md, architecture.md |
 | 2026-10-02 | Wave 2 批次 3（合规化计划 W2-4）：提交消息自动校验落地——`scripts/check_commit_msg.py`（15 条内置用例、BOM 容错）、`.githooks/commit-msg` 与 `scripts/install_git_hooks.sh`（零依赖 `core.hooksPath` 方案）、`.github/commit-msg-baseline` 与 CI `commit-msg` job（仅校验基线之后的提交，历史不追溯）；`.agent/rules/git-commit-message.md` 补 `merge` 类型与「自动校验」小节 | check_commit_msg.py, commit-msg, install_git_hooks.sh, commit-msg-baseline, ci.yml, git-commit-message.md, progress.md, architecture.md |
+| 2026-10-02 | ai-checklist §五 新增遗漏模式 25：PowerShell 向原生程序传文本会注入 BOM、重编码并隐式用空格拼接数组（实测导致 10 个合规提交被判违规的假阴性）；附「传文本优先走文件、管道须设无 BOM 编码、校验器容错 BOM」处置约定 | ai-checklist.md, progress.md, architecture.md |
 
 ---
 
