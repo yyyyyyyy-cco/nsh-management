@@ -341,6 +341,8 @@ nsh-management/
 
 | 2026-10-02 | 收口核对（批次 25，**无代码改动**）：重跑全量回归与 7 道门禁（全绿）；按计划 §7 现场解析真实完成度并纠正汇报口径——**Wave 2 实为 11/12**（`W2-8` props 债始终待开始，我此前多轮误报 12/12），Wave 0 8/9、Wave 1 3/9、Wave 3 4/6、Wave 4 21/21，**合计 47/57**；教训记入 ai-checklist 第 60 条（进度数字必须现场解析） | ai-checklist.md, architecture.md, progress.md |
 
+| 2026-10-03 | Wave 1 批次 26（合规化计划 **W1-8 续**）：**Pillow `11.1.0` → `12.3.0`**（上游依据 `GHSA-62p4-gmf7-7g93` = `CVE-2026-54058`，high，受影响 `< 12.3.0`；**可达性：不可达**——只生成导出图、全仓无 `Image.open`）；实测导入级兼容 + 后端全量 **158 passed + 84 subtests exit 0**；`security-review.md` 新增 §14.7；新登记 **F-56**（导出路径无测试覆盖）、**W1-10**（bcrypt 直连、移除 passlib）、**W1-11**（补 image_export 覆盖） | requirements.txt, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 ## 使用说明
 
 1. **开发前**：阅读本文档了解项目结构，然后按需阅读具体文档

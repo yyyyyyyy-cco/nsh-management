@@ -277,6 +277,22 @@
 
 ## 十四、依赖漏洞审计（W4-3，2026-10-02）
 
+### 14.7 版本陈旧治理（2026-10-03，合规化计划 W1-8 续）
+
+> **方法**：只认**有出处的上游事实**（GitHub Advisory API / PyPI 元数据），不采用检索摘要；每条都做**可达性判定**
+> （本仓库是否真的走到受影响代码路径）。**网络不可用时不得声称审计已完成**。
+
+| 依赖 | 现锁定 | 上游事实（2026-10-03 核实） | 可达性 | 处置 |
+|------|--------|------------------------|--------|------|
+| **Pillow** | `11.1.0` → **`12.3.0`** | GitHub Advisory **`GHSA-62p4-gmf7-7g93` = `CVE-2026-54058`**（high）：mmap 路径越界读（McIdas AREA），**受影响 `< 12.3.0`**；另有 `PYSEC-2026-3496` | **不可达**：只用 Pillow **生成**导出图（`image_export.py`），全仓无 `Image.open`，两处 `UploadFile` 均为 Excel | **已升级**，附导入级兼容 + 全量 pytest 证据 |
+| **passlib** | `1.7.4` | 上游 **2020 年后无发布**（未维护）；被 bcrypt ≥ 4.1 破坏（`module 'bcrypt' has no attribute '__about__'`），社区长期建议改为**直接使用 bcrypt** | 可达（口令哈希/校验必经） | 现存缓解：把 `bcrypt` 钉在 `4.0.1`。**已登记 W1-10**：改用 `bcrypt` 直连并附**哈希向后兼容测试** |
+| starlette / fastapi / uvicorn / SQLAlchemy / alembic / openpyxl / pydantic / aiosqlite / python-multipart | 见 `requirements.txt` | 本轮检索未发现**与本项目版本组合**相关的公开高危条目；`python-multipart` 的 CVE-2024-53981 已在 `0.0.32` 之上 | —— | 记录为「本期无动作」，由 Dependabot 周更继续跟踪 |
+
+**本轮同时发现（测试缺口）**：`app/utils/image_export.py` 的导出路径**无任何测试覆盖**（`tests/` 检索 `image_export`/`draw_members_png` 为空），
+故"升级后导出功能正常"目前只有**导入级 + 字体加载**证据，缺像素级断言 → **已登记 F-56 / W1-11**。
+
+
+
 审计工具与命令（结论来自实时公告库，非纸面推断）：
 
 | 端 | 命令 | 审计对象 |
