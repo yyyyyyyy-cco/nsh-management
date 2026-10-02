@@ -2,13 +2,13 @@
   <div class="indicators-tab">
     <!-- 工具栏：阵营筛选 + 职业筛选 + ID 搜索 -->
     <div class="toolbar">
-      <el-select v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px">
+      <el-select aria-label="阵营筛选" v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px">
         <el-option v-for="c in camps" :key="c.camp" :label="c.camp" :value="c.camp" />
       </el-select>
-      <el-select v-model="profFilter" placeholder="职业筛选" clearable style="width: 150px">
+      <el-select aria-label="职业筛选" v-model="profFilter" placeholder="职业筛选" clearable style="width: 150px">
         <el-option v-for="p in professions" :key="p" :label="p" :value="p" />
       </el-select>
-      <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
+      <el-input aria-label="按ID搜索" v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
       <span class="toolbar__count">{{ filteredItems.length }} 人</span>
     </div>
 

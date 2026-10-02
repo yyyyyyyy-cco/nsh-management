@@ -14,7 +14,7 @@
           </template>
           <p class="tip">输入一个字符，作为侧边栏折叠按钮的显示图标（留空则显示默认图标）。</p>
           <div class="icon-set-row">
-            <el-input v-model="iconChar" maxlength="4" placeholder="如：帮、战、金" style="width: 160px" />
+            <el-input aria-label="如：帮、战、金" v-model="iconChar" maxlength="4" placeholder="如：帮、战、金" style="width: 160px" />
             <el-button type="primary" :loading="saving" @click="onSaveIcon">保存</el-button>
             <el-button :loading="saving" @click="onClearIcon">清除</el-button>
           </div>

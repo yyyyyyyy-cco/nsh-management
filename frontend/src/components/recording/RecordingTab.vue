@@ -9,12 +9,12 @@
 
     <!-- 工具栏：按ID搜索（帮众/管理员）+ 管理员操作 -->
     <div class="toolbar">
-      <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 200px" :prefix-icon="Search" />
+      <el-input aria-label="按ID搜索" v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 200px" :prefix-icon="Search" />
       <template v-if="auth.isAdmin">
         <el-button type="success" plain :disabled="selectedIds.length === 0" @click="onBatchApprove">
           批量审核通过（{{ selectedIds.length }}）
         </el-button>
-        <el-select v-model="statusFilter" placeholder="状态筛选" clearable style="width: 120px">
+        <el-select aria-label="状态筛选" v-model="statusFilter" placeholder="状态筛选" clearable style="width: 120px">
           <el-option label="待审核" value="pending" />
           <el-option label="未提交" value="unsubmitted" />
           <el-option label="已通过" value="approved" />

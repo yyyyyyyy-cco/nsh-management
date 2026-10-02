@@ -7,7 +7,7 @@
     <template v-else>
       <!-- 第一步：选择历史赛程 -->
       <p class="dialog-tip">选择历史赛程：</p>
-      <el-select v-model="selectedSchedule" placeholder="请选择历史赛程" style="width: 100%">
+      <el-select aria-label="请选择历史赛程" v-model="selectedSchedule" placeholder="请选择历史赛程" style="width: 100%">
         <el-option v-for="h in history" :key="h.schedule_id" :value="h.schedule_id" :label="scheduleLabel(h)" />
       </el-select>
 

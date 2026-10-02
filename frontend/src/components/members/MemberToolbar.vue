@@ -10,10 +10,10 @@
         @keyup.enter="$emit('search')"
         @clear="$emit('search')"
       />
-      <el-select v-model="query.profession" placeholder="职业筛选" clearable class="filter" @change="$emit('search')">
+      <el-select aria-label="职业筛选" v-model="query.profession" placeholder="职业筛选" clearable class="filter" @change="$emit('search')">
         <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p" />
       </el-select>
-      <el-select v-model="query.status" placeholder="状态筛选" clearable class="filter" @change="$emit('search')">
+      <el-select aria-label="状态筛选" v-model="query.status" placeholder="状态筛选" clearable class="filter" @change="$emit('search')">
         <el-option v-for="s in MEMBER_STATUSES" :key="s.value" :label="s.label" :value="s.value" />
       </el-select>
     </div>

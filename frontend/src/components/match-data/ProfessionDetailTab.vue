@@ -4,7 +4,7 @@
     <template v-else>
       <!-- 工具栏 -->
       <div class="toolbar">
-        <el-select v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px" @change="load">
+        <el-select aria-label="阵营筛选" v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px" @change="load">
           <el-option v-for="c in campOptions" :key="c" :label="c" :value="c" />
         </el-select>
         <span class="toolbar__count">{{ profStats.length }} 个职业 · 17 项指标</span>

@@ -32,7 +32,7 @@
 
       <!-- 行内编辑：录屏链接 -->
       <div v-if="editingId === row.id" class="rec-row__edit">
-        <el-input v-model="editingUrl" placeholder="请输入录屏链接" size="small" />
+        <el-input aria-label="请输入录屏链接" v-model="editingUrl" placeholder="请输入录屏链接" size="small" />
         <div class="rec-row__edit-btns">
           <el-button type="primary" @click="$emit('submit', row)">保存</el-button>
           <el-button @click="$emit('cancel-edit')">取消</el-button>

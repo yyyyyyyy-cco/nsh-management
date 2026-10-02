@@ -3,7 +3,7 @@
     <div class="adjust-tip">
       将未排表成员手动分配到目标队伍。调整保存在<b>分析副本</b>中，不会修改正式排表。
     </div>
-    <el-select v-model="adjustTarget" placeholder="选择目标队伍" size="small" style="width: 100%">
+    <el-select aria-label="选择目标队伍" v-model="adjustTarget" placeholder="选择目标队伍" size="small" style="width: 100%">
       <el-option
         v-for="t in teams"
         :key="`${t.category}:${t.team_index}`"

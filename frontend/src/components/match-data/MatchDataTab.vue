@@ -31,10 +31,10 @@
       <el-button v-if="auth.isAdmin" type="primary" :loading="importing" @click="onImport">
         导入 CSV
       </el-button>
-      <el-select v-model="selectedCamp" placeholder="阵营筛选" clearable style="width: 150px">
+      <el-select aria-label="阵营筛选" v-model="selectedCamp" placeholder="阵营筛选" clearable style="width: 150px">
         <el-option v-for="camp in camps" :key="camp.camp" :label="camp.camp" :value="camp.camp" />
       </el-select>
-      <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
+      <el-input aria-label="按ID搜索" v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
       <div class="spacer" />
       <!-- 生成战报：整场聚合（不随当前局），无任何已导入局时禁用 -->
       <el-tooltip

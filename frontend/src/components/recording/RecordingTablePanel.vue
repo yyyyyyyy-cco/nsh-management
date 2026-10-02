@@ -17,7 +17,7 @@
     <el-table-column label="录屏链接" min-width="280">
       <template #default="{ row }">
         <div v-if="editingId === row.id" class="url-edit">
-          <el-input v-model="editingUrl" placeholder="请输入录屏链接" size="small" />
+          <el-input aria-label="请输入录屏链接" v-model="editingUrl" placeholder="请输入录屏链接" size="small" />
           <el-button type="primary" size="small" @click="$emit('submit', row)">保存</el-button>
           <el-button size="small" @click="$emit('cancel-edit')">取消</el-button>
         </div>
