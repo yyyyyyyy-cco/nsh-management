@@ -552,7 +552,7 @@ CSP（`default-src 'self'` + `script-src 'self'` + `frame-ancestors 'self'` 等�
 
 | 编号 | 发现 | 条目 | 处置 |
 |------|------|------|------|
-| **F-49** | **容器以 root 运行**：两个 Dockerfile 都创建了 `appuser` 却从未切换用户 | 13.3.2（CIS Docker 4.1） | 任务 **W1-9**：加 `USER` 需同时处理**卷属主**（后端要写 SQLite）与**端口 >1024**（前端 nginx），必须用 Docker 构建+运行验证 ✗ 本机守护进程不可用 → **不盲改** |
+| **F-49** | 容器降权不完整 | **2026-10-02 更正：仅前端成立**——`frontend/Dockerfile` 建了 `appuser` 并 chown html/cache/log/pid，但**没有 `USER`**（nginx 以 root 运行）；**后端已降权**（`backend/entrypoint.sh`：`exec gosu appuser "$@"`）。任务 W1-9 范围已收窄为前端（需 Docker 验证） |
 | **F-50** | 授权失败的**读操作**未审计（GET 403 不落库） | 16.3.2 | **已于 2026-10-02 修复（W4-9）**：非写方法 + 携带凭证 + 401/403 也落库；匿名 401 不记；**该路径改为 `await`**（罕见路径 + 不宜丢失），写操作热路径仍 `create_task` |
 | **F-51** | 审计详情未做换行/控制字符转义 | 16.4.1 | **已于 2026-10-02 修复（W4-9）**：`escape_control` 应用于 `username`/`path`/`ip` 与 `sanitize_detail` 字符串分支；`tests/test_audit_denials.py` 含「含换行用户名落库无真实换行」端到端回归 |
 
