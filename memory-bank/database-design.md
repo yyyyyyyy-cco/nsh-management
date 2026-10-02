@@ -295,6 +295,7 @@ JSON 结构示例：
 
 索引：`username`、`guild_id`、`module`、`level`、`created_at`。
 业务规则：默认保留 90 天（启动时自动清理过期记录，页面亦可手动清理，清理操作本身会被审计）；仅开发者可在「系统日志」页查看。
+- **时间口径（2026-10-03 补记，与实现一致）**：`operation_logs.created_at` **落库为 naive UTC**；「系统日志」页的概览统计（今日请求数 / 今日错误数 / 近 7 天错误分布）统一按**北京时间（UTC+8）**划分——"今日"起点 = 北京零点对应的 UTC 时刻（即北京零点 **− 8 小时**）；分布按北京日期分组（SQL `date(created_at, '+8 hours')`），桶由旧到新共 7 个，窗口起点为今日零点 − 6 天。换算实现见 `backend/app/services/log_service.py`（`STATS_TZ` / `get_log_stats`），测试见 `backend/tests/test_log_stats.py`。
 
 ### 2.12 member_game_id_requests — 游戏 ID 修改申请表
 
