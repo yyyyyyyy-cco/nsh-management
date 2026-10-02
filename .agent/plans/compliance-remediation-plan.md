@@ -636,6 +636,21 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | actions 版本 | tag 固定（v4 / v5，属已记录的既定选择） |
 | **F-68 复验**：7 道门禁是否都跑 `--self-test` | **7/7 既有自检又有实跑** ✓ |
 
+
+#### 容器链静态核对（2026-10-03，可复跑）
+
+> Docker 路径**尚未构建过**（环境所限）——静态一致性是目前可得的保证。
+
+| 核对项 | 结果 |
+|--------|------|
+| 两处构建上下文（`./backend`、`./frontend`） | 存在 |
+| `COPY` 的**上下文内**源（跨阶段 `--from=` 除外） | 全部存在 |
+| 后端入口链：`uvicorn --port 8000` = `EXPOSE 8000` = healthcheck `127.0.0.1:8000/health` = `/health` 路由 | **一致** |
+| `nginx.conf` 的 `proxy_pass` → `backend:8000` | 主机名**正是 compose 服务** `backend`，端口 8000 |
+| 后端降权：Dockerfile 创建 `appuser` + entrypoint `gosu appuser` | 成立 |
+| 前端非 root | **未设置 `USER`**（= 已登记的 J-13 项） |
+| entrypoint 引用的 `alembic.ini` / `app/init_db.py` / `app/main.py` | 均存在 |
+
 ### 11.5 决策就绪包（批次 90，2026-10-03 实测事实）
 
 > 目的：把待决策项做成「**事实 → 选项 → 影响**」，使每项**一句话即可拍板**。全部事实均为本轮**实测**（文件行号可复核）。
