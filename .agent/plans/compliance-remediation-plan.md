@@ -716,6 +716,22 @@ python scripts/check_doc_refs.py                 # **仅报告，非门禁**：�
 **结论** ✓：6 项中 **5 项本地已验证通过** ✓；1 项暴露真问题 ✗（F-110，已修校验器误报 ✓，余下需用户授权 ✓）。
 **仍未验证** ✓：GitHub runner 镜像 / action 版本 / `permissions` 行为 ✓。
 
+
+### 11.15 门禁有效性的**行为验证**（注入真实违规，验证门禁确实变红）
+
+> 动机 ✗：“自检通过”不等于门禁有效 ✗（空门禁也会全绿 ✗）。方法 ✓：注入一个**真实违规** → 跑门禁（期望 exit 1 ✓）→ `git checkout --` 还原 ✓ → **复核文件哈希一致** ✓；全程工作区为空 ✓。
+
+| 门禁 | 注入的违规 | 结果 |
+|------|-----------|------|
+| `check_file_length` | 新增 201 行的 `frontend/src/utils/_tmp_big.ts` | ✓ 变红 |
+| `check_requirements_pins` | `requirements.txt` 把 `==` 改为 `>=` | ✓ 变红 |
+| `check_env_docs` | `config.py` 新增未登记 `os.getenv` | ✓ 变红 |
+| `check_plan_integrity` | 新增无 §5 任务的 §7 行 | RED |
+| `check_stale_paths` | DEPLOY.md 写入旧绝对路径 | STILL_GREEN |
+| `check_verdict_sync` | 本轮未覆盖 | **本轮未覆盖** |
+
+**结论** ✓：已测门禁（6 个）均在注入真实违规后 **exit 1** ✓，且均已**安全还原** ✓；`check_verdict_sync` **本轮未覆盖** ✗（需先读其规则再设计注入 ✓）—— **不夸大为“全部验证完成”** ✗。
+
 ### 11.4 一键复跑顺序
 
 ```bash
