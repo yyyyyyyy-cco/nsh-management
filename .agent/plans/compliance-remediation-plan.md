@@ -225,7 +225,7 @@
 | W4-9 | **（2026-10-02 新增，来自 ASVS 条目级核对）** 审计与日志加固：①审计中间件扩展覆盖 401/403（含读方法），避免「越权尝试无痕」；②审计详情与日志值做换行/控制字符转义（防日志注入）；两项均可本地验证 | `app/main.py`、`app/services/log_service.py`、`backend/tests/**` | 命令 2 + 全量 pytest | W4-2 | 低 | S |
 | W4-10 | **（2026-10-02 新增，来自 ASVS V6 域核对）** 认证加固：①口令强度下限（≥8，建议 15）+ 上下文词表/弱口令拦截（F-52）；②新增用户自助改密（校验当前口令）并收紧管理端重置语义（F-53）；均可本地验证（Pydantic 校验 + 服务层用例） | `app/schemas/**`、`app/services/account_service.py`、`app/api/v1/accounts.py`、`backend/tests/**` | 命令 2 + 全量 pytest | W2-2 | 中：改校验会影响既有账号创建路径，需回归 | M |
 | W4-8 | ASVS 5.0.0 条目级核对：按官方 CSV/JSON 逐条标注结论（`v5.0.0-x.y.z`），先覆盖配置/认证/会话/访问控制/日志五个域 | `memory-bank/security-review.md` | 命令 3 | W4-2 | 低 | L |
-| W4-11 | 自助改密的**前端入口**（W4-10 的收尾）：头部用户菜单新增「修改密码」+ 对话框组件；**校验闸门用纯函数**（`utils/passwordForm.ts`）而非 `el-form.validate()`；改密成功后清本地凭证并回登录页 | `frontend/src/components/account/**`、`frontend/src/utils/passwordForm.ts`、`frontend/src/layouts/AppHeader.vue`、`frontend/src/api/{auth,http}.ts`、`frontend/vitest.config.ts` | 命令 3（类型检查 + 构建）+ `npm run test` | W4-10 | 中：**无浏览器即无页面验收**，不得声称已验证交互 | M |
+| W4-11 | 自助改密的**前端入口**（W4-10 的收尾）：头部用户菜单新增「修改密码」+ 对话框组件；**校验闸门用纯函数**（`utils/passwordForm.ts`）而非 `el-form.validate()`；改密成功后清本地凭证并回登录页 | `frontend/src/components/account/**`、`frontend/src/utils/passwordForm.ts`、`frontend/src/layouts/AppHeader.vue`、`frontend/src/api/{auth,http}.ts`、`frontend/vitest.config.ts`、`frontend/package.json`（新增 devDependency `@vue/test-utils`，`jsdom` 原本已在） | 命令 3（类型检查 + 构建）+ `npm run test` | W4-10 | 中：**无浏览器即无页面验收**，不得声称已验证交互 | M |
 
 ---
 
