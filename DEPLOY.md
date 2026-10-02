@@ -220,7 +220,7 @@ docker compose start backend
 | `LOG_RETENTION_DAYS` | 审计日志保留天数（默认 `90`）：服务启动时清理更早的记录 |
 | `DEVELOPER_USERNAME` / `ADMIN_USERNAME` / `MEMBER_USERNAME` | 首次初始化账号的登录名（默认 `developer` / `admin` / `member`，仅首次建库生效） |
 | `DEFAULT_GUILD_NAME` | 首次建库创建的默认帮会名（默认「默认帮会」） |
-| `ALERT_ERROR_THRESHOLD` / `ALERT_WINDOW_MINUTES` / `ALERT_CHECK_INTERVAL_MINUTES` | 错误率告警的阈值（默认 20 条）/ 统计窗口（30 分钟）/ 检查间隔（15 分钟）；阈值 0 表示禁用 |
+| `ALERT_ERROR_THRESHOLD` / `ALERT_WINDOW_MINUTES` / `ALERT_CHECK_INTERVAL_MINUTES` | 错误率告警的阈值（默认 20 条）/ 统计窗口（30 分钟）/ 检查间隔（15 分钟）；阈值 **≤ 0** 表示禁用 |
 
 敏感内容，严禁写入任何入库文件；修改 `SECRET_KEY` 会使所有登录态失效。
 

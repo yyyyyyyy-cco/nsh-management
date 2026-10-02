@@ -73,6 +73,10 @@ operation_logs（操作审计日志）          guild_id（可空）
 | name | TEXT | NOT NULL, UNIQUE | 帮会名称 |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
 | icon_char | TEXT | NULL, 最多 4 字符 | 侧边栏折叠按钮显示的首字（迁移 g1h2i3j4k5l6） |
+- **创建帮会的语义（2026-10-03 补记，与实现一致）**：`guild_service.create_guild` 在**单次事务**内完成——插入帮会 → 生成管理员与帮众两个账号（用户名 `{帮会名}_admin` / `{帮会名}_member`，角色 `admin` / `member`，状态 `active`，`guild_id` 绑定本帮会）→ 为**全部职业**建 `profession_configs` 行（`target_count=0`）→ **结尾一次 `commit()`**；
+  - 因此中途失败（例如账号名与既有账号冲突）会**整体回滚**，不会留下"半个帮会"；测试见 `backend/tests/test_guild_create.py`；
+  - 帮会名重复在入口处显式拒绝（业务错误），不依赖数据库唯一约束报错；
+  - 初始密码由创建者指定并受**口令策略**约束（schema 层 `GuildCreate` + service 层兜底）；明文列 `plain_password` 属已接受风险（见 `security-review.md` §十六 A2）。
 
 ### 2.2 users — 账号表
 

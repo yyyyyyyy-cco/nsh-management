@@ -7,6 +7,7 @@ import asyncio
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.password_policy import PasswordPolicyError, validate_password
 from app.core.security import hash_password
 from app.models.attendance import AttendanceRecord
 from app.models.squad_adjustment import SquadAdjustment
@@ -44,6 +45,13 @@ async def create_guild(
     guild = Guild(name=name)
     session.add(guild)
     await session.flush()
+
+    # 服务层口令兜底（2026-10-03，见 F-88）：schema 之外的调用也要受口令策略约束。
+    for _password in (admin_password, member_password):
+        try:
+            validate_password(_password)
+        except PasswordPolicyError as exc:
+            raise ConfigServiceError(str(exc)) from exc
 
     # bcrypt 哈希为 CPU 密集操作：两个初始密码哈希并行放线程池，避免阻塞事件循环
     admin_hash, member_hash = await asyncio.gather(
