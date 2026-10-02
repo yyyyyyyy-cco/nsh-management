@@ -84,7 +84,9 @@ def analyze(text: str) -> list[str]:
     # 汇总行必须与表体一致（F-108：汇总行长期无人校验 ✗）
     SUMMARY_ROW = re.search(r"完成 \*\*(\d+)/(\d+)\*\*（([\d.]+)%）；未完成 \*\*(\d+)\*\*；其它 \*\*(\d+)\*\*", text)
     if SUMMARY_ROW:
-        cells = re.findall(r"^\| \*{0,2}W\d+-\d+\*{0,2} [^|]*\|\s*([^|]*?)\s*\|", text, re.MULTILINE)
+        cells = [ln.strip().strip("|").split("|")[1].strip()
+                 for ln in text.split("\n")
+                 if re.match(r"^\| \*{0,2}W\d+-\d+\*{0,2} (?!\|)", ln)]
         d = sum(1 for c in cells if c.startswith("✅"))
         p = sum(1 for c in cells if c.startswith(("⏳", "🔄")))
         want = (d, len(cells), p, len(cells) - d - p)
