@@ -834,6 +834,9 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 
 | `check_plan_integrity`（扩展） | 向 `progress.md` 注入一行**引用不存在的编号**的记录 ✓ | **exit 1** ✓✔ | **定向命中** ✓：输出含 `progress.md:N 引用了 §4 未定义的发现：<编号>` ✓（新增第 5 条：**记录文件内 F 引用校验** ✓，只认计划补零编号、含废止编号豁免 ✓；自检 **14/14** ✓；并修 FINDING_ROW 空格容忍缺陷 ✓） |
 
+
+| `check_commit_msg` / `.githooks/commit-msg`（行为验证） | 构造消息经 `--stdin` 与贡献者钩子各跑一遍 | 5 例全部符合预期 | 合规 0；摘要 54 字 1（报错精确）；缺 scope 1；非法 type 1；引用形式的禁句 0（F-110 的 strip_quoted 端到端验证）；钩子入口与 --stdin 行为一致（临时 GIT_DIR 隔离，未改任何 git 配置） |
+
 ### 11.4 一键复跑顺序
 
 ```bash
