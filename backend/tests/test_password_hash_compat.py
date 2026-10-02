@@ -32,10 +32,14 @@ class PasswordHashCompatTest(unittest.TestCase):
     def test_legacy_hash_rejects_wrong_password(self) -> None:
         self.assertFalse(verify_password("wrong-password", LEGACY_HASH))
 
-    def test_new_hash_is_bcrypt_2b_and_verifiable(self) -> None:
+    def test_new_hash_uses_sha256_prefix_and_verifies(self) -> None:
+        """新方案（W1-12）：`sha256$<bcrypt>`；前缀之后仍是标准 bcrypt `$2b$` 哈希。"""
         hashed = hash_password("new-pass-123")
-        self.assertTrue(hashed.startswith("$2b$"), "新哈希应为 bcrypt $2b$ 格式")
-        self.assertEqual(len(hashed), 60, "bcrypt 哈希固定 60 字符")
+        self.assertTrue(hashed.startswith("sha256$"), "新哈希应带 sha256$ 方案前缀")
+        payload = hashed[len("sha256$"):]
+        self.assertTrue(payload.startswith("$2b$"), "前缀之后应为 bcrypt $2b$")
+        self.assertEqual(len(payload), 60, "bcrypt 部分固定 60 字符")
+        self.assertEqual(len(hashed), 67, "总长度 = 7 字符前缀 + 60")
         self.assertTrue(verify_password("new-pass-123", hashed))
         self.assertFalse(verify_password("new-pass-124", hashed))
 
@@ -51,22 +55,39 @@ class PasswordHashCompatTest(unittest.TestCase):
             with self.subTest(bad=bad):
                 self.assertFalse(verify_password("any", bad))
 
-    def test_bcrypt_uses_only_first_72_bytes(self) -> None:
-        """特征化 bcrypt 的 72 字节边界（**当前**语义为静默截断，修法见 W1-12 / F-57）。
-
-        若将来升级 bcrypt 5.x 使其改为报错，本用例会失败——那时应连同「口令字节上限策略」一起决策，
-        而不是无声地改变长口令行为。
-        """
+    def test_new_scheme_uses_full_password_beyond_72_bytes(self) -> None:
+        """**F-57 回归看护**：新方案下，前 72 字节相同、后缀不同的口令**不得**互相通过。"""
         base = "a" * 72
         hashed = hash_password(base + "XXXX")
-        try:
-            accepted = verify_password(base + "YYYY", hashed)
-        except ValueError:
-            self.skipTest("bcrypt 已改为对 >72 字节报错（见 W1-12 决策）")
-            return
+        self.assertFalse(
+            verify_password(base + "YYYY", hashed),
+            "新方案必须先预哈希：超过 72 字节的后缀也参与校验（否则 F-57 未修复）",
+        )
+        self.assertTrue(verify_password(base + "XXXX", hashed))
+
+    def test_new_scheme_handles_multibyte_long_password(self) -> None:
+        """中文长口令（300 字节）能被完整使用；且与同前缀的其它口令互不通过。"""
+        pw = "测" * 100  # 300 字节，远超 bcrypt 的 72 字节
+        hashed = hash_password(pw)
+        self.assertTrue(verify_password(pw, hashed))
+        self.assertFalse(verify_password("测" * 99 + "试", hashed))
+
+    def test_legacy_direct_bcrypt_hash_still_truncates_at_72_bytes(self) -> None:
+        """**特征化旧行为**（仅适用于迁移前的历史哈希）：直连 bcrypt 只取前 72 字节。
+
+        该行为**不是新期望**，而是记录：①历史哈希必须继续可用（不锁用户）；
+        ②登录时的惰性升级（W1-12）会把它们逐个迁移到新方案，迁移完成后此特征自然消失。
+        若将来升级 bcrypt 5.0.0（对 >72 字节**报错**），必须确认库内已无此类历史哈希，否则用户会被锁在门外。
+        """
+        import bcrypt
+
+        base = "b" * 72
+        legacy = bcrypt.hashpw((base + "XXXX").encode("utf-8"), bcrypt.gensalt()).decode("ascii")
+        self.assertFalse(legacy.startswith("sha256$"), "构造的应是旧方案哈希（无前缀）")
+        self.assertTrue(verify_password(base + "XXXX", legacy))
         self.assertTrue(
-            accepted,
-            "特征化：前 72 字节相同的不同口令会互相通过（静默截断）——这是既有边界，见 F-57",
+            verify_password(base + "YYYY", legacy),
+            "特征化：旧方案哈希会静默截断，故后缀不同的口令也能通过——这正是 F-57，新方案已不再如此",
         )
 
 

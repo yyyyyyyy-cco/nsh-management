@@ -22,7 +22,8 @@ class PasswordHashTests(unittest.TestCase):
     def test_hash_differs_from_plaintext_and_verifies(self):
         hashed = hash_password("s3cret-pw")
         self.assertNotEqual(hashed, "s3cret-pw")
-        self.assertTrue(hashed.startswith("$2"), "应为 bcrypt 哈希（$2 前缀）")
+        self.assertTrue(hashed.startswith("sha256$"), "新哈希应带 sha256$ 方案前缀（W1-12）")
+        self.assertTrue(hashed[len("sha256$"):].startswith("$2b$"), "前缀之后应为 bcrypt $2b$ 哈希")
         self.assertTrue(verify_password("s3cret-pw", hashed))
 
     def test_wrong_password_is_rejected(self):

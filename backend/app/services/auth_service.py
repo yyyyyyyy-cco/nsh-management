@@ -8,7 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.password_policy import validate_password
-from app.core.security import create_access_token, hash_password, verify_password
+from app.core.security import (
+    _SCHEME_PREFIX,
+    create_access_token,
+    hash_password,
+    verify_password,
+)
 from app.models.user import User
 
 
@@ -87,6 +92,10 @@ async def authenticate(session: AsyncSession, username: str, password: str) -> t
 
     user.failed_attempts = 0
     user.locked_until = None
+    # 惰性升级（W1-12）：旧方案哈希（无 `sha256$` 前缀）在成功登录后用新方案重写，
+    # 使库内哈希随用户登录逐步迁移；迁移完成后方可安全评估 bcrypt 5.0.0（对 >72 字节报错）。
+    if not user.password_hash.startswith(_SCHEME_PREFIX):
+        user.password_hash = await asyncio.to_thread(hash_password, password)
     await session.commit()
     # 账号不存在时的失败记录随同名账号创建后登录成功一并清理
     _unknown_login_failures.pop(username, None)

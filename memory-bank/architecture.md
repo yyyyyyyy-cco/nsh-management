@@ -347,6 +347,8 @@ nsh-management/
 
 | 2026-10-03 | Wave 1 批次 28（合规化计划 **W1-10**）：移除未维护的 **`passlib`**、改用 `bcrypt` 直连，`bcrypt` `4.0.1` → **`4.3.0`**；新增 `tests/test_password_hash_compat.py`（5 用例）；**过程中抓到并修复真实缺陷 F-58**（`bcrypt` 4.x 对截断哈希 Rust panic，`PanicException` 非 `Exception` 子类 → 格式预校验 + 宽捕获）；登记 **F-57**（72 字节静默截断）与 **W1-12**；`tech-stack.md`/`security-review.md §14.7` 同步；教训记入 ai-checklist 第 63 条 | security.py, requirements.txt, test_password_hash_compat.py, test_core_security.py, tech-stack.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 
+| 2026-10-03 | Wave 1 批次 29（合规化计划 **W1-12**，收口 **F-57**）：口令改为**预哈希方案**——新哈希先 `base64(SHA-256(口令))` 再 bcrypt（`sha256$<bcrypt>`），任意长度口令完整参与，解除 72 字节静默截断；旧哈希仍走直连并在**登录时惰性升级**；**实测否决**「策略收紧到 72 字节」（中文仅 24 字符，违反 ASVS 6.2.9）与「立即升 bcrypt 5.0.0」（对 >72 字节连 `checkpw` 都报错 → 会锁死既有用户）；新增 `tests/test_password_hash_migration.py`（3 用例）并扩展兼容性用例；教训记入 ai-checklist 第 64 条 | security.py, auth_service.py, test_password_hash_compat.py, test_password_hash_migration.py, test_core_security.py, requirements.txt, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+
 ## 使用说明
 
 1. **开发前**：阅读本文档了解项目结构，然后按需阅读具体文档

@@ -20,8 +20,10 @@ pydantic==2.11.4
 python-jose[cryptography]==3.5.0
 # 2026-10-03（W1-10）移除 `passlib`：上游 2020 年后无发布、被 bcrypt>=4.1 破坏，改为直接使用 bcrypt（见 app/core/security.py 与 tests/test_password_hash_compat.py）
 # 2026-10-03（W1-10）4.0.1 -> 4.3.0：解除「为兼容 passlib 而钉死」的约束，取同族最新 4.x。
-#   未取 5.0.0 是**有意**的：5.0 对 >72 字节口令的行为可能与 4.x 不同（静默截断 -> 报错），
-#   需与「口令字节上限策略」一起评估，登记为 W1-12。
+#   未取 5.0.0 是**有意**的（2026-10-03 W1-12 实测结论）：bcrypt 5.0.0 对 >72 字节口令**直接报错**（`password cannot be longer
+#   than 72 bytes`，且 `checkpw` 同样报错）——若此时升级，库内**既有超长口令用户会立即无法登录**。
+#   新方案已改为 `base64(SHA-256(口令))` 预哈希（见 app/core/security.py `_prehash`），新口令不再受 72 字节限制；
+#   旧哈希在**用户下次登录时惰性升级**为 `sha256$` 方案，待迁移覆盖后再评估升级 5.0.0。
 #   本机实测：passlib 生成的 $2b$12$ 既有哈希可被 bcrypt.checkpw 校验（见 tests/test_password_hash_compat.py）。
 bcrypt==4.3.0
 python-multipart==0.0.32  # 修复 CVE-2024-53981 multipart DoS；0.0.32 为已实测版本（requires_python >=3.10）
