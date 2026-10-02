@@ -9,6 +9,8 @@ from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.game_id_request import MemberGameIdRequest
+from app.models.recording import Recording
+from app.models.attendance import AttendanceRecord
 
 # 管理员直接在常驻库改名的自动记录备注（用于与帮众申请审核记录区分）
 ADMIN_DIRECT_RENAME_REMARK = "管理员直接在常驻库改名（自动记录，无提交申请）"
@@ -96,6 +98,16 @@ async def detach_member(session: AsyncSession, member_ids: list[int]) -> None:
         update(MemberGameIdRequest)
         .where(MemberGameIdRequest.member_id.in_(member_ids))
         .values(member_id=None)
+    )
+
+    # 出勤/录屏的历史行同时解除成员引用（姓名快照 member_name 仍在，展示不受影响）。
+    # 与 MemberGameIdRequest 同理：未启用 sqlite_autoincrement 时 members.id 可被复用，
+    # 悬空引用会让新成员「继承」旧成员的出勤/录屏归属（2026-10-03 修复，见 F-78）。
+    await session.execute(
+        update(AttendanceRecord).where(AttendanceRecord.member_id.in_(member_ids)).values(member_id=None)
+    )
+    await session.execute(
+        update(Recording).where(Recording.member_id.in_(member_ids)).values(member_id=None)
     )
 
 

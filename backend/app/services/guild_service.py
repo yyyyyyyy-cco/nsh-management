@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password
 from app.models.attendance import AttendanceRecord
+from app.models.squad_adjustment import SquadAdjustment
 from app.models.guild import Guild
 from app.models.lineup import Lineup
 from app.models.match_data import MatchData
@@ -87,7 +88,7 @@ async def create_guild(
 
 
 async def delete_guild(session: AsyncSession, guild_id: int) -> None:
-    """删除帮会，级联删除其全部关联数据（账号/成员/赛程/出勤/排表/录屏/数据/职业配置）。"""
+    """删除帮会，级联删除其全部关联数据（账号/成员/赛程/出勤/排表/录屏/分析数据/分析调整/职业配置/改名申请）。"""
     guild = await session.get(Guild, guild_id)
     if guild is None:
         raise ConfigServiceError("帮会不存在", 404)
@@ -101,6 +102,9 @@ async def delete_guild(session: AsyncSession, guild_id: int) -> None:
         await session.execute(delete(AttendanceRecord).where(AttendanceRecord.schedule_id.in_(schedule_ids)))
         await session.execute(delete(Lineup).where(Lineup.schedule_id.in_(schedule_ids)))
         await session.execute(delete(MatchData).where(MatchData.schedule_id.in_(schedule_ids)))
+        # 分析调整副本：与 delete_schedule 同源的遗漏（2026-10-03 修复，见 F-77）；
+        # 不清会留孤儿行，且 schedules.id 可能被复用 → 新赛程继承旧分析调整
+        await session.execute(delete(SquadAdjustment).where(SquadAdjustment.schedule_id.in_(schedule_ids)))
         await session.execute(delete(Schedule).where(Schedule.guild_id == guild_id))
 
     await session.execute(delete(Member).where(Member.guild_id == guild_id))
