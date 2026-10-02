@@ -6,7 +6,7 @@ const FALLBACK = '#c9a13b'
 const NEUTRAL_BG = '#e5e7eb'
 
 describe('profColor（未知职业回退主色）', () => {
-  it('已知职业返回 ui-style-guide §9 规定色', () => {
+  it('已知职业返回 ui-style-guide §7 规定色', () => {
     expect(profColor('铁衣')).toBe('#ffc800')
     expect(profColor('素问')).toBe('#FF9CF2')
     expect(profColor('神相')).toBe('#3E6BF4')

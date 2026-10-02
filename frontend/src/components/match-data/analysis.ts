@@ -1,12 +1,12 @@
 /** 数据分析计算工具 - 基于实际数据优化版 */
 import type { MatchData } from '@/types/matchData'
 
-/** 职业色映射（依据 ui-style-guide）。 */
-export const PROF_COLORS: Record<string, string> = {
-  铁衣: '#ffc800', 素问: '#FF9CF2', 神相: '#3E6BF4', 碎梦: '#00FFFB',
-  血河: '#F04545', 玄机: '#f6ff00', 九灵: '#8B5CF6', 潮光: '#4F95FF',
-  龙吟: '#3fe155', 鸿音: '#C6834D', 沧澜: '#605EF0',
-}
+// 职业色映射：唯一来源是 `@/utils/profession`（依据 ui-style-guide §7）。
+// 2026-10-03（F-90）：本文件原先**复制**了一份同样的 11 色，改色时容易漏改一处；现改为引用并转出，
+// 既有 `import { PROF_COLORS } from './analysis'` 的调用方无需改动。
+import { PROF_COLORS } from '@/utils/profession'
+
+export { PROF_COLORS }
 
 /** 阵营颜色（图表系列用）。 */
 export const CAMP_COLORS = ['#c9a13b', '#5b7a9d', '#c0392b', '#2e8b57']
