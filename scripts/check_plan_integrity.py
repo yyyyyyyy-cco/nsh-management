@@ -19,6 +19,9 @@
    **误删了 F-114 行**，而本门禁当时只查计划内引用 ✗，**没有告警** ✗；
    记录文件里仍写着 `F-114` 却已无定义，正是该条要拦的情况。
 
+6. **§4 标题计数一致**：`## 4. 差距清单（N 项…）` 里的 N 必须等于**该节**发现行数
+   （2026-10-03 事故：标题长期写「42 项」而实际已 121 条 ✗，属陈旧数字）。
+
 用法：
     python scripts/check_plan_integrity.py                # 校验（含记录文件）
     python scripts/check_plan_integrity.py --self-test    # 内置样例自检（不读文件）
@@ -40,7 +43,7 @@ RECORD_FILES = (
 TASK_ROW = re.compile(r"^\| \*{0,2}(W\d+-\d+)\*{0,2} \| ", re.MULTILINE)
 # §7 进度行：`| W1-7 名称… |`（首格是「编号 空格 名称」）
 PROGRESS_ROW = re.compile(r"^\| \*{0,2}(W\d+-\d+)\*{0,2} (?!\|)", re.MULTILINE)
-FINDING_ROW = re.compile(r"^\| \*{0,2}(F-\d+)\*{0,2}\s*\| ", re.MULTILINE)
+FINDING_ROW = re.compile(r"^\|\s*\*{0,2}(F-\d+)\*{0,2}\s*\|", re.MULTILINE)
 F_REF = re.compile(r"\bF-\d+\b")
 # 记录内引用只按**计划的补零格式**判定（F-01…F-114）；`F-1`/`F-5` 属 security-review.md 自己的编号体系，应豁免
 F_REF_PLAN = re.compile(r"\bF-\d{2,}\b")
@@ -121,6 +124,12 @@ def analyze(text: str, records: tuple[tuple[str, str], ...] = ()) -> list[str]:
         if got != want:
             problems.append(f"§7 汇总行与表体不一致：汇总 {got}（完成/总数/未完成/其它），实测 {want}")
 
+    # §4 标题里的项数必须等于**该节**发现行数（2026-10-03 事故：标题长期写「42 项」而实际已 121 条 ✗）
+    sec4 = text.split("## 4.", 1)[-1].split("\n## ", 1)[0]
+    m4 = re.search(r"^## 4\. 差距清单（(\d+) 项", text, re.MULTILINE)
+    if m4 and int(m4.group(1)) != (n4 := len(FINDING_ROW.findall(sec4))):
+        problems.append(f"§4 标题写「{m4.group(1)} 项」但该节实际 {n4} 条发现行")
+
     return problems
 
 SELF_TEST_CASES: tuple[tuple[str, bool, str], ...] = (
@@ -141,22 +150,17 @@ SELF_TEST_CASES: tuple[tuple[str, bool, str], ...] = (
     ("| F-01 | x |\n| W1-1 | a |\n| W1-1 名称 | ✅ |\n", True, "记录引用已定义 F-01（记录内引用校验）"),
     ("| F-01 | x |\n| W1-1 | a |\n| W1-1 名称 | ✅ |\n", True, "记录引用 F-1/F-5（他文档编号）应豁免"),
     ("| **F-15** | x |\n| W1-1 | a |\n| W1-1 名称 | ✅ |\n", True, "§4 行写作 |**F-15**| 也应被识别（空格容忍）"),
+    ("## 4. 差距清单（2 项，证据）\n| F-01 | x |\n", False, "§4 标题项数与该节发现行数不符（正向路径由实跑覆盖）"),
 )
 
 def run_self_test() -> int:
     failures = 0
     for idx, (text, should_pass, note) in enumerate(SELF_TEST_CASES):
         if "记录引用" in note:
-            if "空格容忍" in note:
-                records = ()
-            elif "豁免" in note:
-                records = (("records.md", "批注：见 F-1 与 F-5（security-review §十）"),)
-            elif "空格容忍" in note:
-                records = ()
-            else:
-                records = (("records.md", "批注：见 F-01"),)
-            bad = "未定义" in note
-            records = (("records.md", "批注：见 F-99" if bad else "批注：见 F-01"),)
+            # 按用例意图路由（旧写法在末尾被无条件覆盖 ✗，使「他文档编号豁免」用例形同虚设 ✓）
+            body = ("批注：见 F-1 与 F-5（security-review §十）" if "豁免" in note
+                    else "批注：见 F-99" if "未定义" in note else "批注：见 F-01")
+            records = (("records.md", body),)
         else:
             records = ()
         problems = analyze(text, records)
