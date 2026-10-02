@@ -654,6 +654,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | `frontend/src/router/index.ts` 的 13 条记录 | 12 条真实页面 **全部**在 `design-document-v2.md` 中有对应中文标题 |
 | 根路径 `/`（无 name / 无 title） | 布局壳，非功能页 → 不计为缺口 |
 | `/:pathMatch(.*)*` | 重定向兜底 → 不计为缺口 |
+| **对账口径（务必沿用）** | 按 `path`+`title` **条目**核对 ✓ —— 注意 **`/` 与 `member-home` 同为「首页」**（角色不同、页面同名），**按标题去重会漏算** ✗ |
 
 
 #### 无障碍（WCAG）核对（2026-10-03，可复跑）
