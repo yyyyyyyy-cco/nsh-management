@@ -576,6 +576,7 @@ nsh-management/
 | 2026-10-03 | 批次 245（第 256 轮 · 终局验收与归档）：7 门禁全 0；ruff 通过；pytest 266+89；mypy 57 errors in 10 files；前端四链全绿；领先 277；§4 122 条中已关闭 93 条。仍红：CI commit-msg 11 条违规（待决策）；其余为待授权/环境门条目。不声称完成 |
 | 2026-10-03 | 批次 246（迁出 main）：新建 feature/compliance-remediation（a6acadc，保留领先 278 个提交）；main 指回 origin/main（2a2b081，领先 0）；未用 reset --hard，无内容丢失；后续提交均在该分支 |
 | 2026-10-03 | 批次 247（授权重写 11 条首行）：范围 a9aaa83^..HEAD（132 提交，仅改首行）；整树差异空 + 70 提交 tree 序列一致 + CI 口径 0 违规；旧→新映射登记 F-110；备份 backup/pre-commit-msg-rewrite（a7c2669）可撤销。更正：曾把 369692b 当最早违规（rev-list 新→旧序），首轮只改到 3 条。新增清单第 194 条 |
+| 2026-10-03 | 批次 248（按授权删除重写备份 ref）：重写点 544759e 与备份整树一致（无损），分支仅多 1 条登记提交，备份唯一独特内容=旧 11 首行（已在 F-110 映射 11/11）；git branch -D backup/pre-commit-msg-rewrite 后 rev-parse --verify 失败；对象仍可经 reflog 找回（a7c2669）。并更正我首次的错误断言口径 |
 
 
 
