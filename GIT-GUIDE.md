@@ -65,6 +65,7 @@ c902a15 merge(Data-analysis): 合并数据分析分支到 main
 统一使用**中文描述 + 约定前缀**的提交信息，保持历史可读、可筛选。
 
 ### 3.1 提交格式
+> **提交前必做**：启用版本化钩子 `git config core.hooksPath .githooks`（或 `sh scripts/install_git_hooks.sh` ✓）—— 否则**本地提交不校验**，不合规消息只在 CI 才暴露（2026-10-03 实测：钩子缺失期间累积 11 条违规 ✓；另实测该安装脚本在 Windows/WSL 下 exit 1 ✗ → 直接用上面这条 `git config` 即可 ✓）。
 
 ```
 <类型>(<范围>): <中文描述>
