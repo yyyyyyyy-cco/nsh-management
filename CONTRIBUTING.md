@@ -46,7 +46,7 @@
 
 1. `main` 始终可发布；功能走 `feature/<功能名>`，紧急修复走 `hotfix/<描述>`；合并使用 `--no-ff`。
 2. 提交格式 `<type>(<scope>): <中文摘要>`，**scope 必填**，摘要 ≤50 字符且含中文。
-3. 提交消息受钩子与 CI 双重校验：执行 `bash scripts/install_git_hooks.sh` 启用本地钩子。
+3. 提交消息受**钩子与 CI 双重校验**：执行 **`git config core.hooksPath .githooks`** 启用本地钩子（跨平台 ✓；`bash scripts/install_git_hooks.sh` 为其脚本封装，但**在 Windows/WSL 环境下可能因策略报 `E_ACCESS_DENIED`** ✗ —— 2026-10-03 实测该脚本在本机 exit 1，而 `git config` 直接生效 ✓）。未启用钩子时**本地提交不会被校验** ✗，不合规消息只会在 CI 暴露（历史上因此累积出 11 条违规 ✓）。
 
 ## 代码与文档规范
 
