@@ -696,7 +696,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 |---|------|-----------------|------|--------|---------|
 | J-1 | **是否推送本地提交**（最高优先） | 领先 `origin/main` **214** 个提交 ✓；CI 从未运行 ✗；本机**无 Python 3.11** ✗ | ① 推送 ② 暂不 | 推送后立即获得：**3.11 全量测试** ✓、**5 个报告型步骤**真跑 ✓、`W1-4` 哈希锁可生成 ✓、远端可见 ✓ | **①** —— 这是唯一能补齐「环境不可验证」的钥匙 ✓ |
 | J-2 | **D-4 版本联动**（`W3-4`） | `frontend/package.json` = **0.1.0** ✓、后端**无版本声明** ✗、`CHANGELOG.md` 最新 **1.2.0** ✓；三段版本日期与 git 标签**逐一相符** ✓ | ① 收敛到单一来源（以 CHANGELOG 为准，`package.json` 随 tag 发布）② 保持独立 | ① 制品可反查版本 ✓（SemVer / 12-Factor V）；② 现状无追溯能力 ✗ | **①**（成本低：改 1 处 + 加 1 条 CI 校验 ✓） |
-| J-3 | **开发者对按帮会隔离路径的访问**（决定 mypy 最后 **56** 条） | mypy 共 **57** 条 ✓，其中 **0** 条为 `current_user.guild_id`（`int | None`）传入要求 `int` 的服务 ✓；`deps.py` 的 `require_admin` **含** developer ✓ 而 `require_admin_strict` **不含** ✓ | ① 保持隐式放行 ② 显式收紧为管理员 ③ 仅收紧写操作、放行读操作 | ① 行为不变 ✓ 但类型层长期带 56 条噪声 ✗；② 语义最清晰 ✓ 但可能改变 developer 用法 ✗（**需你确认是否有人依赖**）；③ 折中 ✓ | **③**（先收紧写、读保留 ✓），可一次清 40+ 条并保留可用性 ✓ |
+| J-3 | **开发者对按帮会隔离路径的访问**（决定 mypy 最后 **56** 条） | mypy 共 **57** 条 ✓，多数为 `current_user.guild_id`（`int | None`）传入要求 `int` 的服务 ✓；`deps.py` 的 `require_admin` **含** developer ✓ 而 `require_admin_strict` **不含** ✓ | ① 保持隐式放行 ② 显式收紧为管理员 ③ 仅收紧写操作、放行读操作 | ① 行为不变 ✓ 但类型层长期带 56 条噪声 ✗；② 语义最清晰 ✓ 但可能改变 developer 用法 ✗（**需你确认是否有人依赖**）；③ 折中 ✓ | **③**（先收紧写、读保留 ✓），可一次清 40+ 条并保留可用性 ✓ |
 | J-4 | **F-106 动态属性注入方案** | 3 处：`attendance.py:58/82` 的 `m.member_status = m.status` ✓、`recording_service.py:131` 的 `r.profession = …` ✓；schema **暴露**这些字段 ✓，ORM 模型**未声明** ✗；运行期可用 ✓ | ① 在模型上声明**非映射**属性 ② 由响应层计算 ③ 保留 + 显式 `setattr` | ① 类型可见 ✓ 且**不动 DB** ✓；② 更正统 ✓ 但需改响应组装；③ 最省事 ✓ 但类型检查仍沉默 ✗ | **①**（改 2 个模型 + 3 处赋值点，风险低 ✓） |
 | J-5 | **默认口令策略**（F-61，`W1-14`） | 默认账号**仅当** `ADMIN_PASSWORD`/`MEMBER_PASSWORD` 存在时才创建 ✓（`init_db.py:63/72/87`）；`plain_password` 明文列仅 developer 可见 ✓；已有针对 `SECRET_KEY` 的弱密钥检查 ✓（`core/config.py:_secret_key_is_weak`） | ① 强制首登改密 ② 文档强提示 + 生成随机初始口令 ③ 现状 | ① 最安全 ✓ 但需加字段/迁移 ✗；② 成本低 ✓ 但依赖部署者自觉 ✗；③ 弱口令风险 ✗ | **②**（并在 `DEPLOY.md` 给随机口令示例 ✓） |
 | J-6 | **两个读取端点的可见范围**（F-73） | `GET /config/professions` → `get_current_user` ✓、`GET /members/attendance-rate` → `get_current_user` ✓；同文件其余读取均为 `require_admin` ✓（`profession-stats`、`export` 等） | ① 保持现状（登录即可读）② 收紧为 `require_admin` | ① 帮众可见**全局职业目标**与**出勤率**；② 收紧后若前端依赖这些数据会失效 ✗（**需确认前端用途**） | **先确认前端用途再定** ✓（下一轮我给出「若收紧，哪些前端调用会失败」的清单 ✓） |
@@ -939,7 +939,7 @@ python scripts/check_verdict_sync.py --self-test      && python scripts/check_ve
 | 报告型检查器（8）| `--strict` | **全部 exit 0** ✓（`check_doc_refs` 按设计 exit 1，存量信息性发现：扫描 28 文档 / 引用 913 / 有效 808 / 缺失 60 / 歧义 45 ✓）|
 | 后端静态 | `ruff check .` | **All checks passed** ✓ |
 | 后端测试 | `pytest -q` | **exit 0** ✓ |
-| 后端类型 | `mypy app`（报告型）| **57 errors / 10 files** ✓（与历史一致，均为受 J-3 决策限制的 `arg-type`）|
+| 后端类型 | `mypy app`（报告型）| **57 errors / 10 个文件存在错误 files** ✓（与历史一致，均为受 J-3 决策限制的 `arg-type`）|
 | 前端单测 | `npm run test` | **exit 0** ✓（69 passed 8 files）|
 | 前端构建 | `npm run build` | **exit 0** ✓ |
 | 工作区 | `git status --porcelain` | **0 行** ✓ |
