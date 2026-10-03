@@ -577,6 +577,7 @@ nsh-management/
 | 2026-10-03 | 批次 246（迁出 main）：新建 feature/compliance-remediation（a6acadc，保留领先 278 个提交）；main 指回 origin/main（2a2b081，领先 0）；未用 reset --hard，无内容丢失；后续提交均在该分支 |
 | 2026-10-03 | 批次 247（授权重写 11 条首行）：范围 a9aaa83^..HEAD（132 提交，仅改首行）；整树差异空 + 70 提交 tree 序列一致 + CI 口径 0 违规；旧→新映射登记 F-110；备份 backup/pre-commit-msg-rewrite（a7c2669）可撤销。更正：曾把 369692b 当最早违规（rev-list 新→旧序），首轮只改到 3 条。新增清单第 194 条 |
 | 2026-10-03 | 批次 248（按授权删除重写备份 ref）：重写点 544759e 与备份整树一致（无损），分支仅多 1 条登记提交，备份唯一独特内容=旧 11 首行（已在 F-110 映射 11/11）；git branch -D backup/pre-commit-msg-rewrite 后 rev-parse --verify 失败；对象仍可经 reflog 找回（a7c2669）。并更正我首次的错误断言口径 |
+| 2026-10-03 | 批次 249（排查 pip-* 目录堆积）：根因 = TEMP/TMP 短名路径不可用且 TMPDIR 为空 -> tempfile.gettempdir() 回退到 cwd（仓库根，干净环境实测），pip 工作目录因此落在根目录；共 22 个，已被 .gitignore 覆盖、不进提交。预防：跑 pip 前显式设 TEMP/TMP/TMPDIR；清理命令待用户确认。新增清单第 195 条 |
 
 
 
