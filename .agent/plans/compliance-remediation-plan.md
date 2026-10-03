@@ -501,6 +501,19 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | 文档 ↔ 真实迁移产物 | `python scripts/check_schema_vs_db.py`（**仅报告**；`--strict` 有漂移非零、迁移环境不可用返回 2） | 文档 12 张表 vs 迁移产物 12 张表、逐表逐列一致（自检 6/6） |
 | 配置漂移告警 | `bash scripts/check-config-drift.sh.example [--strict] [<srv> <repo> ...]` | 服务器与仓库配置漂移告警（D-5 回退方案；敏感值掩码；零外部依赖）；详见 §7 W1-3 与 `DEPLOY.md` |
 
+
+**报告型检查器（8 个，2026-10-03 补记）**：`--strict` 的期望退出码如下（实测 ✓）：
+
+| 检查器 | `--strict` 期望 | 说明 |
+|--------|----------------|------|
+| `check_type_drift.py` | 0 | 前后端字段对账（F-92） |
+| `check_api_paths.py` | 0 | 前端 API ↔ 后端路由（F-93） |
+| `check_schema_drift.py` | 0 | 权威源 ↔ 模型（F-94） |
+| `check_schema_vs_db.py` | 0 | 权威源 ↔ 真实迁移产物（F-97） |
+| `check_nullability.py` | 0 | 前后端空值契约（F-101） |
+| `check_request_required.py` | 0 | 请求体必填字段（F-102） |
+| `check_tree_coverage.py` | 0 | §3.3 第 3 条：目录树覆盖（F-109） |
+| `check_doc_refs.py` | 1 | 文档内引用可解析（报告模式，见 W4-22） |
 ## 9. 风险登记
 
 | 风险 | 触发条件 | 影响 | 缓解 |
