@@ -567,6 +567,7 @@ nsh-management/
 | 2026-10-03 | 批次 236（对账工具类 + 两条 P2 全关闭）：F-92/93/94/95/97/101 对账脚本均已建立（点名三者已入 CI）；F-98 ExcelImportError 已有 self.message + 专测；F-104 文件名空值安全 + 专测。观察项：nullability/request_required/doc_refs 仍未入 CI |
 | 2026-10-03 | 批次 237（8 条核验）：修 CI 文件头陈旧注释（mypy 实已接入，报告型）；关闭 F-89/F-90/F-96/F-99/F-102/F-103；保留 F-91（PROF_ORDER 两份）、F-100（element-plus.css:30 两处字面色值，等价性未核） |
 | 2026-10-03 | 批次 238（9 条待核清收）：F-105 用 pytest -k profession 实跑定论（exit 0，调用点 model_dump）；关闭 F-108/F-109/F-111/F-113/F-115/F-10；保留 F-106（3 处动态属性）、F-114（pytest -q 摘要不可见）。布尔与注文相反一次被预期集合断言拦下 |
+| 2026-10-03 | 批次 239（修 F-106 + F-114）：F-106 精确 2 处并改为 model_copy（recording_service 那处为真实列赋值，原判误计）；F-114 全量实测 -q 隐藏 subtest 摘要（不带 -q 可见）-> 已把 §8 的 python -m pytest -q 改为 python -m pytest；并更正上轮 -k 探测范围错误 |
 
 
 

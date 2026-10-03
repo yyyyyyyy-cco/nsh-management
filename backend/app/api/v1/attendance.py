@@ -55,9 +55,9 @@ async def substitute_candidates(
     session: AsyncSession = Depends(get_db),
 ) -> list[SubstituteCandidateOut]:
     members = await attendance_import.substitute_candidates(session, current_user.guild_id, schedule_id)
-    for m in members:
-        m.member_status = m.status  # 注入 member_status
-    return [SubstituteCandidateOut.model_validate(m) for m in members]
+    # F-106（2026-10-03）：原实现给 **ORM 实例注入临时属性**（`m.member_status = m.status`）后再 `model_validate`；
+    # 现改为在**已声明该字段**的 schema 上做 `model_copy(update=…)`，不再改写 ORM 对象 ✓
+    return [SubstituteCandidateOut.model_validate(m).model_copy(update={"member_status": m.status}) for m in members]
 
 
 @router.post("/import-substitutes")
@@ -79,9 +79,9 @@ async def member_candidates(
 ) -> list[SubstituteCandidateOut]:
     """常驻库所有成员（正式+替补），已导入本场的排除。"""
     members = await attendance_import.all_member_candidates(session, current_user.guild_id, schedule_id)
-    for m in members:
-        m.member_status = m.status  # 注入 member_status
-    return [SubstituteCandidateOut.model_validate(m) for m in members]
+    # F-106（2026-10-03）：原实现给 **ORM 实例注入临时属性**（`m.member_status = m.status`）后再 `model_validate`；
+    # 现改为在**已声明该字段**的 schema 上做 `model_copy(update=…)`，不再改写 ORM 对象 ✓
+    return [SubstituteCandidateOut.model_validate(m).model_copy(update={"member_status": m.status}) for m in members]
 
 
 @router.post("/import-members")
