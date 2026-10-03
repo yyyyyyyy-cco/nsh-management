@@ -437,6 +437,9 @@ grep -rn 'security-review\.md' --include='*.md' memory-bank | wc -l   # 引用�
 cd frontend && npm ci
 npm run lint                                    # 期望：0 error / 0 warning（ESLint 干净时不打印 problems 行）
 npm run test                                    # 期望：69 passed / 8 文件（实测）
+
+# 提交消息门禁（F-110，照 CI 口径复跑；输出应为空）：
+# BASE=$(tr -d '[:space:]' < .github/commit-msg-baseline); for sha in $(git rev-list --no-merges $BASE..HEAD); do git log -1 --format='%B' $sha | python scripts/check_commit_msg.py --stdin --quiet || echo "$sha 违规"; done
 npm run build                                   # vue-tsc 类型检查 + vite 生产构建；期望 exit 0
 # Windows 本地跑 build 需把 TEMP/TMP 指向工作区，否则 esbuild 临时文件会被拒（见 ai-checklist 第 67 条）
 docker compose build                            # 期望：双镜像构建成功（frontend/nginx.conf 已于 W1-2 补齐）
