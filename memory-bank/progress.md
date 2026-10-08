@@ -112,7 +112,7 @@ nsh-management/
 ├── .editorconfig               # 编辑器统一约定（换行/缩进/编码）
 ├── .gitattributes              # 换行策略与二进制标记（text=auto eol=lf，脚本与批处理为 crlf）
 ├── .githooks/                  # 版本化 Git 钩子（commit-msg 提交消息校验，需 install_git_hooks.sh 启用）
-├── .github/                    # GitHub 平台配置（workflows/ci.yml、dependabot.yml、commit-msg-baseline）
+├── .github/                    # GitHub 平台配置（workflows/ci.yml、commit-msg-baseline）
 ├── scripts/                    # 仓库级脚本：门禁自检（行数 / 依赖锁定 / 环境变量文档联动 / 整改计划结构）、提交信息校验、Git hooks 安装、备份与归档示例
 ├── AGENTS.md                   # AI 开发指南：规范/文档维护/进度追踪（自动读取）
 ├── start.bat                   # 一键启动脚本（前后端+首次建库）
@@ -662,6 +662,8 @@ nsh-management/
 | 2026-10-08 | 引导文档精简（**按用户反馈把排错细节移出快速开始**，修正同日上一条记录的落点）：①**反馈**：README 快速开始被三段长引用块（安装排错 / Python 版本 / 3.13 附加）切碎，不是「简洁明了的部署流程」✗。②**重构** ✓：快速开始收敛为**两条流程线**——`一、本地开发`（克隆 → venv → pip → alembic → npm → `start.bat`）与 `二、服务器部署（Docker Compose）`（`cp .env.example .env` → `docker compose up -d --build` → `docker compose ps` 验 healthy）；三段长块压成**两行「环境要求」**（Python 3.11–3.13 / Node 20+ / 换源 / 3.13 补 greenlet，细节引 `CONTRIBUTING.md` §环境准备）；删除 Docker 段两条 `nginx.conf` 细节（`DEPLOY.md` §二/§三 已有权威记述）。③**细节搬家（不丢事实）** ✓：`pydantic-core` 无 cp314 wheel、aliyun SSL 变体源、`requirements*.txt` 编码声明勿删、3.13 `greenlet` 事实 → 全部并入 `CONTRIBUTING.md` §环境准备。④**保留** ✓：版本门禁一行命令（上一轮用户明确要求）、默认账号表、数据源模式（`DB_MODE`）小节。⑤**回归**：repo-hygiene 全套 15 次调用 exit 0（file_length / requirements_pins / env_docs / plan_integrity / doc_numbers / verdict_sync `--strict` / stale_paths / doc_refs）✓。⑥**边界**：本行**不回改**同日上一条记录（§3.4 历史条目保留），仅更正其内容落点 | 文档、README、CONTRIBUTING |
 
 | 2026-10-08 | 工作区遗留改动处置（**`frontend/package-lock.json` 的 3 行 `engines` 镜像，决定保留**）：①**来历**（如实）：本轮**未执行任何 npm 命令**，该改动是此前本机 `npm install` / `npm ci` 顺手补齐的——`package.json` 的 `engines.node`（批次 159 加入）当时未同步进 lock 顶层包条目 ✗。②**取证** ✓：`git diff` = **+3 行**，仅在 `packages[""]` 内新增 `"engines": {"node": "^18.0.0 || ^20.0.0 || >=22.0.0"}`，与 `package.json` 声明**逐字一致**；保留前先 `JSON.parse` 验证 lock 仍可解析 ✓（未改坏）。③**决策**：用户裁定**保留**（lock 本应镜像 `package.json`）✓。④**边界**：未复跑 `npm install` / `npm ci` 复算（避免再次改写 lock），仅做静态一致性取证 | 前端依赖、文档 |
+
+| 2026-10-08 | 移除 Dependabot 自动依赖更新（**用户决定**；删 1 个文件 + 文档同步）：①**背景**：`feature/compliance-remediation` 合并进 main（`871efc0`）后，Dependabot 依 `.github/dependabot.yml`（W2-7，2026-10-02 引入）在 3 分钟内自动开出 **6 个 PR**——`actions/checkout` 4→7、`actions/setup-node` 4→6、`actions/setup-python` 5→7（CI 自身动作）、`frontend/Dockerfile` 基座 `node:18-alpine`→`node:26-alpine`、backend pip 组 7 项（`uvicorn 0.27.1→0.54.0`、`sqlalchemy 2.0.36→2.1.3`、`aiosqlite 0.20.0→0.22.1` 等）、frontend npm 组 14 项（`pinia 2.3.1→4.0.3`、`vue-router 4.6.4→5.3.1`、`@vitejs/plugin-vue 5.2.4→6.0.9`、`@types/node 20→26`）。②**评估** ✗：多为跨大版本，或与既有决策冲突（前端基座规划为 `node:22-alpine`；依赖策略为「精确锁定 + 最小修复版本 + 全量回归 + CVE 核对」）→ 自动 PR 噪声大于收益。③**处置** ✓：按用户决定**删除 `.github/dependabot.yml`**（删除前做绝对路径守卫校验，`git status` 记为 `D`）；`.github/` 现仅剩 `workflows/ci.yml` 与 `commit-msg-baseline`；本文档目录树同步，整改计划 **W2-7 记 ⛔ 已撤销**、**F-33 回退为未满足**（依赖更新改由人工流程承担）。④**边界**：已开的 6 个 PR 仍挂在 GitHub（删配置不会自动关闭；本机无 GitHub token，需网页操作）；仓库 Settings 里的 Dependabot alerts / security updates 与本文件无关，如需彻底关闭须在网页设置处理 | 依赖自动化、文档 |
 
 ## 使用说明
 
