@@ -10,10 +10,10 @@ fastapi==0.142.2
 # 由 fastapi 传递引入（fastapi 声明 starlette>=0.46.0，会解析到 1.x 大版本）——
 # 此处显式锁定，保证「已实测组合」可复现（元数据 requires_python >=3.10）。
 starlette==1.7.0
-uvicorn[standard]==0.27.1
-sqlalchemy==2.0.36
-aiosqlite==0.20.0
-pydantic==2.11.4
+uvicorn[standard]==0.54.0
+sqlalchemy==2.1.3
+aiosqlite==0.22.1
+pydantic==2.13.5
 # JWT 实现。2026-10-02 由 3.3.0（2021 年发布）升到 3.5.0：
 #   3.3.0 已落后 4 年，且 3.4.0 正是为修复 JWT 相关 CVE（3.3.0 受影响）而发布；
 #   3.5.0 的 PyPI 元数据 requires_python >=3.9、vulnerabilities 为空，与 3.11 基座兼容。
@@ -25,7 +25,7 @@ python-jose[cryptography]==3.5.0
 #   新方案已改为 `base64(SHA-256(口令))` 预哈希（见 app/core/security.py `_prehash`），新口令不再受 72 字节限制；
 #   旧哈希在**用户下次登录时惰性升级**为 `sha256$` 方案，待迁移覆盖后再评估升级 5.0.0。
 #   本机实测：passlib 生成的 $2b$12$ 既有哈希可被 bcrypt.checkpw 校验（见 tests/test_password_hash_compat.py）。
-bcrypt==4.3.0
+bcrypt==5.0.0
 python-multipart==0.0.32  # 修复 CVE-2024-53981 multipart DoS；0.0.32 为已实测版本（requires_python >=3.10）
 openpyxl==3.1.5
 # 2026-10-03 升级 11.1.0 -> 12.3.0（合规化计划 W1-8）：上游 GitHub Advisory GHSA-62p4-gmf7-7g93
@@ -34,4 +34,4 @@ openpyxl==3.1.5
 #   全仓无 `Image.open`、不接受图像上传（两处 UploadFile 均为 Excel），故该 CVE 路径**不可达**；升级为顺带消除而非应急。
 #   本机实测（2026-10-03）：导入级兼容（`_load_font` 返回 FreeTypeFont）+ 后端全量 pytest 158 passed / 84 subtests exit 0。
 Pillow==12.3.0  # 常驻库导出图片
-alembic==1.13.1
+alembic==1.20.0
