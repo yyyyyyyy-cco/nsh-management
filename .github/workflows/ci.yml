@@ -44,7 +44,7 @@ jobs:
       SECRET_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       DATABASE_URL: sqlite+aiosqlite:///./ci.db
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"   # 与 backend/Dockerfile 基座一致；W1-5 统一版本后同步
@@ -89,7 +89,7 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           node-version: "22"   # Node 20 下 vitest 的 jsdom 环境起不来（jsdom 30 / undici 8 要求 ≥22.19），详见 PR 说明
@@ -108,7 +108,7 @@ jobs:
     name: 仓库卫生（行数 / 路径 / 换行）
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -179,7 +179,7 @@ jobs:
     name: 提交消息规范（基线之后）
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0   # 需要基线提交可达，才能对「基线..HEAD」范围逐个校验
       - uses: actions/setup-python@v5
@@ -211,7 +211,7 @@ jobs:
     name: 镜像构建（后端 + 前端）
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: 后端镜像
         run: docker build -t nsh-backend:ci backend
       - name: 前端镜像（F-08 回归护栏：COPY nginx.conf）
