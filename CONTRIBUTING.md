@@ -28,12 +28,18 @@
 > pip install -r backend/requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 > npm ci --prefix frontend --registry https://registry.npmmirror.com
 > ```
+>
+> 企业代理/自签证书环境报 SSL 证书错误时，可改用与镜像构建相同的 aliyun 源：
+> `pip install -r backend/requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com`。
+> 另：`requirements*.txt` 首行 `# -*- coding: utf-8 -*-` 是中文注释的编码声明，**不要删除**（中文 Windows（cp936）下缺失会 `UnicodeDecodeError`）。
 
 
 启动命令与默认账号见 [`README.md`](README.md) 的「快速开始」。要点：
 
 - **后端 Python 3.11～3.13**：Python 3.14 目前无法安装依赖（`pydantic-core` 无对应 wheel），
-  生产镜像基座为 `python:3.11-slim`。
+  生产镜像基座为 `python:3.11-slim`；**Python 3.13 需额外 `pip install greenlet`**
+  （`sqlalchemy==2.0.36` 仅在 `python_version < "3.13"` 时声明 greenlet，而 `backend/alembic/env.py`
+  走异步引擎，否则 `alembic upgrade head` 报 `ValueError: the greenlet library is required`）。
 - **前端 Node 20+**（CI 使用 Node 20）。
 - 本地开发库与日志写入 `backend/data/`、`backend/logs/`，均不入库。
 

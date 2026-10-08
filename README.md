@@ -38,40 +38,27 @@
 
 ## 快速开始
 
-### 本地开发（Windows）
+### 一、本地开发（Windows）
 
 ```bash
 # 1. 克隆项目
 git clone <repo-url>
 cd nsh-management
 
-# 2. 后端
+# 2. 后端（Python 3.11 / 3.12 / 3.13，版本不符时下一行会直接报错）
 cd backend
+python -c "import sys; assert sys.version_info[:2] in [(3,11),(3,12),(3,13)], sys.version"
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\alembic upgrade head
 
-# 3. 前端
+# 3. 前端（Node 20+）
 cd ../frontend
 npm install
 
 # 4. 一键启动（回到项目根目录）
 cd ..
 start.bat
-```
-
-> **安装排错（2026-10-02 补充）**：若 `pip install` 报 SSL 证书错误（企业代理/自签证书环境），可改用与镜像构建相同的镜像源：
-> `pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com`。
-> 另注意：`requirements.txt` 与 `requirements-dev.txt` 首行声明了 `# -*- coding: utf-8 -*-`——文件含中文注释，中文 Windows（cp936）下 pip 缺少编码声明会解码失败（`UnicodeDecodeError`），**新增内容时请勿删除该行**。
-
-> **Python 版本（2026-10-02 实测）**：请使用 **Python 3.11 / 3.12 / 3.13**。实测 **3.14 装不上本项目依赖**——`pydantic-core==2.33.2`（pydantic 2.11.4）尚无 cp314 wheel，pip 会转去源码构建（需 Rust 工具链）而失败。生产镜像基座为 `python:3.11-slim`；**运行时版本已按代码事实统一为 3.11**（合规化计划 W1-5，2026-10-02 完成），本机 3.12 亦可用于本地验证。
-
-### 后端测试与静态检查
-
-```bash
-cd backend
-python -m pytest     # 新用例（backend/tests/）+ 既有 selfcheck_*.py；全部使用内存库
-ruff check .         # 静态检查（配置见 backend/ruff.toml）
 ```
 
 启动后访问 http://localhost:5173，首次启动会自动初始化默认账号：
@@ -82,9 +69,27 @@ ruff check .         # 静态检查（配置见 backend/ruff.toml）
 | 管理员 | admin | admin123 |
 | 帮众 | member | member123 |
 
-### 数据源模式（`DB_MODE`，仅本地开发）
+> **环境要求**：Python 3.11–3.13（3.14 装不上依赖）、Node 20+；依赖拉取慢/超时或报 SSL 证书错误时**按命令换源**（pip 清华源 / npm npmmirror，不要改全局配置、不要写进仓库）；Python 3.13 需补装 `greenlet`（否则 `alembic upgrade head` 报 `ValueError`）。
+> 细节见 [CONTRIBUTING.md](CONTRIBUTING.md) §环境准备。
 
-`start.bat` 顶部通过 `DB_MODE` 切换本地启动所用数据库，**默认 `prod`**：
+### 二、服务器部署（Docker Compose）
+
+```bash
+# 1. 准备环境变量（必改 SECRET_KEY 与账号密码）
+cp .env.example .env
+
+# 2. 构建并启动
+docker compose up -d --build
+
+# 3. 检查状态（backend 应为 healthy）
+docker compose ps
+```
+
+HTTPS/域名、一键更新、备份恢复、日志与故障排查见 [DEPLOY.md](DEPLOY.md)；一键更新脚本模板为 `deploy.sh.example`。
+
+### 本地开发补充
+
+**数据源模式（`DB_MODE`）**：`start.bat` 顶部通过 `DB_MODE` 切换本地启动所用数据库，**默认 `prod`**：
 
 | 模式 | 数据源 | 说明 |
 |------|--------|------|
@@ -93,24 +98,13 @@ ruff check .         # 静态检查（配置见 backend/ruff.toml）
 
 > 快照文件需从服务器导出后放入 `backend\data\`（`.gitignore` 已排除 `*.db`，不入库）。只想用本地库时，把 `start.bat` 中的 `set "DB_MODE=prod"` 改为 `dev`。
 
-### Docker 部署
+**测试与静态检查**：
 
 ```bash
-# 1. 复制环境变量模板并填写
-cp .env.example .env
-# 编辑 .env，修改 SECRET_KEY 和账号密码
-
-# 2. 构建并启动
-docker compose up -d --build
-
-# 3. 访问
-# http://your-server-ip
+cd backend
+python -m pytest     # 新用例（backend/tests/）+ 既有 selfcheck_*.py；全部使用内存库
+ruff check .         # 静态检查（配置见 backend/ruff.toml）
 ```
-
-> 前端镜像构建依赖仓库内的 `frontend/nginx.conf`（占位符版，2026-10-02 起入库）——该文件缺失时 `docker compose up -d --build` 会在 `COPY nginx.conf` 一步失败。生产服务器的实际 nginx 配置与之不同，按 [DEPLOY.md](DEPLOY.md) §三 单独维护（`deploy.sh` 排除清单仍排除该文件，避免本地占位符版覆盖服务器）。
-> 一键部署脚本模板为 `deploy.sh.example`（复制为 `deploy.sh` 并填写服务器占位符后使用）。
-
-详细部署文档见 [DEPLOY.md](DEPLOY.md)。
 
 ## 项目结构
 
