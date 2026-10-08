@@ -162,7 +162,9 @@ defineEmits<{ 'open-config': [] }>()
 .gap-chip--action {
   font-family: inherit;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
 }
 
 .gap-chip--action:hover {

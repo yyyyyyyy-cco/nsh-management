@@ -1,6 +1,8 @@
 """应用入口：创建 FastAPI 实例、注册 CORS/异常处理/审计日志中间件/路由。"""
+
 import asyncio
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -9,14 +11,15 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.api.v1.health import router as health_router
 from app.api.v1.router import api_router
 from app.core.client_ip import get_client_ip
-from app.core.config import settings
+from app.core.config import api_docs_enabled, enforce_secret_key, settings
+from app.core.database import async_session_factory
 from app.core.logging_config import setup_logging
 from app.core.security import decode_access_token
-from app.core.database import async_session_factory
 from app.models.user import User
-from app.services import log_service
+from app.services import alert_service, log_service
 from app.services.attendance_service import AttendanceServiceError
 from app.services.auth_service import AuthError
 from app.services.config_service import ConfigServiceError
@@ -33,7 +36,37 @@ from app.utils.excel_import import ExcelImportError
 setup_logging()
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.APP_NAME)
+# 在线 API 文档开关（合规化计划 W4-1）：生产环境关闭 `/docs`、`/redoc`、`/openapi.json`
+# （暴露完整接口与数据结构属 OWASP Top 10:2025 A02 安全配置错误）；本地开发保留以便调试。
+_DOCS_ENABLED = api_docs_enabled()
+
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    """应用生命周期（2026-10-02 迁移：替代 FastAPI 已弃用的 `@app.on_event("startup")`）。
+
+    语义与迁移前一致：先过**启动安全门禁**（生产弱密钥拒绝启动），再启动两个后台循环；
+    退出时取消循环，避免测试/重启场景下后台任务悬挂（原写法没有关闭钩子）。
+    """
+    startup_checks()
+    application.state.log_cleanup_task = asyncio.create_task(_log_cleanup_loop())
+    application.state.alert_task = asyncio.create_task(_alert_loop())
+    try:
+        yield
+    finally:
+        for attr in ("log_cleanup_task", "alert_task"):
+            task = getattr(application.state, attr, None)
+            if task is not None:
+                task.cancel()
+
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    lifespan=lifespan,
+    docs_url="/docs" if _DOCS_ENABLED else None,
+    redoc_url="/redoc" if _DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if _DOCS_ENABLED else None,
+)
 
 # 审计中间件拦截的写方法与豁免路径（login 在 auth 接口内手动埋点，含失败详情；
 # developer/logs 的 DELETE 在接口内手动埋点带清理详情）
@@ -46,13 +79,18 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
 
     用户身份优先复用请求认证依赖挂载的 request.state.user（省一次 JWT 解码 + 查库）；
     依赖未执行到（如 401/404）时回退到 Authorization 解析。
+
+    覆盖范围（2026-10-02 扩展，ASVS 5.0.0 16.3.2 / 差距 F-50）：
+    - 写方法（POST/PUT/DELETE/PATCH）：全部留痕；
+    - **读方法但携带 Authorization 且被拒（401/403）**：也留痕——否则越权尝试（尤其读接口）无痕；
+    - 未携带凭证的 401（匿名探测）**不记录**：那属于未认证访问而非授权失败，避免探测刷爆日志。
     """
 
     async def dispatch(self, request: Request, call_next):
-        should_audit = (
-            request.method in AUDIT_METHODS
-            and request.url.path not in AUDIT_EXCLUDED_PATHS
-        )
+        path = request.url.path
+        excluded = path in AUDIT_EXCLUDED_PATHS
+        is_write = request.method in AUDIT_METHODS and not excluded
+        has_credentials = bool(request.headers.get("authorization"))
         exception: Exception | None = None
         status_code: int | None = None
         try:
@@ -64,19 +102,32 @@ class AuditLogMiddleware(BaseHTTPMiddleware):
             raise
         finally:
             is_error = exception is not None or (status_code is not None and status_code >= 500)
-            # 写操作全部审计；错误（未处理异常/5xx）不限方法也落库，读操作的 4xx 不记避免噪音
-            if is_error or should_audit:
+            # 授权失败留痕（F-50）：读方法 + 带凭证 + 被拒
+            denied = not is_write and not excluded and has_credentials and status_code in (401, 403)
+            # 写操作全部审计；错误（未处理异常/5xx）不限方法也落库；读操作的「带凭证被拒」同样落库
+            if is_error or is_write or denied:
                 detail: dict | str | None = None
                 if exception is not None:
                     level = "error"
                     detail = f"未处理异常: {exception}"
                 elif status_code is not None and status_code >= 500:
                     level = "error"
+                elif status_code == 401:
+                    level = "warning"
+                    detail = "凭证无效或已失效（请求携带 Authorization）" if denied else None
+                elif status_code == 403:
+                    level = "warning"
+                    detail = "授权被拒" if denied else None
                 else:
                     level = "info"
                     if status_code is not None and status_code >= 400:
                         level = "warning"
-                asyncio.create_task(self._write_log(request, status_code, level, detail))
+                # 授权失败是**罕见路径**（且审计记录应当可靠落库、不可在进程崩溃时丢失），
+                # 故这里直接 await；写操作热路径仍用 create_task 以免给每个请求加一次落库延迟。
+                if denied:
+                    await self._write_log(request, status_code, level, detail)
+                else:
+                    asyncio.create_task(self._write_log(request, status_code, level, detail))
 
     @staticmethod
     async def _resolve_user(request: Request) -> User | None:
@@ -131,12 +182,37 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix=settings.API_PREFIX)
+# 健康检查（合规化计划 W3-1）挂两处：
+#   ① 根路径 `/health`：容器 healthcheck 与内网探针直接命中（见 docker-compose.yml）；
+#   ② `/api/v1/health`：经既有 `/api/*` 反向代理对外可达，供外部 uptime 监控探活
+#      （若运维不希望对外暴露，可在边缘 Nginx 拦掉该路径）
+app.include_router(health_router)
+app.include_router(health_router, prefix=settings.API_PREFIX)
 
 
-@app.on_event("startup")
-async def on_startup() -> None:
-    """启动时后台清理超过保留期的审计日志，此后每 24 小时执行一次。"""
-    app.state.log_cleanup_task = asyncio.create_task(_log_cleanup_loop())
+def startup_checks() -> None:
+    """启动前置安全门禁（合规化计划 F-04）：生产环境弱 SECRET_KEY 打印 FATAL 并拒绝启动。
+
+    该门禁原先在 `app.core.config` **导入期**执行，导致 alembic、测试收集、一次性脚本等
+    只要 import 配置就会被终止（也使门禁本身无法被测试）；现改为显式启动校验：
+    运维可见文案与退出行为不变（见 DEPLOY.md §六），且可被单元测试直接调用。
+    """
+    enforce_secret_key()
+
+
+async def _alert_loop() -> None:
+    """错误率告警循环（W4-6）：启动即检查一次，之后每 `ALERT_CHECK_INTERVAL_MINUTES` 分钟一次。
+
+    判定与通知策略见 `app/core/alerting.py` 与 `app/services/alert_service.py`；
+    未配置 `ALERT_WEBHOOK_URL` 时仅写 WARNING 日志（不静默）。
+    """
+    interval = max(settings.ALERT_CHECK_INTERVAL_MINUTES, 1) * 60
+    while True:
+        try:
+            await alert_service.run_alert_check()
+        except Exception:  # noqa: BLE001 — 告警循环自身异常不得终止进程
+            logger.exception("错误率告警检查失败")
+        await asyncio.sleep(interval)
 
 
 async def _log_cleanup_loop() -> None:

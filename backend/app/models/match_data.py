@@ -1,5 +1,6 @@
 """比赛数据表：CSV 导入，字段与真实导出列一一对应。"""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
@@ -31,5 +32,5 @@ class MatchData(Base):
     fen_gu: Mapped[int] = mapped_column(Integer, default=0, nullable=False)  # 独立焚骨榜
     extra_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # 预留 CSV 新增列
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
     )

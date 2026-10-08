@@ -1,11 +1,5 @@
 <template>
-  <el-dialog
-    v-model="visible"
-    title="数据指标说明"
-    width="820px"
-    top="4vh"
-    destroy-on-close
-  >
+  <el-dialog v-model="visible" title="数据指标说明" width="820px" top="4vh" destroy-on-close>
     <div class="guide">
       <el-tabs v-model="tab" class="guide-tabs">
         <!-- CSV 原始字段 -->
@@ -81,12 +75,17 @@
             <el-table-column prop="name" label="派生值" min-width="100" />
             <el-table-column prop="formula" label="计算公式" min-width="350" />
           </el-table>
-          <p class="note" style="margin-top: 8px;">对比维度：平均击杀、平均伤害、平均塔伤、平均治疗、平均承伤、平均 KDA。</p>
+          <p class="note" style="margin-top: 8px">
+            对比维度：平均击杀、平均伤害、平均塔伤、平均治疗、平均承伤、平均 KDA。
+          </p>
         </el-tab-pane>
 
         <!-- 综合评分 -->
         <el-tab-pane label="综合评分" name="score">
-          <p class="section-desc">贡献倍数法（纯前端计算）：评分 = Σ 权重×(个人指标 ÷ 本轮同职业分路均值)×100 − 15×重伤倍数。100 分 = 达到本轮同职业(分路)平均贡献水平，扣除重伤惩罚后的期望基准为 85 分。</p>
+          <p class="section-desc">
+            贡献倍数法（纯前端计算）：评分 = Σ 权重×(个人指标 ÷ 本轮同职业分路均值)×100 − 15×重伤倍数。100 分 =
+            达到本轮同职业(分路)平均贡献水平，扣除重伤惩罚后的期望基准为 85 分。
+          </p>
           <h4 class="group-title">职业分路判定</h4>
           <el-table :data="archRules" size="small" border stripe>
             <el-table-column prop="name" label="职业" min-width="80" />
@@ -104,9 +103,14 @@
             <el-table-column v-for="m in scoreMetrics" :key="m" :prop="m" :label="m" min-width="52" align="center" />
           </el-table>
           <h4 class="group-title">重伤负向与边界处理</h4>
-          <p class="note">重伤每高出同职业均值 1 倍扣 15 分；本轮内某指标全组为 0（无数据）时，该项权重按比例摊给其余指标，保证基准恒为 100。未知职业兜底：击杀/人伤各半。</p>
+          <p class="note">
+            重伤每高出同职业均值 1 倍扣 15 分；本轮内某指标全组为
+            0（无数据）时，该项权重按比例摊给其余指标，保证基准恒为 100。未知职业兜底：击杀/人伤各半。
+          </p>
           <h4 class="group-title">KDA 加权规则（前后端统一）</h4>
-          <p class="note">辅助型（治疗职业：治疗量 > 伤害量；或坦克职业铁衣）：助攻 ×0.8 折算、死亡 ×1.2 加重（仅影响 KDA）。</p>
+          <p class="note">
+            辅助型（治疗职业：治疗量 > 伤害量；或坦克职业铁衣）：助攻 ×0.8 折算、死亡 ×1.2 加重（仅影响 KDA）。
+          </p>
         </el-tab-pane>
       </el-tabs>
     </div>
@@ -139,7 +143,11 @@ const archRules = [
 const weightRules = [
   { name: '核心', condition: 'rs ≥ 1.5', note: '占 85% 份额，按 rs 占比分配；复活/焚骨稀缺指标权重 cap 0.30' },
   { name: '次要', condition: '1.0 ≤ rs < 1.5', note: '合计 15% 份额均分' },
-  { name: '边际', condition: '0.5 ≤ rs < 1 且职业内非零占比 ≥ 50%', note: '每项 0.05，且贡献倍数封顶 2.0（防止小均值指标倍数爆炸）' },
+  {
+    name: '边际',
+    condition: '0.5 ≤ rs < 1 且职业内非零占比 ≥ 50%',
+    note: '每项 0.05，且贡献倍数封顶 2.0（防止小均值指标倍数爆炸）',
+  },
   { name: '归一化', condition: '—', note: '正向权重和归一化到 1.0' },
 ]
 

@@ -13,18 +13,15 @@
       <SkeletonTable v-if="showSkeleton && schedules.length === 0" variant="rows" :rows="3" />
       <template v-else-if="schedules.length === 0">
         <div class="empty-state">
-          <div class="empty-state__icon"><el-icon :size="36"><Calendar /></el-icon></div>
+          <div class="empty-state__icon">
+            <el-icon :size="36"><Calendar /></el-icon>
+          </div>
           <div class="empty-state__text">暂无比赛安排</div>
           <el-button type="primary" size="small" @click="router.push('/schedules')">创建比赛</el-button>
         </div>
       </template>
       <template v-else>
-        <div
-          v-for="s in schedules"
-          :key="s.id"
-          class="schedule-item"
-          @click="router.push(`/schedules/${s.id}`)"
-        >
+        <div v-for="s in schedules" :key="s.id" class="schedule-item" @click="router.push(`/schedules/${s.id}`)">
           <div class="schedule-item__date">
             <span class="schedule-item__day num">{{ formatDay(s.match_time) }}</span>
             <span class="schedule-item__month">{{ formatMonth(s.match_time) }}</span>

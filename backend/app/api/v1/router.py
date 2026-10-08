@@ -1,7 +1,24 @@
 """API v1 路由汇总。"""
+
 from fastapi import APIRouter
 
-from app.api.v1 import accounts, attendance, auth, config, developer, game_id_requests, guilds, lineups, logs, match_data, members, my_stats, recording, schedules, squad_adjustments
+from app.api.v1 import (
+    accounts,
+    attendance,
+    auth,
+    config,
+    developer,
+    game_id_requests,
+    guilds,
+    lineups,
+    logs,
+    match_data,
+    members,
+    my_stats,
+    recording,
+    schedules,
+    squad_adjustments,
+)
 
 api_router = APIRouter()
 api_router.include_router(auth.router)

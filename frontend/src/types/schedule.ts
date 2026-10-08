@@ -12,12 +12,19 @@ export interface ScheduleInfo {
   created_at: string
 }
 
-/** 创建/更新载荷（局数仅创建时可传）。 */
-export interface SchedulePayload {
+/** 创建载荷：与后端 ScheduleCreate 对齐（opponent / match_time / rounds 必填）。 */
+export interface ScheduleCreatePayload {
+  opponent: string
+  match_time: string
+  location?: string | null
+  rounds: number
+}
+
+/** 更新载荷：与后端 ScheduleUpdate 对齐（全部可选，且不含 rounds —— 局数创建后不可修改）。 */
+export interface ScheduleUpdatePayload {
   opponent?: string
   match_time?: string
   location?: string | null
-  rounds?: number
   result?: string
   round_results?: string[] | null
 }

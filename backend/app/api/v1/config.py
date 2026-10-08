@@ -1,4 +1,5 @@
 """系统配置接口：职业配置（账号管理见 accounts.py，帮会管理见 guilds.py）。"""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,6 +17,7 @@ router = APIRouter(prefix="/config", tags=["系统配置"])
 
 
 # ========== 职业配置 ==========
+
 
 @router.get("/professions", response_model=list[ProfessionConfigOut])
 async def get_profession_configs(
@@ -53,6 +55,6 @@ async def batch_update_profession_configs(
 ) -> dict:
     """批量更新职业配置（管理员）。"""
     count = await config_service.batch_update_profession_configs(
-        session, current_user.guild_id, body.configs
+        session, current_user.guild_id, [c.model_dump() for c in body.configs]
     )
     return {"message": f"已更新 {count} 个职业配置"}

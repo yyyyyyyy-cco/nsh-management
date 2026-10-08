@@ -10,25 +10,38 @@
     <div v-if="squad" class="detail-body">
       <!-- 小队汇总徽标栏 -->
       <div class="squad-summary-bar">
-        <div class="summary-item"><span class="s-label">人数</span><b class="s-value">{{ squad.totals.player_count }}</b></div>
-        <div class="summary-item"><span class="s-label">总击杀</span><b class="s-value num">{{ squad.totals.kills }}</b></div>
-        <div class="summary-item"><span class="s-label">总伤害</span><b class="s-value num">{{ fmtNum(squad.totals.player_damage) }}</b></div>
-        <div class="summary-item"><span class="s-label">总塔伤</span><b class="s-value num">{{ fmtNum(squad.totals.building_damage) }}</b></div>
-        <div class="summary-item"><span class="s-label">总治疗</span><b class="s-value num">{{ fmtNum(squad.totals.healing) }}</b></div>
-        <div class="summary-item"><span class="s-label">均KDA</span><b class="s-value num">{{ squad.indicators.kda.toFixed(2) }}</b></div>
-        <div class="summary-item"><span class="s-label">均秒伤</span><b class="s-value num">{{ fmtNum(squad.indicators.dps) }}</b></div>
-        <div class="summary-item"><span class="s-label">清泉羽化</span><b class="s-value num">{{ squad.totals.revives }}</b></div>
-        <div class="summary-item"><span class="s-label">焚骨</span><b class="s-value num">{{ squad.totals.fen_gu }}</b></div>
+        <div class="summary-item">
+          <span class="s-label">人数</span><b class="s-value">{{ squad.totals.player_count }}</b>
+        </div>
+        <div class="summary-item">
+          <span class="s-label">总击杀</span><b class="s-value num">{{ squad.totals.kills }}</b>
+        </div>
+        <div class="summary-item">
+          <span class="s-label">总伤害</span><b class="s-value num">{{ fmtNum(squad.totals.player_damage) }}</b>
+        </div>
+        <div class="summary-item">
+          <span class="s-label">总塔伤</span><b class="s-value num">{{ fmtNum(squad.totals.building_damage) }}</b>
+        </div>
+        <div class="summary-item">
+          <span class="s-label">总治疗</span><b class="s-value num">{{ fmtNum(squad.totals.healing) }}</b>
+        </div>
+        <div class="summary-item">
+          <span class="s-label">均KDA</span><b class="s-value num">{{ squad.indicators.kda.toFixed(2) }}</b>
+        </div>
+        <div class="summary-item">
+          <span class="s-label">均秒伤</span><b class="s-value num">{{ fmtNum(squad.indicators.dps) }}</b>
+        </div>
+        <div class="summary-item">
+          <span class="s-label">清泉羽化</span><b class="s-value num">{{ squad.totals.revives }}</b>
+        </div>
+        <div class="summary-item">
+          <span class="s-label">焚骨</span><b class="s-value num">{{ squad.totals.fen_gu }}</b>
+        </div>
       </div>
 
       <!-- 图表列表：点击图表名弹出查看（避免 6 图网格在矮视口下被压扁） -->
       <div class="chart-list">
-        <div
-          v-for="item in chartItems"
-          :key="item.title"
-          class="chart-list-item"
-          @click="openChart(item)"
-        >
+        <div v-for="item in chartItems" :key="item.title" class="chart-list-item" @click="openChart(item)">
           <span class="chart-list-item__name">{{ item.title }}</span>
           <span class="chart-list-item__arrow">›</span>
         </div>
@@ -179,7 +192,10 @@ function openChart(item: { title: string; option: Record<string, unknown> }) {
   border-radius: var(--radius-lg);
   background: var(--ink-bg-paper);
   cursor: pointer;
-  transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
+  transition:
+    border-color var(--dur-fast),
+    box-shadow var(--dur-fast),
+    transform var(--dur-fast);
 }
 
 .chart-list-item:hover {
@@ -198,7 +214,9 @@ function openChart(item: { title: string; option: Record<string, unknown> }) {
   font-size: 18px;
   line-height: 1;
   color: var(--ink-400);
-  transition: transform var(--dur-fast), color var(--dur-fast);
+  transition:
+    transform var(--dur-fast),
+    color var(--dur-fast);
 }
 
 .chart-list-item:hover .chart-list-item__arrow {

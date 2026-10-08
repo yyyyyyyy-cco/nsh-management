@@ -65,8 +65,7 @@ export function useMemberList() {
   async function onExport(format: 'xlsx' | 'png') {
     exporting.value = true
     // 请求前捕获帮会名，避免下载等待期间切换账号后误标来源。
-    const guildName = (useAuthStore().user?.guild_name || '未命名帮会')
-      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+    const guildName = (useAuthStore().user?.guild_name || '未命名帮会').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
     try {
       const params = {
         keyword: query.keyword,

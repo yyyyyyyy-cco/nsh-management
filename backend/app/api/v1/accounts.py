@@ -1,4 +1,5 @@
 """系统配置接口：账号管理（自 config.py 拆出，URL 前缀不变）。"""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,6 +30,7 @@ def _build_account_out(account: User, current_user: User) -> AccountOut:
 
 # ========== 账号管理 ==========
 
+
 @router.get("/accounts", response_model=list[AccountOut])
 async def list_accounts(
     current_user: User = Depends(require_admin),
@@ -54,9 +56,7 @@ async def create_account(
         if body.guild_id is not None and body.guild_id != current_user.guild_id:
             raise ConfigServiceError("无权限为其他帮会创建账号", 403)
         target_guild_id = current_user.guild_id
-    account = await account_service.create_account(
-        session, target_guild_id, body.username, body.password, body.role
-    )
+    account = await account_service.create_account(session, target_guild_id, body.username, body.password, body.role)
     return _build_account_out(account, current_user)
 
 
@@ -86,9 +86,7 @@ async def update_account_status(
     if user_id == current_user.id and body.status == "disabled":
         raise ConfigServiceError("不能禁用当前登录的账号")
 
-    account = await account_service.update_account_status(
-        session, current_user.guild_id, user_id, body.status
-    )
+    account = await account_service.update_account_status(session, current_user.guild_id, user_id, body.status)
     return _build_account_out(account, current_user)
 
 

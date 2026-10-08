@@ -1,6 +1,12 @@
 <template>
   <div class="stat-grid">
-    <div v-for="(card, i) in statCards" :key="card.key" class="stat-card" :class="`stat-card--${card.theme}`" :style="{ animationDelay: `${i * 60}ms` }">
+    <div
+      v-for="(card, i) in statCards"
+      :key="card.key"
+      class="stat-card"
+      :class="`stat-card--${card.theme}`"
+      :style="{ animationDelay: `${i * 60}ms` }"
+    >
       <div class="stat-card__header">
         <span class="stat-card__label">{{ card.label }}</span>
         <el-icon class="stat-card__icon"><component :is="card.icon" /></el-icon>
@@ -33,15 +39,54 @@ const props = defineProps<{
 /** 数字滚动 */
 const animatedMemberCount = useCountUp(computed(() => props.memberCount))
 const animatedScheduleCount = useCountUp(computed(() => props.scheduleCount))
-const animatedTopRate = useCountUp(computed(() => props.topRate), { decimals: 0 })
+const animatedTopRate = useCountUp(
+  computed(() => props.topRate),
+  { decimals: 0 },
+)
 
 const statCards = computed(() => {
   const rate = props.topRate
   return [
-    { key: 'members', label: '帮众总数', value: props.memberCount, suffix: '人', icon: UserFilled, theme: 'primary', numeric: true, display: animatedMemberCount.value },
-    { key: 'matches', label: '历史比赛', value: props.scheduleCount, suffix: '场', icon: Calendar, theme: 'gold', numeric: true, display: animatedScheduleCount.value },
-    { key: 'top', label: '出勤之星', value: props.topName, suffix: '', icon: Trophy, theme: 'success', numeric: false, display: '' },
-    { key: 'rate', label: '最高出勤', value: rate != null ? Math.round(rate * 100) : '-', suffix: rate != null ? '%' : '', icon: TrendCharts, theme: 'warning', numeric: rate != null, display: rate != null ? Math.round(animatedTopRate.value * 100) : '-' },
+    {
+      key: 'members',
+      label: '帮众总数',
+      value: props.memberCount,
+      suffix: '人',
+      icon: UserFilled,
+      theme: 'primary',
+      numeric: true,
+      display: animatedMemberCount.value,
+    },
+    {
+      key: 'matches',
+      label: '历史比赛',
+      value: props.scheduleCount,
+      suffix: '场',
+      icon: Calendar,
+      theme: 'gold',
+      numeric: true,
+      display: animatedScheduleCount.value,
+    },
+    {
+      key: 'top',
+      label: '出勤之星',
+      value: props.topName,
+      suffix: '',
+      icon: Trophy,
+      theme: 'success',
+      numeric: false,
+      display: '',
+    },
+    {
+      key: 'rate',
+      label: '最高出勤',
+      value: rate != null ? Math.round(rate * 100) : '-',
+      suffix: rate != null ? '%' : '',
+      icon: TrendCharts,
+      theme: 'warning',
+      numeric: rate != null,
+      display: rate != null ? Math.round(animatedTopRate.value * 100) : '-',
+    },
   ]
 })
 </script>
@@ -64,7 +109,9 @@ const statCards = computed(() => {
   padding: 18px 20px 16px;
   box-shadow: var(--shadow-sm);
   animation: stat-pop 0.4s var(--ease-out) both;
-  transition: transform var(--dur-normal) var(--ease-out), box-shadow var(--dur-normal) var(--ease-out);
+  transition:
+    transform var(--dur-normal) var(--ease-out),
+    box-shadow var(--dur-normal) var(--ease-out);
 }
 
 .stat-card:hover {

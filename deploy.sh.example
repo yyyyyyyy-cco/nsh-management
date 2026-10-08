@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# ===== 一键部署脚本模板（由本文件复制为 deploy.sh 使用） =====
+# 来源：依据 DEPLOY.md §三「日常更新流程（一键）」的流程描述**重建**。
+#       真实 deploy.sh 含服务器 IP / 用户名 / 凭据，已被 .gitignore 排除、不入库；
+#       如服务器上的脚本与模板不一致，以服务器实况为准并回写本模板。
+# 用法：
+#   cp deploy.sh.example deploy.sh && chmod +x deploy.sh
+#   # 填写下方「必须替换」三处占位符，然后 ./deploy.sh
+#
+# 纪律（DEPLOY.md §三，改动前务必阅读）：
+#   · 排除清单不可删：docker-compose.yml 与构建输入类文件在服务器上有独立版本，覆盖即可能宕机
+#   · 排除规则必须**路径锚定**（如 --exclude='backend/logs'）；历史教训 2026-09-07：
+#     使用 --exclude='logs' 把 frontend/src/views/logs/ 整目录排除，导致前端构建失败
+#   · 健康检查失败必须以**非零退出码**结束并打印容器日志，禁止报假成功
+#   · 本地数据 / 密钥 / 日志 / 备份严禁上传
+#   · 仅变更 frontend/nginx.conf、Dockerfile、entrypoint.sh 等构建输入时，必须
+#     docker compose up -d --build 重建对应镜像才生效（up -d 不重建时旧版仍在）
+
+set -euo pipefail
+
+# ---------------- 必须替换 ----------------
+SERVER_IP="<SERVER_IP>"
+SERVER_USER="<USER>"
+DOMAIN="<YOUR_DOMAIN>"
+# -----------------------------------------
+
+REMOTE_DIR="${REMOTE_DIR:-~/nsh-management}"
+SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_rsa}"
+ARCHIVE="nsh-management.tar.gz"
+
+# ---------------- 1. 本地打包（排除清单见文件头，规则必须路径锚定） ----------------
+echo "[1/5] 本地打包 ..."
+tar --exclude='.git' \
+    --exclude='.agent' \
+    --exclude='.qoder' \
+    --exclude='node_modules' \
+    --exclude='frontend/dist' \
+    --exclude='backend/.venv' \
+    --exclude='backend/__pycache__' \
+    --exclude='backend/data' \
+    --exclude='backend/logs' \
+    --exclude='_backup' \
+    --exclude='.env' \
+    --exclude='*.db' \
+    --exclude='*.db-wal' \
+    --exclude='*.db-shm' \
+    --exclude='*.tar.gz' \
+    --exclude='docker-compose.yml' \
+    --exclude='frontend/nginx.conf' \
+    --exclude='frontend/nginx.conf.example' \
+    --exclude='frontend/Dockerfile' \
+    --exclude='backend/Dockerfile' \
+    --exclude='backend/entrypoint.sh' \
+    --exclude='backend/alembic.ini' \
+    --exclude='deploy.sh' \
+    -czf "$ARCHIVE" .
+ls -lh "$ARCHIVE"
+
+# ---------------- 2. 上传 ----------------
+echo "[2/5] 上传到 ${SERVER_USER}@${SERVER_IP}:${REMOTE_DIR} ..."
+scp -i "$SSH_KEY" "$ARCHIVE" "${SERVER_USER}@${SERVER_IP}:${REMOTE_DIR}/"
+
+# ---------------- 3. 服务器解压 ----------------
+echo "[3/5] 服务器解压 ..."
+ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" \
+    "set -e; cd ${REMOTE_DIR} && tar -xzf ${ARCHIVE} && rm -f ${ARCHIVE}"
+
+# ---------------- 4. 构建并启动（迁移随容器启动自动执行） ----------------
+echo "[4/5] docker compose up -d --build ..."
+ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" \
+    "set -e; cd ${REMOTE_DIR} && docker compose up -d --build"
+
+# ---------------- 5. 验证（后端 healthy + 域名入口 200） ----------------
+echo "[5/5] 等待后端 healthy（最多 150s） ..."
+healthy=""
+for _ in $(seq 1 30); do
+    if ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" \
+        "cd ${REMOTE_DIR} && docker compose ps --format '{{.Name}} {{.Health}}' | grep -q healthy"; then
+        healthy="1"; break
+    fi
+    sleep 5
+done
+
+if [ -z "$healthy" ]; then
+    echo "[错误] 后端未在 150s 内进入 healthy，最近日志：" >&2
+    ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" \
+        "cd ${REMOTE_DIR} && docker compose logs --tail 80 backend" >&2 || true
+    exit 1
+fi
+echo "      后端 healthy"
+
+code=$(ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" \
+    "curl -sk -o /dev/null -w '%{http_code}' -H 'Host: ${DOMAIN}' https://127.0.0.1/")
+echo "      站点入口 HTTP: ${code}"
+if [ "$code" != "200" ]; then
+    echo "[错误] 站点入口返回 ${code}（预期 200）；注意 frontend 不映射宿主端口，不要用 127.0.0.1:8080 判断故障" >&2
+    exit 1
+fi
+
+echo "部署完成。回滚步骤见 DEPLOY.md §回滚。"

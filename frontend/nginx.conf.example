@@ -1,70 +1,20 @@
-# ===== Nginx 配置模板（生产双层结构） =====
+# ===== 边缘反向代理模板（同机 nginx-proxy 容器的 conf.d/<域名>.conf） =====
+# CSP 收紧（2026-10-02，合规化计划 W4-20）：connect-src 由 'self' https: 收窄为 'self'。
+#   依据（已核）：前端无任何跨域 XHR/fetch/WebSocket（`sendBeacon`/`EventSource`/`WebSocket`/`new XMLHttpRequest` 全为 0），
+#   axios baseURL 为同源相对路径 `/api/v1`；源码中唯二的 https 链接是备案号 <a href>（**顶层导航不受 connect-src 约束**，仍可正常点击）。
+#   收益：若发生 XSS，脚本无法把数据外泄到任意 HTTPS 主机（此前后者可自由外联）。
+#   边界：本文件是**服务器侧边缘模板**，不参与本地镜像构建，故响应头级效果需在服务器/浏览器验收。
+# 架构：**单层 TLS**（2026-09-15 改造；权威源 DEPLOY.md §二）
+#   · 本文件（B 段）= 边缘层：独占 TLS / 证书 / 限流 / 安全响应头 / HTTP→HTTPS 跳转 / 默认 server 兜底
+#   · A 段 = frontend 容器内层，已入库为 `frontend/nginx.conf`（镜像构建输入）。
+#     本文件**不再重复维护 A 段**——同一配置两处副本必然漂移（同类问题见合规化计划 F-08/F-40）。
 # 使用说明：
-# 1. 本项目生产环境为「边缘反向代理 + 容器内层 nginx」两层，本文件给出两层的模板：
-#    A 部分 = frontend 容器内层 nginx.conf（复制为 frontend/nginx.conf）
-#    B 部分 = 边缘反代 conf.d/<域名>.conf（部署在同机 nginx-proxy 容器）
-# 2. 将 YOUR_DOMAIN 替换为你的域名（如 example.com）
-# 3. 证书路径按实际情况修改（Let's Encrypt：/etc/letsencrypt/live/域名/）
-# 4. 限流参数与上传大小按需调整
-# 5. 职责边界：TLS / 证书 / 限流 / 安全响应头 / HTTP→HTTPS 跳转只写在 B（边缘层）；
-#    A（内层）只做静态资源 + SPA 回退 + 缓存头 + /api 反代，明文 80、不映射宿主端口
-# 详见 DEPLOY.md §二
+#   1. 将 YOUR_DOMAIN 替换为你的域名（如 example.com），YOUR_UPSTREAM 替换为实际容器名
+#   2. 证书路径按实际情况修改（Let's Encrypt：/etc/letsencrypt/live/域名/）
+#   3. 限流参数与上传大小按需调整；内层以 set_real_ip_from 识别真实 IP，边缘层必须覆盖而非追加 XFF
+#   4. 本文件不入部署包（deploy.sh 排除清单），服务器侧改动遵循 DEPLOY.md §三
+# 详见 DEPLOY.md §二（部署架构）
 
-# ============================================================
-# A. frontend 容器内层（仅容器网络可达，明文 80）
-# ============================================================
-server_tokens off;
-
-# 真实客户端 IP：边缘层经 X-Forwarded-For 透传，proxy-net 为可信来源
-set_real_ip_from 172.20.0.0/16;
-real_ip_header X-Forwarded-For;
-
-gzip on;
-gzip_comp_level 5;
-gzip_min_length 1024;
-gzip_vary on;
-gzip_types text/plain text/css text/javascript application/javascript application/json application/xml image/svg+xml;
-
-server {
-    listen 80;
-    listen [::]:80;
-    server_name YOUR_DOMAIN www.YOUR_DOMAIN;
-
-    root /usr/share/nginx/html;
-    index index.html;
-    client_max_body_size 20m;
-
-    location /assets/ {
-        add_header Cache-Control "public, max-age=31536000, immutable" always;
-        try_files $uri =404;
-    }
-
-    location = /index.html {
-        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
-        add_header Pragma "no-cache" always;
-        add_header Expires "0" always;
-    }
-
-    # 客户端 IP 头部原样透传，勿用 $remote_addr / $proxy_add_x_forwarded_for 覆盖
-    location /api/ {
-        proxy_pass http://backend:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $http_x_real_ip;
-        proxy_set_header X-Forwarded-For $http_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 60s;
-    }
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-
-# ============================================================
-# B. 边缘反向代理（nginx-proxy 容器的 conf.d/YOUR_DOMAIN.conf）
-#    独占 TLS、证书、限流、安全响应头、HTTP→HTTPS 跳转、默认 server 兜底
-# ============================================================
 upstream YOUR_UPSTREAM {
     server nsh-management-frontend-1:80;
     keepalive 32;
@@ -120,10 +70,21 @@ server {
 
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
-    add_header X-XSS-Protection "1; mode=block" always;
+    # X-XSS-Protection（2026-10-02 W4-5）：现代浏览器已移除该过滤器，CSP 才是有效防线；
+    # 置 0 可避免旧浏览器过滤器引入的副作用（历史头，见 security-review.md §十五 15.4）。
+    add_header X-XSS-Protection "0" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:; frame-ancestors 'self';" always;
+    # CSP（2026-10-02 W4-5 收紧：script-src 去掉 'unsafe-inline' 与 'unsafe-eval'）
+    # 依据（构建级证据，非推测）：
+    #   ① `npm run build` 产出的 dist/index.html 内联 <script>/<style> 均为 0 —— 只有 1 个外部 module script
+    #      与 1 个外链 CSS（故不需要 'unsafe-inline'）；源码中也无 v-html / eval / new Function。
+    #   ② 产物中唯一一处 `new Function("return this")` 来自 core-js 的全局对象探测，**自带 try/catch
+    #      回退到 window**：被 CSP 拦截时正好走回退分支，故不需要 'unsafe-eval'。
+    # style-src 仍保留 'unsafe-inline'：Element Plus / ECharts 运行时会注入内联样式（内联 style 属性
+    #   同受 style-src 管辖），去掉会白屏；如需进一步收紧，改用 nonce/hash 并做页面级验收。
+    # 回滚：把两个 token 加回 script-src 即可（本行以下为唯一落点）。
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" always;
 
     location = /api/v1/auth/login {
         limit_req zone=login burst=3 nodelay;

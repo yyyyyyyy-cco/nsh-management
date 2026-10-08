@@ -3,7 +3,9 @@
     <div class="og-group__header">
       <span class="og-group__dot" />
       <span class="og-group__label">{{ group.label }}</span>
-      <span v-if="groupsRemark[group.category]" class="og-group__remark" :title="groupsRemark[group.category]">{{ groupsRemark[group.category] }}</span>
+      <span v-if="groupsRemark[group.category]" class="og-group__remark" :title="groupsRemark[group.category]">{{
+        groupsRemark[group.category]
+      }}</span>
       <span class="og-group__meta">{{ group.teams.length }}队</span>
     </div>
     <div class="og-teams">

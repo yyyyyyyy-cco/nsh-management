@@ -31,6 +31,7 @@
           <span class="chart-card__title">玩家综合能力雷达图（对比）</span>
           <div class="radar-selectors">
             <el-select
+              aria-label="搜索左侧玩家"
               v-model="radarLeft"
               filterable
               placeholder="搜索左侧玩家"
@@ -46,6 +47,7 @@
             </el-select>
             <span class="radar-vs">VS</span>
             <el-select
+              aria-label="搜索右侧玩家"
               v-model="radarRight"
               filterable
               placeholder="搜索右侧玩家"
@@ -101,7 +103,12 @@ import { computed, ref, watch } from 'vue'
 import type { MatchData } from '@/types/matchData'
 import { aggregateCamps } from './analysis'
 import EChart from './EChart.vue'
-import { buildDamagePieOption, buildHeatmapOption, buildPlayerBarsOption, buildStackOption } from './playerAggregateCharts'
+import {
+  buildDamagePieOption,
+  buildHeatmapOption,
+  buildPlayerBarsOption,
+  buildStackOption,
+} from './playerAggregateCharts'
 import { buildRadarOption } from './playerRadar'
 import {
   buildDmgHealBubbleOption,

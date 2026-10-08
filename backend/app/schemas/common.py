@@ -6,7 +6,8 @@
 - 业务输入时间（schedule.match_time）：naive 直存，语义 = 用户本地（UTC+8）墙上时间，
   不做任何标记，保持与前端日历/按天分组/按月查询口径一致。
 """
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 from typing import Annotated
 
 from pydantic import Field, PlainSerializer
@@ -14,7 +15,7 @@ from pydantic import Field, PlainSerializer
 
 def _mark_utc(dt: datetime) -> datetime:
     """SQLite 读回 naive；系统时间戳一律为 UTC，补时区标记（已是 aware 则原样）。"""
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
 UtcDatetime = Annotated[datetime, PlainSerializer(_mark_utc, return_type=datetime)]

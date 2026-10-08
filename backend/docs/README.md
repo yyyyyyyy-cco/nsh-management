@@ -9,7 +9,7 @@
 - 多帮会数据隔离（guild_id），每个帮会一个管理员账号 + 一个帮众共享账号
 - JWT 认证 + 角色权限控制（developer/admin/member）
 - 登录限流（5 次失败锁定 5 分钟）
-- 全部业务规则按 database-design.md v1.8 落表
+- 全部业务规则按 database-design.md v1.9 落表
 
 ### 用户场景
 - 开发者：创建帮会、派发账号、删除帮会、全局管理
@@ -47,14 +47,16 @@
 
 ## 进度跟踪
 
+
+> **权威口径（2026-10-03，F-71）**：阶段完成度与模块状态以 `memory-bank/progress.md` 为**唯一权威**（`AGENTS.md §3.4`）；本节的勾选清单只用于跟踪**本端功能点**的实现情况，不复制进度权威。
 ### 当前状态
 **状态**：已完成
 **完成进度**：100%（全部功能模块开发完成）
 
 ### 已完成
-- ✅ 项目初始化、目录结构、依赖安装（venv，Python 3.13）
+- ✅ 项目初始化、目录结构、依赖安装（venv，Python 3.11；本机 3.12 亦可）
 - ✅ 数据库配置（SQLAlchemy 2.0.36 异步 + aiosqlite）
-- ✅ 12 张表模型 + 15 个 Alembic 迁移（data/nsh.db）
+- ✅ 12 张表模型 + 16 个 Alembic 迁移（data/nsh.db）
 - ✅ Pydantic Schema、全局异常处理、CORS
 - ✅ 认证模块（登录/登出/me + 5 次失败锁定 5 分钟 + 未知账号锁定 + 锁定倒计时 remaining_seconds）
 - ✅ 开发者角色（developer，不绑定帮会，可创建帮会/派发账号/删除帮会）
@@ -104,7 +106,7 @@
 测试与优化：补充单元测试、压力测试、安全审计；未解决风险见 `memory-bank/security-review.md` §十。
 
 ### 隔离与导出回归（2026-09-18 新增）
-在项目根目录用 backend 虚拟环境运行（无需 pytest/httpx，不连接业务数据库）：
+在项目根目录用 backend 虚拟环境运行（无需 pytest/httpx2，不连接业务数据库）：
 
 ```bat
 backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_security_fixes.py
@@ -121,6 +123,18 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_my_stats_alia
 backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_game_id.py
 ```
 覆盖：角色矩阵与租户隔离、参数边界、重复待审与竞争、审核原子性/重放、直接改名与删除联动、账号删除快照、响应脱敏；独立连接文件库并发（重复提交/双审核/同名竞争/改名竞争）；改名链与改回、新名无数据、跨帮会隔离、冲突 409 与精确退路、最近 10 场整体截取；临时库迁移升级/回退与约束生效。
+
+
+### 代码结构（模块目录）
+
+| 目录 | 说明 | 权威源 |
+|------|------|--------|
+| `app/api/v1/` | 薄路由：参数校验 + 调用 service | `progress.md` 目录树 |
+| `app/services/` | 业务逻辑层 | `progress.md` |
+| `app/models/` | SQLAlchemy 模型（12 张表） | `database-design.md` |
+| `app/schemas/` | Pydantic 模型（请求/响应契约） | `design-document-v2.md` |
+| `app/core/` | 配置、数据库、安全等基础设施 | `tech-stack.md` |
+| `app/utils/` | 纯工具函数 | — |
 
 ### 更新记录
 | 日期 | 更新内容 |
@@ -143,7 +157,7 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_gam
 | 2026-08-26 | 数据分析 API 增强（16 项衍生指标/阵营对比/小队分析接口）、移除 HTML 报告导出，文档对齐 |
 | 2026-08-26 | 新增分析调整 API（squad_adjustments），文档全面对齐（developer 角色、表数 10、迁移数 9、v1.6 引用） |
 | 2026-09-15 | 补人姓名规范化修复（出勤与排表姓名匹配统一去首尾空白，新增 utils/member_names 与 services/lineup_attendance，重名冲突显式报错） |
-| 2026-09-15 | 文档失实项修正：表数 10→11、迁移数 13→14、database-design 引用 v1.6→v1.8、帮众场景按代码校正、补个人战绩/系统日志模块、移除「保存考勤」失实表述 |
+| 2026-09-15 | 文档失实项修正：表数 10→11、迁移数 13→14、database-design 引用 v1.6→v1.9、帮众场景按代码校正、补个人战绩/系统日志模块、移除「保存考勤」失实表述 |
 | 2026-09-17 | 登记规划中功能：成员详情接口 GET /members/{member_id}（P1，方案见 stats-report-plan.md） |
 | 2026-09-17 | 成员详情接口实施完成（GET /members/{member_id}，require_admin，注册于全部具体路径之后防路由捕获） |
 | 2026-09-18 | 修复登录响应丢失 guild_icon：User 模型补 guild_icon property（与 guild_name 对称），UserOut.model_validate 序列化恢复正常（修复前登录后切换账号图标显示为空，/me 手动构造路径正常） |
@@ -151,3 +165,4 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_gam
 | 2026-09-20 | 新增游戏 ID 改名申请与新旧 ID 关联模块：member_game_id_requests 表 + 迁移 o9p0q1r2s3t4；新增 services/game_id_request_service、game_id_request_lifecycle、player_identity_service 与 api/v1/game_id_requests；members/accounts/guilds 服务接入生命周期维护；my_stats 路由抽 Schema 至 schemas/my_stats.py 并改用严格 member/admin 依赖；4 个 selfcheck 脚本（含并发与迁移）全部通过 |
 | 2026-09-20 | 管理员直接改名自动记录关联：`game_id_request_lifecycle.record_admin_rename`（同一事务写入 approved 关联，提交/审核人=操作管理员快照，备注标注来源）；`member_service.update_member` 增加 operator 参数并接入；selfcheck_game_id_requests 扩展直接改名断言、selfcheck_my_stats_aliases 新增直接改名合并用例（13/5/10/1 项全部通过） |
 | 2026-09-18 | 新增回归脚本：`scripts/selfcheck_security_fixes.py`（8 项，真实 JWT + ASGI 路由）、`scripts/selfcheck_member_exports.py`（8 项，出勤隔离 + Excel 回导），16 项全部通过 |
+| 2026-10-02 | 新增 `POST /api/v1/auth/password`（自助改密：须提供当前口令，成功后 `token_version+1` 使所有旧令牌失效）；口令策略改为 ASVS 5.0.0 对齐（删除强制字母+数字，改长度+词表，见 `app/core/password_policy.py`）；审计中间件补充「携带凭证的读请求被拒（401/403）」留痕与控制字符转义 |

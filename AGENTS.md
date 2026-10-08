@@ -9,7 +9,7 @@
 **轻衫都会用的帮会联赛管理系统** — 逆水寒游戏帮会一体化管理工具。
 
 - 核心功能：常驻库、出勤库、联赛排表（10 队 × 6 人拖拽）、录屏审核、数据分析（ECharts 8 Tab）、分析调整、系统配置、联赛日程、个人战绩、系统日志
-- 技术栈：Vue 3 + TS + Vite + Element Plus + ECharts 6 + Pinia / Python 3.13 + FastAPI + SQLAlchemy + SQLite / Docker Compose + Nginx（权威源 `memory-bank/tech-stack.md`）
+- 技术栈：Vue 3 + TS + Vite + Element Plus + ECharts 6 + Pinia / Python 3.11（生产镜像基座 `python:3.11-slim` 与 CI；本地 3.11–3.13 可用，3.14 暂不可用） + FastAPI + SQLAlchemy + SQLite / Docker Compose + Nginx（权威源 `memory-bank/tech-stack.md`）
 - 角色：developer（全局管理 + 系统日志）、admin（帮会全部权限）、member（录屏上传 / 个人战绩 / 联赛日程，赛程详情仅录屏与数据分析只读）（权威源 `design-document-v2.md` §3）
 - 启动命令与默认账号：见 `README.md`（其他文档只引用，不复制）
 
@@ -57,9 +57,15 @@
 | 安全审查 | `memory-bank/security-review.md` | 审查结论、修复决策记录 | 安全相关变更 |
 | AI 上下文 | `memory-bank/ai-context.md` | 项目全貌速查（本文件扩展版） | 架构 / 规范重大变更 |
 | AI 检查清单 | `memory-bank/ai-checklist.md` | 历史教训、易漏点、专项检查 | 发现新易错模式时 |
-| 后端 / 前端开发文档 | `backend/docs/README.md`、`frontend/docs/README.md` | 各端功能清单与进度 | 各端功能点完成 |
+| 后端 / 前端开发文档 | `backend/docs/README.md`、`frontend/docs/README.md` | 各端功能清单与**功能点勾选清单**（阶段完成度 / 模块状态以 `progress.md` 为准，见 §3.4） | 各端功能点完成 |
 | 代码 / 提交流程规则 | `.agent/rules/*.md` | 行数限制、模块文档、提交信息、项目规则 | 规范调整 |
+| 合规化整改计划 | `.agent/plans/compliance-remediation-plan.md` | 全仓合规差距清单（F 编号持续追加）与分波次整改路线、验收命令、授权边界 | 每完成一项整改任务 / 波次结束 / 决策变更 |
 | 部署文档 | `DEPLOY.md` | Docker Compose 部署全流程 | 部署配置变更 |
+| 更新日志 | `CHANGELOG.md` | 面向使用者的版本变更（Keep a Changelog 1.1.0） | 每次发布前 / 有使用者可见变更时 |
+| 贡献指南 | `CONTRIBUTING.md` | 协作约定摘要与权威源入口（环境、分支、门禁、PR） | 协作流程或 CI 门禁变化时 |
+| 安全政策 | `SECURITY.md` | 漏洞报告渠道、支持版本、处理时限（安全结论权威源仍为 security-review.md） | 报告渠道或支持策略变化时 |
+| 行为准则 | `CODE_OF_CONDUCT.md` | Contributor Covenant 2.1（官方中文译本） | 升级版本或调整举报渠道时 |
+| 代码审查与 UI 评估快照 | `memory-bank/code-ui-audit-2026-09.md` | 2026-09 代码审查与 UI 评估结论快照（**非权威源**；结论以 `security-review.md` / `ui-style-guide.md` 为准） | 不维护（快照存档） |
 
 注：memory-bank 文档统一小写 kebab-case 命名；新增文档必须登记到 `architecture.md`（说明 + 目录树 + 更新记录）。
 
@@ -99,7 +105,7 @@
 
 ## 5. Git 规范（摘要）
 
-- 分支：`main`（始终可发布）+ `feature/<功能名>` + `hotfix/<描述>`；合并用 `--no-ff`；双远程 `origin`（GitHub）+ `gitee`
+- 分支：`main`（始终可发布）+ `feature/<功能名>` + `hotfix/<描述>`；合并用 `--no-ff`；远端 `origin`（GitHub）为唯一权威远端，镜像（如 Gitee）可选（决策 D-2）
 - 提交格式：`<type>(<scope>): <中文摘要>`，scope 必填（详见 `GIT-GUIDE.md`）
 - **未经用户允许，禁止执行 git 提交或删除操作**
 

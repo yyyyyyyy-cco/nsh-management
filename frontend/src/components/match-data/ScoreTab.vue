@@ -16,7 +16,14 @@
     <!-- 综合评分排名表 -->
     <div class="chart-card">
       <div class="chart-card__title">综合评分排名</div>
-      <el-table :data="scores" size="small" max-height="500" :cell-style="{ textAlign: 'center' }" :header-cell-style="{ textAlign: 'center' }" @row-click="showDetail">
+      <el-table
+        :data="scores"
+        size="small"
+        max-height="500"
+        :cell-style="{ textAlign: 'center' }"
+        :header-cell-style="{ textAlign: 'center' }"
+        @row-click="showDetail"
+      >
         <el-table-column label="排名" width="55" align="center">
           <template #default="{ $index }">
             <span class="rank-badge num" :class="`rank-badge--${$index + 1}`">{{ $index + 1 }}</span>
@@ -62,7 +69,9 @@
         <el-table-column prop="weight" label="有效权重" min-width="95" align="right" />
         <el-table-column prop="points" label="得分" min-width="80" align="right" />
       </el-table>
-      <p class="detail-note">倍数 = 个人值 ÷ 本轮同职业(分路)均值；有效权重来自该原型配置（轮内可用项归一化）。合计为四舍五入后的展示分。</p>
+      <p class="detail-note">
+        倍数 = 个人值 ÷ 本轮同职业(分路)均值；有效权重来自该原型配置（轮内可用项归一化）。合计为四舍五入后的展示分。
+      </p>
     </el-dialog>
   </div>
 </template>
@@ -89,7 +98,14 @@ const detailTitle = computed(() =>
 const detailRows = computed(() => {
   const r = detailRow.value
   if (!r) return []
-  interface DetailRow { name: string; mult: string; weight: string; points: string; isDeath: boolean; isTotal: boolean }
+  interface DetailRow {
+    name: string
+    mult: string
+    weight: string
+    points: string
+    isDeath: boolean
+    isTotal: boolean
+  }
   const rows: DetailRow[] = r.breakdown.map((b) => ({
     name: b.metric,
     mult: b.mult.toFixed(2),
@@ -98,7 +114,14 @@ const detailRows = computed(() => {
     isDeath: false,
     isTotal: false,
   }))
-  rows.push({ name: '重伤惩罚', mult: `${r.deathMult.toFixed(2)} 倍`, weight: '15/倍', points: `-${r.deathPts.toFixed(1)}`, isDeath: true, isTotal: false })
+  rows.push({
+    name: '重伤惩罚',
+    mult: `${r.deathMult.toFixed(2)} 倍`,
+    weight: '15/倍',
+    points: `-${r.deathPts.toFixed(1)}`,
+    isDeath: true,
+    isTotal: false,
+  })
   rows.push({ name: '合计', mult: '', weight: '', points: String(r.total), isDeath: false, isTotal: true })
   return rows
 })
@@ -175,14 +198,21 @@ const scatterOption = computed(() => ({
     {
       type: 'scatter',
       symbolSize: (data: number[]) => Math.max(10, data[0] / 6),
-      data: scores.value.map((s) => [s.total, Number(s.deathMult.toFixed(2)), s.player.player_name, s.player.profession || '未知']),
+      data: scores.value.map((s) => [
+        s.total,
+        Number(s.deathMult.toFixed(2)),
+        s.player.player_name,
+        s.player.profession || '未知',
+      ]),
       itemStyle: {
         color: (p: unknown) => profColor(String((p as { data: (number | string)[] }).data[3])),
         opacity: 0.75,
         borderColor: 'rgba(255,255,255,0.3)',
         borderWidth: 1,
       },
-      emphasis: { itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } },
+      emphasis: {
+        itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' },
+      },
       markLine: {
         silent: true,
         lineStyle: { color: 'rgba(0,0,0,0.15)', type: 'dashed', width: 1 },
@@ -193,7 +223,10 @@ const scatterOption = computed(() => ({
       label: {
         show: true,
         position: 'top',
-        formatter: (p: unknown) => ((p as { data: (number | string)[] }).data[0] as number) >= 115 ? String((p as { data: (number | string)[] }).data[2]) : '',
+        formatter: (p: unknown) =>
+          ((p as { data: (number | string)[] }).data[0] as number) >= 115
+            ? String((p as { data: (number | string)[] }).data[2])
+            : '',
         fontSize: 11,
         color: '#555',
       },

@@ -1,13 +1,19 @@
 """Excel 成员导出：按主职业分 Sheet，组内正式在前、替补在后，与导入模板表头一致。"""
+
+from __future__ import annotations
+
 import re
 from io import BytesIO
+from typing import TYPE_CHECKING
 
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from app.models.member import Member
 from app.utils.constants import PROFESSIONS
+
+if TYPE_CHECKING:  # 仅用于类型标注：本模块是**纯格式化工具**，运行时不需要 ORM（便于独立测试）
+    from app.models.member import Member
 
 # 表头与 excel_import 的表头识别一一对应，确保导出文件可直接回导
 HEADERS = ["姓名", "主职业", "副职业", "状态", "备注"]
@@ -16,6 +22,23 @@ COL_WIDTHS = [14, 14, 14, 10, 30]
 
 # Sheet 名中的 Excel 非法字符（职业名为固定中文，正常不会命中，兜底防御）
 _SHEET_ILLEGAL = str.maketrans({c: "-" for c in r":\/?*[]"})
+
+# 会触发 Excel 公式求值的前缀（公式注入，见威胁建模 §十六 / F-47）
+_FORMULA_PREFIXES = ("=", "+", "-", "@")
+
+
+def _text_cell(sheet, row: int, column: int, value: object):
+    """写入**文本**单元格：对以 `=` `+` `-` `@` 开头的值显式声明为字符串。
+
+    为什么必须显式声明：姓名/备注等是**用户输入**，而 openpyxl 会把以 `=` 开头的字符串识别为
+    公式（`data_type='f'`）——管理员打开导出文件时 Excel 可能求值（可构造 `HYPERLINK`/`DDE`
+    等对外请求），即 OWASP 归类的 CSV/公式注入。置 `data_type='s'` 后按文本处理，
+    内容原样保留（回归用例：`tests/test_excel_export_formula.py` 往返断言）。
+    """
+    cell = sheet.cell(row=row, column=column, value=value)
+    if isinstance(value, str) and value[:1] in _FORMULA_PREFIXES:
+        cell.data_type = "s"
+    return cell
 
 
 def _group_members(members: list[Member]) -> list[tuple[str, list[Member]]]:
@@ -60,11 +83,11 @@ def _write_group(sheet, members: list[Member], guild_name: str | None, guild_id:
         sheet.column_dimensions[get_column_letter(col)].width = COL_WIDTHS[col - 1]
 
     for row, member in enumerate(members, start=3):
-        sheet.cell(row=row, column=1, value=member.name)
-        sheet.cell(row=row, column=2, value=member.main_profession)
-        sheet.cell(row=row, column=3, value=member.sub_profession or "")
-        sheet.cell(row=row, column=4, value=STATUS_LABELS.get(member.status, member.status))
-        sheet.cell(row=row, column=5, value=member.remark or "")
+        _text_cell(sheet, row, 1, member.name)
+        _text_cell(sheet, row, 2, member.main_profession)
+        _text_cell(sheet, row, 3, member.sub_profession or "")
+        _text_cell(sheet, row, 4, STATUS_LABELS.get(member.status, member.status))
+        _text_cell(sheet, row, 5, member.remark or "")
 
     sheet.freeze_panes = "A3"  # 冻结来源与表头两行
 

@@ -1,4 +1,7 @@
 """常驻库业务：CRUD、搜索筛选、出勤率统计。Excel 导入见 utils/excel_import.py。"""
+
+from typing import Any
+
 from sqlalchemy import Select, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -38,7 +41,9 @@ async def get_member(session: AsyncSession, guild_id: int, member_id: int) -> Me
     return member
 
 
-def apply_filters(stmt: Select, guild_id: int, keyword: str | None, profession: str | None, status: str | None) -> Select:
+def apply_filters(
+    stmt: Select, guild_id: int, keyword: str | None, profession: str | None, status: str | None
+) -> Select:
     stmt = stmt.where(Member.guild_id == guild_id)
     if keyword:
         stmt = stmt.where(Member.name.contains(keyword))
@@ -82,17 +87,15 @@ async def list_members(
     else:
         # 注意：必须引用子查询列 sub.c.status，若引用 ORM 列 Member.status 会令原始表加入 FROM 产生笛卡尔积
         status_rows = (
-            await session.execute(
-                select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status)
-            )
+            await session.execute(select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status))
         ).all()
-        status_counts = dict(status_rows)
+        status_counts: dict[str, int] = {str(s): int(c) for s, c in status_rows}
         stats = {
             "formal_count": int(status_counts.get("formal", 0)),
             "substitute_count": int(status_counts.get("substitute", 0)),
         }
     # 排序（白名单字段防注入）：指定字段时按 asc/desc，否则默认按创建时间倒序
-    sortable = {
+    sortable: dict[str, Any] = {
         "name": Member.name,
         "main_profession": Member.main_profession,
         "status": Member.status,
@@ -119,7 +122,7 @@ async def export_members(
 ) -> list[Member]:
     """导出用：按列表同款筛选与排序拉取全量成员（不分页）。"""
     base = apply_filters(select(Member), guild_id, keyword, profession, status)
-    sortable = {
+    sortable: dict[str, Any] = {
         "name": Member.name,
         "main_profession": Member.main_profession,
         "status": Member.status,

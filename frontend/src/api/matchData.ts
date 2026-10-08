@@ -10,7 +10,11 @@ import type {
 } from '@/types/matchData'
 
 /** 导入 CSV 比赛数据到指定局（覆盖该局已有数据） */
-export async function importCsv(scheduleId: number, file: File, roundNo: number): Promise<{ message: string; count: number }> {
+export async function importCsv(
+  scheduleId: number,
+  file: File,
+  roundNo: number,
+): Promise<{ message: string; count: number }> {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('round_no', String(roundNo))
@@ -29,7 +33,7 @@ export async function getMatchData(scheduleId: number, roundNo?: number): Promis
 /** 获取排行榜 */
 export async function getRankings(
   scheduleId: number,
-  params?: { roundNo?: number; camp?: string; limit?: number }
+  params?: { roundNo?: number; camp?: string; limit?: number },
 ): Promise<RankingsResponse> {
   return http.get(`/schedules/${scheduleId}/match-data/rankings`, {
     params: {
@@ -43,7 +47,7 @@ export async function getRankings(
 /** 获取职业统计（17 项指标，可按局/阵营过滤） */
 export async function getProfessionStats(
   scheduleId: number,
-  params?: { roundNo?: number; camp?: string }
+  params?: { roundNo?: number; camp?: string },
 ): Promise<{ items: ProfessionStats[] }> {
   return http.get(`/schedules/${scheduleId}/match-data/professions`, {
     params: {

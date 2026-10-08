@@ -34,7 +34,11 @@ const fullTitle = computed(() => {
 })
 
 function goRecording() {
-  router.push({ name: 'schedule-detail', params: { id: props.todo.scheduleId }, query: { tab: 'recording', from: 'home' } })
+  router.push({
+    name: 'schedule-detail',
+    params: { id: props.todo.scheduleId },
+    query: { tab: 'recording', from: 'home' },
+  })
 }
 </script>
 
@@ -55,7 +59,9 @@ function goRecording() {
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: background var(--dur-fast), border-color var(--dur-fast);
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast);
 }
 
 .todo-strip:hover {

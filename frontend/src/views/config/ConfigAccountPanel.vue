@@ -13,11 +13,7 @@
   />
 
   <!-- 账号编辑弹窗 -->
-  <el-dialog
-    v-model="accountDialogVisible"
-    :title="editingAccount ? '编辑账号' : '创建账号'"
-    width="420px"
-  >
+  <el-dialog v-model="accountDialogVisible" :title="editingAccount ? '编辑账号' : '创建账号'" width="420px">
     <el-form ref="accountFormRef" :model="accountForm" :rules="accountRules" label-width="80px">
       <el-form-item label="登录名" prop="username">
         <el-input v-model="accountForm.username" placeholder="请输入登录名" />
@@ -49,13 +45,7 @@ import { computed, onMounted, ref } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
-import {
-  createAccount,
-  deleteAccount,
-  getAccounts,
-  updateAccount,
-  updateAccountStatus,
-} from '@/api/config'
+import { createAccount, deleteAccount, getAccounts, updateAccount, updateAccountStatus } from '@/api/config'
 import type { Account } from '@/types/config'
 import { useAuthStore } from '@/stores/auth'
 import ConfigAccountGroup from './ConfigAccountGroup.vue'

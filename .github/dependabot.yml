@@ -1,0 +1,40 @@
+# ===== 依赖更新自动化（合规化计划 W2-7） =====
+# 依据：OpenSSF Scorecard「Dependency-Update-Tool」检查项；同时覆盖 OWASP A06（易受攻击和过时的组件）。
+# 策略：分组、限量、周更，避免 PR 噪声淹没人工评审；正式依赖升级仍需跑 CI（含镜像构建）。
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      backend-python:
+        patterns: ["*"]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      frontend-npm:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3

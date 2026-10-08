@@ -109,10 +109,7 @@ export function useAttendanceList(props: { scheduleId: number; schedule: Schedul
     selectedIds.value = []
     try {
       // 赛程详情由父级传入（避免与父级重复请求 getSchedule）
-      const [data, configs] = await Promise.all([
-        getAttendance(props.scheduleId),
-        getProfessionConfigs(),
-      ])
+      const [data, configs] = await Promise.all([getAttendance(props.scheduleId), getProfessionConfigs()])
       items.value = data.items
       stats.value = data.stats
       professionConfigs.value = configs
@@ -166,10 +163,7 @@ export function useAttendanceList(props: { scheduleId: number; schedule: Schedul
 
   /** 一键移除：候选池中未被排入排表的已出勤（正常）成员，弹窗勾选后移出出勤表。 */
   async function onOpenRemove() {
-    const [candidates, lineup] = await Promise.all([
-      getLineupCandidates(props.scheduleId),
-      getLineup(props.scheduleId),
-    ])
+    const [candidates, lineup] = await Promise.all([getLineupCandidates(props.scheduleId), getLineup(props.scheduleId)])
     // 已排入排表的成员集合（正式按 member_id，补人按 member_name）
     const placed = new Set<string>()
     for (const team of lineup.data) {
@@ -183,9 +177,7 @@ export function useAttendanceList(props: { scheduleId: number; schedule: Schedul
         .filter((c) => !placed.has(`id:${c.member_id}`) && !placed.has(`name:${c.member_name}`))
         .map((c) => c.member_name),
     )
-    removableItems.value = items.value.filter(
-      (r) => r.status === 'normal' && unplacedNames.has(r.member_name),
-    )
+    removableItems.value = items.value.filter((r) => r.status === 'normal' && unplacedNames.has(r.member_name))
     if (!removableItems.value.length) {
       ElMessage.info('没有可移除的人员：未排入排表的已出勤成员为空')
       return

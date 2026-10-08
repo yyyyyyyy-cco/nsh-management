@@ -21,7 +21,9 @@
           <el-table-column label="赛程" min-width="130">
             <template #default="{ row }">
               <span class="opponent-cell">
-                <el-tag :type="resultType(row.schedule_result)" size="small" effect="light">{{ resultLabel(row.schedule_result) }}</el-tag>
+                <el-tag :type="resultType(row.schedule_result)" size="small" effect="light">{{
+                  resultLabel(row.schedule_result)
+                }}</el-tag>
                 vs {{ row.opponent }}
               </span>
               <!-- 合并历史 ID 查询时，明细保留该场使用的 ID -->
@@ -32,7 +34,9 @@
             <template #default="{ row }">{{ row.round_no }}</template>
           </el-table-column>
           <el-table-column label="时间" min-width="90" sortable sort-by="match_time">
-            <template #default="{ row }"><span class="time-cell num">{{ formatDate(row.match_time) }}</span></template>
+            <template #default="{ row }"
+              ><span class="time-cell num">{{ formatDate(row.match_time) }}</span></template
+            >
           </el-table-column>
           <el-table-column label="职业" min-width="75">
             <template #default="{ row }">
@@ -59,10 +63,14 @@
             </template>
           </el-table-column>
           <el-table-column label="秒伤" min-width="65" sortable sort-by="dps">
-            <template #default="{ row }"><span class="num">{{ row.dps }}</span></template>
+            <template #default="{ row }"
+              ><span class="num">{{ row.dps }}</span></template
+            >
           </el-table-column>
           <el-table-column label="每死输出" min-width="85" sortable sort-by="damage_per_death">
-            <template #default="{ row }"><span class="num">{{ fmtNum(row.damage_per_death) }}</span></template>
+            <template #default="{ row }"
+              ><span class="num">{{ fmtNum(row.damage_per_death) }}</span></template
+            >
           </el-table-column>
         </el-table>
       </el-tab-pane>
@@ -73,7 +81,9 @@
           <el-table-column label="赛程" min-width="130">
             <template #default="{ row }">
               <span class="opponent-cell">
-                <el-tag :type="resultType(row.schedule_result)" size="small" effect="light">{{ resultLabel(row.schedule_result) }}</el-tag>
+                <el-tag :type="resultType(row.schedule_result)" size="small" effect="light">{{
+                  resultLabel(row.schedule_result)
+                }}</el-tag>
                 vs {{ row.opponent }}
               </span>
               <span class="round-id">ID：{{ row.player_name }}</span>
@@ -83,16 +93,24 @@
             <template #default="{ row }">{{ row.round_no }}</template>
           </el-table-column>
           <el-table-column label="对玩家伤害" min-width="100" sortable sort-by="player_damage">
-            <template #default="{ row }"><span class="num">{{ fmtNum(row.player_damage) }}</span></template>
+            <template #default="{ row }"
+              ><span class="num">{{ fmtNum(row.player_damage) }}</span></template
+            >
           </el-table-column>
           <el-table-column label="对建筑伤害" min-width="100" sortable sort-by="building_damage">
-            <template #default="{ row }"><span class="num">{{ fmtNum(row.building_damage) }}</span></template>
+            <template #default="{ row }"
+              ><span class="num">{{ fmtNum(row.building_damage) }}</span></template
+            >
           </el-table-column>
           <el-table-column label="治疗" min-width="90" sortable sort-by="healing">
-            <template #default="{ row }"><span class="num">{{ fmtNum(row.healing) }}</span></template>
+            <template #default="{ row }"
+              ><span class="num">{{ fmtNum(row.healing) }}</span></template
+            >
           </el-table-column>
           <el-table-column label="承伤" min-width="90" sortable sort-by="damage_taken">
-            <template #default="{ row }"><span class="num">{{ fmtNum(row.damage_taken) }}</span></template>
+            <template #default="{ row }"
+              ><span class="num">{{ fmtNum(row.damage_taken) }}</span></template
+            >
           </el-table-column>
         </el-table>
       </el-tab-pane>
@@ -103,7 +121,9 @@
           <el-table-column label="赛程" min-width="130">
             <template #default="{ row }">
               <span class="opponent-cell">
-                <el-tag :type="resultType(row.schedule_result)" size="small" effect="light">{{ resultLabel(row.schedule_result) }}</el-tag>
+                <el-tag :type="resultType(row.schedule_result)" size="small" effect="light">{{
+                  resultLabel(row.schedule_result)
+                }}</el-tag>
                 vs {{ row.opponent }}
               </span>
             </template>
@@ -112,13 +132,19 @@
             <template #default="{ row }">{{ row.round_no }}</template>
           </el-table-column>
           <el-table-column label="击杀占比" min-width="80" sortable sort-by="kill_ratio">
-            <template #default="{ row }"><span class="num">{{ pctStr(row.kill_ratio) }}</span></template>
+            <template #default="{ row }"
+              ><span class="num">{{ pctStr(row.kill_ratio) }}</span></template
+            >
           </el-table-column>
           <el-table-column label="对玩家伤害占比" min-width="110" sortable sort-by="player_damage_ratio">
-            <template #default="{ row }"><span class="num">{{ pctStr(row.player_damage_ratio) }}</span></template>
+            <template #default="{ row }"
+              ><span class="num">{{ pctStr(row.player_damage_ratio) }}</span></template
+            >
           </el-table-column>
           <el-table-column label="对建筑伤害占比" min-width="110" sortable sort-by="building_ratio">
-            <template #default="{ row }"><span class="num">{{ pctStr(row.building_ratio) }}</span></template>
+            <template #default="{ row }"
+              ><span class="num">{{ pctStr(row.building_ratio) }}</span></template
+            >
           </el-table-column>
           <el-table-column label="击杀排名" min-width="90">
             <template #default="{ row }">
@@ -302,10 +328,20 @@ function rankClass(r: RankingItem): string {
   font-size: 12px;
 }
 
-.kda-k { color: var(--cinnabar); font-weight: 600; }
-.kda-a { color: var(--ink-600); }
-.kda-d { color: var(--ink-400); }
-.kda-sep { color: var(--ink-300); margin: 0 1px; }
+.kda-k {
+  color: var(--cinnabar);
+  font-weight: 600;
+}
+.kda-a {
+  color: var(--ink-600);
+}
+.kda-d {
+  color: var(--ink-400);
+}
+.kda-sep {
+  color: var(--ink-300);
+  margin: 0 1px;
+}
 
 .rank-cell {
   font-size: 12px;

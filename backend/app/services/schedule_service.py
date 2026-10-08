@@ -1,4 +1,5 @@
 """联赛日程业务：CRUD、级联创建（空排表）、级联删除。"""
+
 from datetime import datetime
 
 from sqlalchemy import delete, select
@@ -9,6 +10,7 @@ from app.models.lineup import Lineup
 from app.models.match_data import MatchData
 from app.models.recording import Recording
 from app.models.schedule import Schedule
+from app.models.squad_adjustment import SquadAdjustment
 from app.schemas.schedule import ScheduleCreate, ScheduleUpdate
 from app.utils.constants import PROFESSIONS
 
@@ -97,6 +99,9 @@ async def delete_schedule(session: AsyncSession, guild_id: int, schedule_id: int
     schedule = await get_schedule(session, guild_id, schedule_id)
     await session.execute(delete(Recording).where(Recording.schedule_id == schedule_id))
     await session.execute(delete(MatchData).where(MatchData.schedule_id == schedule_id))
+    # 分析调整副本必须先于赛程删除，否则成为孤儿行；且 SQLite 未启用 sqlite_autoincrement 时
+    # schedules.id 可能被复用，新赛程会"继承"旧分析调整（2026-10-03 修复，见 F-75 / database-design §3.2）
+    await session.execute(delete(SquadAdjustment).where(SquadAdjustment.schedule_id == schedule_id))
     await session.execute(delete(AttendanceRecord).where(AttendanceRecord.schedule_id == schedule_id))
     await session.execute(delete(Lineup).where(Lineup.schedule_id == schedule_id))
     await session.delete(schedule)

@@ -1,4 +1,5 @@
 """出勤导入：一键导入正式成员、替补候选与导入。"""
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +10,7 @@ from app.services.schedule_service import get_schedule
 
 
 async def _imported_member_ids(session: AsyncSession, schedule_id: int) -> set[int]:
-    return set(
+    rows = (
         (
             await session.execute(
                 select(AttendanceRecord.member_id).where(
@@ -19,7 +20,10 @@ async def _imported_member_ids(session: AsyncSession, schedule_id: int) -> set[i
             )
         )
         .scalars()
+        .all()
     )
+    # 查询已过滤 NULL；此处再做 None 安全网，保证返回类型确为 set[int]
+    return {int(x) for x in rows if x is not None}
 
 
 async def import_formal(session: AsyncSession, guild_id: int, schedule_id: int) -> dict:
@@ -27,7 +31,9 @@ async def import_formal(session: AsyncSession, guild_id: int, schedule_id: int) 
     await get_schedule(session, guild_id, schedule_id)
     imported_ids = await _imported_member_ids(session, schedule_id)
     formal_members = list(
-        (await session.execute(select(Member).where(Member.guild_id == guild_id, Member.status == "formal"))).scalars().all()
+        (await session.execute(select(Member).where(Member.guild_id == guild_id, Member.status == "formal")))
+        .scalars()
+        .all()
     )
     new_members = [m for m in formal_members if m.id not in imported_ids]
     await check_normal_capacity(session, schedule_id, len(new_members))
@@ -52,9 +58,7 @@ async def substitute_candidates(session: AsyncSession, guild_id: int, schedule_i
     await get_schedule(session, guild_id, schedule_id)
     imported_ids = await _imported_member_ids(session, schedule_id)
     substitutes = list(
-        (
-            await session.execute(select(Member).where(Member.guild_id == guild_id, Member.status == "substitute"))
-        )
+        (await session.execute(select(Member).where(Member.guild_id == guild_id, Member.status == "substitute")))
         .scalars()
         .all()
     )
@@ -65,9 +69,7 @@ async def all_member_candidates(session: AsyncSession, guild_id: int, schedule_i
     """常驻库所有成员（正式+替补），已导入本场的排除。"""
     await get_schedule(session, guild_id, schedule_id)
     imported_ids = await _imported_member_ids(session, schedule_id)
-    all_members = list(
-        (await session.execute(select(Member).where(Member.guild_id == guild_id))).scalars().all()
-    )
+    all_members = list((await session.execute(select(Member).where(Member.guild_id == guild_id))).scalars().all())
     return [m for m in all_members if m.id not in imported_ids]
 
 

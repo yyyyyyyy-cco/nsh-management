@@ -62,7 +62,7 @@ member（帮众）→ 绑定帮会，只读 + 有限操作
 > 本节仅列出关键信息摘要，详细版本号和依赖列表请查阅权威源。
 
 - 前端：Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia + vuedraggable + html2canvas
-- 后端：Python 3.13 + FastAPI 0.115+ + SQLAlchemy 2.0.36 + SQLite + Pydantic 2.11.4 + Alembic 1.13.1
+- 后端：Python 3.11（生产基座/CI）+ FastAPI 0.142.2（锁定） + SQLAlchemy 2.0.36 + SQLite + Pydantic 2.11.4 + Alembic 1.13.1
 - 部署：Docker Compose 编排（前端 Nginx:80 + 后端 FastAPI:8000），SQLite 数据卷持久化，Nginx 反向代理 + SPA 回退 + HTTPS
 
 ---
@@ -122,12 +122,12 @@ member（帮众）→ 绑定帮会，只读 + 有限操作
 
 ## 4. Git 工作流
 
-> **权威源**：`GIT-GUIDE.md`（完整分支策略、提交规范、版本发布、双远程同步）
+> **权威源**：`GIT-GUIDE.md`（完整分支策略、提交规范、版本发布、镜像远端同步（可选））
 
 - 分支：`main`（始终可发布）+ `feature/<功能名>` + `hotfix/<描述>`
 - 提交：`<type>(<scope>): <中文摘要>`，scope 必填
 - 合并：`--no-ff`
-- 双远程：`origin`（GitHub）+ `gitee`（Gitee）同步推送
+- 远端：`origin`（GitHub）为唯一权威远端；镜像（如 Gitee）可选
 
 ---
 

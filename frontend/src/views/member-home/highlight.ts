@@ -17,10 +17,7 @@ const MAX_TRY = 3
  * 排表用于判定我方阵营（失败降级为空，兜底取首条记录阵营，与战报一致）；
  * isStale 返回 true（响应过期）时中止并返回 null。
  */
-export async function fetchHighlight(
-  schedules: ScheduleInfo[],
-  isStale: () => boolean,
-): Promise<HighlightData | null> {
+export async function fetchHighlight(schedules: ScheduleInfo[], isStale: () => boolean): Promise<HighlightData | null> {
   for (const s of endedSchedules(schedules).slice(0, MAX_TRY)) {
     let indicators: IndicatorsResponse
     try {

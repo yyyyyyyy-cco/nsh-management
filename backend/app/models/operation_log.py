@@ -1,5 +1,6 @@
 """操作日志表：写操作审计与错误落库，供开发者查看。"""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
@@ -24,5 +25,5 @@ class OperationLog(Base):
     detail: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON 文本，敏感字段已脱敏
     ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False, index=True
     )

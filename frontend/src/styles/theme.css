@@ -8,6 +8,9 @@
   --ink-bg-paper: #fffdf8;
   --ink-bg-cream: #faf6ee;
   --ink-bg-wash: #f4eee1;
+  /* 侧边栏竖向渐变（2026-10-03，F-76）：与组件内原硬编码值完全一致，仅令牌化 */
+  --ink-sidebar-from: #fdfaf3;
+  --ink-sidebar-to: #f8f2e6;
 
   /* ===== 鎏金主色（亮金） ===== */
   --gold-50: #fdf9ec;
@@ -42,11 +45,11 @@
   --edge-faint: #f4efe5;
 
   /* ===== 功能色（中式色名） ===== */
-  --cinnabar: #c0392b;        /* 朱砂：危险 */
+  --cinnabar: #c0392b; /* 朱砂：危险 */
   --cinnabar-dark: #a93226;
-  --jade: #2e8b57;            /* 黛绿：成功 */
-  --ochre: #d97706;           /* 赭黄：警告 */
-  --indigo: #5b7a9d;          /* 靛青：信息 */
+  --jade: #2e8b57; /* 黛绿：成功 */
+  --ochre: #d97706; /* 赭黄：警告 */
+  --indigo: #5b7a9d; /* 靛青：信息 */
 
   /* ===== 字体 ===== */
   --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;

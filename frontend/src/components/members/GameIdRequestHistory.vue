@@ -33,10 +33,14 @@
             <span class="record-id">{{ record.old_game_id }}</span>
             <span class="record-arrow">→</span>
             <span class="record-new">{{ record.new_game_id }}</span>
-            <el-tag :type="statusType(record.status)" effect="light" size="small">{{ statusLabel(record.status) }}</el-tag>
+            <el-tag :type="statusType(record.status)" effect="light" size="small">{{
+              statusLabel(record.status)
+            }}</el-tag>
           </div>
           <div class="record-meta">申请时间：{{ formatTime(record.created_at) }}</div>
-          <div v-if="record.status === 'invalidated'" class="record-meta">{{ invalidatedLabel(record.invalidated_reason) }}</div>
+          <div v-if="record.status === 'invalidated'" class="record-meta">
+            {{ invalidatedLabel(record.invalidated_reason) }}
+          </div>
           <div v-if="record.review_remark" class="remark">审核意见：{{ record.review_remark }}</div>
           <div v-else-if="record.status === 'rejected'" class="remark remark--empty">审核意见：未填写</div>
         </div>
@@ -62,7 +66,9 @@
         <el-table-column label="审核意见" min-width="180">
           <template #default="{ row }">
             <span v-if="row.review_remark" class="remark">{{ row.review_remark }}</span>
-            <span v-else-if="row.status === 'invalidated'" class="remark">{{ invalidatedLabel(row.invalidated_reason) }}</span>
+            <span v-else-if="row.status === 'invalidated'" class="remark">{{
+              invalidatedLabel(row.invalidated_reason)
+            }}</span>
             <span v-else class="remark remark--empty">—</span>
           </template>
         </el-table-column>

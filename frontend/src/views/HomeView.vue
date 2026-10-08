@@ -22,7 +22,11 @@
         <HomeRecentSchedules :show-skeleton="showSkeleton" :schedules="recentSchedules" />
 
         <!-- 职业配置概览（辅助卡片层级） -->
-        <HomeProfessionOverview v-if="!auth.isDeveloper" :show-skeleton="showSkeleton" :profession-stats="professionStats" />
+        <HomeProfessionOverview
+          v-if="!auth.isDeveloper"
+          :show-skeleton="showSkeleton"
+          :profession-stats="professionStats"
+        />
 
         <!-- 历史总览 -->
         <div class="overview-bar">
@@ -88,9 +92,7 @@ const animatedMemberCount = useCountUp(memberCount)
 const animatedScheduleCount = useCountUp(scheduleCount)
 
 /** 今日比赛：从完整赛程中筛选（recentSchedules 仅保留 5 条，不能作为判断依据）。 */
-const todaySchedules = computed(() =>
-  allSchedules.value.filter((s) => dayjs(s.match_time).isSame(dayjs(), 'day')),
-)
+const todaySchedules = computed(() => allSchedules.value.filter((s) => dayjs(s.match_time).isSame(dayjs(), 'day')))
 
 onMounted(async () => {
   loading.value = true
@@ -99,7 +101,9 @@ onMounted(async () => {
 
     // 获取成员数量
     tasks.push(
-      listMembers({ page: 1, page_size: 1 }).then((r) => { memberCount.value = r.total })
+      listMembers({ page: 1, page_size: 1 }).then((r) => {
+        memberCount.value = r.total
+      }),
     )
 
     // 获取近期比赛
@@ -110,7 +114,7 @@ onMounted(async () => {
         allSchedules.value = r
         recentSchedules.value = sortSchedulesByProximity(r).slice(0, 5)
         scheduleCount.value = r.length
-      })
+      }),
     )
 
     // 获取出勤率（非开发者）
@@ -121,7 +125,7 @@ onMounted(async () => {
             .filter((m) => m.attendance_rate !== null)
             .sort((a, b) => (b.attendance_rate ?? 0) - (a.attendance_rate ?? 0))
             .slice(0, 5)
-        })
+        }),
       )
 
       // 获取职业分布
@@ -130,7 +134,7 @@ onMounted(async () => {
           professionStats.value = r
             .map((s) => ({ name: s.profession, count: s.count, color: profColor(s.profession) }))
             .sort((a, b) => b.count - a.count)
-        })
+        }),
       )
     }
 

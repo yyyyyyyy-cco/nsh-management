@@ -3,6 +3,16 @@
 运行：backend/.venv/Scripts/python.exe backend/scripts/selfcheck_migration_game_id.py
 校验：迁移链完整、member_game_id_requests 表与索引/部分唯一索引真实落库、downgrade 可回退。
 """
+
+# ---- 前置依赖探测（缺依赖时模块级跳过；见合规化计划 W2-2 与本文件被 pytest 收集的约定）----
+import unittest as _unittest
+
+try:  # noqa: SIM105
+    import fastapi  # noqa: F401
+    import sqlalchemy  # noqa: F401
+except ImportError as _exc:  # pragma: no cover - 无依赖环境（如 Python 3.14 装不上 pydantic-core）
+    raise _unittest.SkipTest(f"缺少运行依赖（FastAPI/SQLAlchemy），跳过本模块：{_exc}") from _exc
+
 import os
 import sqlite3
 import subprocess
@@ -77,8 +87,8 @@ class MigrationTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="nsh_mig_check_") as tmp:
             db_path = Path(tmp) / "migration.db"
 
-            up_log = _run_alembic(db_path, "upgrade", "head")
-            self.assertIn(f"Running upgrade", up_log)
+            up_log = _run_alembic(db_path, "upgrade", HEAD_REVISION)
+            self.assertIn("Running upgrade", up_log)
             self.assertIn(HEAD_REVISION, up_log)
             self.assertEqual(_current_revision(db_path), HEAD_REVISION)
             self.assertIn(NEW_TABLE, _table_names(db_path))
@@ -88,9 +98,7 @@ class MigrationTests(unittest.TestCase):
             self.assertIn("WHERE status = 'pending'", indexes["uq_game_id_requests_pending_member"])
             self.assertIn("ix_game_id_requests_old_approved", indexes)
             self.assertIn("ix_game_id_requests_new_approved", indexes)
-            self.assertIn(
-                "WHERE status = 'approved'", indexes["ix_game_id_requests_new_approved"]
-            )
+            self.assertIn("WHERE status = 'approved'", indexes["ix_game_id_requests_new_approved"])
 
             # 约束真实生效：状态白名单 + 同一成员仅一条待审
             now = "2026-09-20 00:00:00"
@@ -101,7 +109,9 @@ class MigrationTests(unittest.TestCase):
             conn = sqlite3.connect(db_path)
             try:
                 conn.execute(insert_sql, (1, 1, "甲", "乙", "actor", "pending", now, now))
-                self.assertTrue(_fails_with_integrity(conn, insert_sql, (1, 1, "甲", "丙", "actor", "pending", now, now)))
+                self.assertTrue(
+                    _fails_with_integrity(conn, insert_sql, (1, 1, "甲", "丙", "actor", "pending", now, now))
+                )
                 self.assertTrue(_fails_with_integrity(conn, insert_sql, (1, 1, "甲", "乙", "actor", "bogus", now, now)))
                 # 其他成员、其他状态不受唯一索引限制
                 conn.execute(insert_sql, (1, 2, "戊", "己", "actor", "pending", now, now))
@@ -115,7 +125,7 @@ class MigrationTests(unittest.TestCase):
             self.assertNotIn(NEW_TABLE, _table_names(db_path))
             self.assertNotEqual(_current_revision(db_path), HEAD_REVISION)
 
-            _run_alembic(db_path, "upgrade", "head")
+            _run_alembic(db_path, "upgrade", HEAD_REVISION)
             self.assertEqual(_current_revision(db_path), HEAD_REVISION)
             self.assertIn(NEW_TABLE, _table_names(db_path))
 

@@ -24,7 +24,14 @@
         </el-table-column>
         <el-table-column v-if="isAdmin" label="操作" width="90" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button v-if="isAdjustedIn(row)" link type="danger" size="small" @click="emit('removeAdjustment', row.player_name)">取消分配</el-button>
+            <el-button
+              v-if="isAdjustedIn(row)"
+              link
+              type="danger"
+              size="small"
+              @click="emit('removeAdjustment', row.player_name)"
+              >取消分配</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
@@ -50,7 +57,14 @@
         </el-table-column>
         <el-table-column v-if="isAdmin" label="操作" width="90" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button v-if="isAdjustedIn(row)" link type="danger" size="small" @click="emit('removeAdjustment', row.player_name)">取消分配</el-button>
+            <el-button
+              v-if="isAdjustedIn(row)"
+              link
+              type="danger"
+              size="small"
+              @click="emit('removeAdjustment', row.player_name)"
+              >取消分配</el-button
+            >
           </template>
         </el-table-column>
       </el-table>
@@ -83,7 +97,14 @@
         </el-table-column>
         <el-table-column v-if="isAdmin" label="操作" width="90" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button v-if="isAdjustedIn(row)" link type="danger" size="small" @click="emit('removeAdjustment', row.player_name)">取消分配</el-button>
+            <el-button
+              v-if="isAdjustedIn(row)"
+              link
+              type="danger"
+              size="small"
+              @click="emit('removeAdjustment', row.player_name)"
+              >取消分配</el-button
+            >
           </template>
         </el-table-column>
       </el-table>

@@ -13,7 +13,9 @@
       <SkeletonTable v-if="showSkeleton && topAttendance.length === 0" variant="rows" :rows="5" />
       <template v-else-if="topAttendance.length === 0">
         <div class="empty-state">
-          <div class="empty-state__icon"><el-icon :size="36"><UserFilled /></el-icon></div>
+          <div class="empty-state__icon">
+            <el-icon :size="36"><UserFilled /></el-icon>
+          </div>
           <div class="empty-state__text">暂无出勤数据</div>
         </div>
       </template>
@@ -32,7 +34,7 @@
             style="flex: 1"
           />
           <span class="rank-item__rate num" :style="{ color: profColor(m.main_profession) }">
-            {{ m.attendance_rate != null ? `${ratePercent(m.attendance_rate)}%` : '-' }}
+            {{ formatRatePercent(m.attendance_rate, 0) }}
           </span>
         </div>
       </template>
@@ -46,16 +48,12 @@ import { ArrowRight, Medal, UserFilled } from '@element-plus/icons-vue'
 
 import type { AttendanceRateItem } from '@/api/members'
 import { profColor } from '@/utils/profession'
+import { formatRatePercent } from '@/utils/attendance'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
 
 defineProps<{ showSkeleton: boolean; topAttendance: AttendanceRateItem[] }>()
 
 const router = useRouter()
-
-/** 出勤率小数（0~1）转百分数整数。 */
-function ratePercent(rate: number | null | undefined): number | string {
-  return rate != null ? Math.round(rate * 100) : '-'
-}
 </script>
 
 <style scoped src="./home-shared.css"></style>
@@ -150,9 +148,15 @@ function ratePercent(rate: number | null | undefined): number | string {
 }
 
 @keyframes medal-shimmer {
-  0% { left: -100%; }
-  50% { left: 150%; }
-  100% { left: 150%; }
+  0% {
+    left: -100%;
+  }
+  50% {
+    left: 150%;
+  }
+  100% {
+    left: 150%;
+  }
 }
 
 .rank-item__dot {

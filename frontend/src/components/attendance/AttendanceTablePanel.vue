@@ -6,6 +6,7 @@
     <el-table-column prop="profession" label="职业" min-width="110">
       <template #default="{ row }">
         <el-select
+          aria-label="职业"
           v-if="isAdmin && (row.professions?.length || 0) > 1"
           :model-value="row.profession"
           style="width: 100px"

@@ -28,7 +28,12 @@ export function buildScatterOption(items: MatchData[]) {
       name: '玩家伤害',
       nameLocation: 'middle',
       nameGap: 50,
-      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 60,
+        overflow: 'truncate',
+      },
       splitLine: CHART_THEME.axis.splitLine,
       nameTextStyle: { ...CHART_THEME.axis.axisName },
     },
@@ -50,7 +55,9 @@ export function buildScatterOption(items: MatchData[]) {
           borderColor: 'rgba(0,0,0,0.08)',
           borderWidth: 1,
         },
-        emphasis: { itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } },
+        emphasis: {
+          itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' },
+        },
         markLine: {
           silent: true,
           lineStyle: { color: 'rgba(0,0,0,0.1)', type: 'dashed', width: 1 },
@@ -90,7 +97,12 @@ export function buildHealTakenOption(items: MatchData[]) {
       name: '承受伤害',
       nameLocation: 'middle',
       nameGap: 50,
-      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 60,
+        overflow: 'truncate',
+      },
       splitLine: CHART_THEME.axis.splitLine,
       nameTextStyle: { ...CHART_THEME.axis.axisName },
     },
@@ -98,14 +110,23 @@ export function buildHealTakenOption(items: MatchData[]) {
       {
         type: 'scatter',
         symbolSize: (data: number[]) => Math.max(6, Math.min(13, (data[5] as number) * 2)),
-        data: scored.map((s) => [s.player.healing, s.player.damage_taken, s.total, s.player.player_name, s.player.profession || '未知', s.kda]),
+        data: scored.map((s) => [
+          s.player.healing,
+          s.player.damage_taken,
+          s.total,
+          s.player.player_name,
+          s.player.profession || '未知',
+          s.kda,
+        ]),
         itemStyle: {
           color: (p: { data: (number | string)[] }) => profColor(String(p.data[4])),
           opacity: 0.75,
           borderColor: 'rgba(0,0,0,0.08)',
           borderWidth: 1,
         },
-        emphasis: { itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } },
+        emphasis: {
+          itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' },
+        },
         markLine: {
           silent: true,
           lineStyle: { color: 'rgba(0,0,0,0.1)', type: 'dashed', width: 1 },
@@ -135,14 +156,23 @@ export function buildDmgHealBubbleOption(items: MatchData[]) {
     },
     grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },
     xAxis: {
-      name: '玩家伤害', nameLocation: 'middle', nameGap: 32,
+      name: '玩家伤害',
+      nameLocation: 'middle',
+      nameGap: 32,
       axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), margin: 12 },
       splitLine: CHART_THEME.axis.splitLine,
       nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [8, 0, 0, 0] },
     },
     yAxis: {
-      name: '治疗量', nameLocation: 'middle', nameGap: 50,
-      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+      name: '治疗量',
+      nameLocation: 'middle',
+      nameGap: 50,
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 60,
+        overflow: 'truncate',
+      },
       splitLine: CHART_THEME.axis.splitLine,
       nameTextStyle: { ...CHART_THEME.axis.axisName },
     },
@@ -157,7 +187,9 @@ export function buildDmgHealBubbleOption(items: MatchData[]) {
           borderColor: 'rgba(0,0,0,0.08)',
           borderWidth: 1,
         },
-        emphasis: { itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } },
+        emphasis: {
+          itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' },
+        },
       },
     ],
   }

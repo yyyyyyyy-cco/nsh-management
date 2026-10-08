@@ -3,6 +3,7 @@
 > 专为游戏帮会管理人员设计的一体化管理工具，涵盖成员管理、出勤考核、联赛排表、录屏审核和比赛数据分析等核心功能。
 
 > 📘 开发协作规范（分支/提交/发布/tag）见 [GIT-GUIDE.md](GIT-GUIDE.md)。
+> 📄 参与贡献与仓库政策：[CONTRIBUTING.md](CONTRIBUTING.md)（协作约定）· [SECURITY.md](SECURITY.md)（漏洞报告）· [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)（行为准则）· [CHANGELOG.md](CHANGELOG.md)（更新日志）。
 
 ## 功能特性
 
@@ -31,26 +32,27 @@
 
 **前端：** Vue 3 + TypeScript + Vite + Element Plus + ECharts 6 + Pinia
 
-**后端：** Python 3.13 + FastAPI + SQLAlchemy + SQLite + Alembic
+**后端：** Python 3.11（生产镜像基座与 CI；本地 3.11～3.13） + FastAPI + SQLAlchemy + SQLite + Alembic
 
 **部署：** Docker Compose + Nginx
 
 ## 快速开始
 
-### 本地开发（Windows）
+### 一、本地开发（Windows）
 
 ```bash
 # 1. 克隆项目
 git clone <repo-url>
 cd nsh-management
 
-# 2. 后端
+# 2. 后端（Python 3.11 / 3.12 / 3.13，版本不符时下一行会直接报错）
 cd backend
+python -c "import sys; assert sys.version_info[:2] in [(3,11),(3,12),(3,13)], sys.version"
 python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\alembic upgrade head
 
-# 3. 前端
+# 3. 前端（Node 20+）
 cd ../frontend
 npm install
 
@@ -67,56 +69,48 @@ start.bat
 | 管理员 | admin | admin123 |
 | 帮众 | member | member123 |
 
-### Docker 部署
+> **环境要求**：Python 3.11–3.13（3.14 装不上依赖）、Node 20+；依赖拉取慢/超时或报 SSL 证书错误时**按命令换源**（pip 清华源 / npm npmmirror，不要改全局配置、不要写进仓库）；Python 3.13 需补装 `greenlet`（否则 `alembic upgrade head` 报 `ValueError`）。
+> 细节见 [CONTRIBUTING.md](CONTRIBUTING.md) §环境准备。
+
+### 二、服务器部署（Docker Compose）
 
 ```bash
-# 1. 复制环境变量模板并填写
+# 1. 准备环境变量（必改 SECRET_KEY 与账号密码）
 cp .env.example .env
-# 编辑 .env，修改 SECRET_KEY 和账号密码
 
 # 2. 构建并启动
 docker compose up -d --build
 
-# 3. 访问
-# http://your-server-ip
+# 3. 检查状态（backend 应为 healthy）
+docker compose ps
 ```
 
-详细部署文档见 [DEPLOY.md](DEPLOY.md)。
+HTTPS/域名、一键更新、备份恢复、日志与故障排查见 [DEPLOY.md](DEPLOY.md)；一键更新脚本模板为 `deploy.sh.example`。
+
+### 本地开发补充
+
+**数据源模式（`DB_MODE`）**：`start.bat` 顶部通过 `DB_MODE` 切换本地启动所用数据库，**默认 `prod`**：
+
+| 模式 | 数据源 | 说明 |
+|------|--------|------|
+| `prod`（默认） | `backend\data\nsh-server-20260907.db` | 服务器数据**快照副本**，便于用真实数据调试；副本不存在时自动回退到 `dev`。本地的读写只作用于副本，**不会影响生产服务器** |
+| `dev` | `backend\data\nsh.db` | 本地开发库；首次启动自动初始化默认账号（见上表） |
+
+> 快照文件需从服务器导出后放入 `backend\data\`（`.gitignore` 已排除 `*.db`，不入库）。只想用本地库时，把 `start.bat` 中的 `set "DB_MODE=prod"` 改为 `dev`。
+
+**测试与静态检查**：
+
+```bash
+cd backend
+python -m pytest     # 新用例（backend/tests/）+ 既有 selfcheck_*.py；全部使用内存库
+ruff check .         # 静态检查（配置见 backend/ruff.toml）
+```
 
 ## 项目结构
 
-```
-nsh-management/
-├── backend/                    # 后端（FastAPI）
-│   ├── app/
-│   │   ├── api/v1/             # API 路由
-│   │   ├── core/               # 配置、数据库、安全
-│   │   ├── models/             # SQLAlchemy 模型（12 表）
-│   │   ├── schemas/            # Pydantic Schema
-│   │   ├── services/           # 业务逻辑
-│   │   └── utils/              # 工具函数
-│   ├── alembic/                # 数据库迁移
-│   ├── Dockerfile
-│   └── requirements.txt
-├── frontend/                   # 前端（Vue 3）
-│   ├── src/
-│   │   ├── api/                # API 封装
-│   │   ├── components/         # 业务组件
-│   │   ├── views/              # 页面
-│   │   ├── composables/        # 组合式函数
-│   │   ├── layouts/            # 布局
-│   │   ├── stores/             # Pinia 状态
-│   │   ├── styles/             # 主题样式
-│   │   ├── types/              # TypeScript 类型
-│   │   ├── utils/              # 工具函数
-│   │   └── router/             # 路由
-│   ├── Dockerfile
-│   └── package.json
-├── docker-compose.yml
-├── .env.example
-├── DEPLOY.md
-└── start.bat                   # Windows 一键启动
-```
+> 代码目录树的**唯一权威源**是 [`memory-bank/progress.md`](memory-bank/progress.md)（`AGENTS.md` §2.1 约定「不复制，引用」）；
+> 文档索引与文档目录树见 [`memory-bank/architecture.md`](memory-bank/architecture.md)。
+> 本文件不再重复维护目录树，避免多份副本漂移（历史教训见 `memory-bank/ai-checklist.md`）。
 
 ## 环境变量
 

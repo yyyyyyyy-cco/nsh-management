@@ -1,4 +1,5 @@
 """排表的出勤关联：职业映射、姓名冲突检查与候选池。"""
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -32,9 +33,7 @@ async def get_profession_map(session: AsyncSession, schedule_id: int) -> dict[st
         if not normalized:
             raise LineupServiceError("出勤库存在空白姓名，请先处理对应记录后重试", 409)
         if normalized in professions:
-            raise LineupServiceError(
-                f"出勤库姓名「{normalized}」去除首尾空白后存在重名，请先处理冲突记录后重试", 409
-            )
+            raise LineupServiceError(f"出勤库姓名「{normalized}」去除首尾空白后存在重名，请先处理冲突记录后重试", 409)
         professions[normalized] = profession
     return professions
 

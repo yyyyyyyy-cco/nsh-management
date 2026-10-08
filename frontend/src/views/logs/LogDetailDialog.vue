@@ -9,9 +9,7 @@
       <el-descriptions-item label="IP">{{ row.ip || '-' }}</el-descriptions-item>
       <el-descriptions-item label="模块">{{ moduleLabels[row.module] ?? row.module }}</el-descriptions-item>
       <el-descriptions-item label="动作">{{ actionLabels[row.action] ?? row.action }}</el-descriptions-item>
-      <el-descriptions-item label="请求" :span="2">
-        {{ row.method }} {{ row.path }}
-      </el-descriptions-item>
+      <el-descriptions-item label="请求" :span="2"> {{ row.method }} {{ row.path }} </el-descriptions-item>
       <el-descriptions-item label="状态码">{{ row.status_code ?? '-' }}</el-descriptions-item>
     </el-descriptions>
     <div v-if="row?.detail" class="detail-block">

@@ -17,13 +17,17 @@ export function buildKdaScatterOption(items: MatchData[]) {
     },
     grid: { left: 16, right: 24, top: 32, bottom: 16, containLabel: true },
     xAxis: {
-      name: '击杀', nameLocation: 'middle', nameGap: 32,
+      name: '击杀',
+      nameLocation: 'middle',
+      nameGap: 32,
       axisLabel: { ...CHART_THEME.axis.axisLabel, margin: 12 },
       splitLine: CHART_THEME.axis.splitLine,
       nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [8, 0, 0, 0] },
     },
     yAxis: {
-      name: '重伤（死亡）', nameLocation: 'middle', nameGap: 50,
+      name: '重伤（死亡）',
+      nameLocation: 'middle',
+      nameGap: 50,
       axisLabel: { ...CHART_THEME.axis.axisLabel, width: 60, overflow: 'truncate' },
       splitLine: CHART_THEME.axis.splitLine,
       nameTextStyle: { ...CHART_THEME.axis.axisName },
@@ -39,7 +43,9 @@ export function buildKdaScatterOption(items: MatchData[]) {
           borderColor: 'rgba(0,0,0,0.08)',
           borderWidth: 1,
         },
-        emphasis: { itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } },
+        emphasis: {
+          itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' },
+        },
         markLine: {
           silent: true,
           lineStyle: { color: 'rgba(0,0,0,0.1)', type: 'dashed', width: 1 },
@@ -67,35 +73,43 @@ export function memberKdaScatterOption(members: SquadMember[]) {
     },
     grid: { left: 16, right: 20, top: 20, bottom: 16, containLabel: true },
     xAxis: {
-      name: '击杀', nameLocation: 'middle', nameGap: 28,
+      name: '击杀',
+      nameLocation: 'middle',
+      nameGap: 28,
       axisLabel: { ...CHART_THEME.axis.axisLabel, margin: 10 },
       splitLine: CHART_THEME.axis.splitLine,
       nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [6, 0, 0, 0] },
     },
     yAxis: {
-      name: '重伤', nameLocation: 'middle', nameGap: 40,
+      name: '重伤',
+      nameLocation: 'middle',
+      nameGap: 40,
       axisLabel: { ...CHART_THEME.axis.axisLabel, width: 40, overflow: 'truncate' },
       splitLine: CHART_THEME.axis.splitLine,
       nameTextStyle: { ...CHART_THEME.axis.axisName },
     },
-    series: [{
-      type: 'scatter',
-      symbolSize: (data: number[]) => Math.max(8, Math.min(22, Math.sqrt(data[2]) / 400)),
-      data: members.map((m) => [m.kills, m.deaths, m.player_damage, m.player_name, m.profession || '未知', m.kda]),
-      itemStyle: {
-        color: (p: { data: (number | string)[] }) => profColor(String(p.data[4])),
-        opacity: 0.8,
-        borderColor: 'rgba(0,0,0,0.1)',
-        borderWidth: 1,
+    series: [
+      {
+        type: 'scatter',
+        symbolSize: (data: number[]) => Math.max(8, Math.min(22, Math.sqrt(data[2]) / 400)),
+        data: members.map((m) => [m.kills, m.deaths, m.player_damage, m.player_name, m.profession || '未知', m.kda]),
+        itemStyle: {
+          color: (p: { data: (number | string)[] }) => profColor(String(p.data[4])),
+          opacity: 0.8,
+          borderColor: 'rgba(0,0,0,0.1)',
+          borderWidth: 1,
+        },
+        emphasis: {
+          itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' },
+        },
+        label: {
+          show: true,
+          formatter: (p: unknown) => (p as { data: (string | number)[] }).data[3],
+          fontSize: 10,
+          color: '#555',
+          position: 'top',
+        },
       },
-      emphasis: { itemStyle: { opacity: 1, borderColor: '#fff', borderWidth: 2, shadowBlur: 8, shadowColor: 'rgba(0,0,0,0.3)' } },
-      label: {
-        show: true,
-        formatter: (p: unknown) => (p as { data: (string | number)[] }).data[3],
-        fontSize: 10,
-        color: '#555',
-        position: 'top',
-      },
-    }],
+    ],
   }
 }

@@ -1,0 +1,26 @@
+# ===== EditorConfig（合规化计划 W0-2） =====
+# 依据：editorconfig.org 规范 —— 统一编辑器层面的缩进/换行/编码，减少无意义 diff。
+# 换行的权威约束同时由 .gitattributes 强制（仓库内 LF，*.bat/*.cmd/*.ps1 为 CRLF）。
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.{py,sh}]
+indent_size = 4
+
+[*.{bat,cmd}]
+end_of_line = crlf
+
+[Makefile]
+indent_style = tab
+
+# Markdown 允许行尾双空格作为硬换行，故不裁剪行尾空白
+[*.md]
+trim_trailing_whitespace = false

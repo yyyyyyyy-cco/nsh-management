@@ -2,9 +2,10 @@
 
 中文字体解析顺序：Linux 容器（fonts-wqy-microhei）→ Windows 本地雅黑 → PIL 默认。
 """
+
 import glob
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from math import ceil
 
 from PIL import Image, ImageDraw, ImageFont
@@ -36,14 +37,14 @@ WHITE = (255, 255, 255)
 LINE = (230, 223, 206)
 
 _FONT_CANDIDATES = [
-    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",   # 容器：fonts-wqy-microhei
+    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",  # 容器：fonts-wqy-microhei
     "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-    "C:/Windows/Fonts/msyh.ttc",                        # Windows 开发环境
+    "C:/Windows/Fonts/msyh.ttc",  # Windows 开发环境
     "C:/Windows/Fonts/simhei.ttf",
 ]
 
 
-def _load_font(size: int) -> ImageFont.FreeTypeFont:
+def _load_font(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     for path in _FONT_CANDIDATES:
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
@@ -77,8 +78,14 @@ def draw_members_png(members: list[Member], guild_name: str | None = None) -> by
 
     # 预计算总高度
     total_rows = sum(ceil(len(g) / COLUMNS) for _, g in groups)
-    height = HEADER_H + len(groups) * SECTION_TITLE_H + total_rows * CELL_H \
-        + (len(groups) - 1) * SECTION_GAP + FOOTER_H + PADDING
+    height = (
+        HEADER_H
+        + len(groups) * SECTION_TITLE_H
+        + total_rows * CELL_H
+        + (len(groups) - 1) * SECTION_GAP
+        + FOOTER_H
+        + PADDING
+    )
 
     img = Image.new("RGB", (WIDTH, height), BG)
     draw = ImageDraw.Draw(img)
@@ -87,7 +94,7 @@ def draw_members_png(members: list[Member], guild_name: str | None = None) -> by
     draw.rectangle([0, 0, WIDTH, 6], fill=GOLD_SOFT)
     title = guild_name or "常驻库成员表"
     draw.text((PADDING, 20), f"{title} · 常驻库", font=title_font, fill=INK)
-    date_text = datetime.now(timezone.utc).astimezone().strftime("%Y-%m-%d")
+    date_text = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
     stat_text = f"{len(members)} 人 · {len(groups)} 个职业 · {date_text}"
     stat_w = draw.textlength(stat_text, font=sub_font)
     draw.text((WIDTH - PADDING - stat_w, 30), stat_text, font=sub_font, fill=INK_SOFT)
@@ -124,6 +131,7 @@ def draw_members_png(members: list[Member], guild_name: str | None = None) -> by
     draw.text(((WIDTH - fw) // 2, height - FOOTER_H + 2), footer, font=note_font, fill=INK_SOFT)
 
     from io import BytesIO
+
     out = BytesIO()
     img.save(out, format="PNG")
     return out.getvalue()

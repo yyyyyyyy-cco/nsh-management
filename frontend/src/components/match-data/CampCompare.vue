@@ -16,25 +16,35 @@
     <div class="chart-card ratio-card">
       <div class="chart-card__title ratio-title">占比分析</div>
       <el-table :data="ratioRows" size="small" max-height="300" class="ratio-table">
-          <el-table-column prop="name" label="阵营" min-width="70" align="center" />
-          <el-table-column prop="kills" label="击杀" min-width="80" align="center">
-            <template #default="{ row }">{{ row.kills }}<em class="pct">{{ row.killsPct }}</em></template>
-          </el-table-column>
-          <el-table-column prop="playerDmg" label="玩家伤害" min-width="95" align="center">
-            <template #default="{ row }">{{ row.playerDmg }}<em class="pct">{{ row.playerDmgPct }}</em></template>
-          </el-table-column>
-          <el-table-column prop="buildingDmg" label="建筑伤害" min-width="95" align="center">
-            <template #default="{ row }">{{ row.buildingDmg }}<em class="pct">{{ row.buildingDmgPct }}</em></template>
-          </el-table-column>
-          <el-table-column prop="healing" label="治疗" min-width="80" align="center">
-            <template #default="{ row }">{{ row.healing }}<em class="pct">{{ row.healingPct }}</em></template>
-          </el-table-column>
-          <el-table-column prop="taken" label="承伤" min-width="80" align="center">
-            <template #default="{ row }">{{ row.taken }}<em class="pct">{{ row.takenPct }}</em></template>
-          </el-table-column>
-        </el-table>
-      </div>
+        <el-table-column prop="name" label="阵营" min-width="70" align="center" />
+        <el-table-column prop="kills" label="击杀" min-width="80" align="center">
+          <template #default="{ row }"
+            >{{ row.kills }}<em class="pct">{{ row.killsPct }}</em></template
+          >
+        </el-table-column>
+        <el-table-column prop="playerDmg" label="玩家伤害" min-width="95" align="center">
+          <template #default="{ row }"
+            >{{ row.playerDmg }}<em class="pct">{{ row.playerDmgPct }}</em></template
+          >
+        </el-table-column>
+        <el-table-column prop="buildingDmg" label="建筑伤害" min-width="95" align="center">
+          <template #default="{ row }"
+            >{{ row.buildingDmg }}<em class="pct">{{ row.buildingDmgPct }}</em></template
+          >
+        </el-table-column>
+        <el-table-column prop="healing" label="治疗" min-width="80" align="center">
+          <template #default="{ row }"
+            >{{ row.healing }}<em class="pct">{{ row.healingPct }}</em></template
+          >
+        </el-table-column>
+        <el-table-column prop="taken" label="承伤" min-width="80" align="center">
+          <template #default="{ row }"
+            >{{ row.taken }}<em class="pct">{{ row.takenPct }}</em></template
+          >
+        </el-table-column>
+      </el-table>
     </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -50,8 +60,7 @@ const props = defineProps<{ items: MatchData[] }>()
 const camps = computed(() => aggregateCamps(props.items))
 
 const radarOption = computed(() => {
-  const max = (key: (c: (typeof camps.value)[number]) => number) =>
-    Math.max(...camps.value.map(key), 1) * 1.1
+  const max = (key: (c: (typeof camps.value)[number]) => number) => Math.max(...camps.value.map(key), 1) * 1.1
   const caps = camps.value.map((c) => c.camp)
   return {
     backgroundColor: 'transparent',
@@ -110,7 +119,10 @@ const barOption = computed(() => ({
     itemStyle: {
       color: {
         type: 'linear',
-        x: 0, y: 0, x2: 0, y2: 1,
+        x: 0,
+        y: 0,
+        x2: 0,
+        y2: 1,
         colorStops: [
           { offset: 0, color: CAMP_COLORS[i % CAMP_COLORS.length] },
           { offset: 1, color: CAMP_COLORS[i % CAMP_COLORS.length] + '88' },

@@ -33,19 +33,11 @@ export function updateStatus(
   return http.put(`/schedules/${scheduleId}/attendance/${recordId}/status`, { status })
 }
 
-export function updateProfession(
-  scheduleId: number,
-  recordId: number,
-  profession: string,
-): Promise<AttendanceRecord> {
+export function updateProfession(scheduleId: number, recordId: number, profession: string): Promise<AttendanceRecord> {
   return http.put(`/schedules/${scheduleId}/attendance/${recordId}/profession`, { profession })
 }
 
-export function updateRemark(
-  scheduleId: number,
-  recordId: number,
-  remark: string,
-): Promise<AttendanceRecord> {
+export function updateRemark(scheduleId: number, recordId: number, remark: string): Promise<AttendanceRecord> {
   return http.put(`/schedules/${scheduleId}/attendance/${recordId}/remark`, { remark })
 }
 

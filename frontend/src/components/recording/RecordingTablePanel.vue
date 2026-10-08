@@ -1,6 +1,12 @@
 <template>
   <SkeletonTable v-if="showSkeleton && items.length === 0" variant="table" :rows="5" />
-  <el-table v-else :data="items" :row-key="rowKey" :default-sort="{ prop: 'member_name', order: 'ascending' }" @selection-change="(rows: Recording[]) => $emit('selection-change', rows)">
+  <el-table
+    v-else
+    :data="items"
+    :row-key="rowKey"
+    :default-sort="{ prop: 'member_name', order: 'ascending' }"
+    @selection-change="(rows: Recording[]) => $emit('selection-change', rows)"
+  >
     <el-table-column v-if="isAdmin" type="selection" width="44" reserve-selection />
     <el-table-column prop="member_name" label="ID" min-width="100" sortable />
     <el-table-column prop="profession" label="职业" min-width="80" sortable>
@@ -17,12 +23,14 @@
     <el-table-column label="录屏链接" min-width="280">
       <template #default="{ row }">
         <div v-if="editingId === row.id" class="url-edit">
-          <el-input v-model="editingUrl" placeholder="请输入录屏链接" size="small" />
+          <el-input aria-label="请输入录屏链接" v-model="editingUrl" placeholder="请输入录屏链接" size="small" />
           <el-button type="primary" size="small" @click="$emit('submit', row)">保存</el-button>
           <el-button size="small" @click="$emit('cancel-edit')">取消</el-button>
         </div>
         <div v-else-if="row.url" class="url-display">
-          <a v-if="isAdmin" :href="normalizeUrl(row.url)" target="_blank" rel="noopener" class="url-link">{{ row.url }}</a>
+          <a v-if="isAdmin" :href="normalizeUrl(row.url)" target="_blank" rel="noopener" class="url-link">{{
+            row.url
+          }}</a>
           <span v-else class="submitted-hint">已提交</span>
           <el-button
             v-if="isAdmin"
@@ -54,6 +62,7 @@
         <template v-else>
           <div v-if="editingNoteId === row.id" class="note-edit">
             <el-input
+              aria-label="备注"
               v-model="editingNote"
               type="textarea"
               :autosize="{ minRows: 2, maxRows: 5 }"
@@ -91,7 +100,9 @@
     <el-table-column v-if="isAdmin" label="操作" min-width="150">
       <template #default="{ row }">
         <template v-if="row.url">
-          <el-button v-if="row.status !== 'approved'" link type="success" @click="$emit('approve', row)">通过</el-button>
+          <el-button v-if="row.status !== 'approved'" link type="success" @click="$emit('approve', row)"
+            >通过</el-button
+          >
           <el-button v-if="row.status !== 'rejected'" link type="danger" @click="$emit('reject', row)">驳回</el-button>
         </template>
         <span v-else class="empty-action">-</span>

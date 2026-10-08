@@ -3,7 +3,7 @@
     <p class="tip">删除指定天数之前的审计日志（文件日志按 10MB × 5 自动轮转，无需手动清理）。</p>
     <div class="clear-row">
       <span>清理</span>
-      <el-input-number v-model="clearDays" :min="1" :max="3650" />
+      <el-input-number aria-label="清理天数" v-model="clearDays" :min="1" :max="3650" />
       <span>天前的日志</span>
     </div>
     <template #footer>

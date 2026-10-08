@@ -1,4 +1,5 @@
 """分析调整副本业务：仅存储「未排表成员 → 目标队伍」映射，不改动正式排表。"""
+
 import re
 
 from sqlalchemy import select
@@ -21,7 +22,9 @@ class SquadAdjustmentError(Exception):
 
 
 async def get_squad_adjustment(
-    session: AsyncSession, guild_id: int, schedule_id: int,
+    session: AsyncSession,
+    guild_id: int,
+    schedule_id: int,
 ) -> SquadAdjustment:
     """获取调整副本。
 
@@ -30,9 +33,7 @@ async def get_squad_adjustment(
     """
     await get_schedule(session, guild_id, schedule_id)
     adj = (
-        await session.execute(
-            select(SquadAdjustment).where(SquadAdjustment.schedule_id == schedule_id)
-        )
+        await session.execute(select(SquadAdjustment).where(SquadAdjustment.schedule_id == schedule_id))
     ).scalar_one_or_none()
     if adj is None:
         return SquadAdjustment(schedule_id=schedule_id, data={})
@@ -40,7 +41,10 @@ async def get_squad_adjustment(
 
 
 async def save_squad_adjustment(
-    session: AsyncSession, guild_id: int, schedule_id: int, data: dict[str, str],
+    session: AsyncSession,
+    guild_id: int,
+    schedule_id: int,
+    data: dict[str, str],
 ) -> SquadAdjustment:
     """保存调整副本：校验目标队伍 key 格式与成员名非空。"""
     adj = await get_squad_adjustment(session, guild_id, schedule_id)
@@ -62,7 +66,10 @@ async def save_squad_adjustment(
 
 
 async def remove_member_adjustment(
-    session: AsyncSession, guild_id: int, schedule_id: int, player_name: str,
+    session: AsyncSession,
+    guild_id: int,
+    schedule_id: int,
+    player_name: str,
 ) -> SquadAdjustment:
     """移除单个成员的分析调整映射，使其回归「未排表」状态。"""
     adj = await get_squad_adjustment(session, guild_id, schedule_id)

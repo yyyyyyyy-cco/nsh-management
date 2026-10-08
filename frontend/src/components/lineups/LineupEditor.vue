@@ -31,8 +31,17 @@
         <el-radio-button value="input">输入</el-radio-button>
       </el-radio-group>
       <div class="spacer" />
-      <el-button :icon="Download" :disabled="board.loading.value || board.saving.value" @click="onOpenImport">导入历史排表</el-button>
-      <el-button :loading="board.saving.value" :disabled="board.loading.value" type="primary" :icon="Check" @click="onSave">保存排表</el-button>
+      <el-button :icon="Download" :disabled="board.loading.value || board.saving.value" @click="onOpenImport"
+        >导入历史排表</el-button
+      >
+      <el-button
+        :loading="board.saving.value"
+        :disabled="board.loading.value"
+        type="primary"
+        :icon="Check"
+        @click="onSave"
+        >保存排表</el-button
+      >
     </div>
 
     <div v-loading="board.loading.value" class="editor">
@@ -43,6 +52,7 @@
           <el-icon class="pool-close" @click="poolOpen = false"><Close /></el-icon>
         </div>
         <el-input
+          aria-label="搜索成员"
           v-model="poolKeyword"
           size="small"
           placeholder="搜索成员"
@@ -55,14 +65,30 @@
             <el-icon class="collapse-arrow" :class="{ expanded: !collapsedProfs.has(prof) }"><ArrowRight /></el-icon>
             {{ prof }} <em class="num">{{ list.length }}</em>
           </div>
-          <draggable v-show="!collapsedProfs.has(prof)" :list="list" group="lineup" item-key="key" class="pool-list" :animation="150" ghost-class="pool-ghost" :disabled="board.mode.value === 'input'" @start="(evt: any) => board.onPoolDragStart(evt)" @end="board.onDragEnd" @change="board.onCandidateChange">
+          <draggable
+            v-show="!collapsedProfs.has(prof)"
+            :list="list"
+            group="lineup"
+            item-key="key"
+            class="pool-list"
+            :animation="150"
+            ghost-class="pool-ghost"
+            :disabled="board.mode.value === 'input'"
+            @start="(evt: any) => board.onPoolDragStart(evt)"
+            @end="board.onDragEnd"
+            @change="board.onCandidateChange"
+          >
             <template #item="{ element }">
               <div class="pool-item" :data-key="element.key" @click="onPoolItemClick(element)">
                 <span class="prof-dot" :style="{ background: profColor(element.profession) }" />
                 <span class="name">{{ element.member_name }}</span>
-                <span v-if="element.attendance_remark" class="remark" :title="element.attendance_remark">{{ element.attendance_remark }}</span>
+                <span v-if="element.attendance_remark" class="remark" :title="element.attendance_remark">{{
+                  element.attendance_remark
+                }}</span>
                 <el-tag v-if="element.member_status === 'filler'" size="small" type="warning" effect="light">补</el-tag>
-                <el-tag v-else-if="element.member_status === 'substitute'" size="small" type="info" effect="plain">替</el-tag>
+                <el-tag v-else-if="element.member_status === 'substitute'" size="small" type="info" effect="plain"
+                  >替</el-tag
+                >
               </div>
             </template>
           </draggable>
@@ -87,7 +113,12 @@
               {{ board.groupsRemark.value[group.category] || '备注' }}
             </el-tag>
           </div>
-          <div v-for="team in group.teams" :key="team.category + team.team_index" class="team" :class="`team--${teamKey(team.category)}`">
+          <div
+            v-for="team in group.teams"
+            :key="team.category + team.team_index"
+            class="team"
+            :class="`team--${teamKey(team.category)}`"
+          >
             <div class="team-title">
               <span class="team-title__index num">{{ team.team_index + 1 }}</span>
               <span>{{ team.category }} {{ team.team_index + 1 }} 队</span>
@@ -109,6 +140,7 @@
                 <template #item="{ element }">
                   <div v-if="isEditing(team, si)" :data-key="element.key" class="slot-card slot-card--edit">
                     <el-input
+                      aria-label="输入姓名"
                       v-model="inputName"
                       size="small"
                       placeholder="输入姓名"
@@ -119,8 +151,19 @@
                       @blur="onInputBlur"
                     />
                   </div>
-                  <div v-else :data-key="element.key" class="slot-card" :class="{ filled: element.member_name }" @click="onSlotClick(team, si)" @dblclick="board.editRemark(team, si)">
-                    <span v-if="element.member_name" class="slot-prof-dot" :style="{ background: profColor(element.profession) }" />
+                  <div
+                    v-else
+                    :data-key="element.key"
+                    class="slot-card"
+                    :class="{ filled: element.member_name }"
+                    @click="onSlotClick(team, si)"
+                    @dblclick="board.editRemark(team, si)"
+                  >
+                    <span
+                      v-if="element.member_name"
+                      class="slot-prof-dot"
+                      :style="{ background: profColor(element.profession) }"
+                    />
                     <span v-if="element.member_name" class="slot-name">{{ element.member_name }}</span>
                     <span v-else-if="board.mode.value === 'input'" class="slot-name slot-name--hint">点击输入</span>
                     <el-tag
@@ -132,15 +175,15 @@
                       {{ element.profession }}
                     </el-tag>
                     <el-tooltip :content="element.remark ? '编辑备注：' + element.remark : '添加备注'" placement="top">
-                      <el-icon class="remark-icon" :class="{ 'has-remark': !!element.remark }" @click.stop="board.editRemark(team, si)">
+                      <el-icon
+                        class="remark-icon"
+                        :class="{ 'has-remark': !!element.remark }"
+                        @click.stop="board.editRemark(team, si)"
+                      >
                         <EditPen />
                       </el-icon>
                     </el-tooltip>
-                    <el-icon
-                      v-if="element.member_name"
-                      class="slot-remove"
-                      @click.stop="onRemoveSlotClick(team, si)"
-                    >
+                    <el-icon v-if="element.member_name" class="slot-remove" @click.stop="onRemoveSlotClick(team, si)">
                       <Close />
                     </el-icon>
                   </div>
@@ -176,7 +219,7 @@ import { ArrowRight, Check, Close, Download, EditPen, Search, User } from '@elem
 import { ElMessage, ElMessageBox } from 'element-plus'
 import draggable from 'vuedraggable'
 
-import { useLineupBoard, type CandidateItem, type TeamBox } from '@/composables/lineupBoard'
+import { useLineupBoard, type CandidateItem, type SlotDragEvent, type TeamBox } from '@/composables/lineupBoard'
 import ImportHistoryDialog from './ImportHistoryDialog.vue'
 import MatchConfirmDialog from './MatchConfirmDialog.vue'
 import { profColor } from '@/utils/profession'
@@ -207,7 +250,7 @@ function onSlotClick(team: TeamBox, si: number) {
 }
 
 /** 槽位放入后触发弹跳动画 */
-function onSlotChangeWithBounce(evt: any, team: TeamBox, si: number) {
+function onSlotChangeWithBounce(evt: SlotDragEvent, team: TeamBox, si: number) {
   board.onSlotChange(evt, team, si)
   if (evt.added) {
     // 找到目标槽位的 DOM 元素，添加临时动画 class
@@ -279,7 +322,10 @@ const filteredPoolGroups = computed(() => {
   const kw = poolKeyword.value.trim().toLowerCase()
   if (!kw) return board.professionGroups.value
   return board.professionGroups.value
-    .map(([prof, list]) => [prof, list.filter((c) => c.member_name.toLowerCase().includes(kw))] as [string, CandidateItem[]])
+    .map(
+      ([prof, list]) =>
+        [prof, list.filter((c) => c.member_name.toLowerCase().includes(kw))] as [string, CandidateItem[]],
+    )
     .filter(([, list]) => list.length > 0)
 })
 
@@ -341,7 +387,9 @@ const teamGroups = computed(() => {
 async function onSave() {
   try {
     await board.onSave()
-  } catch { /* HTTP 层已提示，保留本地编辑；成功统一由状态监听刷新总览 */ }
+  } catch {
+    /* HTTP 层已提示，保留本地编辑；成功统一由状态监听刷新总览 */
+  }
 }
 
 /** 移除槽位成员：确认后再从排表下掉。 */
@@ -357,7 +405,9 @@ async function onOpenImport() {
   try {
     await board.flushSave()
     importVisible.value = true
-  } catch { /* 保存失败时不打开导入，保留本地编辑 */ }
+  } catch {
+    /* 保存失败时不打开导入，保留本地编辑 */
+  }
 }
 
 async function reload() {
@@ -379,14 +429,18 @@ async function saveBeforeLeave(to: RouteLocationNormalized) {
     return true
   } catch {
     return ElMessageBox.confirm('排表尚未保存，是否放弃本次编辑并离开？', '未保存的排表', {
-      type: 'warning', confirmButtonText: '放弃并离开', cancelButtonText: '留下重试',
-    }).then(() => true).catch(() => false)
+      type: 'warning',
+      confirmButtonText: '放弃并离开',
+      cancelButtonText: '留下重试',
+    })
+      .then(() => true)
+      .catch(() => false)
   }
 }
 
 onBeforeRouteLeave(saveBeforeLeave)
 // MainLayout 按 route.path 重建组件，切换赛程参数时也需先保存。
-onBeforeRouteUpdate((to, from) => to.path !== from.path ? saveBeforeLeave(to) : true)
+onBeforeRouteUpdate((to, from) => (to.path !== from.path ? saveBeforeLeave(to) : true))
 
 defineExpose({ reload })
 
@@ -472,9 +526,15 @@ onMounted(reload)
 }
 
 @keyframes save-flash {
-  0% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0.4); }
-  50% { box-shadow: 0 0 0 6px rgba(46, 139, 87, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(46, 139, 87, 0); }
+  0% {
+    box-shadow: 0 0 0 0 rgba(46, 139, 87, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(46, 139, 87, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(46, 139, 87, 0);
+  }
 }
 
 @keyframes auto-save-pulse {
@@ -659,7 +719,10 @@ onMounted(reload)
   border: 1px solid var(--edge-faint);
   border-radius: var(--radius-md);
   cursor: grab;
-  transition: border-color var(--dur-fast), box-shadow var(--dur-fast), transform var(--dur-fast);
+  transition:
+    border-color var(--dur-fast),
+    box-shadow var(--dur-fast),
+    transform var(--dur-fast);
 }
 
 .pool-item:hover {
@@ -797,7 +860,9 @@ onMounted(reload)
   border: 1px dashed var(--edge-strong);
   border-radius: var(--radius-md);
   background: rgba(255, 253, 248, 0.7);
-  transition: border-color var(--dur-fast), background var(--dur-fast);
+  transition:
+    border-color var(--dur-fast),
+    background var(--dur-fast);
 }
 
 .slot:hover {
@@ -815,7 +880,9 @@ onMounted(reload)
   font-size: 13px;
   border-radius: var(--radius-sm);
   cursor: grab;
-  transition: transform var(--dur-fast), box-shadow var(--dur-fast);
+  transition:
+    transform var(--dur-fast),
+    box-shadow var(--dur-fast);
 }
 
 .slot-card:active {
@@ -841,9 +908,20 @@ onMounted(reload)
 }
 
 @keyframes slot-bounce {
-  0% { transform: scale(1); box-shadow: var(--shadow-sm); }
-  40% { transform: scale(1.06); box-shadow: 0 0 0 3px rgba(201, 161, 59, 0.35), var(--shadow-md); }
-  100% { transform: scale(1); box-shadow: var(--shadow-sm); }
+  0% {
+    transform: scale(1);
+    box-shadow: var(--shadow-sm);
+  }
+  40% {
+    transform: scale(1.06);
+    box-shadow:
+      0 0 0 3px rgba(201, 161, 59, 0.35),
+      var(--shadow-md);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: var(--shadow-sm);
+  }
 }
 
 .slot-name {
@@ -874,7 +952,9 @@ onMounted(reload)
   cursor: pointer;
   flex-shrink: 0;
   font-size: 14px;
-  transition: color var(--dur-fast), transform var(--dur-fast);
+  transition:
+    color var(--dur-fast),
+    transform var(--dur-fast);
 }
 
 .remark-icon:hover {

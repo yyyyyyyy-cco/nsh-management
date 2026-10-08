@@ -1,4 +1,5 @@
 """个人战绩接口 Schema（自 api/v1/my_stats.py 抽出并扩展名称归属说明）。"""
+
 from pydantic import BaseModel
 
 

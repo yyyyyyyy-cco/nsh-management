@@ -1,12 +1,37 @@
-fastapi>=0.115.0
+# -*- coding: utf-8 -*-
+# 说明：本文件含中文注释，必须保留上方编码声明（PEP 263）——pip 读取 requirements
+# 文件时会按 PEP 263 / BOM / 本地 locale 依次判断编码；中文 Windows（cp936）无 BOM 时
+# 会以 gbk 解码失败（UnicodeDecodeError），导致 README 的安装步骤直接报错。
+# Web 框架（2026-10-02 由 `>=0.115.0` 改为精确锁定，见合规化计划 W1-4）：
+# 原范围约束会使全新环境静默漂移——实测一次干净安装解析到 0.142.2（项目开发期为 0.115.x，见 F-15）。
+# 0.142.2 为**本仓已实测通过**的版本（pytest 93 用例 + 既有 selfcheck 全绿），
+# 且 PyPI 元数据 requires_python >=3.10（classifier 含 3.11），与生产基座 python:3.11-slim 兼容。
+fastapi==0.142.2
+# 由 fastapi 传递引入（fastapi 声明 starlette>=0.46.0，会解析到 1.x 大版本）——
+# 此处显式锁定，保证「已实测组合」可复现（元数据 requires_python >=3.10）。
+starlette==1.7.0
 uvicorn[standard]==0.27.1
 sqlalchemy==2.0.36
 aiosqlite==0.20.0
 pydantic==2.11.4
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.0.1  # passlib 1.7.4 与 bcrypt>=4.1 不兼容，固定版本
-python-multipart>=0.0.18  # 修复 CVE-2024-53981 multipart DoS
+# JWT 实现。2026-10-02 由 3.3.0（2021 年发布）升到 3.5.0：
+#   3.3.0 已落后 4 年，且 3.4.0 正是为修复 JWT 相关 CVE（3.3.0 受影响）而发布；
+#   3.5.0 的 PyPI 元数据 requires_python >=3.9、vulnerabilities 为空，与 3.11 基座兼容。
+python-jose[cryptography]==3.5.0
+# 2026-10-03（W1-10）移除 `passlib`：上游 2020 年后无发布、被 bcrypt>=4.1 破坏，改为直接使用 bcrypt（见 app/core/security.py 与 tests/test_password_hash_compat.py）
+# 2026-10-03（W1-10）4.0.1 -> 4.3.0：解除「为兼容 passlib 而钉死」的约束，取同族最新 4.x。
+#   未取 5.0.0 是**有意**的（2026-10-03 W1-12 实测结论）：bcrypt 5.0.0 对 >72 字节口令**直接报错**（`password cannot be longer
+#   than 72 bytes`，且 `checkpw` 同样报错）——若此时升级，库内**既有超长口令用户会立即无法登录**。
+#   新方案已改为 `base64(SHA-256(口令))` 预哈希（见 app/core/security.py `_prehash`），新口令不再受 72 字节限制；
+#   旧哈希在**用户下次登录时惰性升级**为 `sha256$` 方案，待迁移覆盖后再评估升级 5.0.0。
+#   本机实测：passlib 生成的 $2b$12$ 既有哈希可被 bcrypt.checkpw 校验（见 tests/test_password_hash_compat.py）。
+bcrypt==4.3.0
+python-multipart==0.0.32  # 修复 CVE-2024-53981 multipart DoS；0.0.32 为已实测版本（requires_python >=3.10）
 openpyxl==3.1.5
-Pillow==11.1.0  # 常驻库导出图片
+# 2026-10-03 升级 11.1.0 -> 12.3.0（合规化计划 W1-8）：上游 GitHub Advisory GHSA-62p4-gmf7-7g93
+#   = CVE-2026-54058（high，Pillow mmap 路径越界读），受影响范围 "< 12.3.0"，修复版即 12.3.0。
+#   可达性：本项目**只用 Pillow 生成导出图**（`app/utils/image_export.py` 的 Image.new/ImageDraw/ImageFont），
+#   全仓无 `Image.open`、不接受图像上传（两处 UploadFile 均为 Excel），故该 CVE 路径**不可达**；升级为顺带消除而非应急。
+#   本机实测（2026-10-03）：导入级兼容（`_load_font` 返回 FreeTypeFont）+ 后端全量 pytest 158 passed / 84 subtests exit 0。
+Pillow==12.3.0  # 常驻库导出图片
 alembic==1.13.1

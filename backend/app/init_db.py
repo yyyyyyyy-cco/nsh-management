@@ -12,6 +12,7 @@
   MEMBER_USERNAME    - 帮众用户名（可选，默认"member"）
   MEMBER_PASSWORD    - 帮众密码（可选，不设置则不创建）
 """
+
 import asyncio
 import os
 import sys
@@ -44,7 +45,9 @@ async def init() -> None:
             return
 
         # 创建开发者账号（不绑定帮会）
-        if (await session.execute(select(User).where(User.username == DEVELOPER_USERNAME))).scalar_one_or_none() is None:
+        if (
+            await session.execute(select(User).where(User.username == DEVELOPER_USERNAME))
+        ).scalar_one_or_none() is None:
             session.add(
                 User(
                     guild_id=None,
@@ -59,7 +62,7 @@ async def init() -> None:
             print(f"开发者账号已存在：{DEVELOPER_USERNAME}")
 
         # 创建默认帮会（仅当需要创建 admin 或 member 时）
-        guild = None
+        guild: Guild | None = None
         if ADMIN_PASSWORD or MEMBER_PASSWORD:
             guild = (await session.execute(select(Guild).where(Guild.name == DEFAULT_GUILD_NAME))).scalar_one_or_none()
             if guild is None:
@@ -70,7 +73,10 @@ async def init() -> None:
 
         # 创建管理员账号（可选）
         if ADMIN_PASSWORD:
-            if (await session.execute(select(User).where(User.username == ADMIN_USERNAME))).scalar_one_or_none() is None:
+            assert guild is not None  # mypy：上面的 if (ADMIN_PASSWORD or MEMBER_PASSWORD) 已赋值
+            if (
+                await session.execute(select(User).where(User.username == ADMIN_USERNAME))
+            ).scalar_one_or_none() is None:
                 session.add(
                     User(
                         guild_id=guild.id,
@@ -84,7 +90,10 @@ async def init() -> None:
 
         # 创建帮众账号（可选）
         if MEMBER_PASSWORD:
-            if (await session.execute(select(User).where(User.username == MEMBER_USERNAME))).scalar_one_or_none() is None:
+            assert guild is not None  # mypy：上面的 if (ADMIN_PASSWORD or MEMBER_PASSWORD) 已赋值
+            if (
+                await session.execute(select(User).where(User.username == MEMBER_USERNAME))
+            ).scalar_one_or_none() is None:
                 session.add(
                     User(
                         guild_id=guild.id,
@@ -97,7 +106,7 @@ async def init() -> None:
                 print(f"创建帮众账号：{MEMBER_USERNAME}")
 
         await session.commit()
-        print(f"\n初始化完成！")
+        print("\n初始化完成！")
         print(f"开发者：{DEVELOPER_USERNAME}（可创建帮会、派发账号）")
         if guild:
             print(f"帮会「{DEFAULT_GUILD_NAME}」：{ADMIN_USERNAME}（管理员）、{MEMBER_USERNAME}（帮众）")

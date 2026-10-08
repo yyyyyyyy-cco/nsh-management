@@ -18,19 +18,20 @@
   <!-- ID 搜索 + 职业筛选 -->
   <div class="filter-row">
     <el-input
+      aria-label="搜索 ID 过滤"
       v-model="keyword"
       placeholder="搜索 ID 过滤"
       clearable
       :prefix-icon="Search"
       class="keyword-input"
     />
-    <el-select v-model="professionFilter" placeholder="职业筛选" clearable class="prof-filter">
+    <el-select aria-label="职业筛选" v-model="professionFilter" placeholder="职业筛选" clearable class="prof-filter">
       <el-option v-for="p in PROF_ORDER" :key="p" :label="p" :value="p" />
     </el-select>
-    <el-select v-model="typeFilter" placeholder="类型筛选" clearable class="small-filter">
+    <el-select aria-label="类型筛选" v-model="typeFilter" placeholder="类型筛选" clearable class="small-filter">
       <el-option v-for="t in TYPE_OPTIONS" :key="t.value" :label="t.label" :value="t.value" />
     </el-select>
-    <el-select v-model="statusFilter" placeholder="状态筛选" clearable class="small-filter">
+    <el-select aria-label="状态筛选" v-model="statusFilter" placeholder="状态筛选" clearable class="small-filter">
       <el-option v-for="s in STATUS_OPTIONS" :key="s.value" :label="s.label" :value="s.value" />
     </el-select>
   </div>

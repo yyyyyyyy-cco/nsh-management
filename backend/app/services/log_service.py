@@ -2,8 +2,9 @@
 
 落库使用独立 session 且吞掉自身异常，保证日志失败不影响主流程。
 """
+
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,10 +17,30 @@ from app.models.user import User
 # detail 中禁止落库的敏感字段名（小写比对）
 SENSITIVE_KEYS = {"password", "plain_password", "token", "access_token", "authorization"}
 
+
+def escape_control(text: str, limit: int | None = None) -> str:
+    """把控制字符（换行/制表等）转成可见转义，防**日志注入**（ASVS 5.0.0 16.4.1，差距 F-51）。
+
+    为什么需要：`username`/`ip`/`path`/`detail` 都可能含用户输入或异常文本；一个换行就能让
+    「一行审计记录」在容器日志与文本导出里被伪造成两行，掩盖真实事件。
+    """
+    escaped = "".join(ch if ch.isprintable() else f"\\x{ord(ch):02x}" for ch in text)
+    return escaped[:limit] if limit else escaped
+
+
 # 模块白名单（路径首段），不在名单内的归为 other
 MODULES = {
-    "members", "schedules", "attendance", "lineups", "recordings",
-    "match-data", "config", "developer", "auth", "squad-adjustments", "my-stats",
+    "members",
+    "schedules",
+    "attendance",
+    "lineups",
+    "recordings",
+    "match-data",
+    "config",
+    "developer",
+    "auth",
+    "squad-adjustments",
+    "my-stats",
 }
 
 # 统计口径时区：用户均为北京时间，"今日"/按天分组按 UTC+8 计算
@@ -31,18 +52,17 @@ def sanitize_detail(detail: dict | str | None) -> str | None:
     if detail is None:
         return None
     if isinstance(detail, str):
-        return detail[:2000]
+        return escape_control(detail, 2000)
+
     def _clean(obj):
         if isinstance(obj, dict):
-            return {
-                k: ("***" if str(k).lower() in SENSITIVE_KEYS else _clean(v))
-                for k, v in obj.items()
-            }
+            return {k: ("***" if str(k).lower() in SENSITIVE_KEYS else _clean(v)) for k, v in obj.items()}
         if isinstance(obj, list):
             return [_clean(i) for i in obj]
         return obj
+
     try:
-        return json.dumps(_clean(detail), ensure_ascii=False)[:2000]
+        return escape_control(json.dumps(_clean(detail), ensure_ascii=False), 2000)
     except (TypeError, ValueError):
         return None
 
@@ -66,17 +86,21 @@ async def record_log(
             session.add(
                 OperationLog(
                     user_id=user.id if user else None,
-                    username=username if username is not None else (user.username if user else None),
+                    username=escape_control(
+                        username if username is not None else (user.username if user else ""),
+                        64,
+                    )
+                    or None,
                     role=user.role if user else None,
                     guild_id=user.guild_id if user else None,
                     module=module[:32],
                     action=action[:32],
                     level=level,
                     method=(method or "")[:8],
-                    path=(path or "")[:255],
+                    path=escape_control(path or "", 255),
                     status_code=status_code,
                     detail=sanitize_detail(detail),
-                    ip=ip,
+                    ip=escape_control(ip, 64) if ip else None,
                 )
             )
             await session.commit()
@@ -89,7 +113,7 @@ async def record_log(
 def module_from_path(path: str) -> str:
     """从 API 路径提取模块名：/api/v1/members/1 -> members。"""
     prefix = "/api/v1/"
-    rest = path[len(prefix):] if path.startswith(prefix) else path.lstrip("/")
+    rest = path[len(prefix) :] if path.startswith(prefix) else path.lstrip("/")
     first = rest.split("/", 1)[0]
     return first if first in MODULES else "other"
 
@@ -106,7 +130,7 @@ def _naive_utc(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     if dt.tzinfo is not None:
-        dt = dt.astimezone(timezone.utc)
+        dt = dt.astimezone(UTC)
     return dt.replace(tzinfo=None)
 
 
@@ -140,12 +164,16 @@ async def query_logs(
 
     total = (await session.execute(select(func.count()).select_from(stmt.subquery()))).scalar_one()
     items = (
-        await session.execute(
-            stmt.order_by(OperationLog.created_at.desc(), OperationLog.id.desc())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
+        (
+            await session.execute(
+                stmt.order_by(OperationLog.created_at.desc(), OperationLog.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
     return total, list(items)
 
 
@@ -161,9 +189,7 @@ async def get_log_stats(session: AsyncSession) -> dict:
     ).scalar_one()
     today_errors = (
         await session.execute(
-            select(func.count()).where(
-                OperationLog.created_at >= today_start, OperationLog.level == "error"
-            )
+            select(func.count()).where(OperationLog.created_at >= today_start, OperationLog.level == "error")
         )
     ).scalar_one()
 
@@ -192,7 +218,7 @@ async def get_log_stats(session: AsyncSession) -> dict:
 async def clear_old_logs(days: int | None = None) -> int:
     """清理超过保留期的日志，返回删除条数（独立 session）。"""
     days = days or settings.LOG_RETENTION_DAYS
-    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
+    cutoff = datetime.now(UTC).replace(tzinfo=None) - timedelta(days=days)
     try:
         async with async_session_factory() as session:
             result = await session.execute(delete(OperationLog).where(OperationLog.created_at < cutoff))

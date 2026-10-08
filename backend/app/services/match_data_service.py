@@ -4,7 +4,9 @@
 - 衍生指标与阵营汇总计算：match_data_stats
 - 职业深度 / 指标列表 / 阵营对比聚合：match_data_aggregate
 """
+
 import asyncio
+from typing import Any
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,9 +18,7 @@ from app.services.match_data_stats import calculate_indicators, get_camp_totals
 from app.services.schedule_service import get_schedule
 
 
-async def import_csv(
-    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int, content: str
-) -> dict:
+async def import_csv(session: AsyncSession, guild_id: int, schedule_id: int, round_no: int, content: str) -> dict:
     """导入 CSV 比赛数据，覆盖该局已有数据（一局一表）。"""
     schedule = await get_schedule(session, guild_id, schedule_id)
 
@@ -30,11 +30,7 @@ async def import_csv(
     data_list = await asyncio.to_thread(parse_csv, content)
 
     # 覆盖语义：先删除该局已有数据，保证一局只有一张表
-    await session.execute(
-        delete(MatchData).where(
-            MatchData.schedule_id == schedule_id, MatchData.round_no == round_no
-        )
-    )
+    await session.execute(delete(MatchData).where(MatchData.schedule_id == schedule_id, MatchData.round_no == round_no))
 
     # 创建比赛数据记录
     records = []
@@ -70,9 +66,7 @@ async def import_csv(
     }
 
 
-async def _query_records(
-    session: AsyncSession, schedule_id: int, round_no: int | None = None
-) -> list[MatchData]:
+async def _query_records(session: AsyncSession, schedule_id: int, round_no: int | None = None) -> list[MatchData]:
     """按赛程（可选局）查询比赛数据。"""
     stmt = select(MatchData).where(MatchData.schedule_id == schedule_id)
     if round_no is not None:
@@ -84,13 +78,24 @@ async def _query_records(
 def _record_base(r: MatchData) -> dict:
     """记录基础字段（不含 resource，遵循“资源忽略不显示”约束）。"""
     return {
-        "id": r.id, "schedule_id": r.schedule_id, "round_no": r.round_no,
-        "player_name": r.player_name, "profession": r.profession, "camp": r.camp,
-        "kills": r.kills, "springs": r.springs, "assists": r.assists,
-        "player_damage": r.player_damage, "armor_break_damage": r.armor_break_damage,
-        "building_damage": r.building_damage, "tower_break_damage": r.tower_break_damage,
-        "healing": r.healing, "damage_taken": r.damage_taken, "deaths": r.deaths,
-        "revives": r.revives, "fen_gu": r.fen_gu,
+        "id": r.id,
+        "schedule_id": r.schedule_id,
+        "round_no": r.round_no,
+        "player_name": r.player_name,
+        "profession": r.profession,
+        "camp": r.camp,
+        "kills": r.kills,
+        "springs": r.springs,
+        "assists": r.assists,
+        "player_damage": r.player_damage,
+        "armor_break_damage": r.armor_break_damage,
+        "building_damage": r.building_damage,
+        "tower_break_damage": r.tower_break_damage,
+        "healing": r.healing,
+        "damage_taken": r.damage_taken,
+        "deaths": r.deaths,
+        "revives": r.revives,
+        "fen_gu": r.fen_gu,
     }
 
 
@@ -109,7 +114,7 @@ async def list_match_data(
     records = list((await session.execute(stmt)).scalars().all())
 
     # 计算阵营统计
-    camps = {}
+    camps: dict[str, dict[str, Any]] = {}
     for r in records:
         if r.camp not in camps:
             camps[r.camp] = {
@@ -130,20 +135,15 @@ async def list_match_data(
     # 计算导入次数（按 created_at 去重）
     import_count = (
         await session.execute(
-            select(func.count(func.distinct(func.date(MatchData.created_at))))
-            .where(MatchData.schedule_id == schedule_id)
+            select(func.count(func.distinct(func.date(MatchData.created_at)))).where(
+                MatchData.schedule_id == schedule_id
+            )
         )
     ).scalar_one()
 
     # 该赛程已导入的局号列表（用于前端标记切换项状态）
     imported_rounds = sorted(
-        (
-            await session.execute(
-                select(MatchData.round_no)
-                .where(MatchData.schedule_id == schedule_id)
-                .distinct()
-            )
-        )
+        (await session.execute(select(MatchData.round_no).where(MatchData.schedule_id == schedule_id).distinct()))
         .scalars()
         .all()
     )
@@ -152,7 +152,12 @@ async def list_match_data(
 
 
 async def get_rankings(
-    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None, camp: str | None = None, limit: int = 20
+    session: AsyncSession,
+    guild_id: int,
+    schedule_id: int,
+    round_no: int | None = None,
+    camp: str | None = None,
+    limit: int = 20,
 ) -> dict:
     """获取排行榜数据（可按局过滤）。
 
@@ -162,9 +167,9 @@ async def get_rankings(
 
     async def _ranking(field: str) -> list[dict]:
         column = getattr(MatchData, field)
-        stmt = select(
-            MatchData.player_name, MatchData.profession, MatchData.camp, column
-        ).where(MatchData.schedule_id == schedule_id)
+        stmt = select(MatchData.player_name, MatchData.profession, MatchData.camp, column).where(
+            MatchData.schedule_id == schedule_id
+        )
         if round_no is not None:
             stmt = stmt.where(MatchData.round_no == round_no)
         if camp:
@@ -212,7 +217,7 @@ async def get_squad_analysis(
     for r in records:
         if (r.player_name or "").strip() in name_to_squad:
             camp_hits[r.camp] = camp_hits.get(r.camp, 0) + 1
-    our_camp = max(camp_hits, key=camp_hits.get) if camp_hits else (records[0].camp if records else None)
+    our_camp = max(camp_hits, key=lambda c: camp_hits[c]) if camp_hits else (records[0].camp if records else None)
     if our_camp is not None:
         records = [r for r in records if r.camp == our_camp]
 
@@ -234,7 +239,20 @@ async def get_squad_analysis(
             category, team_index = key
             squad_name = f"{category} 第{team_index + 1}队"
 
-        totals = {k: 0 for k in ("kills", "assists", "player_damage", "building_damage", "healing", "damage_taken", "deaths", "revives", "fen_gu")}
+        totals = {
+            k: 0
+            for k in (
+                "kills",
+                "assists",
+                "player_damage",
+                "building_damage",
+                "healing",
+                "damage_taken",
+                "deaths",
+                "revives",
+                "fen_gu",
+            )
+        }
         members = []
         for r in recs:
             ind = calculate_indicators(r, camp_totals[r.camp])
@@ -244,12 +262,25 @@ async def get_squad_analysis(
 
         n = len(recs)
         indicator_keys = [
-            "kda", "dps", "kpa_damage", "damage_per_death", "taken_per_death",
-            "healing_per_death", "heal_conversion", "revive_rate", "fen_gu_rate",
+            "kda",
+            "dps",
+            "kpa_damage",
+            "damage_per_death",
+            "taken_per_death",
+            "healing_per_death",
+            "heal_conversion",
+            "revive_rate",
+            "fen_gu_rate",
         ]
         indicators = {k: round(sum(m[k] for m in members) / n, 2) for k in indicator_keys}
-        squads.append({
-            "squad_name": squad_name, "category": category, "team_index": team_index,
-            "members": members, "totals": {"player_count": n, **totals}, "indicators": indicators,
-        })
+        squads.append(
+            {
+                "squad_name": squad_name,
+                "category": category,
+                "team_index": team_index,
+                "members": members,
+                "totals": {"player_count": n, **totals},
+                "indicators": indicators,
+            }
+        )
     return {"squads": squads}

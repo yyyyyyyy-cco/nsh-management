@@ -18,11 +18,15 @@ export function squadBarOption(names: string[], data: number[]) {
       axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 30, fontSize: 10, width: 60, overflow: 'truncate' },
     },
     yAxis: { type: 'value', axisLabel: CHART_THEME.axis.axisLabel, splitLine: CHART_THEME.axis.splitLine },
-    series: [{
-      name: '数值', type: 'bar', barWidth: 16,
-      itemStyle: { color: '#c9a13b', borderRadius: [3, 3, 0, 0] },
-      data,
-    }],
+    series: [
+      {
+        name: '数值',
+        type: 'bar',
+        barWidth: 16,
+        itemStyle: { color: '#c9a13b', borderRadius: [3, 3, 0, 0] },
+        data,
+      },
+    ],
   }
 }
 
@@ -38,12 +42,46 @@ export function memberContribOption(members: SquadMember[]) {
       data: members.map((m) => m.player_name),
       axisLabel: { ...CHART_THEME.axis.axisLabel, rotate: 25, fontSize: 10, width: 50, overflow: 'truncate' },
     },
-    yAxis: { type: 'value', axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 50, overflow: 'truncate' }, splitLine: CHART_THEME.axis.splitLine },
+    yAxis: {
+      type: 'value',
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 50,
+        overflow: 'truncate',
+      },
+      splitLine: CHART_THEME.axis.splitLine,
+    },
     series: [
-      { name: '玩家伤害', type: 'bar', barWidth: 7, barGap: '15%', itemStyle: { color: CONTRIB_COLORS[0], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.player_damage) },
-      { name: '建筑伤害', type: 'bar', barWidth: 7, itemStyle: { color: CONTRIB_COLORS[1], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.building_damage) },
-      { name: '治疗', type: 'bar', barWidth: 7, itemStyle: { color: CONTRIB_COLORS[2], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.healing) },
-      { name: '承伤', type: 'bar', barWidth: 7, itemStyle: { color: CONTRIB_COLORS[3], borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.damage_taken) },
+      {
+        name: '玩家伤害',
+        type: 'bar',
+        barWidth: 7,
+        barGap: '15%',
+        itemStyle: { color: CONTRIB_COLORS[0], borderRadius: [2, 2, 0, 0] },
+        data: members.map((m) => m.player_damage),
+      },
+      {
+        name: '建筑伤害',
+        type: 'bar',
+        barWidth: 7,
+        itemStyle: { color: CONTRIB_COLORS[1], borderRadius: [2, 2, 0, 0] },
+        data: members.map((m) => m.building_damage),
+      },
+      {
+        name: '治疗',
+        type: 'bar',
+        barWidth: 7,
+        itemStyle: { color: CONTRIB_COLORS[2], borderRadius: [2, 2, 0, 0] },
+        data: members.map((m) => m.healing),
+      },
+      {
+        name: '承伤',
+        type: 'bar',
+        barWidth: 7,
+        itemStyle: { color: CONTRIB_COLORS[3], borderRadius: [2, 2, 0, 0] },
+        data: members.map((m) => m.damage_taken),
+      },
     ],
   }
 }
@@ -71,18 +109,20 @@ export function memberRadarOption(members: SquadMember[]) {
       axisName: { ...CHART_THEME.axis.axisName, overflow: 'truncate', width: 40 },
       indicator: dims.map((d) => ({ name: d.name, max: Math.round(d.max) })),
     },
-    series: [{
-      type: 'radar',
-      data: members.map((m, i) => ({
-        name: m.player_name,
-        value: [m.kills, m.assists, m.player_damage, m.healing, m.damage_taken, m.kda],
-        areaStyle: { opacity: 0.06 },
-        lineStyle: { width: 2, color: RADAR_MEMBER_COLORS[i % RADAR_MEMBER_COLORS.length] },
-        itemStyle: { color: RADAR_MEMBER_COLORS[i % RADAR_MEMBER_COLORS.length] },
-        symbol: 'circle',
-        symbolSize: 4,
-      })),
-    }],
+    series: [
+      {
+        type: 'radar',
+        data: members.map((m, i) => ({
+          name: m.player_name,
+          value: [m.kills, m.assists, m.player_damage, m.healing, m.damage_taken, m.kda],
+          areaStyle: { opacity: 0.06 },
+          lineStyle: { width: 2, color: RADAR_MEMBER_COLORS[i % RADAR_MEMBER_COLORS.length] },
+          itemStyle: { color: RADAR_MEMBER_COLORS[i % RADAR_MEMBER_COLORS.length] },
+          symbol: 'circle',
+          symbolSize: 4,
+        })),
+      },
+    ],
   }
 }
 
@@ -105,7 +145,7 @@ export function memberRatioBarOption(members: SquadMember[]) {
     xAxis: {
       type: 'value',
       max: 1,
-      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => (v * 100) + '%' },
+      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => v * 100 + '%' },
     },
     yAxis: {
       type: 'category',
@@ -139,7 +179,13 @@ export function memberKillsStackOption(members: SquadMember[]) {
     },
     yAxis: { type: 'value', axisLabel: CHART_THEME.axis.axisLabel, splitLine: CHART_THEME.axis.splitLine },
     series: [
-      { name: '击杀', type: 'bar', barWidth: 8, itemStyle: { color: '#c9a13b', borderRadius: [2, 2, 0, 0] }, data: members.map((m) => m.kills) },
+      {
+        name: '击杀',
+        type: 'bar',
+        barWidth: 8,
+        itemStyle: { color: '#c9a13b', borderRadius: [2, 2, 0, 0] },
+        data: members.map((m) => m.kills),
+      },
       { name: '助攻', type: 'bar', barWidth: 8, itemStyle: { color: '#e8d48b' }, data: members.map((m) => m.assists) },
       { name: '重伤', type: 'bar', barWidth: 8, itemStyle: { color: '#c0392b' }, data: members.map((m) => m.deaths) },
     ],
@@ -165,7 +211,12 @@ export function memberEfficiencyOption(members: SquadMember[]) {
     },
     yAxis: {
       type: 'value',
-      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 50, overflow: 'truncate' },
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 50,
+        overflow: 'truncate',
+      },
       splitLine: CHART_THEME.axis.splitLine,
     },
     series: series.map((s) => ({

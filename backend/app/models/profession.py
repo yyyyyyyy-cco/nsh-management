@@ -1,4 +1,5 @@
 """职业配置表：各职业目标人数，按帮会隔离。"""
+
 from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 

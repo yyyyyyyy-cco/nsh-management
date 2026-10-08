@@ -32,8 +32,17 @@ backend/logs/
 .env
 .env.local
 .env.*.local
+.env.development
 .env.production
 .env.staging
+!.env.example
+# 证书与私钥：绝不允许入库（DEPLOY.md §二：证书只存在于宿主机，不入仓库）
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
 
 # ===== 数据库文件 =====
 *.db
@@ -94,10 +103,23 @@ desktop.ini
 # Windows 保留设备名文件（POSIX 风格 shell 中 >nul 重定向误创建）
 nul
 
-# 部署脚本与 Nginx 配置（包含服务器 IP/域名/凭据，不提交）
+# 部署脚本（含服务器 IP/用户名/凭据，不提交；占位符模板见 deploy.sh.example）
 deploy.sh
-frontend/nginx.conf
+# 注：frontend/nginx.conf 自 2026-10-02 起**入库**（作为 frontend 镜像的构建输入，仅含 YOUR_DOMAIN 等占位符）。
+# 此前它被本文件忽略且不在仓库内，导致全新克隆执行 docker compose up -d --build 时在 COPY 一步失败
+# （合规化计划 F-08 / W1-1）。服务器上的实际配置与之不同，按 DEPLOY.md §三 单独维护；deploy.sh 排除
+# 清单仍排除该文件，避免本地占位符版覆盖服务器版本。
 
 # ===== finesse 设计构建记录（本地记忆，每次构建重写，不提交） =====
 .finesse/
 
+
+# ===== 本地临时与构建中间产物（工具在工作区根目录产生，禁止入库） =====
+# 2026-10-02 教训：git add -A 曾把 pip 解包目录与临时 venv 一并提交（见 ai-checklist 第 27 条）
+.tmp-*/
+pip-metadata-*/
+pip-unpack-*/
+
+# 构建/类型检查产物与缓存（2026-10-03，F-60）
+*.tsbuildinfo
+.eslintcache

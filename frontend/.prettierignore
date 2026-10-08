@@ -1,0 +1,7 @@
+# 以下文件格式化为 Prettier 后会折行越过 300 行上限（file-length-rule），
+# 故暂不参与格式化（仍受 ESLint 检查）；待按规则拆分后再纳入。
+src/components/match-data/SquadAnalysisTab.vue
+src/components/recording/RecordingMobileList.vue
+src/layouts/AppHeader.vue
+src/layouts/AppSidebar.vue
+src/components/match-data/analysis.ts

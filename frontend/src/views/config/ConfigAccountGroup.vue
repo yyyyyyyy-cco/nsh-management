@@ -5,7 +5,9 @@
       <div class="card-header card-header--collapse" @click="collapsed = !collapsed">
         <span>{{ group.guildName }}</span>
         <div class="header-actions">
-          <el-button v-if="group.guildId" type="primary" size="small" @click.stop="$emit('create', group.guildId)">创建账号</el-button>
+          <el-button v-if="group.guildId" type="primary" size="small" @click.stop="$emit('create', group.guildId)"
+            >创建账号</el-button
+          >
           <el-icon class="collapse-icon" :class="{ 'is-collapsed': collapsed }"><ArrowDown /></el-icon>
         </div>
       </div>

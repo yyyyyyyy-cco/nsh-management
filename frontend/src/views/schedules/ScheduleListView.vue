@@ -9,7 +9,12 @@
       <el-button v-if="auth.isAdmin" type="primary" :icon="Plus" @click="openCreate()">创建赛程</el-button>
     </div>
 
-    <ScheduleCalendar :schedules="schedules" @select-schedule="goDetail" @select-date="openCreate" @month-change="load" />
+    <ScheduleCalendar
+      :schedules="schedules"
+      @select-schedule="goDetail"
+      @select-date="openCreate"
+      @month-change="load"
+    />
 
     <el-card v-if="auth.isAdmin" shadow="never" class="table-card">
       <template #header>
@@ -25,13 +30,20 @@
       <!-- 移动端（≤768px）：赛程行列表（参照联赛总览卡片的信息层级），详情/删除紧凑按钮 -->
       <div v-if="isMobile" class="match-list">
         <SkeletonTable v-if="showSkeleton && !schedules.length" variant="rows" :rows="5" />
-        <EmptyState v-else-if="!loading && !schedules.length" variant="search" description="当前筛选下暂无赛程" :image-size="72" />
+        <EmptyState
+          v-else-if="!loading && !schedules.length"
+          variant="search"
+          description="当前筛选下暂无赛程"
+          :image-size="72"
+        />
         <div v-for="row in schedules" :key="row.id" class="match-card">
           <div class="mc-top">
             <span class="time-date num">{{ formatDate(row.match_time) }}</span>
             <span class="time-clock num">{{ formatClock(row.match_time) }}</span>
             <span class="rounds">{{ row.rounds }}局</span>
-            <el-tag class="mc-result" :type="resultType(row.result)" effect="light">{{ resultLabel(row.result) }}</el-tag>
+            <el-tag class="mc-result" :type="resultType(row.result)" effect="light">{{
+              resultLabel(row.result)
+            }}</el-tag>
           </div>
           <div class="opponent">vs {{ row.opponent }}</div>
           <div class="mc-actions">
@@ -76,7 +88,12 @@
       </el-table>
     </el-card>
 
-    <ScheduleFormDialog v-model="formVisible" :schedule="editingSchedule" :default-date="defaultDate" @success="onSaved" />
+    <ScheduleFormDialog
+      v-model="formVisible"
+      :schedule="editingSchedule"
+      :default-date="defaultDate"
+      @success="onSaved"
+    />
   </div>
 </template>
 

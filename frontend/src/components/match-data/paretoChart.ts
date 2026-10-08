@@ -4,11 +4,21 @@ import type { MatchData } from '@/types/matchData'
 import { fmtNum } from './analysis'
 import { CHART_THEME, tooltipText } from './chartTheme'
 
-export const RANKING_X_LABEL = { ...CHART_THEME.axis.axisLabel, rotate: 35, fontSize: 11, width: 60, overflow: 'truncate', hideOverlap: true }
+export const RANKING_X_LABEL = {
+  ...CHART_THEME.axis.axisLabel,
+  rotate: 35,
+  fontSize: 11,
+  width: 60,
+  overflow: 'truncate',
+  hideOverlap: true,
+}
 
 /** 贡献度帕累托图：玩家伤害降序柱 + 累计占比折线，识别核心输出。 */
 export function buildParetoOption(items: MatchData[]) {
-  const sorted = items.slice().sort((a, b) => b.player_damage - a.player_damage).slice(0, 20)
+  const sorted = items
+    .slice()
+    .sort((a, b) => b.player_damage - a.player_damage)
+    .slice(0, 20)
   const total = sorted.reduce((s, r) => s + r.player_damage, 0)
   let acc = 0
   const cum = sorted.map((r) => {
@@ -39,7 +49,12 @@ export function buildParetoOption(items: MatchData[]) {
       {
         type: 'value',
         name: '伤害',
-        axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+        axisLabel: {
+          ...CHART_THEME.axis.axisLabel,
+          formatter: (v: number) => fmtNum(v),
+          width: 60,
+          overflow: 'truncate',
+        },
         splitLine: CHART_THEME.axis.splitLine,
         nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [0, 40, 0, 0] },
       },
@@ -59,7 +74,17 @@ export function buildParetoOption(items: MatchData[]) {
         barWidth: 14,
         data: sorted.map((r) => r.player_damage),
         itemStyle: {
-          color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#c9a13b' }, { offset: 1, color: '#c9a13b88' }] },
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: '#c9a13b' },
+              { offset: 1, color: '#c9a13b88' },
+            ],
+          },
           borderRadius: [4, 4, 0, 0],
         },
       },

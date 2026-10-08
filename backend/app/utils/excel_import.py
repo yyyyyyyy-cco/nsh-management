@@ -1,4 +1,5 @@
 """Excel 成员导入解析：自动识别表头，重名跳过，返回导入结果。"""
+
 import asyncio
 from io import BytesIO
 
@@ -16,6 +17,17 @@ MAX_IMPORT_ROWS = 5000  # 数据行上限（不含表头）
 
 
 class ExcelImportError(Exception):
+    """面向用户的导入错误消息。
+
+    **F-98（P2，2026-10-03）**：本类此前是服务层 12 个错误类中**唯一**没有 `self.message` 的 ✗，
+    而 `app/main.py` 的专用错误处理器会取 `exc.message` ✗ → Excel 导入失败时会再抛 `AttributeError`，
+    用户看到 500 而非 400 + 具体原因 ✓。现与其余错误类保持一致。
+    """
+
+    def __init__(self, message: str = "") -> None:
+        super().__init__(message)
+        self.message = message
+
     """导入失败（格式问题），HTTP 400。"""
 
 
@@ -103,9 +115,7 @@ async def import_members(session: AsyncSession, guild_id: int | None, content: b
         raise MemberServiceError("当前账号未绑定帮会，无法导入成员", 403)
     header, data_rows = await asyncio.to_thread(_parse_workbook, content)
 
-    existing = set(
-        (await session.execute(select(Member.name).where(Member.guild_id == guild_id))).scalars()
-    )
+    existing = set((await session.execute(select(Member.name).where(Member.guild_id == guild_id))).scalars())
 
     imported = 0
     skipped = 0

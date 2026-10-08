@@ -3,6 +3,7 @@
 路径统一挂在 /members 前缀下；注册时须先于 members.router，避免被 /{member_id} 捕获。
 设计依据：memory-bank/design-game-id-change.md §4。
 """
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -35,9 +36,7 @@ async def list_game_id_options(
     session: AsyncSession = Depends(get_db),
 ) -> GameIdOptionPage:
     """本帮会常驻成员最小候选（帮众选择要改名的成员）。"""
-    items, total = await game_id_request_service.list_options(
-        session, current_user.guild_id, q, page, page_size
-    )
+    items, total = await game_id_request_service.list_options(session, current_user.guild_id, q, page, page_size)
     return GameIdOptionPage(
         items=[MemberMinimal.model_validate(m) for m in items],
         total=total,
@@ -46,7 +45,9 @@ async def list_game_id_options(
     )
 
 
-@router.post("/{member_id}/game-id-requests", response_model=GameIdRequestMemberOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{member_id}/game-id-requests", response_model=GameIdRequestMemberOut, status_code=status.HTTP_201_CREATED
+)
 async def create_game_id_request(
     member_id: int,
     body: GameIdRequestCreate,
@@ -54,9 +55,7 @@ async def create_game_id_request(
     session: AsyncSession = Depends(get_db),
 ) -> GameIdRequestMemberOut:
     """提交改名申请（帮众）；成功不改变常驻库。"""
-    record = await game_id_request_service.create_request(
-        session, current_user.guild_id, member_id, current_user, body
-    )
+    record = await game_id_request_service.create_request(session, current_user.guild_id, member_id, current_user, body)
     return GameIdRequestMemberOut.model_validate(record)
 
 
@@ -104,10 +103,7 @@ async def list_game_id_requests(
     records, total, name_map = await game_id_request_service.list_requests(
         session, current_user.guild_id, request_status, keyword, member_id, page, page_size
     )
-    items = [
-        _admin_out(r, name_map.get(r.member_id) if r.member_id is not None else None)
-        for r in records
-    ]
+    items = [_admin_out(r, name_map.get(r.member_id) if r.member_id is not None else None) for r in records]
     return GameIdRequestAdminPage(items=items, total=total, page=page, page_size=page_size)
 
 
@@ -119,12 +115,8 @@ async def audit_game_id_request(
     session: AsyncSession = Depends(get_db),
 ) -> GameIdRequestAdminOut:
     """审核改名申请（仅管理员）：通过与成员改名同一事务提交。"""
-    record = await game_id_request_service.audit_request(
-        session, current_user.guild_id, request_id, current_user, body
-    )
-    return _admin_out(
-        record, await _current_member_name(session, current_user.guild_id, record.member_id)
-    )
+    record = await game_id_request_service.audit_request(session, current_user.guild_id, request_id, current_user, body)
+    return _admin_out(record, await _current_member_name(session, current_user.guild_id, record.member_id))
 
 
 async def _current_member_name(session: AsyncSession, guild_id: int, member_id: int | None) -> str | None:

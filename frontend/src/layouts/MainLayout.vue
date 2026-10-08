@@ -4,12 +4,7 @@
     <transition name="mask-fade">
       <div v-if="isMobile && drawerOpen" class="sidebar-mask" @click="drawerOpen = false" />
     </transition>
-    <AppSidebar
-      :collapsed="collapsed"
-      :is-mobile="isMobile"
-      :drawer-open="drawerOpen"
-      @select-menu="onMenuSelect"
-    />
+    <AppSidebar :collapsed="collapsed" :is-mobile="isMobile" :drawer-open="drawerOpen" @select-menu="onMenuSelect" />
     <div class="main">
       <AppHeader
         :route-loading="routeLoading"

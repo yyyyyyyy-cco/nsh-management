@@ -1,22 +1,24 @@
 """系统配置 Pydantic Schema。"""
-import re
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.password_policy import validate_password
 from app.schemas.common import UtcDatetime
 
 
 def _validate_password_complexity(value: str) -> str:
-    """密码复杂度校验：必须同时包含字母和数字（长度由 Field 约束）。
-    注：不用 Field(pattern=...) 是因为 pydantic-core 的 Rust 正则不支持 look-ahead。
+    """口令策略校验（实现见 `app/core/password_policy.py`）。
+
+    2026-10-02（合规化计划 W4-10 / ASVS 5.0.0）：**删除了原「必须同时含字母和数字」的规则**——
+    该规则违反 6.2.5（不得限制字符组成）；改为「长度 8–128 + 弱口令/上下文词表 + 不含登录名 + 非单一重复字符」，
+    纯字母/纯数字/纯符号口令都允许。函数名保留以免改动调用点。
     """
-    if not re.search(r"[A-Za-z]", value) or not re.search(r"\d", value):
-        raise ValueError("密码需同时包含字母和数字")
+    validate_password(value)
     return value
 
 
 def _validate_password_optional(value: str | None) -> str | None:
-    """可选密码字段的复杂度校验（None 直接放行）。"""
+    """可选口令字段的策略校验（None 直接放行）。"""
     if value is None:
         return value
     return _validate_password_complexity(value)
@@ -24,8 +26,10 @@ def _validate_password_optional(value: str | None) -> str | None:
 
 # ========== 职业配置 ==========
 
+
 class ProfessionConfigOut(BaseModel):
     """职业配置输出。"""
+
     id: int
     guild_id: int
     profession: str
@@ -37,19 +41,31 @@ class ProfessionConfigOut(BaseModel):
 
 class ProfessionConfigUpdate(BaseModel):
     """职业配置更新。"""
-    target_count: int = Field(..., ge=0, description="目标人数")
+
+    target_count: int = Field(..., ge=0, le=999, description="目标人数（0～999）")
+    remark: str | None = Field(None, max_length=255, description="职业说明")
+
+
+class ProfessionConfigItem(BaseModel):
+    """批量配置中的单项：值域与单职业端点一致（0～999，与前端输入上限一致）。"""
+
+    profession: str = Field(..., min_length=1, max_length=16, description="职业名")
+    target_count: int = Field(..., ge=0, le=999, description="目标人数（0～999）")
     remark: str | None = Field(None, max_length=255, description="职业说明")
 
 
 class ProfessionConfigBatchUpdate(BaseModel):
     """职业配置批量更新。"""
-    configs: list[dict] = Field(..., description="配置列表，每项包含 profession 和 target_count")
+
+    configs: list[ProfessionConfigItem] = Field(..., description="配置列表：profession + target_count + 可选 remark")
 
 
 # ========== 账号管理 ==========
 
+
 class AccountOut(BaseModel):
     """账号输出。"""
+
     id: int
     guild_id: int | None
     guild_name: str | None = None
@@ -64,10 +80,13 @@ class AccountOut(BaseModel):
 
 class AccountCreate(BaseModel):
     """创建账号。"""
+
     username: str = Field(..., min_length=3, max_length=64, description="登录名")
     password: str = Field(
-        ..., min_length=8, max_length=128,
-        description="密码（8-128 位，需含字母和数字）",
+        ...,
+        min_length=8,
+        max_length=128,
+        description="密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
     role: str = Field("member", description="角色：admin/member")
     guild_id: int | None = Field(None, ge=1, description="目标帮会ID（开发者创建时必传，管理员仅限本帮会）")
@@ -77,10 +96,13 @@ class AccountCreate(BaseModel):
 
 class AccountUpdate(BaseModel):
     """更新账号。"""
+
     username: str | None = Field(None, min_length=3, max_length=64, description="登录名")
     password: str | None = Field(
-        None, min_length=8, max_length=128,
-        description="密码（8-128 位，需含字母和数字）",
+        None,
+        min_length=8,
+        max_length=128,
+        description="密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
 
     _password_complexity = field_validator("password")(_validate_password_optional)
@@ -88,11 +110,13 @@ class AccountUpdate(BaseModel):
 
 class AccountStatusUpdate(BaseModel):
     """更新账号状态。"""
+
     status: str = Field(..., description="状态：active/disabled")
 
 
 class GuildOut(BaseModel):
     """帮会输出。"""
+
     id: int
     name: str
     icon_char: str | None = None
@@ -103,14 +127,19 @@ class GuildOut(BaseModel):
 
 class GuildCreate(BaseModel):
     """创建帮会（管理员/帮众初始密码由创建者指定，按密码策略校验）。"""
+
     name: str = Field(..., min_length=2, max_length=64, description="帮会名称")
     admin_password: str = Field(
-        ..., min_length=8, max_length=128,
-        description="管理员初始密码（8-128 位，需含字母和数字）",
+        ...,
+        min_length=8,
+        max_length=128,
+        description="管理员初始密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
     member_password: str = Field(
-        ..., min_length=8, max_length=128,
-        description="帮众初始密码（8-128 位，需含字母和数字）",
+        ...,
+        min_length=8,
+        max_length=128,
+        description="帮众初始密码（8-128 位；不得为常见弱口令、不得含登录名；不限制字符组成）",
     )
 
     _validate_admin_password = field_validator("admin_password")(_validate_password_complexity)
@@ -119,9 +148,11 @@ class GuildCreate(BaseModel):
 
 class GuildRename(BaseModel):
     """帮会更名。"""
+
     name: str = Field(..., min_length=2, max_length=64, description="新帮会名称")
 
 
 class GuildIconUpdate(BaseModel):
     """帮会图标字设置（空串表示清除）。"""
+
     icon_char: str = Field("", max_length=4, description="显示的首字，空串清除")

@@ -2,13 +2,20 @@
   <div class="indicators-tab">
     <!-- 工具栏：阵营筛选 + 职业筛选 + ID 搜索 -->
     <div class="toolbar">
-      <el-select v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px">
+      <el-select aria-label="阵营筛选" v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px">
         <el-option v-for="c in camps" :key="c.camp" :label="c.camp" :value="c.camp" />
       </el-select>
-      <el-select v-model="profFilter" placeholder="职业筛选" clearable style="width: 150px">
+      <el-select aria-label="职业筛选" v-model="profFilter" placeholder="职业筛选" clearable style="width: 150px">
         <el-option v-for="p in professions" :key="p" :label="p" :value="p" />
       </el-select>
-      <el-input v-model="nameFilter" placeholder="按ID搜索" clearable style="width: 180px" :prefix-icon="Search" />
+      <el-input
+        aria-label="按ID搜索"
+        v-model="nameFilter"
+        placeholder="按ID搜索"
+        clearable
+        style="width: 180px"
+        :prefix-icon="Search"
+      />
       <span class="toolbar__count">{{ filteredItems.length }} 人</span>
     </div>
 
@@ -16,7 +23,15 @@
       <el-tabs v-model="subTab" class="indicator-sub-tabs">
         <!-- 基础战斗数据 -->
         <el-tab-pane label="基础数据" name="basic">
-          <el-table :data="filteredItems" v-loading="loading" max-height="560" fit border size="small" class="ind-table">
+          <el-table
+            :data="filteredItems"
+            v-loading="loading"
+            max-height="560"
+            fit
+            border
+            size="small"
+            class="ind-table"
+          >
             <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
             <el-table-column prop="profession" label="职业" min-width="70" />
             <el-table-column prop="camp" label="阵营" min-width="70" />
@@ -46,7 +61,15 @@
 
         <!-- 效率指标 -->
         <el-tab-pane label="效率指标" name="efficiency">
-          <el-table :data="filteredItems" v-loading="loading" max-height="560" fit border size="small" class="ind-table">
+          <el-table
+            :data="filteredItems"
+            v-loading="loading"
+            max-height="560"
+            fit
+            border
+            size="small"
+            class="ind-table"
+          >
             <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
             <el-table-column prop="profession" label="职业" min-width="70" />
             <el-table-column prop="camp" label="阵营" min-width="70" />
@@ -72,7 +95,15 @@
 
         <!-- 占比指标 -->
         <el-tab-pane label="占比指标" name="ratio">
-          <el-table :data="filteredItems" v-loading="loading" max-height="560" fit border size="small" class="ind-table">
+          <el-table
+            :data="filteredItems"
+            v-loading="loading"
+            max-height="560"
+            fit
+            border
+            size="small"
+            class="ind-table"
+          >
             <el-table-column prop="player_name" label="ID" min-width="110" fixed="left" />
             <el-table-column prop="profession" label="职业" min-width="70" />
             <el-table-column prop="camp" label="阵营" min-width="70" />
@@ -137,7 +168,9 @@ onBeforeUnmount(() => {
 })
 const subTab = ref((route.query.sub as string) || 'basic')
 
-watch(subTab, (v) => { router.replace({ query: { ...route.query, sub: v } }) })
+watch(subTab, (v) => {
+  router.replace({ query: { ...route.query, sub: v } })
+})
 
 const professions = computed(() => [...new Set(items.value.map((r) => r.profession || '未知'))].sort())
 

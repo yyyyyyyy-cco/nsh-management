@@ -2,6 +2,7 @@
 
 由 match_data_service 拆出；复用其查询助手与 match_data_stats 的纯计算。
 """
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -57,39 +58,53 @@ async def get_profession_stats(
         for camp_name, camp_recs in by_camp.items():
             n = len(camp_recs)
             camp_inds = [calculate_indicators(r, camp_totals[r.camp]) for r in camp_recs]
-            camps.append({
-                "camp": camp_name,
-                "count": n,
-                "avg_kills": round(sum(r.kills for r in camp_recs) / n, 2),
-                "avg_player_damage": round(sum(r.player_damage for r in camp_recs) / n, 0),
-                "avg_building_damage": round(sum(r.building_damage for r in camp_recs) / n, 0),
-                "avg_healing": round(sum(r.healing for r in camp_recs) / n, 0),
-                "avg_damage_taken": round(sum(r.damage_taken for r in camp_recs) / n, 0),
-                "avg_kda": round(sum(ind["kda"] for ind in camp_inds) / n, 2),
-            })
+            camps.append(
+                {
+                    "camp": camp_name,
+                    "count": n,
+                    "avg_kills": round(sum(r.kills for r in camp_recs) / n, 2),
+                    "avg_player_damage": round(sum(r.player_damage for r in camp_recs) / n, 0),
+                    "avg_building_damage": round(sum(r.building_damage for r in camp_recs) / n, 0),
+                    "avg_healing": round(sum(r.healing for r in camp_recs) / n, 0),
+                    "avg_damage_taken": round(sum(r.damage_taken for r in camp_recs) / n, 0),
+                    "avg_kda": round(sum(ind["kda"] for ind in camp_inds) / n, 2),
+                }
+            )
 
         # 职业差值/波动值（基于分阵营均值，按记录出现顺序取前两个阵营）
         comparison = []
         if len(camps) >= 2:
             a, b = camps[0], camps[1]
-            for metric in ("avg_kills", "avg_player_damage", "avg_building_damage", "avg_healing", "avg_damage_taken", "avg_kda"):
+            for metric in (
+                "avg_kills",
+                "avg_player_damage",
+                "avg_building_damage",
+                "avg_healing",
+                "avg_damage_taken",
+                "avg_kda",
+            ):
                 v1, v2 = a[metric], b[metric]
                 diff = round(v1 - v2, 4)
                 base = min(v1, v2)
                 wave = round(abs(diff) / base * 100, 2) if base > 0 else 0.0
-                comparison.append({
-                    "metric": metric, "camp1": a["camp"], "camp2": b["camp"],
-                    "value1": v1, "value2": v2, "diff": diff, "wave": wave,
-                })
+                comparison.append(
+                    {
+                        "metric": metric,
+                        "camp1": a["camp"],
+                        "camp2": b["camp"],
+                        "value1": v1,
+                        "value2": v2,
+                        "diff": diff,
+                        "wave": wave,
+                    }
+                )
 
         result.append({"profession": prof, "count": count, **avg, "camps": camps, "comparison": comparison})
 
     return sorted(result, key=lambda x: x["count"], reverse=True)
 
 
-async def get_indicators(
-    session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None
-) -> dict:
+async def get_indicators(session: AsyncSession, guild_id: int, schedule_id: int, round_no: int | None = None) -> dict:
     """获取带 16 项衍生指标的数据列表（可按局过滤）。"""
     await get_schedule(session, guild_id, schedule_id)
     records = await _query_records(session, schedule_id, round_no)
@@ -111,10 +126,17 @@ async def get_camp_comparison(
     camp_totals = get_camp_totals(records)
 
     metrics = [
-        ("player_count", "人数"), ("kills", "总击杀"), ("assists", "总助攻"),
-        ("player_damage", "玩家伤害"), ("building_damage", "建筑伤害"),
-        ("healing", "治疗"), ("damage_taken", "承伤"), ("deaths", "死亡"),
-        ("springs", "破泉"), ("revives", "化羽"), ("fen_gu", "焚骨"),
+        ("player_count", "人数"),
+        ("kills", "总击杀"),
+        ("assists", "总助攻"),
+        ("player_damage", "玩家伤害"),
+        ("building_damage", "建筑伤害"),
+        ("healing", "治疗"),
+        ("damage_taken", "承伤"),
+        ("deaths", "死亡"),
+        ("springs", "破泉"),
+        ("revives", "化羽"),
+        ("fen_gu", "焚骨"),
     ]
     names = list(camp_totals.keys())
     comparison = {}

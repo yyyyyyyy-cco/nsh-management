@@ -2,6 +2,7 @@
   <div class="player-search">
     <div class="search-row">
       <el-autocomplete
+        aria-label="输入当前或历史游戏 ID 查询战绩"
         v-model="inputName"
         placeholder="输入当前或历史游戏 ID 查询战绩"
         clearable
@@ -15,13 +16,7 @@
     </div>
     <div v-if="history.length" class="history">
       <span class="history-label">最近查询</span>
-      <el-tag
-        v-for="name in history"
-        :key="name"
-        class="history-tag"
-        effect="plain"
-        @click="onHistoryClick(name)"
-      >
+      <el-tag v-for="name in history" :key="name" class="history-tag" effect="plain" @click="onHistoryClick(name)">
         {{ name }}
       </el-tag>
     </div>

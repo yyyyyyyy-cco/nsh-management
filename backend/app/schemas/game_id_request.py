@@ -2,6 +2,7 @@
 
 状态机与字段语义见 memory-bank/design-game-id-change.md；表结构见 database-design.md §2.12。
 """
+
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator

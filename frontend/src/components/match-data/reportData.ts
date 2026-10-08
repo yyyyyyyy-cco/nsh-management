@@ -166,8 +166,15 @@ function toRankItems(items: MatchDataIndicators[], get: (r: MatchDataIndicators)
 /** 某单局的我方记录汇总。 */
 function sumSide(camp: string, recs: MatchDataIndicators[]): ReportSideAgg {
   const acc: ReportSideAgg = {
-    camp, kills: 0, assists: 0, playerDamage: 0, buildingDamage: 0,
-    healing: 0, damageTaken: 0, deaths: 0, fenGu: 0,
+    camp,
+    kills: 0,
+    assists: 0,
+    playerDamage: 0,
+    buildingDamage: 0,
+    healing: 0,
+    damageTaken: 0,
+    deaths: 0,
+    fenGu: 0,
   }
   for (const r of recs) {
     acc.kills += r.kills
@@ -315,7 +322,16 @@ export function buildReportData(
     const acc = new Map<string, Omit<ReportSquadItem, 'name'>>()
     for (const r of items) {
       const squad = squadOf.get((r.player_name || '').trim()) ?? '未排表'
-      const cur = acc.get(squad) ?? { kills: 0, assists: 0, deaths: 0, playerDamage: 0, buildingDamage: 0, healing: 0, damageTaken: 0, fenGu: 0 }
+      const cur = acc.get(squad) ?? {
+        kills: 0,
+        assists: 0,
+        deaths: 0,
+        playerDamage: 0,
+        buildingDamage: 0,
+        healing: 0,
+        damageTaken: 0,
+        fenGu: 0,
+      }
       cur.kills += r.kills
       cur.assists += r.assists
       cur.deaths += r.deaths
@@ -332,7 +348,17 @@ export function buildReportData(
         squads.push({ name, ...cur })
       } else if (name !== '未排表') {
         // 已排表但无比赛记录的队伍：显示 0，保证排表队伍完整呈现
-        squads.push({ name, kills: 0, assists: 0, deaths: 0, playerDamage: 0, buildingDamage: 0, healing: 0, damageTaken: 0, fenGu: 0 })
+        squads.push({
+          name,
+          kills: 0,
+          assists: 0,
+          deaths: 0,
+          playerDamage: 0,
+          buildingDamage: 0,
+          healing: 0,
+          damageTaken: 0,
+          fenGu: 0,
+        })
       }
     }
   }

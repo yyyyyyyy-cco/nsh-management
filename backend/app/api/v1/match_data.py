@@ -1,4 +1,5 @@
 """比赛数据分析接口：CSV 导入、数据查询、排行榜、职业统计、衍生指标、阵营对比、小队分析。"""
+
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,8 +8,8 @@ from app.core.database import get_db
 from app.models.user import User
 from app.schemas.match_data import (
     CampCompareResponse,
-    CampTotals,
     CampStats,
+    CampTotals,
     IndicatorOut,
     IndicatorsResponse,
     MatchDataListResponse,
@@ -40,7 +41,7 @@ async def import_csv(
         raise match_data_csv.MatchDataError("文件大小超过 5MB 限制")
 
     # 校验文件类型
-    if not file.filename.endswith(".csv"):
+    if not (file.filename or "").lower().endswith(".csv"):
         raise match_data_csv.MatchDataError("仅支持 CSV 文件")
 
     text = content.decode("utf-8-sig")  # 处理 BOM
@@ -78,9 +79,7 @@ async def get_rankings(
     session: AsyncSession = Depends(get_db),
 ) -> RankingsResponse:
     """获取排行榜数据。"""
-    rankings = await match_data_service.get_rankings(
-        session, current_user.guild_id, schedule_id, round_no, camp, limit
-    )
+    rankings = await match_data_service.get_rankings(session, current_user.guild_id, schedule_id, round_no, camp, limit)
     return RankingsResponse(
         kills_ranking=[PlayerRanking(**r) for r in rankings["kills_ranking"]],
         damage_ranking=[PlayerRanking(**r) for r in rankings["damage_ranking"]],
@@ -100,12 +99,8 @@ async def get_profession_stats(
     session: AsyncSession = Depends(get_db),
 ) -> ProfessionStatsResponse:
     """获取职业统计数据。"""
-    stats = await match_data_aggregate.get_profession_stats(
-        session, current_user.guild_id, schedule_id, round_no, camp
-    )
-    return ProfessionStatsResponse(
-        items=[ProfessionStats(**s) for s in stats]
-    )
+    stats = await match_data_aggregate.get_profession_stats(session, current_user.guild_id, schedule_id, round_no, camp)
+    return ProfessionStatsResponse(items=[ProfessionStats(**s) for s in stats])
 
 
 @router.get("/indicators", response_model=IndicatorsResponse)

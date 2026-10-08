@@ -17,8 +17,12 @@
         <div class="rr-main">
           <span class="rr-name">{{ row.name }}</span>
           <span class="prof-name" :style="{ color: profColor(row.main_profession) }">{{ row.main_profession }}</span>
-          <span v-if="row.attendance_rate !== null" class="rr-rate num" :class="{ warn: row.attendance_rate < 0.5 }">
-            {{ (row.attendance_rate * 100).toFixed(1) }}%
+          <span
+            v-if="row.attendance_rate !== null"
+            class="rr-rate num"
+            :class="{ warn: isLowAttendance(row.attendance_rate) }"
+          >
+            {{ formatRatePercent(row.attendance_rate) }}
           </span>
           <span v-else class="none rr-none">无记录</span>
         </div>
@@ -28,10 +32,12 @@
             :percentage="row.attendance_rate * 100"
             :stroke-width="8"
             :show-text="false"
-            :color="row.attendance_rate < 0.5 ? '#c0392b' : '#c9a13b'"
+            :color="attendanceProgressColor(row.attendance_rate)"
             class="rate-bar"
           />
-          <span class="counts">正常 <em class="num">{{ row.normal_count }}</em> · 请假 <em class="num">{{ row.leave_count }}</em></span>
+          <span class="counts"
+            >正常 <em class="num">{{ row.normal_count }}</em> · 请假 <em class="num">{{ row.leave_count }}</em></span
+          >
         </div>
       </div>
     </div>
@@ -55,11 +61,11 @@
               :percentage="row.attendance_rate * 100"
               :stroke-width="8"
               :show-text="false"
-              :color="row.attendance_rate < 0.5 ? '#c0392b' : '#c9a13b'"
+              :color="attendanceProgressColor(row.attendance_rate)"
               class="rate-bar"
             />
-            <span class="rate-num num" :class="{ warn: row.attendance_rate < 0.5 }">
-              {{ (row.attendance_rate * 100).toFixed(1) }}%
+            <span class="rate-num num" :class="{ warn: isLowAttendance(row.attendance_rate) }">
+              {{ formatRatePercent(row.attendance_rate) }}
             </span>
           </div>
           <span v-else class="none">无记录</span>
@@ -67,7 +73,9 @@
       </el-table-column>
       <el-table-column label="正常/请假" min-width="100">
         <template #default="{ row }">
-          <span class="counts"><em class="num">{{ row.normal_count }}</em> / <em class="num">{{ row.leave_count }}</em></span>
+          <span class="counts"
+            ><em class="num">{{ row.normal_count }}</em> / <em class="num">{{ row.leave_count }}</em></span
+          >
         </template>
       </el-table-column>
     </el-table>
@@ -79,6 +87,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import { getAttendanceRate, type AttendanceRateItem } from '@/api/members'
 import { profColor } from '@/utils/profession'
+import { attendanceProgressColor, formatRatePercent, isLowAttendance } from '@/utils/attendance'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const rateItems = ref<AttendanceRateItem[]>([])

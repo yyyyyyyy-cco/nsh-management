@@ -70,11 +70,23 @@ def get_camp_totals(records: list) -> dict[str, dict]:
     totals: dict[str, dict] = {}
     for r in records:
         camp = r.camp
-        t = totals.setdefault(camp, {
-            "camp": camp, "player_count": 0, "kills": 0, "assists": 0,
-            "player_damage": 0, "building_damage": 0, "healing": 0,
-            "damage_taken": 0, "deaths": 0, "springs": 0, "revives": 0, "fen_gu": 0,
-        })
+        t = totals.setdefault(
+            camp,
+            {
+                "camp": camp,
+                "player_count": 0,
+                "kills": 0,
+                "assists": 0,
+                "player_damage": 0,
+                "building_damage": 0,
+                "healing": 0,
+                "damage_taken": 0,
+                "deaths": 0,
+                "springs": 0,
+                "revives": 0,
+                "fen_gu": 0,
+            },
+        )
         t["player_count"] += 1
         t["kills"] += r.kills
         t["assists"] += r.assists

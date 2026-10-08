@@ -10,18 +10,14 @@
     <template v-else>
       <!-- 搜索过滤 -->
       <el-input
+        aria-label="搜索 ID 过滤"
         v-model="keyword"
         placeholder="搜索 ID 过滤"
         clearable
         :prefix-icon="Search"
         class="search-input"
       />
-      <el-table
-        :data="filtered"
-        size="small"
-        max-height="360"
-        @selection-change="onSelectionChange"
-      >
+      <el-table :data="filtered" size="small" max-height="360" @selection-change="onSelectionChange">
         <el-table-column type="selection" width="44" />
         <el-table-column prop="name" label="ID" min-width="90" />
         <el-table-column prop="main_profession" label="主职业" min-width="80" />

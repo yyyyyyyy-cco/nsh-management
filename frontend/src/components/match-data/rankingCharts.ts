@@ -8,7 +8,10 @@ import { RANKING_X_LABEL as X_LABEL } from './paretoChart'
 
 /** KDA 分布折线图（KDA 榜 Top 20） */
 export function buildKdaLineOption(items: MatchData[]) {
-  const sorted = items.slice().sort((a, b) => calcKDA(b) - calcKDA(a)).slice(0, 20)
+  const sorted = items
+    .slice()
+    .sort((a, b) => calcKDA(b) - calcKDA(a))
+    .slice(0, 20)
   return {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', ...CHART_THEME.tooltip },
@@ -19,8 +22,20 @@ export function buildKdaLineOption(items: MatchData[]) {
       axisLabel: X_LABEL,
     },
     yAxis: [
-      { type: 'value', name: 'KDA', axisLabel: { ...CHART_THEME.axis.axisLabel, width: 50, overflow: 'truncate' }, splitLine: CHART_THEME.axis.splitLine, nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [0, 40, 0, 0] } },
-      { type: 'value', name: '击杀', axisLabel: { ...CHART_THEME.axis.axisLabel, width: 40, overflow: 'truncate' }, splitLine: { show: false }, nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [0, 0, 0, 40] } },
+      {
+        type: 'value',
+        name: 'KDA',
+        axisLabel: { ...CHART_THEME.axis.axisLabel, width: 50, overflow: 'truncate' },
+        splitLine: CHART_THEME.axis.splitLine,
+        nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [0, 40, 0, 0] },
+      },
+      {
+        type: 'value',
+        name: '击杀',
+        axisLabel: { ...CHART_THEME.axis.axisLabel, width: 40, overflow: 'truncate' },
+        splitLine: { show: false },
+        nameTextStyle: { ...CHART_THEME.axis.axisName, padding: [0, 0, 0, 40] },
+      },
     ],
     series: [
       {
@@ -30,7 +45,19 @@ export function buildKdaLineOption(items: MatchData[]) {
         smooth: true,
         lineStyle: { width: 3, color: '#c9a13b' },
         itemStyle: { color: '#c9a13b' },
-        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(201,161,59,0.25)' }, { offset: 1, color: 'rgba(201,161,59,0.02)' }] } },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(201,161,59,0.25)' },
+              { offset: 1, color: 'rgba(201,161,59,0.02)' },
+            ],
+          },
+        },
         symbol: 'circle',
         symbolSize: 5,
         showSymbol: false,
@@ -67,7 +94,12 @@ export function buildDamageLineOption(items: MatchData[], mode: 'player' | 'buil
     },
     yAxis: {
       type: 'value',
-      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 60,
+        overflow: 'truncate',
+      },
       splitLine: CHART_THEME.axis.splitLine,
     },
     series: [
@@ -78,7 +110,19 @@ export function buildDamageLineOption(items: MatchData[], mode: 'player' | 'buil
         smooth: true,
         lineStyle: { width: 3, color: '#5b7a9d' },
         itemStyle: { color: '#5b7a9d' },
-        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(91,122,157,0.25)' }, { offset: 1, color: 'rgba(91,122,157,0.02)' }] } },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: 'rgba(91,122,157,0.25)' },
+              { offset: 1, color: 'rgba(91,122,157,0.02)' },
+            ],
+          },
+        },
         symbol: 'circle',
         symbolSize: 5,
         showSymbol: false,
@@ -104,7 +148,12 @@ export function buildHealLineOption(items: MatchData[], mode: 'healing' | 'taken
     },
     yAxis: {
       type: 'value',
-      axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 60, overflow: 'truncate' },
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 60,
+        overflow: 'truncate',
+      },
       splitLine: CHART_THEME.axis.splitLine,
     },
     series: [
@@ -115,7 +164,19 @@ export function buildHealLineOption(items: MatchData[], mode: 'healing' | 'taken
         smooth: true,
         lineStyle: { width: 3, color: mode === 'healing' ? '#2e8b57' : '#c0392b' },
         itemStyle: { color: mode === 'healing' ? '#2e8b57' : '#c0392b' },
-        areaStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: mode === 'healing' ? 'rgba(46,139,87,0.25)' : 'rgba(192,57,43,0.25)' }, { offset: 1, color: mode === 'healing' ? 'rgba(46,139,87,0.02)' : 'rgba(192,57,43,0.02)' }] } },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              { offset: 0, color: mode === 'healing' ? 'rgba(46,139,87,0.25)' : 'rgba(192,57,43,0.25)' },
+              { offset: 1, color: mode === 'healing' ? 'rgba(46,139,87,0.02)' : 'rgba(192,57,43,0.02)' },
+            ],
+          },
+        },
         symbol: 'circle',
         symbolSize: 5,
         showSymbol: false,
@@ -126,7 +187,10 @@ export function buildHealLineOption(items: MatchData[], mode: 'healing' | 'taken
 
 /** KDA 构成堆叠（击杀/助攻/重伤），看 KDA 高分是打得猛还是死得少。 */
 export function buildKdaStackOption(items: MatchData[]) {
-  const sorted = items.slice().sort((a, b) => calcKDA(b) - calcKDA(a)).slice(0, 20)
+  const sorted = items
+    .slice()
+    .sort((a, b) => calcKDA(b) - calcKDA(a))
+    .slice(0, 20)
   return {
     backgroundColor: 'transparent',
     tooltip: {
@@ -150,7 +214,14 @@ export function buildKdaStackOption(items: MatchData[]) {
     },
     yAxis: { type: 'value', axisLabel: CHART_THEME.axis.axisLabel, splitLine: CHART_THEME.axis.splitLine },
     series: [
-      { name: '击杀', type: 'bar', stack: 'kda', barWidth: 18, itemStyle: { color: '#c9a13b' }, data: sorted.map((r) => r.kills) },
+      {
+        name: '击杀',
+        type: 'bar',
+        stack: 'kda',
+        barWidth: 18,
+        itemStyle: { color: '#c9a13b' },
+        data: sorted.map((r) => r.kills),
+      },
       { name: '助攻', type: 'bar', stack: 'kda', itemStyle: { color: '#5b7a9d' }, data: sorted.map((r) => r.assists) },
       { name: '重伤', type: 'bar', stack: 'kda', itemStyle: { color: '#c0392b' }, data: sorted.map((r) => r.deaths) },
     ],

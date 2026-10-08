@@ -17,10 +17,10 @@
 
     <!-- 查询中 -->
     <div v-if="showSkeleton" class="stats-skeleton">
-      <div class="sk sk-block" style="height:88px;margin-bottom:16px;border-radius:var(--radius-lg)" />
-      <div class="sk sk-block" style="height:300px;margin-bottom:16px;border-radius:var(--radius-lg)" />
-      <div class="sk sk-block" style="height:220px;margin-bottom:16px;border-radius:var(--radius-lg)" />
-      <div class="sk sk-block" style="height:280px;border-radius:var(--radius-lg)" />
+      <div class="sk sk-block" style="height: 88px; margin-bottom: 16px; border-radius: var(--radius-lg)" />
+      <div class="sk sk-block" style="height: 300px; margin-bottom: 16px; border-radius: var(--radius-lg)" />
+      <div class="sk sk-block" style="height: 220px; margin-bottom: 16px; border-radius: var(--radius-lg)" />
+      <div class="sk sk-block" style="height: 280px; border-radius: var(--radius-lg)" />
     </div>
 
     <template v-else>

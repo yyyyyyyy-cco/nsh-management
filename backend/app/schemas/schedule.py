@@ -1,4 +1,5 @@
 """联赛日程请求/响应模型。"""
+
 from datetime import datetime, timedelta, timezone
 
 from pydantic import BaseModel, Field, field_validator

@@ -97,7 +97,9 @@ const clearing = ref(false)
 // 移动端（≤768px）响应式切换
 const mq = window.matchMedia('(max-width: 768px)')
 const isMobile = ref(mq.matches)
-const onMqChange = (e: MediaQueryListEvent) => { isMobile.value = e.matches }
+const onMqChange = (e: MediaQueryListEvent) => {
+  isMobile.value = e.matches
+}
 
 async function load() {
   loading.value = true
@@ -145,11 +147,7 @@ function showDetail(row: OperationLog) {
 
 async function onClear(days: number) {
   try {
-    await ElMessageBox.confirm(
-      `确定删除 ${days} 天前的所有日志吗？此操作不可恢复。`,
-      '清理日志',
-      { type: 'warning' },
-    )
+    await ElMessageBox.confirm(`确定删除 ${days} 天前的所有日志吗？此操作不可恢复。`, '清理日志', { type: 'warning' })
   } catch {
     return
   }

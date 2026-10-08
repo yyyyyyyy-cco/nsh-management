@@ -19,9 +19,15 @@
         <span v-else class="rd-empty">该局数据未导入</span>
       </div>
       <div v-if="info.hasData" class="rd-sub">
-        <span v-if="info.mvp" class="rd-item">MVP <b>{{ info.mvp.player_name }}</b> <i>{{ info.mvp.score }} 分</i></span>
-        <span v-if="info.killKing" class="rd-item">击杀王 <b>{{ info.killKing.player_name }}</b> <i>{{ info.killKing.kills }} 杀</i></span>
-        <span v-if="info.deathKing" class="rd-item">重伤第一 <b>{{ info.deathKing.player_name }}</b> <i>{{ info.deathKing.deaths }} 次</i></span>
+        <span v-if="info.mvp" class="rd-item"
+          >MVP <b>{{ info.mvp.player_name }}</b> <i>{{ info.mvp.score }} 分</i></span
+        >
+        <span v-if="info.killKing" class="rd-item"
+          >击杀王 <b>{{ info.killKing.player_name }}</b> <i>{{ info.killKing.kills }} 杀</i></span
+        >
+        <span v-if="info.deathKing" class="rd-item"
+          >重伤第一 <b>{{ info.deathKing.player_name }}</b> <i>{{ info.deathKing.deaths }} 次</i></span
+        >
       </div>
     </div>
   </div>

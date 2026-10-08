@@ -7,10 +7,17 @@ import { CHART_THEME } from './chartTheme'
 export const COMPARE_COLORS = ['#c9a13b', '#5b7a9d', '#2e8b57', '#c0392b']
 
 export const COMPARE_METRIC_LABELS: Record<string, string> = {
-  kills: '总击杀', assists: '总助攻', player_damage: '玩家伤害',
-  building_damage: '建筑伤害', healing: '治疗', damage_taken: '承伤',
-  deaths: '总死亡', kda: '均 KDA', dps: '均秒伤',
-  damage_per_death: '均每死输出', taken_per_death: '均每死承伤',
+  kills: '总击杀',
+  assists: '总助攻',
+  player_damage: '玩家伤害',
+  building_damage: '建筑伤害',
+  healing: '治疗',
+  damage_taken: '承伤',
+  deaths: '总死亡',
+  kda: '均 KDA',
+  dps: '均秒伤',
+  damage_per_death: '均每死输出',
+  taken_per_death: '均每死承伤',
   heal_conversion: '均治疗转化',
 }
 
@@ -30,8 +37,21 @@ export function compareSummaryBarOption(sel: SquadAnalysis[]) {
     tooltip: { trigger: 'axis', ...CHART_THEME.tooltip, valueFormatter: (v: number) => fmtNum(v) },
     legend: { top: 0, data: sel.map((s) => s.squad_name), ...CHART_THEME.legend },
     grid: { left: 16, right: 20, top: 40, bottom: 8, containLabel: true },
-    xAxis: { type: 'category', data: metrics.map((m) => m.label), axisLabel: { ...CHART_THEME.axis.axisLabel, interval: 0 } },
-    yAxis: { type: 'value', axisLabel: { ...CHART_THEME.axis.axisLabel, formatter: (v: number) => fmtNum(v), width: 50, overflow: 'truncate' }, splitLine: CHART_THEME.axis.splitLine },
+    xAxis: {
+      type: 'category',
+      data: metrics.map((m) => m.label),
+      axisLabel: { ...CHART_THEME.axis.axisLabel, interval: 0 },
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: {
+        ...CHART_THEME.axis.axisLabel,
+        formatter: (v: number) => fmtNum(v),
+        width: 50,
+        overflow: 'truncate',
+      },
+      splitLine: CHART_THEME.axis.splitLine,
+    },
     series: sel.map((s, i) => ({
       name: s.squad_name,
       type: 'bar',
@@ -60,7 +80,13 @@ export function compareRadarOption(sel: SquadAnalysis[]) {
     { name: '每死承伤', max: 0 },
     { name: '治疗转化', max: 0 },
   ]
-  const keys: (keyof SquadAnalysis['indicators'])[] = ['kda', 'dps', 'damage_per_death', 'taken_per_death', 'heal_conversion']
+  const keys: (keyof SquadAnalysis['indicators'])[] = [
+    'kda',
+    'dps',
+    'damage_per_death',
+    'taken_per_death',
+    'heal_conversion',
+  ]
   // 动态 max
   for (const d of dims) d.max = 1
   for (const s of sel) {
@@ -82,18 +108,20 @@ export function compareRadarOption(sel: SquadAnalysis[]) {
       axisName: { ...CHART_THEME.axis.axisName, overflow: 'truncate', width: 50 },
       indicator: dims,
     },
-    series: [{
-      type: 'radar',
-      data: sel.map((s, i) => ({
-        name: s.squad_name,
-        value: keys.map((k) => s.indicators[k] as number),
-        areaStyle: { opacity: 0.1 },
-        lineStyle: { width: 2.5, color: COMPARE_COLORS[i % COMPARE_COLORS.length] },
-        itemStyle: { color: COMPARE_COLORS[i % COMPARE_COLORS.length] },
-        symbol: 'circle',
-        symbolSize: 5,
-      })),
-    }],
+    series: [
+      {
+        type: 'radar',
+        data: sel.map((s, i) => ({
+          name: s.squad_name,
+          value: keys.map((k) => s.indicators[k] as number),
+          areaStyle: { opacity: 0.1 },
+          lineStyle: { width: 2.5, color: COMPARE_COLORS[i % COMPARE_COLORS.length] },
+          itemStyle: { color: COMPARE_COLORS[i % COMPARE_COLORS.length] },
+          symbol: 'circle',
+          symbolSize: 5,
+        })),
+      },
+    ],
   }
 }
 
@@ -102,7 +130,15 @@ export function buildCompareDiffRows(a: SquadAnalysis, b: SquadAnalysis) {
   const rows: { label: string; v1: string; v2: string; diff: number; diffStr: string; wave: number }[] = []
 
   // 汇总指标
-  const totalKeys: (keyof SquadAnalysis['totals'])[] = ['kills', 'assists', 'player_damage', 'building_damage', 'healing', 'damage_taken', 'deaths']
+  const totalKeys: (keyof SquadAnalysis['totals'])[] = [
+    'kills',
+    'assists',
+    'player_damage',
+    'building_damage',
+    'healing',
+    'damage_taken',
+    'deaths',
+  ]
   for (const k of totalKeys) {
     const v1 = a.totals[k] as number
     const v2 = b.totals[k] as number
@@ -110,14 +146,22 @@ export function buildCompareDiffRows(a: SquadAnalysis, b: SquadAnalysis) {
     const base = Math.min(v1, v2)
     rows.push({
       label: COMPARE_METRIC_LABELS[k] ?? k,
-      v1: fmtNum(v1), v2: fmtNum(v2),
-      diff, diffStr: fmtNum(Math.abs(diff)),
-      wave: base > 0 ? Math.abs(diff) / base * 100 : 0,
+      v1: fmtNum(v1),
+      v2: fmtNum(v2),
+      diff,
+      diffStr: fmtNum(Math.abs(diff)),
+      wave: base > 0 ? (Math.abs(diff) / base) * 100 : 0,
     })
   }
 
   // 均值指标
-  const indKeys: (keyof SquadAnalysis['indicators'])[] = ['kda', 'dps', 'damage_per_death', 'taken_per_death', 'heal_conversion']
+  const indKeys: (keyof SquadAnalysis['indicators'])[] = [
+    'kda',
+    'dps',
+    'damage_per_death',
+    'taken_per_death',
+    'heal_conversion',
+  ]
   for (const k of indKeys) {
     const v1 = a.indicators[k] as number
     const v2 = b.indicators[k] as number
@@ -128,8 +172,9 @@ export function buildCompareDiffRows(a: SquadAnalysis, b: SquadAnalysis) {
       label: COMPARE_METRIC_LABELS[k] ?? k,
       v1: isDecimal ? v1.toFixed(2) : fmtNum(Math.round(v1)),
       v2: isDecimal ? v2.toFixed(2) : fmtNum(Math.round(v2)),
-      diff, diffStr: isDecimal ? Math.abs(diff).toFixed(2) : fmtNum(Math.round(Math.abs(diff))),
-      wave: base > 0 ? Math.abs(diff) / base * 100 : 0,
+      diff,
+      diffStr: isDecimal ? Math.abs(diff).toFixed(2) : fmtNum(Math.round(Math.abs(diff))),
+      wave: base > 0 ? (Math.abs(diff) / base) * 100 : 0,
     })
   }
 

@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# ===== 发布制品归档脚本模板（复制为 scripts/release-archive.sh 使用） =====
+#
+# 目的（合规化计划 W3-3）：本项目**不使用镜像仓库**，发布前把当前运行的镜像归档为带版本号的 tar，
+#  以便出问题时按 `DEPLOY.md §九 版本归档与回滚` 回滚到上一个版本。
+#
+# 版本权威：**git 标签**（`vX.Y.Z`，见 `CHANGELOG.md` 与 `GIT-GUIDE.md §5`）。
+#  脚本会校验版本格式；若在 git 仓库内还会核对标签是否存在、工作区是否干净并打印提交号。
+#
+# 用法：
+#   cp scripts/release-archive.sh.example scripts/release-archive.sh && chmod +x scripts/release-archive.sh
+#   ./scripts/release-archive.sh v1.2.0                  # 默认 DRY_RUN=1：只打印命令
+#   DRY_RUN=0 ./scripts/release-archive.sh v1.2.0        # 真正归档
+#
+# 产物：`$ARCHIVE_DIR/nsh-<service>-<version>.tar` + 同名 `.manifest.txt`（记录版本、提交号、镜像摘要、时间）
+# 注意：归档只覆盖**镜像**；数据库回滚需另配 `scripts/backup-db.sh`（见 DEPLOY.md §五/§九）。
+
+set -euo pipefail
+
+VERSION="${1:-}"
+ARCHIVE_DIR="${ARCHIVE_DIR:-$HOME/nsh-archives}"
+COMPOSE_DIR="${COMPOSE_DIR:-$PWD}"
+SERVICES="${SERVICES:-backend frontend}"
+DRY_RUN="${DRY_RUN:-1}"
+
+if [ -z "${VERSION}" ]; then
+  printf '用法：%s vX.Y.Z（版本号取 git 标签）\n' "$0" >&2
+  exit 2
+fi
+if ! printf '%s' "${VERSION}" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+  printf '[错误] 版本号须形如 vX.Y.Z（SemVer）：%s\n' "${VERSION}" >&2
+  exit 2
+fi
+
+run_cmd() {
+  if [ "${DRY_RUN}" = "1" ]; then
+    printf '[dry-run] %s\n' "$*"
+  else
+    printf '[run] %s\n' "$*"
+    "$@"
+  fi
+}
+
+printf '== 发布制品归档 ==\n'
+printf '版本         : %s\n' "${VERSION}"
+printf 'compose 目录 : %s\n' "${COMPOSE_DIR}"
+printf '归档目录     : %s\n' "${ARCHIVE_DIR}"
+printf '服务         : %s\n' "${SERVICES}"
+
+COMMIT="(unknown)"
+if git -C "${COMPOSE_DIR}" rev-parse --git-dir >/dev/null 2>&1; then
+  COMMIT="$(git -C "${COMPOSE_DIR}" rev-parse --short HEAD)"
+  printf '当前提交     : %s\n' "${COMMIT}"
+  if git -C "${COMPOSE_DIR}" rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null 2>&1; then
+    printf '[信息] 标签 %s 存在\n' "${VERSION}"
+  else
+    printf '[警告] 未找到 git 标签 %s：仍可归档，但版本号来源无法核对（请先按 GIT-GUIDE §5 打标签）\n' "${VERSION}" >&2
+  fi
+  if [ -n "$(git -C "${COMPOSE_DIR}" status --porcelain)" ]; then
+    printf '[警告] 工作区有未提交改动：归档的镜像可能不对应任何已提交版本\n' >&2
+  fi
+else
+  printf '[警告] 当前目录不是 git 仓库：跳过标签与提交号核对\n' >&2
+fi
+
+if [ "${DRY_RUN}" = "1" ]; then
+  printf '[dry-run] 真实执行时会先校验：compose 目录存在 / docker 可用 / 目标目录可写\n'
+else
+  [ -d "${COMPOSE_DIR}" ] || { printf '[错误] compose 目录不存在：%s\n' "${COMPOSE_DIR}" >&2; exit 1; }
+  command -v docker >/dev/null 2>&1 || { printf '[错误] 未找到 docker 命令\n' >&2; exit 1; }
+  mkdir -p "${ARCHIVE_DIR}"
+  cd "${COMPOSE_DIR}"
+fi
+
+MANIFEST="${ARCHIVE_DIR}/nsh-${VERSION}.manifest.txt"
+if [ "${DRY_RUN}" = "1" ]; then
+  printf '[dry-run] 将写入清单：%s\n' "${MANIFEST}"
+else
+  {
+    printf 'version: %s\n' "${VERSION}"
+    printf 'commit: %s\n' "${COMMIT}"
+    printf 'archived_at: %s\n' "$(date -Iseconds)"
+    printf 'services: %s\n' "${SERVICES}"
+  } > "${MANIFEST}"
+fi
+
+for svc in ${SERVICES}; do
+  OUT="${ARCHIVE_DIR}/nsh-${svc}-${VERSION}.tar"
+  if [ "${DRY_RUN}" = "1" ]; then
+    printf '[dry-run] 将解析服务 %s 的镜像引用（docker compose ps -q %s → docker inspect），随后 docker save -o %s <image>\n' "${svc}" "${svc}" "${OUT}"
+    continue
+  fi
+  CID="$(docker compose ps -q "${svc}" | head -n1)"
+  if [ -z "${CID}" ]; then
+    printf '[错误] 服务 %s 未在运行：请先 docker compose up -d 再归档（DEPLOY.md §九）\n' "${svc}" >&2
+    exit 1
+  fi
+  IMAGE="$(docker inspect --format '{{.Config.Image}}' "${CID}")"
+  run_cmd docker save -o "${OUT}" "${IMAGE}"
+  printf 'image:%s=%s\n' "${svc}" "${IMAGE}" >> "${MANIFEST}"
+  ls -lh "${OUT}"
+done
+
+printf '== 完成 ==\n'
+if [ "${DRY_RUN}" = "1" ]; then
+  printf '当前为 dry-run，未生成文件。确认无误后以 DRY_RUN=0 重跑。\n'
+else
+  printf '清单：%s\n' "${MANIFEST}"
+  printf '回滚步骤见 DEPLOY.md §九；如需连数据库一并回退，请配合 scripts/backup-db.sh 的备份产物。\n'
+fi

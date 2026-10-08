@@ -4,7 +4,14 @@
     <template v-else>
       <!-- 工具栏 -->
       <div class="toolbar">
-        <el-select v-model="campFilter" placeholder="阵营筛选" clearable style="width: 150px" @change="load">
+        <el-select
+          aria-label="阵营筛选"
+          v-model="campFilter"
+          placeholder="阵营筛选"
+          clearable
+          style="width: 150px"
+          @change="load"
+        >
           <el-option v-for="c in campOptions" :key="c" :label="c" :value="c" />
         </el-select>
         <span class="toolbar__count">{{ profStats.length }} 个职业 · 17 项指标</span>
@@ -37,7 +44,7 @@
       <!-- 图表行 3：平均承伤 -->
       <div class="chart-row">
         <div class="chart-card">
-          <div class="chart-card__title">职业平均承伤（承伤职业：铁衣 / 血河 / 沧澜 / 素问）</div>
+          <div class="chart-card__title">职业平均承伤（承伤职业：{{ TANK_LABEL }}）</div>
           <EChart :option="metricBarOption('avg_damage_taken', { filterProf: isTank, fmt: fmtNum })" :height="340" />
         </div>
         <div class="chart-card">
@@ -56,6 +63,7 @@
 </template>
 
 <script setup lang="ts">
+const TANK_LABEL = [...TANK_PROFESSIONS].join(' / ')
 import { computed, ref, watch } from 'vue'
 
 import { getProfessionStats } from '@/api/matchData'
@@ -66,6 +74,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import ProfessionCompareTable from './ProfessionCompareTable.vue'
 import ProfessionMetricTables from './ProfessionMetricTables.vue'
 import {
+  TANK_PROFESSIONS,
   buildCountPieOption,
   buildMetricBarOption,
   buildSkillBarOption,
@@ -103,7 +112,15 @@ async function load() {
   }
 }
 
-watch(() => props.roundNo, () => { campOptions.value = []; campFilter.value = ''; load() }, { immediate: true })
+watch(
+  () => props.roundNo,
+  () => {
+    campOptions.value = []
+    campFilter.value = ''
+    load()
+  },
+  { immediate: true },
+)
 
 // 图表 option（构建逻辑见 professionDetailCharts）
 const countPieOption = computed(() => buildCountPieOption(profStats.value))

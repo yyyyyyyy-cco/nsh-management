@@ -1,5 +1,7 @@
 """排表接口：读取排表（帮众可看）、保存排表（管理员）、候选池（管理员）。"""
-from datetime import datetime, timezone
+
+from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +33,7 @@ async def get_lineup(
     if lineup.id is None:
         lineup.id = 0
     if lineup.updated_at is None:
-        lineup.updated_at = datetime.now(timezone.utc)
+        lineup.updated_at = datetime.now(UTC)
     result = LineupOut.model_validate(lineup)
     # 仅规范化响应，不批量改写历史数据；与候选池保持同一补人姓名键。
     for team in result.data:
@@ -51,8 +53,12 @@ async def save_lineup(
     session: AsyncSession = Depends(get_db),
 ) -> LineupOut:
     lineup = await lineup_service.save_lineup(
-        session, current_user.guild_id, schedule_id, [t.model_dump() for t in body.data],
-        title_remark=body.title_remark, groups_remark=body.groups_remark,
+        session,
+        current_user.guild_id,
+        schedule_id,
+        [t.model_dump() for t in body.data],
+        title_remark=body.title_remark,
+        groups_remark=body.groups_remark,
     )
     return LineupOut.model_validate(lineup)
 
@@ -62,7 +68,7 @@ async def list_candidates(
     schedule_id: int,
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
-) -> list[LineupCandidateOut]:
+) -> list[dict[str, Any]]:
     return await lineup_service.candidate_pool(session, current_user.guild_id, schedule_id)
 
 
@@ -71,7 +77,7 @@ async def list_history(
     schedule_id: int,
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
-) -> list[LineupHistoryOut]:
+) -> list[dict[str, Any]]:
     return await lineup_service.list_lineup_history(session, current_user.guild_id, schedule_id)
 
 

@@ -9,7 +9,11 @@ import type {
 } from '@/types/gameIdRequest'
 
 /** 常驻成员最小候选（帮众选择改名对象）。 */
-export function listGameIdOptions(params: { q?: string; page?: number; page_size?: number }): Promise<GameIdOptionPage> {
+export function listGameIdOptions(params: {
+  q?: string
+  page?: number
+  page_size?: number
+}): Promise<GameIdOptionPage> {
   return http.get('/members/game-id-options', { params })
 }
 

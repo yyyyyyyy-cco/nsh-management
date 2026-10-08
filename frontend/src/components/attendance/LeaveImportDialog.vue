@@ -2,6 +2,7 @@
   <el-dialog v-model="visible" title="导入请假" width="480px" append-to-body>
     <p class="dialog-tip">粘贴请假名单（纯文本，每行一个，支持「1.ID 原因」序号格式）：</p>
     <el-input
+      aria-label="粘贴请假名单"
       v-model="rawText"
       type="textarea"
       :rows="6"
@@ -63,7 +64,10 @@ watch(visible, (v) => {
 
 /** 解析纯文本：跳过行首序号（如 "1.姓名 原因"），取姓名关键词按包含关系匹配出勤成员。 */
 const result = computed(() => {
-  const lines = rawText.value.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+  const lines = rawText.value
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
   const matched: AttendanceRecord[] = []
   const unmatched: string[] = []
   for (const line of lines) {

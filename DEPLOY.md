@@ -51,6 +51,19 @@
   （`frontend/nginx.conf`，2026-09-11 生效；no-store 为 2026-09-11 下午针对微信端
   缓存旧 HTML 问题强化，index.html 同时内嵌 meta 缓存标签，见 `frontend/index.html`）。
 
+### 健康检查与在线 API 文档（2026-10-02 新增）
+
+- **健康检查端点** `GET /health`（根路径；容器 `healthcheck` 探它）：进程可用且数据库可查询 →
+  `200 {"status":"ok","database":"ok"}`；数据库不可用 → `503 {"status":"degraded","database":"error"}`。
+  数据库异常刻意**不抛 500**：否则对外表现为「应用崩溃」而非「依赖不可用」，不利排查。
+  同一端点也挂在 `/api/v1/health`，可经既有 `/api/*` 反向代理对外访问，供外部 uptime 监控探活；
+  若不希望对外暴露，可在边缘 Nginx 拦掉该路径（探活改用内网方式）。
+- **手动探活**：backend 不映射宿主端口，宿主机直接 `curl` 不通。可执行
+  `docker compose exec backend python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8000/health').read().decode())"`。
+- **生产环境关闭在线 API 文档**：`/docs`、`/redoc`、`/openapi.json` 一律 404（本地开发环境保留，便于调试）。
+  依据 OWASP Top 10:2025 A02（安全配置错误）。需要临时查阅接口时请在本地以开发环境运行后端，
+  **不要在服务器上开启**。
+
 ## 三、日常更新流程（一键）
 
 在**本地项目根目录**执行：
@@ -61,6 +74,43 @@
 
 流程：本地 tar 打包（约 2.4M）→ scp 上传 → 服务器解压 → `docker compose up -d --build`
 → 健康检查。数据双卷不受影响，迁移自动执行。
+
+> **2026-10-02 补充（合规化计划 W1-1/W1-2）**：
+> - `deploy.sh` 本身不入库（含服务器信息），其**占位符模板已入库**为 `deploy.sh.example`——依据本节流程重建，含排除清单、路径锚定告警与非零退出的健康检查。新环境执行 `cp deploy.sh.example deploy.sh`，填写 `SERVER_IP` / `SERVER_USER` / `DOMAIN` 后使用。
+> - `frontend/nginx.conf`（**占位符版**）现已入库，作为 frontend 镜像的构建输入：此前该文件不在仓库内，导致全新克隆在 `COPY nginx.conf` 一步直接构建失败。它仍在下方排除清单内，**服务器版本不受影响**；两边漂移由本节「服务器配置类文件的变更规则」管理。
+> - `frontend/nginx.conf.example` 已收窄为**边缘层（B 段）模板**，内层（A 段）以 `frontend/nginx.conf` 为唯一副本，避免同一配置两处漂移。
+
+
+### 配置漂移检查（服务器配置 vs 仓库配置）
+
+> 来源：合规化整改计划 **W1-3**（决策 **D-5** 的回退方案）。仓库提供 `scripts/check-config-drift.sh.example`。
+
+**何时运行**：在服务器上**手工改过** `docker-compose.yml` 或反向代理配置之后；或作为**部署前检查**接入。
+
+**如何运行**（在服务器仓库目录下）：
+
+```bash
+# 1) 复制为实际脚本（.example 后缀是为了不被自动执行）
+cp scripts/check-config-drift.sh.example scripts/check-config-drift.sh
+
+# 2) 报告型：只报告，不改变退出码（有漂移也返回 0）
+bash scripts/check-config-drift.sh
+
+# 3) 接入部署前检查：有漂移即失败
+bash scripts/check-config-drift.sh --strict
+
+# 4) 指定路径（服务器文件 仓库文件，可多对）
+bash scripts/check-config-drift.sh /srv/nsh-management/docker-compose.yml ./docker-compose.yml
+```
+
+**安全保证**：脚本**不打印掩码前的原值**；默认只掩码**敏感键名**的值（`KEY`/`SECRET`/`TOKEN`/`PASSWORD`/`PWD`/`CREDENTIAL`/`DSN`/`AUTH`/`SALT`），
+端口、镜像标签、路径等保留参与比对 —— 否则真正的漂移也会被一并掩掉。更谨慎的场景可加 `--mask-all`（代价：非敏感差异将不可见）。
+
+**退出码**：`0` 无漂移，或报告型下有漂移；`1` `--strict` 且有漂移；`2` 用法/环境错误。
+
+**已知局限**（如实记录）：①需要 `bash` 4 及以上（使用 `${var^^}`）；②脚本用 bash 内建实现掩码与比对，
+**不依赖** `sed`/`diff`/`grep`/`awk`（已在极简 PATH 下实测可用）；③若以 **Windows 反斜杠绝对路径**调用，
+仓库根目录推导会退化到上一层 —— 请在仓库目录内以相对路径调用（部署目标为 Linux，不受影响）。
 
 ### deploy.sh 打包排除清单（⚠️ 严禁移除）
 
@@ -106,6 +156,21 @@
 `up -d` 不重建时旧版仍在）。
 
 ## 四、日志系统
+### 逐层日志清单（2026-10-02 新增，对应 ASVS 16.1.1）
+
+> 本表是**"哪一层记什么、存在哪、留多久、怎么查"的唯一落点**；日志配置的实现证据见括号内文件。
+
+| 层 | 记录内容 | 载体 / 位置 | 格式与级别 | 留存 | 检索方式 |
+|----|---------|------------|-----------|------|---------|
+| 边缘 `nginx-proxy` | 访问日志（含 429 限流）、错误日志 | 宿主 nginx 的 access/error 文件（服务器侧维护，**不在本仓库**） | nginx 默认 combined / error | 由服务器 logrotate 决定 | 服务器上 `tail`/`grep`；本仓库不含该层配置 |
+| 内层 `frontend`（nginx） | 静态资源与 `/api` 回源访问、错误 | 容器 `/var/log/nginx/*.log`（`frontend/Dockerfile` 已 chown 给 `appuser`） | nginx 默认 | 随容器生命周期（未挂卷） | `docker compose logs frontend`、`docker compose exec frontend tail -f /var/log/nginx/access.log` |
+| `backend` 应用日志 | 应用与 uvicorn 日志（`setup_logging()` 统一接管，`uvicorn*` 日志器 propagate 到根） | ①容器 stdout；②卷 `nsh-logs` → `/app/logs/app.log` | `%(asctime)s [%(levelname)s] %(name)s: %(message)s`；级别 = `DEBUG` 时 DEBUG，否则 INFO（`backend/app/core/logging_config.py`） | 单文件 10MB × 5 轮转（约 60MB 上限） | `docker compose logs -f backend`、`docker compose exec backend tail -f /app/logs/app.log` |
+| **审计表** `operation_logs` | 结构化审计：user/role/guild、module/action、method/path/status、detail（已脱敏与转义）、ip、created_at | SQLite `nsh-data` 卷内 `nsh.db` | 表结构（`backend/app/models/operation_log.py`）；写入方＝审计中间件 | `LOG_RETENTION_DAYS`（默认 **90** 天），服务启动时清理更早记录（`services/log_service.py`） | 开发者角色「系统日志」页面检索；或 SQL 直查 |
+| 告警通道 | 错误率超阈值时的 **WARNING** 日志（**不静默**）+ 可选 webhook POST JSON | 容器 stdout + 外部 webhook | WARNING | 同 backend 日志 | `docker compose logs backend | grep 告警`；webhook 侧记录 |
+
+**边界**：日志**未外发到独立系统**（同机 SQLite + stdout，ASVS 16.4.3 仍为 ❌，属单机自托管取舍）；日志**无防篡改**（16.4.2 ❌，developer 可清理，清理动作自身入审计）。
+
+
 
 | 层 | 位置 | 说明 |
 |----|------|------|
@@ -113,6 +178,7 @@
 | 审计日志 | SQLite 表 `operation_logs`（库内） | 所有写操作（POST/PUT/DELETE/PATCH）+ 5xx 错误自动落库；登录成功/失败手动埋点；detail 已脱敏（password/token 等不落库） |
 | 页面查看 | 站点侧边栏「系统日志」（仅开发者账号） | 概览统计（今日操作/错误、近 7 天错误分布，北京时间口径）+ 筛选分页 + 清理 |
 | 保留策略 | 审计日志默认保留 **90 天**，启动时自动清理过期记录；页面亦可手动清理（操作本身会被审计） |
+| 错误率告警 | 后台循环（启动即查一次，之后每 `ALERT_CHECK_INTERVAL_MINUTES` 分钟，默认 15）：最近 `ALERT_WINDOW_MINUTES`（默认 30）分钟内 `level=error` 达 `ALERT_ERROR_THRESHOLD`（默认 20）条 → 写 **WARNING** 日志并（若配置 `ALERT_WEBHOOK_URL`）POST JSON 到 webhook；同一窗口内不重复通知（进程内去重）。阈值为 0 表示禁用。**未配置 webhook 时告警仍会写日志**，不静默 |
 
 运维排查路径：页面看审计 → `docker compose logs -f backend` 看实时控制台 →
 `/app/logs/app.log` 看历史文件日志。
@@ -148,14 +214,90 @@ docker compose start backend
 > 卷的实际名称带 compose 项目前缀：`nsh-management_nsh-data` / `nsh-management_nsh-logs`
 >（`docker volume ls | grep nsh` 可查）。切勿 `docker compose down -v`。
 
+### 自动化备份（2026-10-02 新增，合规化计划 W3-2）
+
+`scripts/backup-db.sh.example` 把上面的「方式一」自动化（复制为 `scripts/backup-db.sh` 使用）：
+
+- **默认 dry-run**（`DRY_RUN=1`）只打印将执行的命令；确认无误后用 `DRY_RUN=0` 真正执行；
+- 快照先在容器内生成并执行 `PRAGMA integrity_check`，**校验通过才拷出**——避免把坏库当备份；
+- 产物 `$BACKUP_DIR/nsh-YYYYmmdd-HHMMSS.db`（默认 `~/nsh-backups`），默认保留 30 天（`RETENTION_DAYS`）；
+- cron 示例（每日 03:30）与全部可调参数见脚本头部注释。
+
+**为什么不能用 `cp`（本机实测，2026-10-02，Python 3.14 + SQLite）**：建库并写入 2000 行、**保持连接打开**时，
+直接复制**主库文件**得到的副本报 `no such table: t`（表结构都还在 `-wal` 里）；而 `backup API` 生成的快照
+读到 2000 行且 `integrity_check = ok`。这就是上方 ⚠️ 的实证依据。
+
+### 恢复演练记录（每季一次）
+
+| 日期 | 演练人 | 备份文件 | 恢复到 | 结果 | 备注 |
+|------|--------|----------|--------|------|------|
+| 2026-10-02（模板） | — | `nsh-YYYYmmdd-HHMMSS.db` | 非生产实例 | 待执行 | 首次演练按本节命令覆盖后，用 `PRAGMA integrity_check` + 登录冒烟验证 |
+
+> 演练要求：①使用**真实备份产物**恢复（不是现场重新生成）；②在**非生产**实例上验证可登录、可读常驻库与出勤库；
+> ③记录耗时与问题；④**禁止**在生产实例上演练恢复。
+
 ## 六、环境变量（服务器 `~/nsh-management/.env`）
+
+> **表格口径（2026-10-02）**：§六 表格已按 `.env.example` 补全（此前只列了必需项，运行时可选变量缺失）；门禁 `scripts/check_env_docs.py` 会校验「`.env.example` 的每个键都在本文档出现」，因此**新增环境变量时必须同时更新两处**。
 
 | 键 | 用途 |
 |----|------|
 | `SECRET_KEY` | JWT 签名密钥（强随机，`openssl rand -hex 32`） |
 | `DEVELOPER_PASSWORD` / `ADMIN_PASSWORD` / `MEMBER_PASSWORD` | 三角色密码（仅首次建库生效） |
+| `CORS_ORIGINS` | 允许的跨域来源（逗号分隔，可选）。默认值仅本地开发来源；生产由 Nginx **同源**反代 `/api`，通常**无需设置**；仅当 API 被跨域直连时显式列出。**不要填 `*`**（本项目 `allow_credentials=True`） |
+| `ALERT_WEBHOOK_URL` | 错误率告警的 webhook 地址（可选）。**未配置时仍会在容器日志写 WARNING**（不静默）；阈值 / 窗口 / 检查间隔分别为 `ALERT_ERROR_THRESHOLD`（默认 20）/ `ALERT_WINDOW_MINUTES`（30）/ `ALERT_CHECK_INTERVAL_MINUTES`（15），阈值为 0 表示禁用 |
+| `APP_ENV` | 运行环境标识。Compose 已在 backend 服务固定 `production`，此处**无需重复设置**；非 Compose 部署（k8s / 裸机）**必须显式设为 `production`**，否则启动弱密钥校验的兜底判定可能失效 |
+| `DEBUG` | 调试模式（默认 `false`）。**生产必须保持 false**；生产环境下 `/docs`、`/redoc`、`/openapi.json` 亦被关闭 |
+| `DATABASE_URL` | 数据库连接串（可选）。默认 `sqlite+aiosqlite:///<数据目录>/nsh.db`（容器内为挂载卷）；改用其它路径或外部数据库时才需设置，SQLite 路径须为绝对路径（四个斜杠） |
+| `LOG_RETENTION_DAYS` | 审计日志保留天数（默认 `90`）：服务启动时清理更早的记录 |
+| `DEVELOPER_USERNAME` / `ADMIN_USERNAME` / `MEMBER_USERNAME` | 首次初始化账号的登录名（默认 `developer` / `admin` / `member`，仅首次建库生效） |
+| `DEFAULT_GUILD_NAME` | 首次建库创建的默认帮会名（默认「默认帮会」） |
+| `ALERT_ERROR_THRESHOLD` / `ALERT_WINDOW_MINUTES` / `ALERT_CHECK_INTERVAL_MINUTES` | 错误率告警的阈值（默认 20 条）/ 统计窗口（30 分钟）/ 检查间隔（15 分钟）；阈值 **≤ 0** 表示禁用 |
 
 敏感内容，严禁写入任何入库文件；修改 `SECRET_KEY` 会使所有登录态失效。
+
+### 关键秘密清单（2026-10-02 新增，对应 ASVS 13.1.4）
+
+> 本节是**秘密清单与管理策略的唯一落点**（环境变量取值见上一张表，本节不重复列默认值）。
+> 判定口径：秘密 = 泄漏后可直接或间接获得权限、解密能力或身份的东西。
+
+| 秘密 | 存放位置 | 访问边界（谁能读） | 泄漏影响（按严重度） |
+|------|---------|------------------|--------------------|
+| `SECRET_KEY` | 服务器 `.env`（`.gitignore` 忽略；`backend/.dockerignore` 亦排除，**不入镜像**） | 仅服务器部署账号/root | **最高**：可伪造任意角色（含 developer）的 JWT。经代码核实，它的唯一用途是 JWT 签发与校验（`backend/app/core/security.py`），不涉及口令哈希与审计 |
+| `DEVELOPER_PASSWORD` / `ADMIN_PASSWORD` / `MEMBER_PASSWORD` | 服务器 `.env` | 同上 | 高：可直接登录对应初始账号。**仅在首次建库时生效**，改库后不再读取 |
+| 账号口令（运行时） | 库内 `users.password_hash`（bcrypt）；另有 `users.plain_password` **明文列**（仅 developer 可见，属已接受风险，见 `security-review.md §十六 A2`） | 库文件属主 `appuser`；备份产物**未加密** | 高：库文件或备份泄漏 = 口令全量泄漏 |
+| `ALERT_WEBHOOK_URL` | 服务器 `.env` | 同上 | 低-中：可向该 webhook 发送伪造告警；若 URL 内嵌共享令牌，等同该令牌泄漏 |
+| `DATABASE_URL` | 服务器 `.env`（仅改用外部库时才设置） | 同上 | 中：可能内嵌外部数据库账号口令 |
+| TLS 私钥 | 宿主 `/etc/letsencrypt`（以 `:ro` 只读挂载进边缘 `nginx-proxy`） | 宿主 root | 高：可解密或冒充站点 |
+| 服务器 SSH 凭据 | 部署者本机的 `deploy.sh`（**不入库**，见 §三 排除清单） | 部署者本机 | 最高：服务器接管 |
+
+**"不入库"的验证方式**（不要靠记忆）：
+
+```bash
+git check-ignore -v .env deploy.sh        # 应各自命中一条忽略规则
+git ls-files | grep -E '(^|/)\.env$'      # 期望：无输出（模板 .env.example 除外，它是占位符）
+```
+
+### 秘密轮换与泄漏处置（2026-10-02 新增，对应 ASVS 13.3.4）
+
+**轮换周期建议**：`SECRET_KEY` 每 6–12 个月、或**人员变动 / 疑似泄漏 / 服务器重建**时立即轮换；
+三角色初始口令在**首次部署完成后立即**改为强口令（此后系统不再读取这两个变量）。
+
+| 秘密 | 轮换步骤 | 影响与验证 |
+|------|---------|-----------|
+| `SECRET_KEY` | ①`openssl rand -hex 32`；②替换服务器 `.env` 中的值；③`docker compose up -d backend`（重建容器） | **所有已登录用户需重新登录**（旧令牌验签失败；这是预期代价，见 §六 末尾与 Q6）。验证：旧令牌请求返回 401、重新登录后 200 |
+| 三角色初始口令 | 首次部署后通过系统内**自助改密**（右上角菜单 →「修改密码」）或管理端重置 | 无需重启；改密会使该账号的**其他会话立即失效**（`token_version` 自增） |
+| 账号口令（疑似泄漏） | 立即改密；必要时在系统配置禁用该账号（禁用即 401） | 无需重启 |
+| `ALERT_WEBHOOK_URL` | 替换 `.env` 中值 → `docker compose up -d backend` | 无登录影响 |
+| TLS 私钥/证书 | 交由宿主 `certbot` 续期（证书路径与挂载见 §二）；续期后重载边缘 `nginx-proxy` | 验证：`openssl s_client` 查看证书有效期 |
+| SSH 凭据 | 更换密钥对并清理 `authorized_keys`；确认 `deploy.sh` 未入库 | 验证：`git check-ignore -v deploy.sh` 有命中 |
+
+**泄漏应急处置（按顺序）**：
+
+1. **先轮换、后排查**：按上表轮换相关秘密（`SECRET_KEY` 轮换会让攻击者已窃取的令牌立即失效）；
+2. **查审计**：`operation_logs` 表按 `module='auth'` 检索异常登录/IP（登录成功与失败均已埋点）；
+3. **查暴露面**：确认泄漏路径（误提交到 git / 镜像 / 日志 / 备份），若曾推送过 git，轮换是唯一补救（历史无法回收）；
+4. **记录**：在 `security-review.md` 追加一条处置记录（含时间、影响面、轮换范围），便于回溯。
 
 ### 启动门禁（2026-09-28 新增）
 
@@ -240,3 +382,51 @@ backend 服务临时设 `APP_ENV: development` 后 `docker compose up -d backend
 | 配置 | `core/config.py` 默认值 + 本地 `.env` | 服务器 `.env` |
 | compose | 端口 80/443，仅 nsh-net | frontend 无宿主端口，nsh-net + proxy-net（external） |
 | 更新方式 | — | 本地 `./deploy.sh` 一键 |
+
+## 九、版本归档与回滚（2026-10-02 新增，合规化计划 W3-3）
+
+本项目**不使用镜像仓库**，制品以带版本号的 tar 归档。**版本权威是 git 标签**（`vX.Y.Z`；
+面向使用者的变更见 `CHANGELOG.md`，打标签流程见 `GIT-GUIDE.md §5`）。
+
+### 9.1 发布前归档（在服务器 compose 目录执行）
+
+```bash
+cp scripts/release-archive.sh.example scripts/release-archive.sh && chmod +x scripts/release-archive.sh
+./scripts/release-archive.sh v1.2.0              # 默认 dry-run：先看要做什么
+DRY_RUN=0 ./scripts/release-archive.sh v1.2.0    # 真正归档 backend / frontend 镜像
+```
+
+产物：`~/nsh-archives/nsh-backend-v1.2.0.tar`、`nsh-frontend-v1.2.0.tar` 与清单
+`nsh-v1.2.0.manifest.txt`（记录版本、提交号、镜像引用、归档时间）。脚本会核对标签是否存在、
+工作区是否干净并给出**警告**——归档的镜像必须能对应到一个已提交版本。
+
+### 9.2 回滚步骤（停服 → 换回旧版本 → 启动 → 验证）
+
+```bash
+cd ~/nsh-management
+docker compose stop                                     # 1) 停服
+docker load -i ~/nsh-archives/nsh-backend-v1.1.0.tar     # 2) 载入上一版本镜像
+docker load -i ~/nsh-archives/nsh-frontend-v1.1.0.tar
+docker images | grep -i nsh                              # 3) 记下旧镜像的 IMAGE ID
+# 4) 让 compose 使用旧镜像：为该镜像打上 compose 期望的本地 tag（回滚完成后还原 compose 文件）
+docker tag <旧镜像ID> nsh-management_backend:rollback
+docker tag <旧镜像ID> nsh-management_frontend:rollback
+docker compose up -d                                     # 5) 启动
+docker compose ps                                        # 6) backend 需 healthy、frontend 需 running
+curl -sk -o /dev/null -w '%{http_code}\n' \
+  -H 'Host: <YOUR_DOMAIN>' https://127.0.0.1/            # 7) 入口应为 200
+```
+
+### 9.3 ⚠️ 数据库迁移不可逆：回滚前必须先判断
+
+- 容器**每次启动**都会执行 `alembic upgrade head`（Dockerfile CMD），迁移**只前进不回退**。
+- 若已发布的版本包含**破坏性迁移**（删列 / 改类型 / 不可逆数据改写），仅回滚镜像会与已迁移的库不兼容；
+  此时必须**先回滚数据库**：用 `scripts/backup-db.sh` 在**升级前**生成的备份，按 §五 的恢复流程覆盖数据库，
+  再启动旧镜像。
+- 因此发布纪律：**先归档镜像（9.1）+ 先做数据库备份（§五），再执行 `up -d --build`**。
+- 迁移 head 与版本对应关系见 §二 与 `backend/alembic/versions/`；用户可见变更见 `CHANGELOG.md`。
+
+### 9.4 归档保留
+
+镜像 tar 体积较大（每服务数百 MB），建议 `~/nsh-archives` 只保留最近 3～5 个版本。
+删除前确认：该版本已不在生产使用，且其对应的**数据库备份仍在保留期内**（§五，默认 30 天）。

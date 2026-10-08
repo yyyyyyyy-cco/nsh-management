@@ -41,9 +41,7 @@ function getRankings(r: PlayerRecord) {
 
 // X 轴：按时间正序
 const sorted = computed(() => [...props.records].reverse())
-const xLabels = computed(() =>
-  sorted.value.map((r) => `${r.match_time.slice(5, 10)} 第${r.round_no}局`)
-)
+const xLabels = computed(() => sorted.value.map((r) => `${r.match_time.slice(5, 10)} 第${r.round_no}局`))
 
 const rankColor = '#c9a13b'
 
@@ -101,7 +99,10 @@ function buildOption(label: string) {
         areaStyle: {
           color: {
             type: 'linear' as const,
-            x: 0, y: 0, x2: 0, y2: 1,
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
             colorStops: [
               { offset: 0, color: rankColor + '25' },
               { offset: 1, color: rankColor + '05' },

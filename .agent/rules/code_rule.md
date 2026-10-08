@@ -17,7 +17,7 @@ trigger: always_on
 
 > **文档更新规则**（完整维护规范与自检清单见根目录 `AGENTS.md` §2–§3）：
 >
-> 1. 每次更新上述文档后，必须同步更新 **项目文档索引**：`e:\code\@Cjy\nsh-management\memory-bank\architecture.md`
-> 2. 每次更新代码后，必须同步更新 **项目进度文档**：`e:\code\@Cjy\nsh-management\memory-bank\progress.md`
+> 1. 每次更新上述文档后，必须同步更新 **项目文档索引**：`memory-bank/architecture.md`
+> 2. 每次更新代码后，必须同步更新 **项目进度文档**：`memory-bank/progress.md`
 >
 > 记录更新日期、更新内容和关联模块。

@@ -1,0 +1,22 @@
+# ===== Git 属性：换行与二进制归一（合规化计划 W0-2） =====
+# 依据：Git 官方 gitattributes 文档建议 —— 混用 CRLF/LF 会造成无意义 diff 与跨平台行为差异。
+# 本仓库改造前实测：i/crlf 260、i/lf 75（core.autocrlf=true 与缺失属性共同导致）。
+# 规则：仓库内统一 LF；Windows 批处理/脚本保留 CRLF（cmd 解析对 CRLF 敏感）。
+
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制文件禁止行尾转换
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.xlsm  binary
+*.xlsx  binary
+*.db    binary

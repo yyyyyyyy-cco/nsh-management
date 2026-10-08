@@ -67,9 +67,7 @@
 
     <!-- 一键移除：候选池中未被排入排表的已出勤（正常）成员 -->
     <el-dialog v-model="removeVisible" title="移除未排入排表的人员" width="min(420px, 92vw)" append-to-body>
-      <div class="remove-hint">
-        以下成员已出勤（正常），但在排表候选池中未被排入排表，确认后将移出出勤表：
-      </div>
+      <div class="remove-hint">以下成员已出勤（正常），但在排表候选池中未被排入排表，确认后将移出出勤表：</div>
       <el-checkbox-group v-model="removeSelected" class="remove-list">
         <el-checkbox v-for="r in removableItems" :key="r.id" :value="r.member_name" class="remove-item">
           <span class="remove-item__name">{{ r.member_name }}</span>
@@ -165,7 +163,7 @@ onUnmounted(() => mq.removeEventListener('change', onMqChange))
 <style scoped>
 /* ===== 出勤状态开关（浅金风，颜色更浅更柔和） ===== */
 .attendance-tab :deep(.el-switch.is-checked .el-switch__core) {
-  background: linear-gradient(135deg, #f0e0a8 0%, #e8cd72 100%);
+  background: linear-gradient(135deg, var(--gold-200) 0%, var(--gold-300) 100%);
   border-color: transparent;
 }
 

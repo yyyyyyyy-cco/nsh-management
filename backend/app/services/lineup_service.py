@@ -1,4 +1,5 @@
 """排表业务：候选池（出勤库正常成员）、排表读写与保存校验。"""
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,43 +8,13 @@ from app.models.lineup import Lineup
 from app.models.schedule import Schedule
 from app.services.lineup_attendance import LineupServiceError, candidate_pool, get_profession_map
 from app.services.schedule_service import get_schedule
-from app.utils.constants import LINEUP_LAYOUT, SLOTS_PER_TEAM
+from app.utils.lineup_structure import empty_lineup_data
+from app.utils.lineup_structure import validate_structure as _validate_structure
 from app.utils.member_names import normalize_member_name
 
-
-def empty_lineup_data() -> list[dict]:
-    """生成标准空排表结构：10 队 × 6 槽。"""
-    data = []
-    for category, team_count in LINEUP_LAYOUT:
-        for team_index in range(team_count):
-            data.append(
-                {
-                    "category": category,
-                    "team_index": team_index,
-                    "remark": "",
-                    "slots": [
-                        {"slot_index": i, "member_id": None, "member_name": "", "remark": ""}
-                        for i in range(SLOTS_PER_TEAM)
-                    ],
-                }
-            )
-    return data
-
-
-def _validate_structure(data: list[dict]) -> None:
-    """校验排表结构与固定布局一致（分类、队序、槽位）。"""
-    if len(data) != sum(count for _, count in LINEUP_LAYOUT):
-        raise LineupServiceError("排表队伍数量必须为 10 队")
-    expected = [(cat, idx) for cat, count in LINEUP_LAYOUT for idx in range(count)]
-    for team, (cat, idx) in zip(data, expected):
-        if team.get("category") != cat or team.get("team_index") != idx:
-            raise LineupServiceError("排表队伍分类或顺序与固定结构不一致")
-        slots = team.get("slots", [])
-        if len(slots) != SLOTS_PER_TEAM:
-            raise LineupServiceError(f"{cat} 第 {idx + 1} 队槽位数必须为 {SLOTS_PER_TEAM}")
-        for slot, slot_index in zip(slots, range(SLOTS_PER_TEAM)):
-            if slot.get("slot_index") != slot_index:
-                raise LineupServiceError(f"{cat} 第 {idx + 1} 队槽位序号不合法")
+# 结构与唯一占位校验、标准空结构见 app/utils/lineup_structure.py（2026-10-03 抽出，见 F-85）：
+# 本服务此前已接近 300 行上限（.agent/rules/file-length-rule.md），抽到工具层后仍在此转出，
+# 调用方（含 save_lineup / get_lineup 与测试）无需改动。
 
 
 async def _purge_leave_members(session: AsyncSession, lineup: Lineup, schedule_id: int) -> None:
@@ -133,9 +104,7 @@ async def get_lineup(session: AsyncSession, guild_id: int, schedule_id: int) -> 
     await get_schedule(session, guild_id, schedule_id)
     # 清理或保存排表前先拒绝歧义姓名，避免误清同名补人的槽位。
     await get_profession_map(session, schedule_id)
-    lineup = (
-        await session.execute(select(Lineup).where(Lineup.schedule_id == schedule_id))
-    ).scalar_one_or_none()
+    lineup = (await session.execute(select(Lineup).where(Lineup.schedule_id == schedule_id))).scalar_one_or_none()
     if lineup is None:
         return Lineup(schedule_id=schedule_id, data=empty_lineup_data(), title_remark="", groups_remark={})
     if not lineup.data:
@@ -150,8 +119,12 @@ async def get_lineup(session: AsyncSession, guild_id: int, schedule_id: int) -> 
 
 
 async def save_lineup(
-    session: AsyncSession, guild_id: int, schedule_id: int, data: list[dict],
-    title_remark: str = "", groups_remark: dict | None = None,
+    session: AsyncSession,
+    guild_id: int,
+    schedule_id: int,
+    data: list[dict],
+    title_remark: str = "",
+    groups_remark: dict | None = None,
 ) -> Lineup:
     """保存排表：校验结构、成员归属本帮会、按数据库规范化姓名，同时保存团/标题备注。"""
     lineup = await get_lineup(session, guild_id, schedule_id)
@@ -195,9 +168,7 @@ async def save_lineup(
     return lineup
 
 
-async def list_lineup_history(
-    session: AsyncSession, guild_id: int, schedule_id: int
-) -> list[dict]:
+async def list_lineup_history(session: AsyncSession, guild_id: int, schedule_id: int) -> list[dict]:
     """列出本帮会其他有排表数据的赛程（供一键导入，按比赛时间倒序，最多 50 条）。
 
     每条含完整 60 槽位 JSON，限制条数避免赛程积累后响应体积失控。
@@ -269,13 +240,16 @@ async def import_lineup(
             name = normalize_member_name(src.get("member_name"))
             if mid is not None and mid in pool_mids:
                 slots.append(
-                    {**slot, "member_id": mid, "member_name": mid_name.get(mid, name), "remark": src.get("remark") or ""}
+                    {
+                        **slot,
+                        "member_id": mid,
+                        "member_name": mid_name.get(mid, name),
+                        "remark": src.get("remark") or "",
+                    }
                 )
                 imported += 1
             elif mid is None and name and name in pool_names:
-                slots.append(
-                    {**slot, "member_id": None, "member_name": name, "remark": src.get("remark") or ""}
-                )
+                slots.append({**slot, "member_id": None, "member_name": name, "remark": src.get("remark") or ""})
                 imported += 1
             else:
                 slots.append({**slot, "member_id": None, "member_name": ""})

@@ -16,6 +16,7 @@
     <div class="field">
       <label class="field__label">常驻成员</label>
       <el-select
+        aria-label="常驻成员"
         v-model="selectedId"
         filterable
         remote
@@ -45,6 +46,7 @@
     <div class="field">
       <label class="field__label">新游戏 ID</label>
       <el-input
+        aria-label="请输入新的游戏 ID（1～32 个字符）"
         v-model="newGameId"
         maxlength="32"
         show-word-limit
@@ -70,7 +72,8 @@
     <div v-if="pending" class="pending">
       <el-tag type="warning" effect="light">该成员已有待审核申请</el-tag>
       <span class="pending__text">
-        {{ pending.old_game_id }} → {{ pending.new_game_id }}（{{ formatTime(pending.created_at) }} 提交），请等待审核结果
+        {{ pending.old_game_id }} → {{ pending.new_game_id }}（{{ formatTime(pending.created_at) }}
+        提交），请等待审核结果
       </span>
     </div>
 
@@ -106,9 +109,7 @@ const newGameId = ref('')
 const submitting = ref(false)
 
 const hasPending = computed(() => props.pending !== null)
-const canSubmit = computed(
-  () => !!props.selected && !!newGameId.value.trim() && !hasPending.value && !submitting.value,
-)
+const canSubmit = computed(() => !!props.selected && !!newGameId.value.trim() && !hasPending.value && !submitting.value)
 
 function formatTime(value: string): string {
   return dayjs(value).format('YYYY-MM-DD HH:mm')

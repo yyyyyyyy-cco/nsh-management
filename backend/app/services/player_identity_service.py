@@ -3,6 +3,7 @@
 设计依据：memory-bank/design-game-id-change.md §5（关联算法与边界）。
 只依赖模型（不反向依赖 my_stats_service），冲突一律抛 PlayerIdentityError(409)。
 """
+
 from dataclasses import dataclass, field
 
 from sqlalchemy import distinct, func, or_, select
@@ -169,9 +170,7 @@ async def resolve_player_identity(
     )
 
 
-async def search_identity_names(
-    session: AsyncSession, guild_id: int, keyword: str, limit: int = 10
-) -> list[str]:
+async def search_identity_names(session: AsyncSession, guild_id: int, keyword: str, limit: int = 10) -> list[str]:
     """自动补全候选：比赛数据中的名称 + 已确认改名关系的新旧名称与存续成员当前名。
 
     排序：精确输入优先 → 已有比赛记录数倒序 → 名称升序；去重后截断。
@@ -216,17 +215,13 @@ async def search_identity_names(
             member_ids.add(member_id)
     if member_ids:
         current_rows = (
-            await session.execute(
-                select(Member.name).where(Member.guild_id == guild_id, Member.id.in_(member_ids))
-            )
+            await session.execute(select(Member.name).where(Member.guild_id == guild_id, Member.id.in_(member_ids)))
         ).all()
         candidate_names.update(name for (name,) in current_rows)
 
     # 当前成员名（刚获批、尚无比赛数据时也能补全）
     member_rows = (
-        await session.execute(
-            select(Member.name).where(Member.guild_id == guild_id, Member.name.ilike(like))
-        )
+        await session.execute(select(Member.name).where(Member.guild_id == guild_id, Member.name.ilike(like)))
     ).all()
     candidate_names.update(name for (name,) in member_rows)
 

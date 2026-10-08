@@ -23,7 +23,9 @@ export async function updateProfessionConfig(profession: string, targetCount: nu
 }
 
 /** 批量更新职业配置 */
-export async function batchUpdateProfessionConfigs(configs: Array<{ profession: string; target_count: number }>): Promise<{ message: string }> {
+export async function batchUpdateProfessionConfigs(
+  configs: Array<{ profession: string; target_count: number }>,
+): Promise<{ message: string }> {
   return http.put('/config/professions', { configs })
 }
 

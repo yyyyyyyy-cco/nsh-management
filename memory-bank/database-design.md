@@ -72,6 +72,11 @@ operation_logs（操作审计日志）          guild_id（可空）
 | id | INTEGER | PK, AUTOINCREMENT | 主键 |
 | name | TEXT | NOT NULL, UNIQUE | 帮会名称 |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
+| icon_char | TEXT | NULL, 最多 4 字符 | 侧边栏折叠按钮显示的首字（迁移 g1h2i3j4k5l6） |
+- **创建帮会的语义（2026-10-03 补记，与实现一致）**：`guild_service.create_guild` 在**单次事务**内完成——插入帮会 → 生成管理员与帮众两个账号（用户名 `{帮会名}_admin` / `{帮会名}_member`，角色 `admin` / `member`，状态 `active`，`guild_id` 绑定本帮会）→ 为**全部职业**建 `profession_configs` 行（`target_count=0`）→ **结尾一次 `commit()`**；
+  - 因此中途失败（例如账号名与既有账号冲突）会**整体回滚**，不会留下"半个帮会"；测试见 `backend/tests/test_guild_create.py`；
+  - 帮会名重复在入口处显式拒绝（业务错误），不依赖数据库唯一约束报错；
+  - 初始密码由创建者指定并受**口令策略**约束（schema 层 `GuildCreate` + service 层兜底）；明文列 `plain_password` 属已接受风险（见 `security-review.md` §十六 A2）。
 
 ### 2.2 users — 账号表
 
@@ -86,6 +91,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 | status | TEXT | NOT NULL, default 'active' | `active` 启用 / `disabled` 禁用 |
 | failed_attempts | INTEGER | NOT NULL, default 0 | 连续登录失败次数 |
 | locked_until | DATETIME | NULL | 锁定截止时间（限流） |
+| token_version | INTEGER | NOT NULL, default 0 | 令牌吊销版本号：登出/改密时自增，旧 Token 立即失效（迁移 h2i3j4k5l6m7） |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
 
 索引：`guild_id`。
@@ -103,6 +109,8 @@ operation_logs（操作审计日志）          guild_id（可空）
 | remark | TEXT | NULL, max 255 | 职业说明（可编辑，默认空） |
 
 唯一约束：`(guild_id, profession)`。
+- **目标人数值域（2026-10-03 补记，与实现一致）**：`target_count` 为整数且限定 **0～999**（单职业端点与**批量端点**均校验；`config_service` 两条路径再做一次同界兜底；前端输入 `:min=0 :max=999` 一致）。常量 `MAX_PROFESSION_TARGET` 定义于 `backend/app/utils/constants.py`。
+- 说明：**每赛程**的职业覆盖 `profession_config` 是**另一语义**，其值域为 **0–60**（见 §2.5）；**全局目标人数之和是否应受 60 人上限约束**，属产品口径问题——**待用户确认**（见 `.agent/plans/compliance-remediation-plan.md` 的 F-84）。
 
 ### 2.4 members — 常驻库成员表
 
@@ -119,6 +127,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 索引：`guild_id`、`name`、`main_profession`、`status`。
 业务约束：同一帮会内重名跳过导入（Excel 导入时校验 `name` 重复，不强制 UNIQUE，便于历史数据容错）。
+- **导入行数上限（2026-10-03 补记，与实现一致）**：单次上传最多 **5000** 行，超限**拒绝**（实现常量 `MAX_IMPORT_ROWS` 位于 `backend/app/utils/excel_import.py` ✓；边界口径由此进入权威源，闭合合规化计划 **F-83** 的残留项）。
 
 ### 2.5 schedules — 赛程表
 
@@ -132,10 +141,17 @@ operation_logs（操作审计日志）          guild_id（可空）
 | rounds | INTEGER | NOT NULL, CHECK 1-3 | 局数（创建后不可修改） |
 | result | TEXT | NOT NULL, default 'pending' | `win` / `lose` / `draw` / `pending` |
 | round_results | TEXT (JSON) | NULL | 每局结果，如 `["win","lose","pending"]` |
+| profession_config | TEXT (JSON) | NULL | 单场职业配置覆盖 `{职业: 目标人数}`；NULL 表示沿用系统配置（迁移 j4k5l6m7n8o9） |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
 
 索引：`guild_id`、`match_time`。
 业务规则：删除赛程时由 Service 级联删除 attendance_records、lineups、recordings、match_data、squad_adjustments。
+- **日程字段与校验（2026-10-03 补记，与实现一致）**：
+  - `rounds`（局数）**创建后不可修改由 schema 层保证**：更新模型 `ScheduleUpdate` **不包含该字段**
+    （Pydantic 会忽略请求中传入的 `rounds`），数据库另有 `CHECK rounds BETWEEN 1 AND 3`；
+  - `round_results`（每局结果）**长度必须等于 `rounds`**，取值限于 `win` / `lose` / `draw` / `pending`；
+  - `result`（总结果）取值同样限于上述四种；
+  - `profession_config`（单场职业配置覆盖）：键必须是合法职业，值为 **0-60** 的整数；传入 `null` 表示恢复默认（沿用系统配置）。
 
 ### 2.6 attendance_records — 出勤记录表
 
@@ -149,9 +165,10 @@ operation_logs（操作审计日志）          guild_id（可空）
 | status | TEXT | NOT NULL, default 'normal' | `normal` 正常 / `leave` 请假 |
 | is_filler | BOOLEAN | NOT NULL, default 0 | 是否补人 |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
+| remark | TEXT | NULL | 备注（导入时常驻库带入，出勤库内可修改）（迁移 n8o9p0q1r2s3） |
 
 索引：`schedule_id`、`member_id`。
-唯一约束：`(schedule_id, member_id)`（常驻成员每场一条）；`(schedule_id, member_name, is_filler=1)`（补人按姓名每场一条，SQLite 通过部分唯一索引实现）。
+唯一约束：`(schedule_id, member_id)`（常驻成员每场一条）；`(schedule_id, member_name, is_filler=1)`（补人按姓名每场一条，SQLite 通过部分唯一索引 `uq_attendance_filler_schedule_name` 实现——该索引由迁移 `p0q1r2s3t4u5` 落地，见 F-79）。
 业务规则：正常状态人数上限 60 人（应用层校验）；补人下次比赛自动消失（按赛程独立存储天然满足）。
 
 ### 2.7 lineups — 排表表
@@ -181,6 +198,8 @@ JSON 结构示例：
 ```
 
 共 10 个 team（进攻1×3、进攻2×3、防守1×2、防守2×2），每队 6 个 slot，合计 60 槽位。
+- **结构校验与唯一占位（2026-10-03 补记，与实现一致）**：保存时结构必须与固定布局一致——**进攻1×3、进攻2×3、防守1×2、防守2×2 = 10 队**，每队 **6 槽**，槽位序号依次为 `0..5`（常量见 `backend/app/utils/constants.py` 的 `LINEUP_LAYOUT` / `SLOTS_PER_TEAM`），否则返回业务错误；
+- **同一成员不得占用多个槽位**：正式成员按 `member_id` 去重、补人按**归一化姓名**去重（**正式成员与补人同名是合法的**）；前端拖拽是「移动」语义不会产生重复，该校验用于挡住直接调用接口的写入（见 F-85）。
 
 ### 2.8 recordings — 录屏表
 
@@ -192,14 +211,21 @@ JSON 结构示例：
 | member_name | TEXT | NOT NULL | 姓名快照 |
 | round_number | INTEGER | NOT NULL, CHECK 1-3 | 第几局 |
 | url | TEXT | NULL | 录屏链接（提交前为空） |
+| note | TEXT | NULL | 帮众备注（帮众提交；展示层对帮众脱敏，仅管理员可见）（迁移 l6m7n8o9p0q1） |
 | status | TEXT | NOT NULL, default 'pending' | `pending` 待审核 / `approved` 已通过 / `rejected` 已驳回 |
 | review_remark | TEXT | NULL | 审核备注 |
 | reviewed_at | DATETIME | NULL | 审核时间 |
 | created_at | DATETIME | NOT NULL, default now | 提交时间 |
 
 索引：`schedule_id`、`status`。
-唯一约束：`(schedule_id, member_id, round_number)`；补人按 `(schedule_id, member_name, round_number)`。
+唯一约束：`(schedule_id, member_id, round_number)`；补人按 `(schedule_id, member_name, round_number)`（部分唯一索引 `uq_recording_filler_schedule_name_round`，`member_id IS NULL` 时生效——该索引由迁移 `p0q1r2s3t4u5` 落地，见 F-79）。
 业务规则：创建赛程时按局数批量初始化录屏占位记录（每人每局一条）；URL 校验支持 B站、YouTube 等。
+- **审核状态迁移（2026-10-03 补记，与实现一致）**：
+  - `pending → approved` / `pending → rejected`：**必须已提交链接**（`url` 为空时通过/驳回均返回业务错误「该录屏尚未提交链接」）；
+  - `approved` / `rejected → pending`：**帮众重新提交链接即回到待审核**，并**清空** `review_remark` 与 `reviewed_at`（重新提交视为新的待审提交）；
+  - 已审核行在重新提交后可再次审核（无终态锁定）；批量通过只处理**已提交链接**的行，未提交者自动跳过；
+  - 审计口径：审核/提交动作由审计中间件记录**请求级**信息（`method`/`path`/`status_code`/操作账号/IP），
+    **但不保存被覆盖的审核结论**（见 `.agent/plans/compliance-remediation-plan.md` 的 F-80）。
 
 ### 2.9 match_data — 比赛数据表
 
@@ -207,7 +233,9 @@ JSON 结构示例：
 |------|------|------|------|
 | id | INTEGER | PK, AUTOINCREMENT | 主键 |
 | schedule_id | INTEGER | NOT NULL, FK → schedules.id | 所属赛程 |
-| player_name | TEXT | NOT NULL | 玩家名字 |
+| round_no | INTEGER | NOT NULL, default 1 | 第几局（1~rounds）；历史数据归为第 1 局（迁移 f6a7b8c9d0e1） |
+| player_name
+| round_no | INTEGER | NOT NULL, default 1 | 第几局（1~rounds）；历史数据归为第 1 局（迁移 f6a7b8c9d0e1） | | TEXT | NOT NULL | 玩家名字 |
 | profession | TEXT | NULL | 职业 |
 | camp | TEXT | NOT NULL | 阵营（CSV 区块标题，第一块为己方） |
 | kills | INTEGER | NOT NULL, default 0 | 击败数（击败+清泉合计，见 §3.5） |
@@ -226,7 +254,7 @@ JSON 结构示例：
 | extra_data | TEXT (JSON) | NULL | 预留：后续 CSV 新增列 |
 | created_at | DATETIME | NOT NULL, default now | 导入时间 |
 
-索引：`schedule_id`。
+索引：`schedule_id`、`round_no`。
 业务规则：CSV 导入 5MB 上限；一局一表，重新导入同局数据即覆盖该局全部记录（不保留历史）；列映射与解析见 §3.5。
 
 ### 2.10 squad_adjustments — 分析调整表
@@ -242,6 +270,12 @@ JSON 结构示例：
 
 索引：`schedule_id`（UNIQUE）。
 业务规则：每赛程最多一条记录；保存时覆盖式替换 `data` 字段；仅管理员可写，帮众可读。
+- **导入历史排表（2026-10-03 补记，与实现一致）**：
+  - 源赛程必须属于本帮会，且**不能是当前赛程自身**（自导入返回业务错误）；源赛程无排表数据时返回 404 业务错误；
+  - 只导入**被选中的小队**，未选中的小队保持原样；被选中的小队按槽位对应覆盖；
+  - 仅保留**当前候选池（出勤正常）**中出现的成员：正式成员按 `member_id` 匹配、补人按**姓名**匹配；
+    其余槽位清空（`member_id=NULL`、`member_name` 为空字符串）；
+  - 正式成员导入时**以出勤库当前姓名为准**（成员改名后替换历史排表里的旧名快照）；`remark` 随槽位导入。
 
 ### 2.11 operation_logs — 操作审计日志表
 
@@ -266,6 +300,7 @@ JSON 结构示例：
 
 索引：`username`、`guild_id`、`module`、`level`、`created_at`。
 业务规则：默认保留 90 天（启动时自动清理过期记录，页面亦可手动清理，清理操作本身会被审计）；仅开发者可在「系统日志」页查看。
+- **时间口径（2026-10-03 补记，与实现一致）**：`operation_logs.created_at` **落库为 naive UTC**；「系统日志」页的概览统计（今日请求数 / 今日错误数 / 近 7 天错误分布）统一按**北京时间（UTC+8）**划分——"今日"起点 = 北京零点对应的 UTC 时刻（即北京零点 **− 8 小时**）；分布按北京日期分组（SQL `date(created_at, '+8 hours')`），桶由旧到新共 7 个，窗口起点为今日零点 − 6 天。换算实现见 `backend/app/services/log_service.py`（`STATS_TZ` / `get_log_stats`），测试见 `backend/tests/test_log_stats.py`。
 
 ### 2.12 member_game_id_requests — 游戏 ID 修改申请表
 
@@ -366,4 +401,6 @@ JSON 结构示例：
 | 2026-09-15 | v1.7：术语统一（客人→补人）；CSV 样例引用路径更正为 `.agent/docs`（.claude→.agent 改名）；§3.6 帮众操作归属校正（出勤/排表 Tab 仅管理员，帮众经录屏列表归属） |
 | 2026-09-15 | v1.8：补全 operation_logs 操作审计日志表（§1.2 表清单 + §2.11 字段级设计），表数 10 张更新为 11 张 |
 | 2026-09-20 | v1.9：新增 member_game_id_requests 游戏 ID 修改申请表（§1.2 表清单 + §2.12 字段/约束/生命周期），表数 11 张更新为 12 张；approved 记录兼作战绩新旧 ID 关联来源（Alembic 迁移 o9p0q1r2s3t4） |
-| 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |
+| 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录
+| 2026-10-03 | **v1.10**：补上「补人」部分唯一索引（迁移 `p0q1r2s3t4u5`，F-79）——`attendance_records` 增加 `(schedule_id, member_name) WHERE is_filler = 1`、`recordings` 增加 `(schedule_id, member_name, round_number) WHERE member_id IS NULL`，使 §2.6/§2.8 早已声明的补人唯一性**真正由数据库约束**（此前仅应用层查重，存在竞态）；表数不变（12 张）|
+| 2026-10-03 | v1.9 补记（**无结构变更，仅补齐文档**）：补登 **6 个已由迁移引入但未记录的列**——`guilds.icon_char`（g1h2i3j4k5l6）、`users.token_version`（h2i3j4k5l6m7）、`match_data.round_no`（f6a7b8c9d0e1）、`schedules.profession_config`（j4k5l6m7n8o9）、`recordings.note`（l6m7n8o9p0q1）、`attendance_records.remark`（n8o9p0q1r2s3）；并补 `match_data` 的 `round_no` 索引说明。来源：以 `backend/app/models/**` 与 `backend/alembic/versions/**` 为准逐列核对 |（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |
