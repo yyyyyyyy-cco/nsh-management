@@ -90,7 +90,7 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"   # Node 20 下 vitest 的 jsdom 环境起不来（jsdom 30 / undici 8 要求 ≥22.19），详见 PR 说明
           cache: npm
