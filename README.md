@@ -52,7 +52,7 @@ python -m venv .venv
 .venv\Scripts\pip install -r requirements.txt
 .venv\Scripts\alembic upgrade head
 
-# 3. 前端（Node 20+）
+# 3. 前端（Node 22+）
 cd ../frontend
 npm install
 
@@ -69,7 +69,7 @@ start.bat
 | 管理员 | admin | admin123 |
 | 帮众 | member | member123 |
 
-> **环境要求**：Python 3.11–3.13（3.14 装不上依赖）、Node 20+；依赖拉取慢/超时或报 SSL 证书错误时**按命令换源**（pip 清华源 / npm npmmirror，不要改全局配置、不要写进仓库）；Python 3.13 需补装 `greenlet`（否则 `alembic upgrade head` 报 `ValueError`）。
+> **环境要求**：Python 3.11–3.13（3.14 装不上依赖）、Node 22+（CI 与前端镜像基座均为 Node 22；`vitest` 的 jsdom 环境在 Node 20 下起不来）；依赖拉取慢/超时或报 SSL 证书错误时**按命令换源**（pip 清华源 / npm npmmirror，不要改全局配置、不要写进仓库）；Python 3.13 需补装 `greenlet`（否则 `alembic upgrade head` 报 `ValueError`）。
 > 细节见 [CONTRIBUTING.md](CONTRIBUTING.md) §环境准备。
 
 ### 二、服务器部署（Docker Compose）
@@ -89,14 +89,14 @@ HTTPS/域名、一键更新、备份恢复、日志与故障排查见 [DEPLOY.md
 
 ### 本地开发补充
 
-**数据源模式（`DB_MODE`）**：`start.bat` 顶部通过 `DB_MODE` 切换本地启动所用数据库，**默认 `prod`**：
+**数据源模式（`DB_MODE`）**：`start.bat` 顶部通过 `DB_MODE` 切换本地启动所用数据库，**默认 `dev`**：
 
 | 模式 | 数据源 | 说明 |
 |------|--------|------|
-| `prod`（默认） | `backend\data\nsh-server-20260907.db` | 服务器数据**快照副本**，便于用真实数据调试；副本不存在时自动回退到 `dev`。本地的读写只作用于副本，**不会影响生产服务器** |
-| `dev` | `backend\data\nsh.db` | 本地开发库；首次启动自动初始化默认账号（见上表） |
+| `dev`（默认） | `backend\data\nsh.db` | 本地开发库；首次启动自动初始化默认账号（见上表） |
+| `prod` | `backend\data\nsh-server-<日期>.db` | 服务器数据**快照副本**，便于用真实数据调试；副本缺失时回退 `dev`。本地读写只作用于副本，**不影响生产服务器** |
 
-> 快照文件需从服务器导出后放入 `backend\data\`（`.gitignore` 已排除 `*.db`，不入库）。只想用本地库时，把 `start.bat` 中的 `set "DB_MODE=prod"` 改为 `dev`。
+> 快照需自行从服务器导出后放入 `backend\data\`（`.gitignore` 已排除 `*.db`，不入库），并把 `start.bat` 的 `DB_MODE` 改为 `prod`、`PROD_SNAPSHOT` 改为实际文件名。
 
 **测试与静态检查**：
 
@@ -114,16 +114,10 @@ ruff check .         # 静态检查（配置见 backend/ruff.toml）
 
 ## 环境变量
 
-| 变量 | 说明 | 默认值 |
-|------|------|--------|
-| `SECRET_KEY` | JWT 签名密钥（生产必须修改；推荐 `openssl rand -hex 32`） | `dev-secret-key-change-in-production` |
-| `APP_ENV` | 运行环境标识（`production`/`prod` 或 `development`/`dev`/`test`；docker-compose.yml 已固定 production） | 未声明时以容器特征兜底 |
-| `DEVELOPER_PASSWORD` | 开发者密码（首次建库时生效） | - |
-| `ADMIN_PASSWORD` | 管理员密码（可选，不设置则不创建） | - |
-| `MEMBER_PASSWORD` | 帮众密码（可选，不设置则不创建） | - |
+键清单与默认值的权威源是 [`.env.example`](.env.example)（模板）与 [`DEPLOY.md`](DEPLOY.md) §六（口径、轮换与泄漏处置）；本文件不复制变量表。两条硬性约定：
 
-> 安全门禁：容器/生产环境（`APP_ENV=production`）下，弱密钥（模板占位值、<32 字符、
-> 含项目名/单词/年份等可猜片段）将拒绝启动；本地开发仅告警放行。详见 `DEPLOY.md` §六。
+- `SECRET_KEY` 生产必须换成强随机值（`openssl rand -hex 32`），否则容器/生产环境**拒绝启动**（弱密钥启动门禁，见 `DEPLOY.md` §六）；
+- 三角色初始密码仅在**首次建库**时生效，之后请在系统内自助改密。
 
 ## 许可证
 

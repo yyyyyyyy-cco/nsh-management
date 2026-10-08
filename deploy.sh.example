@@ -15,6 +15,8 @@
 #   · 本地数据 / 密钥 / 日志 / 备份严禁上传
 #   · 仅变更 frontend/nginx.conf、Dockerfile、entrypoint.sh 等构建输入时，必须
 #     docker compose up -d --build 重建对应镜像才生效（up -d 不重建时旧版仍在）
+#   · backend/requirements.txt **不在排除清单**：它会随代码更新并影响生产依赖，
+#     故脚本先做服务器侧数据库备份 + 备份原 requirements.txt（DEPLOY.md §9.3 发布纪律）
 
 set -euo pipefail
 
@@ -26,10 +28,22 @@ DOMAIN="<YOUR_DOMAIN>"
 
 REMOTE_DIR="${REMOTE_DIR:-~/nsh-management}"
 SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_rsa}"
-ARCHIVE="nsh-management.tar.gz"
+# 归档写在「被归档目录之外」：写在仓库根目录内时，tar 会读到自身创建文件引起的目录 mtime 变化，
+# 报 `file changed as we read it` 并以退出码 1 结束 → set -e 会直接中断本次部署（已实测复现）
+ARCHIVE_DIR="${TMPDIR:-/tmp}"
+ARCHIVE_NAME="nsh-management.tar.gz"
+ARCHIVE="$ARCHIVE_DIR/$ARCHIVE_NAME"
 
-# ---------------- 1. 本地打包（排除清单见文件头，规则必须路径锚定） ----------------
-echo "[1/5] 本地打包 ..."
+# ---------------- 1. 服务器侧备份（先备份，再部署 —— DEPLOY.md §9.3） ----------------
+echo "[1/6] 服务器侧备份（数据库 + 原 requirements.txt）..."
+ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" \
+    "set -e; cd ${REMOTE_DIR}; \
+     if [ -x \$HOME/backup-databases.sh ]; then bash \$HOME/backup-databases.sh; \
+     else echo '[错误] 未找到 ~/backup-databases.sh：请按 DEPLOY.md §五 手工备份数据库后再部署' >&2; exit 1; fi; \
+     [ -f backend/requirements.txt ] && cp backend/requirements.txt backend/requirements.txt.bak-\$(date +%F) || true"
+
+# ---------------- 2. 本地打包（排除清单见文件头，规则必须路径锚定） ----------------
+echo "[2/6] 本地打包 ..."
 tar --exclude='.git' \
     --exclude='.agent' \
     --exclude='.qoder' \
@@ -37,6 +51,7 @@ tar --exclude='.git' \
     --exclude='frontend/dist' \
     --exclude='backend/.venv' \
     --exclude='backend/__pycache__' \
+    --exclude='__pycache__' \
     --exclude='backend/data' \
     --exclude='backend/logs' \
     --exclude='_backup' \
@@ -56,22 +71,22 @@ tar --exclude='.git' \
     -czf "$ARCHIVE" .
 ls -lh "$ARCHIVE"
 
-# ---------------- 2. 上传 ----------------
-echo "[2/5] 上传到 ${SERVER_USER}@${SERVER_IP}:${REMOTE_DIR} ..."
+# ---------------- 3. 上传 ----------------
+echo "[3/6] 上传到 ${SERVER_USER}@${SERVER_IP}:${REMOTE_DIR} ..."
 scp -i "$SSH_KEY" "$ARCHIVE" "${SERVER_USER}@${SERVER_IP}:${REMOTE_DIR}/"
 
-# ---------------- 3. 服务器解压 ----------------
-echo "[3/5] 服务器解压 ..."
+# ---------------- 4. 服务器解压 ----------------
+echo "[4/6] 服务器解压 ..."
 ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" \
-    "set -e; cd ${REMOTE_DIR} && tar -xzf ${ARCHIVE} && rm -f ${ARCHIVE}"
+    "set -e; cd ${REMOTE_DIR} && tar -xzf ${ARCHIVE_NAME} && rm -f ${ARCHIVE_NAME}"
 
-# ---------------- 4. 构建并启动（迁移随容器启动自动执行） ----------------
-echo "[4/5] docker compose up -d --build ..."
+# ---------------- 5. 构建并启动（迁移随容器启动自动执行） ----------------
+echo "[5/6] docker compose up -d --build ..."
 ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" \
     "set -e; cd ${REMOTE_DIR} && docker compose up -d --build"
 
-# ---------------- 5. 验证（后端 healthy + 域名入口 200） ----------------
-echo "[5/5] 等待后端 healthy（最多 150s） ..."
+# ---------------- 6. 验证（后端 healthy + 域名入口 200） ----------------
+echo "[6/6] 等待后端 healthy（最多 150s） ..."
 healthy=""
 for _ in $(seq 1 30); do
     if ssh -i "$SSH_KEY" "${SERVER_USER}@${SERVER_IP}" \

@@ -6,6 +6,12 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    # 日志轮转：防止日志无限增长（与服务器版本一致）
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     env_file: .env
     environment:
       # 生产环境标识：启动时强制校验 SECRET_KEY 强度，弱密钥拒绝启动（见 backend/app/core/config.py）
@@ -35,6 +41,12 @@ services:
   frontend:
     build: ./frontend
     restart: unless-stopped
+    # 日志轮转：防止日志无限增长（与服务器版本一致）
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "80:80"
       - "443:443"

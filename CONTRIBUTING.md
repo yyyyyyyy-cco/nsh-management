@@ -40,7 +40,8 @@
   生产镜像基座为 `python:3.11-slim`；**Python 3.13 需额外 `pip install greenlet`**
   （`sqlalchemy==2.0.36` 仅在 `python_version < "3.13"` 时声明 greenlet，而 `backend/alembic/env.py`
   走异步引擎，否则 `alembic upgrade head` 报 `ValueError: the greenlet library is required`）。
-- **前端 Node 20+**（CI 使用 Node 20）。
+- **前端 Node 22+**（CI 与 `frontend/Dockerfile` 基座均为 Node 22；Node 20 下 `npm run test` 会失败——
+  `jsdom 30` 依赖的 `undici 8` 要求 Node ≥22.19）。
 - 本地开发库与日志写入 `backend/data/`、`backend/logs/`，均不入库。
 
 ## 分支与提交

@@ -33,8 +33,6 @@ nsh-management/
 │   └── docs/README.md            # 后端模块开发文档
 ├── frontend/
 │   └── docs/README.md            # 前端模块开发文档（含排表保存约定与人工回归清单）
-├── .qoder/
-│   └── plans/                    # 外部 AI 工具（Qoder）规划草案，**非项目权威文档**（仅存档，见 §22）
 ├── AGENTS.md                     # AI 开发指南：规范/文档维护/进度追踪（自动读取）
 ├── CHANGELOG.md                  # 更新日志（Keep a Changelog 1.1.0）
 ├── CODE_OF_CONDUCT.md            # 行为准则（Contributor Covenant 2.1）
@@ -172,12 +170,7 @@ nsh-management/
 - **作用**：面向「全新克隆」的合规整改路线图：以行业权威规范为基准（SemVer 2.0.0 / Conventional Commits 1.0.0 / Keep a Changelog 1.1.0 / OWASP ASVS 5.0.0 / OWASP Top 10:2025 / SLSA v1.2 / 12-Factor / CIS Docker Benchmark 等），逐条列出 42 项差距（F-01～F-42，含文件行号级证据）、Wave 0～4 共 31 项任务（动作 / 验收命令 / 依赖 / 风险回滚 / 估算）、回归命令清单与需用户确认的 6 项决策（D-1～D-6）
 - **更新时机**：每完成一项任务更新其 §7 进度表；波次结束、决策变更或验收结论变化时更新
 
-### 22. 外部工具规划草案（Qoder）
-- **路径**：`.qoder/plans/`（3 份：`UI_polish_phase_audit_fixes_4f80f074.md`、`帮众游戏_ID_改名审批设计_e1d99897.md`、`超限文件拆分计划_aa5182ef.md`）
-- **作用**：外部 AI 工具生成的规划草案**存档**。**不是项目权威文档**——其对应的功能（UI 优化收尾、游戏 ID 改名审批、超限文件拆分）均已在 `progress.md` 记录并完成；此处登记仅为满足「入库文档必须登记到本索引」（`AGENTS.md` §2.2）
-- **更新时机**：该目录新增或清理文件时更新；若不再使用该工具目录，可整体移出仓库（见合规化计划 F-36）
-
-### 23. 社区与流程文档（2026-10-02 按公开仓库标准补齐）
+### 22. 社区与流程文档（2026-10-02 按公开仓库标准补齐）
 
 - **路径**：`CHANGELOG.md`（仓库根目录）
 - **作用**：更新日志，遵循 Keep a Changelog 1.1.0 与 SemVer 2.0.0；`[未发布]` 段记录待发布变更，
@@ -580,6 +573,8 @@ nsh-management/
 | 2026-10-03 | Wave 1 批次 31（合规化计划 **W1-13**，收口 **F-59**）：前端工具链升级——`vite` 5.4.21 → **6.4.3**、`esbuild` → **0.25.12**（随 vite 依赖）、`vitest` 3.2.7 → **4.1.11**；升级后逐包复核公告：**6 条中 5 条清除**，剩余 1 条（esbuild）经 API `withdrawn_at` **实证为上游已撤回**；回归证据 build exit 0 / test 60 passed / lint 0 error；`CONTRIBUTING.md` 补充换源指引；教训记入 ai-checklist 第 66 条 | frontend/package.json, frontend/package-lock.json, CONTRIBUTING.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 
 | 2026-10-03 | Wave 2 批次 32（合规化计划 **W2-8**）：用 `defineModel` 消除 **10 处 `vue/no-mutating-props`** 告警（4 个文件：`SquadCardsGrid`/`MemberTablePanel`/`MemberToolbar`/`LogFilterBar`）；因父组件为 `reactive` 常量、`defineModel` 就地写共享对象语义与改前一致 → **父组件零改动**；验证：lint **10→0**、`vue-tsc` exit 0、`build` exit 0、`test` 60 passed；**页面级交互验收仍待浏览器授权**；教训记入 ai-checklist 第 67 条 | SquadCardsGrid.vue, MemberTablePanel.vue, MemberToolbar.vue, LogFilterBar.vue, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-08 | 文档冗余审查与开发/部署说明准确性修正（含**服务器配置只读 diff**）：`DEPLOY.md` 新增 §三「服务器实况核对（2026-10-08 只读 diff）」（7 个配置文件 5 处漂移 + 4 项需人工同步 + `requirements.txt` 会随部署自动升级）并删除 §四 重复的旧日志表、更正 §六 `APP_ENV` 表述；`README.md` 环境变量表改为引用、Node 要求改 `22+`；`CONTRIBUTING.md` Node 要求改 `22+`；`tech-stack.md` 补 Node.js 行与健康检查/`APP_ENV` 表述；`deploy.sh.example` 补服务器侧备份步骤并修正归档路径；`start.bat` / `docker-compose.yml` / `frontend/Dockerfile` / `frontend/package.json` 同步修正；详见 progress.md 同日条目 | DEPLOY.md, README.md, CONTRIBUTING.md, tech-stack.md, start.bat, docker-compose.yml, deploy.sh.example, frontend/Dockerfile, frontend/package.json, ai-checklist.md |
+| 2026-10-08 | **移除 `.qoder/plans/`（3 份外部 AI 工具草案，466 行）**（用户决定，对应合规化计划 F-36 的「整体移出仓库」选项）：其内容已被 `design-game-id-change.md` / `ui-polish-plan.md` / `.agent/rules/file-length-rule.md` 覆盖，无文档再引用；本索引三处同步（目录树删 `.qoder/` 两行、删除原 §22 外部工具草案节并把 §23 社区与流程文档顺位改为 §22、本条更新记录）。历史条目中的 `.qoder` 引用（本文件 2026-10-02 / 2026-10-03 行、`progress.md`、合规化计划）按 §3.4 保留不回改 | architecture.md, progress.md, .agent/plans/compliance-remediation-plan.md |
 
 ## 使用说明
 

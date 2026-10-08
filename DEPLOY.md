@@ -57,7 +57,7 @@
   `200 {"status":"ok","database":"ok"}`；数据库不可用 → `503 {"status":"degraded","database":"error"}`。
   数据库异常刻意**不抛 500**：否则对外表现为「应用崩溃」而非「依赖不可用」，不利排查。
   同一端点也挂在 `/api/v1/health`，可经既有 `/api/*` 反向代理对外访问，供外部 uptime 监控探活；
-  若不希望对外暴露，可在边缘 Nginx 拦掉该路径（探活改用内网方式）。
+  若不希望对外暴露，可在边缘 Nginx 拦掉该路径（探活改用内网方式）。**注意**：服务器截至 2026-10-08 尚未部署该端点（`/health` 实测 404、compose 仍探 `/`），见 §三「服务器实况核对」。
 - **手动探活**：backend 不映射宿主端口，宿主机直接 `curl` 不通。可执行
   `docker compose exec backend python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8000/health').read().decode())"`。
 - **生产环境关闭在线 API 文档**：`/docs`、`/redoc`、`/openapi.json` 一律 404（本地开发环境保留，便于调试）。
@@ -72,8 +72,9 @@
 ./deploy.sh
 ```
 
-流程：本地 tar 打包（约 2.4M）→ scp 上传 → 服务器解压 → `docker compose up -d --build`
-→ 健康检查。数据双卷不受影响，迁移自动执行。
+流程（`deploy.sh.example` 已固化 6 步）：**服务器侧备份**（数据库 + 原 `requirements.txt`，缺失 `~/backup-databases.sh` 即中止）
+→ 本地 tar 打包（约 2.4M，归档写在 `/tmp` 而非仓库内，避免 tar `file changed` 中断）
+→ scp 上传 → 服务器解压 → `docker compose up -d --build` → 健康检查。数据双卷不受影响，迁移自动执行。
 
 > **2026-10-02 补充（合规化计划 W1-1/W1-2）**：
 > - `deploy.sh` 本身不入库（含服务器信息），其**占位符模板已入库**为 `deploy.sh.example`——依据本节流程重建，含排除清单、路径锚定告警与非零退出的健康检查。新环境执行 `cp deploy.sh.example deploy.sh`，填写 `SERVER_IP` / `SERVER_USER` / `DOMAIN` 后使用。
@@ -124,6 +125,11 @@ bash scripts/check-config-drift.sh /srv/nsh-management/docker-compose.yml ./dock
 > `frontend/src/views/logs/` 整个目录被排除，前端构建失败。排除规则必须带路径锚定，
 > 如 `--exclude='backend/logs'`。
 
+> **反向提醒（不在上表 = 会被覆盖）**：`backend/requirements.txt` **不在排除清单内**——它必须随代码更新，
+> 所以每次 `deploy.sh` 都会把仓库的锁定版本推到服务器，并随镜像重建真正生效。服务器当前仍是旧版
+> （见「服务器实况核对」），下次部署将升级 fastapi / starlette / python-jose / bcrypt / Pillow 并**移除 passlib**。
+> 按 §9.3 纪律：**先做数据库备份 + 备份服务器原 `requirements.txt`，再 `up -d --build`**。
+
 ### 服务器配置类文件的变更规则
 
 以下文件**只能直接在服务器上改**（先 `cp xxx xxx.bak-日期` 备份），本地同名文件仅作参考：
@@ -155,6 +161,28 @@ bash scripts/check-config-drift.sh /srv/nsh-management/docker-compose.yml ./dock
 `docker compose up -d --build` 重建对应镜像才生效（nginx.conf 随 frontend 镜像 COPY 进容器，
 `up -d` 不重建时旧版仍在）。
 
+### 服务器实况核对（2026-10-08，只读 diff）
+
+用 `scripts/check-config-drift.sh.example` 逐对只读比对 7 个配置文件（工具可用、结论可复现），
+结果：**5 个有差异** —— 服务器运行的是 main 合并前的部署（实证：镜像内无 `app/api/v1/health.py`、
+`/health` 返回 404），但容器与站点一切正常（`Up 10 days (healthy)`、域名入口 200）。
+
+| 文件 | 仓库（新版） | 服务器（现行） | 处置 |
+|------|-------------|---------------|------|
+| `frontend/nginx.conf` | `/assets/` **扩展名白名单**（W4-21 / ASVS 13.4.7，非白名单一律 404） | 无白名单，`/assets/` 下任意扩展名均可取 | **人工同步** → `up -d --build frontend` |
+| `docker-compose.yml` | 探 `/health`；本地/单机拓扑另有 80/443 + 证书挂载 | 探 `/`；**无 `APP_ENV` 行**；有日志轮转与 `proxy-net` | **人工同步 2 处**：`healthcheck` 改 `/health`、补 `environment: APP_ENV: production` |
+| `frontend/Dockerfile` | 基座 `node:22-alpine`（2026-10-08 升级） | 基座 `node:18-alpine`（已 EOL） | **人工同步** → 随 frontend 镜像重建生效 |
+| `backend/.env.example` | 已删除失效键 `ALGORITHM` / `ACCESS_TOKEN_EXPIRE_MINUTES`（`config.py` 不读它们） | 仍列这两个键 | **人工同步**（纯文档，不影响运行） |
+| `backend/requirements.txt` | `fastapi==0.142.2`/`starlette==1.7.0`/`python-jose==3.5.0`/`bcrypt==4.3.0`/`Pillow==12.3.0`，**已移除 passlib** | 实装 `fastapi 0.141.1`/`starlette 1.6.0`/`jose 3.3.0`/`bcrypt 4.0.1`/`Pillow 11.1.0`/`passlib 1.7.4` | **自动覆盖**（不在排除清单）→ 见上方「反向提醒」 |
+| `backend/Dockerfile`、`backend/entrypoint.sh`、`backend/alembic.ini` | — | — | 无需处置（仅注释措辞差异 / MD5 完全一致） |
+
+> 前 4 项**都在排除清单内**，`deploy.sh` 不会覆盖，只能按上节「服务器配置类文件的变更规则」
+> 在服务器上改（先 `cp xxx xxx.bak-日期`）。**部署新版代码后请一并同步**，否则文档描述与服务器不符。
+
+**核对同时确认的现状（无需处置）**：服务器目录不是 git 仓库；`.env` 已含 `APP_ENV=production`、
+未设 `DATABASE_URL`（走默认卷内路径，正确）；服务器上**没有** `deploy.sh`（该脚本只在部署者本机，
+部署靠 tar 上传）；`~/backups/nsh-YYYYMMDD.db` 每日备份与 `backup-databases.sh` 正常运行。
+
 ## 四、日志系统
 ### 逐层日志清单（2026-10-02 新增，对应 ASVS 16.1.1）
 
@@ -164,21 +192,11 @@ bash scripts/check-config-drift.sh /srv/nsh-management/docker-compose.yml ./dock
 |----|---------|------------|-----------|------|---------|
 | 边缘 `nginx-proxy` | 访问日志（含 429 限流）、错误日志 | 宿主 nginx 的 access/error 文件（服务器侧维护，**不在本仓库**） | nginx 默认 combined / error | 由服务器 logrotate 决定 | 服务器上 `tail`/`grep`；本仓库不含该层配置 |
 | 内层 `frontend`（nginx） | 静态资源与 `/api` 回源访问、错误 | 容器 `/var/log/nginx/*.log`（`frontend/Dockerfile` 已 chown 给 `appuser`） | nginx 默认 | 随容器生命周期（未挂卷） | `docker compose logs frontend`、`docker compose exec frontend tail -f /var/log/nginx/access.log` |
-| `backend` 应用日志 | 应用与 uvicorn 日志（`setup_logging()` 统一接管，`uvicorn*` 日志器 propagate 到根） | ①容器 stdout；②卷 `nsh-logs` → `/app/logs/app.log` | `%(asctime)s [%(levelname)s] %(name)s: %(message)s`；级别 = `DEBUG` 时 DEBUG，否则 INFO（`backend/app/core/logging_config.py`） | 单文件 10MB × 5 轮转（约 60MB 上限） | `docker compose logs -f backend`、`docker compose exec backend tail -f /app/logs/app.log` |
+| `backend` 应用日志 | 应用与 uvicorn 日志（`setup_logging()` 统一接管，`uvicorn*` 日志器 propagate 到根） | ①容器 stdout；②卷 `nsh-logs` → `/app/logs/app.log` | `%(asctime)s [%(levelname)s] %(name)s: %(message)s`；级别 = `DEBUG` 时 DEBUG，否则 INFO（`backend/app/core/logging_config.py`）；**UTC 时间戳** | 单文件 10MB × 5 轮转（约 60MB 上限） | `docker compose logs -f backend`、`docker compose exec backend tail -f /app/logs/app.log` |
 | **审计表** `operation_logs` | 结构化审计：user/role/guild、module/action、method/path/status、detail（已脱敏与转义）、ip、created_at | SQLite `nsh-data` 卷内 `nsh.db` | 表结构（`backend/app/models/operation_log.py`）；写入方＝审计中间件 | `LOG_RETENTION_DAYS`（默认 **90** 天），服务启动时清理更早记录（`services/log_service.py`） | 开发者角色「系统日志」页面检索；或 SQL 直查 |
 | 告警通道 | 错误率超阈值时的 **WARNING** 日志（**不静默**）+ 可选 webhook POST JSON | 容器 stdout + 外部 webhook | WARNING | 同 backend 日志 | `docker compose logs backend | grep 告警`；webhook 侧记录 |
 
 **边界**：日志**未外发到独立系统**（同机 SQLite + stdout，ASVS 16.4.3 仍为 ❌，属单机自托管取舍）；日志**无防篡改**（16.4.2 ❌，developer 可清理，清理动作自身入审计）。
-
-
-
-| 层 | 位置 | 说明 |
-|----|------|------|
-| 文件日志 | 卷 `nsh-logs` → `/app/logs/app.log` | 统一格式，含 uvicorn access/error；RotatingFileHandler 10MB×5 自动轮转；**UTC 时间戳** |
-| 审计日志 | SQLite 表 `operation_logs`（库内） | 所有写操作（POST/PUT/DELETE/PATCH）+ 5xx 错误自动落库；登录成功/失败手动埋点；detail 已脱敏（password/token 等不落库） |
-| 页面查看 | 站点侧边栏「系统日志」（仅开发者账号） | 概览统计（今日操作/错误、近 7 天错误分布，北京时间口径）+ 筛选分页 + 清理 |
-| 保留策略 | 审计日志默认保留 **90 天**，启动时自动清理过期记录；页面亦可手动清理（操作本身会被审计） |
-| 错误率告警 | 后台循环（启动即查一次，之后每 `ALERT_CHECK_INTERVAL_MINUTES` 分钟，默认 15）：最近 `ALERT_WINDOW_MINUTES`（默认 30）分钟内 `level=error` 达 `ALERT_ERROR_THRESHOLD`（默认 20）条 → 写 **WARNING** 日志并（若配置 `ALERT_WEBHOOK_URL`）POST JSON 到 webhook；同一窗口内不重复通知（进程内去重）。阈值为 0 表示禁用。**未配置 webhook 时告警仍会写日志**，不静默 |
 
 运维排查路径：页面看审计 → `docker compose logs -f backend` 看实时控制台 →
 `/app/logs/app.log` 看历史文件日志。
@@ -246,7 +264,7 @@ docker compose start backend
 | `DEVELOPER_PASSWORD` / `ADMIN_PASSWORD` / `MEMBER_PASSWORD` | 三角色密码（仅首次建库生效） |
 | `CORS_ORIGINS` | 允许的跨域来源（逗号分隔，可选）。默认值仅本地开发来源；生产由 Nginx **同源**反代 `/api`，通常**无需设置**；仅当 API 被跨域直连时显式列出。**不要填 `*`**（本项目 `allow_credentials=True`） |
 | `ALERT_WEBHOOK_URL` | 错误率告警的 webhook 地址（可选）。**未配置时仍会在容器日志写 WARNING**（不静默）；阈值 / 窗口 / 检查间隔分别为 `ALERT_ERROR_THRESHOLD`（默认 20）/ `ALERT_WINDOW_MINUTES`（30）/ `ALERT_CHECK_INTERVAL_MINUTES`（15），阈值为 0 表示禁用 |
-| `APP_ENV` | 运行环境标识。Compose 已在 backend 服务固定 `production`，此处**无需重复设置**；非 Compose 部署（k8s / 裸机）**必须显式设为 `production`**，否则启动弱密钥校验的兜底判定可能失效 |
+| `APP_ENV` | 运行环境标识。仓库内 compose 在 backend 服务固定 `production`；**服务器版本没有这一行**，改由服务器 `.env` 设置（当前已设 `production`，两者等效，见 §三「服务器实况核对」）。非 Compose 部署（k8s / 裸机）**必须显式设为 `production`**，否则启动弱密钥校验的兜底判定可能失效 |
 | `DEBUG` | 调试模式（默认 `false`）。**生产必须保持 false**；生产环境下 `/docs`、`/redoc`、`/openapi.json` 亦被关闭 |
 | `DATABASE_URL` | 数据库连接串（可选）。默认 `sqlite+aiosqlite:///<数据目录>/nsh.db`（容器内为挂载卷）；改用其它路径或外部数据库时才需设置，SQLite 路径须为绝对路径（四个斜杠） |
 | `LOG_RETENTION_DAYS` | 审计日志保留天数（默认 `90`）：服务启动时清理更早的记录 |

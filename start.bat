@@ -8,19 +8,22 @@ set "FRONTEND=%~dp0frontend"
 
 REM ===== 数据源切换：prod=生产数据副本（nsh-server-*.db，只读参考）；dev=本地开发库 =====
 REM 切换时改下一行即可；副本文件由服务器快照拉取，勿在本地业务操作中依赖它回写生产
-set "DB_MODE=prod"
+REM 默认 dev：仓库不含任何 .db，快照需自行从服务器导出到 backend\data\ 后才可切到 prod
+set "DB_MODE=dev"
+REM DB_MODE=prod 时使用的快照文件名（把服务器导出的快照放进 backend\data\ 并按实际名字改这里）
+set "PROD_SNAPSHOT=nsh-server-20260907.db"
 
 set "DATABASE_URL="
 if /i "%DB_MODE%"=="prod" (
-    if exist "%BACKEND%\data\nsh-server-20260907.db" (
-        set "DATABASE_URL=sqlite+aiosqlite:///%BACKEND:\=/%/data/nsh-server-20260907.db"
+    if exist "%BACKEND%\data\%PROD_SNAPSHOT%" (
+        set "DATABASE_URL=sqlite+aiosqlite:///%BACKEND:\=/%/data/%PROD_SNAPSHOT%"
     ) else (
-        echo [警告] 未找到生产数据副本 backend\data\nsh-server-20260907.db，回退本地开发库
+        echo [警告] 未找到生产数据快照 backend\data\%PROD_SNAPSHOT%，回退本地开发库
     )
 )
 
 if defined DATABASE_URL (
-    echo 数据源: 生产数据副本 ^(nsh-server-20260907.db^)
+    echo 数据源: 生产数据快照 ^(%PROD_SNAPSHOT%^)
 ) else (
     echo 数据源: 本地开发库 ^(nsh.db^)
 )
@@ -38,9 +41,11 @@ if errorlevel 1 (
 popd
 echo      数据库迁移完成
 
-REM ===== 首次启动自动初始化账号数据（仅本地开发库；生产副本自带账号，跳过）=====
-if not defined DATABASE_URL if not exist "%BACKEND%\data\nsh.db" (
-    echo [1/4] 首次启动，正在初始化账号数据...
+REM ===== 初始化账号数据（仅本地开发库；生产副本自带账号，跳过）=====
+REM 不能以「nsh.db 是否存在」为条件：上一步 alembic 会先建出空 schema 的库文件，
+REM 用存在性判断会让 init_db 被跳过 → 默认账号缺失、登录失败（init_db 幂等，可重复执行）
+if not defined DATABASE_URL (
+    echo       检查并初始化账号数据（幂等）...
     pushd "%BACKEND%"
     if not defined DEVELOPER_PASSWORD set "DEVELOPER_PASSWORD=dev123456"
     if not defined ADMIN_PASSWORD set "ADMIN_PASSWORD=admin123"
