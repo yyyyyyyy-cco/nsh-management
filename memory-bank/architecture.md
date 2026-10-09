@@ -67,7 +67,7 @@ nsh-management/
 
 ### 2. 数据库设计文档
 - **路径**：`memory-bank/database-design.md`
-- **作用**：定义全部数据表结构（12 表，含 squad_adjustments、operation_logs、member_game_id_requests）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.9（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计、游戏 ID 修改申请）
+- **作用**：定义全部数据表结构（12 表，含 squad_adjustments、operation_logs、member_game_id_requests）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.10（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计、游戏 ID 修改申请、补人部分唯一索引）
 - **更新时机**：表结构变更、业务规则调整时更新
 
 ### 3. 技术栈文档
@@ -575,6 +575,7 @@ nsh-management/
 | 2026-10-03 | Wave 2 批次 32（合规化计划 **W2-8**）：用 `defineModel` 消除 **10 处 `vue/no-mutating-props`** 告警（4 个文件：`SquadCardsGrid`/`MemberTablePanel`/`MemberToolbar`/`LogFilterBar`）；因父组件为 `reactive` 常量、`defineModel` 就地写共享对象语义与改前一致 → **父组件零改动**；验证：lint **10→0**、`vue-tsc` exit 0、`build` exit 0、`test` 60 passed；**页面级交互验收仍待浏览器授权**；教训记入 ai-checklist 第 67 条 | SquadCardsGrid.vue, MemberTablePanel.vue, MemberToolbar.vue, LogFilterBar.vue, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-08 | 文档冗余审查与开发/部署说明准确性修正（含**服务器配置只读 diff**）：`DEPLOY.md` 新增 §三「服务器实况核对（2026-10-08 只读 diff）」（7 个配置文件 5 处漂移 + 4 项需人工同步 + `requirements.txt` 会随部署自动升级）并删除 §四 重复的旧日志表、更正 §六 `APP_ENV` 表述；`README.md` 环境变量表改为引用、Node 要求改 `22+`；`CONTRIBUTING.md` Node 要求改 `22+`；`tech-stack.md` 补 Node.js 行与健康检查/`APP_ENV` 表述；`deploy.sh.example` 补服务器侧备份步骤并修正归档路径；`start.bat` / `docker-compose.yml` / `frontend/Dockerfile` / `frontend/package.json` 同步修正；详见 progress.md 同日条目 | DEPLOY.md, README.md, CONTRIBUTING.md, tech-stack.md, start.bat, docker-compose.yml, deploy.sh.example, frontend/Dockerfile, frontend/package.json, ai-checklist.md |
 | 2026-10-08 | **移除 `.qoder/plans/`（3 份外部 AI 工具草案，466 行）**（用户决定，对应合规化计划 F-36 的「整体移出仓库」选项）：其内容已被 `design-game-id-change.md` / `ui-polish-plan.md` / `.agent/rules/file-length-rule.md` 覆盖，无文档再引用；本索引三处同步（目录树删 `.qoder/` 两行、删除原 §22 外部工具草案节并把 §23 社区与流程文档顺位改为 §22、本条更新记录）。历史条目中的 `.qoder` 引用（本文件 2026-10-02 / 2026-10-03 行、`progress.md`、合规化计划）按 §3.4 保留不回改 | architecture.md, progress.md, .agent/plans/compliance-remediation-plan.md |
+| 2026-10-09 | 文档修复批次（本日全仓分析的四项 C 类清单，用户指示「先做文档修复」）：CHANGELOG 孤儿区块归并清理（3 条独有内容并入 [Unreleased]）；`database-design.md` 版本号 v1.9 → **v1.10**（§4 已有 v1.10 行：补人部分唯一索引）并修复一处错位残片，本文件 §2 描述与 `progress.md` / `backend/docs/README.md` / 合规化计划引用同步；`security-review.md` §17.5 统计按独立脚本重算收敛为 **58✅/20🟡/12❌/34⚪**；合规化计划过时文本更新（F-110 已解决 → 289/0、J-1 已推送、W3-5 关闭后 §7 汇总 **56/67**）；7 道门禁复跑全部通过。详见 progress.md 同日条目 | CHANGELOG.md, database-design.md, security-review.md, compliance-remediation-plan.md, progress.md, architecture.md, backend/docs/README.md |
 
 ## 使用说明
 

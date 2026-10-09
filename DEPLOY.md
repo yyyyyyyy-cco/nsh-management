@@ -183,6 +183,15 @@ bash scripts/check-config-drift.sh /srv/nsh-management/docker-compose.yml ./dock
 未设 `DATABASE_URL`（走默认卷内路径，正确）；服务器上**没有** `deploy.sh`（该脚本只在部署者本机，
 部署靠 tar 上传）；`~/backups/nsh-YYYYMMDD.db` 每日备份与 `backup-databases.sh` 正常运行。
 
+> **2026-10-09 复核（只读，用户授权登录服务器）**：SSH 登录已恢复（部署者本机密钥现可登录，
+> 2026-10-08 记录的「密钥无法登录」阻塞**已解除**）。逐项复核与上表结论**一致、无新变动**：
+> `frontend/nginx.conf` 仍无 `/assets/` 白名单；`docker-compose.yml` 健康检查仍探 `/`、无 `APP_ENV` 行；
+> `frontend/Dockerfile` 仍为 `node:18-alpine`；`backend/.env.example` 仍含失效键；`backend/requirements.txt`
+> 仍为旧锁定（容器实装 fastapi 0.141.1 / python-jose 3.3.0 / bcrypt 4.0.1 / passlib 1.7.4 / Pillow 11.1.0）。
+> 站点运行正常：HTTPS 入口 200、HTTP 301、`/api/v1/health` 404（佐证镜像为合并前版本）；双容器
+> Up 10 天（backend healthy）；每日备份与证书巡检 cron 均正常；边缘反代（keepalive 32、login/api 限流）
+> 与本文档描述一致。**部署时仍需先做上表 4 项人工同步 + 部署前数据库备份。**
+
 ## 四、日志系统
 ### 逐层日志清单（2026-10-02 新增，对应 ASVS 16.1.1）
 

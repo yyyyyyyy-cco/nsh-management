@@ -9,7 +9,7 @@
 - 多帮会数据隔离（guild_id），每个帮会一个管理员账号 + 一个帮众共享账号
 - JWT 认证 + 角色权限控制（developer/admin/member）
 - 登录限流（5 次失败锁定 5 分钟）
-- 全部业务规则按 database-design.md v1.9 落表
+- 全部业务规则按 database-design.md v1.10 落表
 
 ### 用户场景
 - 开发者：创建帮会、派发账号、删除帮会、全局管理
@@ -22,7 +22,7 @@
 - [x] 后端项目初始化、目录结构搭建（P0）
 - [x] 依赖安装（FastAPI、SQLAlchemy、Pydantic、JWT、Alembic 等）（P0）
 - [x] 数据库配置（异步连接、Session 管理）（P0）
-- [x] 数据模型定义（12 张表，见 database-design.md v1.9）（P0）
+- [x] 数据模型定义（12 张表，见 database-design.md v1.10）（P0）
 - [x] Pydantic Schema 定义（P0）
 - [x] 全局异常处理、CORS 配置（P0）
 - [x] 认证模块：登录/登出/获取用户信息 + 登录限流（含未知账号锁定）（P0）
@@ -40,7 +40,7 @@
 - [x] Docker 部署（Dockerfile、docker-compose、deploy.sh、entrypoint.sh）（P2）
 
 ### 依赖关系
-- 依赖 database-design.md v1.9（表结构）
+- 依赖 database-design.md v1.10（表结构）
 - 依赖 tech-stack.md（技术选型、requirements.txt）
 - 认证模块是其他所有 API 的前置（依赖注入校验 Token）
 - 排表/录屏/分析依赖赛程模块的级联创建

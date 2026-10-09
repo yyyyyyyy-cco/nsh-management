@@ -8,10 +8,10 @@ set "FRONTEND=%~dp0frontend"
 
 REM ===== 数据源切换：prod=生产数据副本（nsh-server-*.db，只读参考）；dev=本地开发库 =====
 REM 切换时改下一行即可；副本文件由服务器快照拉取，勿在本地业务操作中依赖它回写生产
-REM 默认 dev：仓库不含任何 .db，快照需自行从服务器导出到 backend\data\ 后才可切到 prod
-set "DB_MODE=dev"
+REM 仓库不含任何 .db：快照缺失时会自动回退 dev；快照由服务器导出后放入 backend\data\（见下行文件名）
+set "DB_MODE=prod"
 REM DB_MODE=prod 时使用的快照文件名（把服务器导出的快照放进 backend\data\ 并按实际名字改这里）
-set "PROD_SNAPSHOT=nsh-server-20260907.db"
+set "PROD_SNAPSHOT=nsh-server-20261009.db"
 
 set "DATABASE_URL="
 if /i "%DB_MODE%"=="prod" (
@@ -81,7 +81,7 @@ echo   前端页面:  http://localhost:5173
 echo   接口文档:  http://127.0.0.1:8000/docs
 echo.
 if defined DATABASE_URL (
-    echo   当前数据源: 生产数据副本 ^(2026-09-07 快照^)
+    echo   当前数据源: 生产数据副本 ^(%PROD_SNAPSHOT%^)
     echo   登录账号:   使用生产环境的真实账号密码
     echo   注意:       此库为快照副本，本地操作不会影响生产服务器
 ) else (

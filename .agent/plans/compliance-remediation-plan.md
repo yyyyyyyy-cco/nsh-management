@@ -117,7 +117,7 @@
 | F-17 | 备份/恢复全手工，无自动化、无演练记录 | `DEPLOY.md:120-149`；全仓无备份脚本命中 | 运维基线 | W3-2 | P2 **（2026-10-03 复核，实测 → 保留）**：**部分修复** ✓：自动化备份脚本模板 `scripts/backup-db.sh.example` **已入库** ✓（D-5 模板形式 ✓）→ 原「全仓无备份脚本命中」**已失效** ✗；**残留**：仍**无恢复演练记录** ✓ → 保留（残留未清零 ✓）。 |
 | F-18 | 生产默认暴露 `/docs`、`/redoc`、`/openapi.json`，且安全审查未覆盖 | `backend/app/main.py:36`（未设 `docs_url`）；`SECURITY-REVIEW.md` 无 `/docs | openapi | redoc` 命中 | OWASP Top 10:2025 A02 | **W4-1 ✅（2026-10-02 已关闭）** | P1 **（2026-10-03 复核，实测 → 关闭）**：`main.py` 经 `api_docs_enabled()` 条件配置文档端点 ✓（生产环境关闭 ✓）→ 原「生产默认暴露 `/docs`」**已失效**，关闭 ✓。 |
 | F-19 | `CORS_ORIGINS` 硬编码，未外置 | `backend/app/core/config.py:36` | 12-Factor III | **W4-3 ✅（2026-10-02 已外置）** | P3 **（2026-10-03 复核，实测 → 关闭）**：`CORS_ORIGINS` **已外置** ✓（`_parse_cors_origins(os.getenv("CORS_ORIGINS", …))` ✓，`.env.example` 有对应项 ✓）→ 关闭 ✓。 |
-| F-20 | 3 个已合并远端分支未清理，且命名违反自家规范（大写、非连字符） | `git branch -r --merged`（`Data-analysis`/`UI-design`/`member-panel`，落后 main 65/50/54）；`GIT-GUIDE.md:35` | Scorecard（分支卫生） | W3-5 | P2 **（2026-10-03 复核，实测 → 保留）**：实测 `git branch -r --merged` **仍列出 3 个已合并远端分支**（Data-analysis, UI-design, member-panel ✓）→ **本条仍成立** ✓；清理需**删除远端分支（网络+破坏性操作 ✗）**，属**需你授权**的动作 ✓ → 保留并标注授权依赖 ✓。 |
+| F-20 | 3 个已合并远端分支未清理，且命名违反自家规范（大写、非连字符） | `git branch -r --merged`（`Data-analysis`/`UI-design`/`member-panel`，落后 main 65/50/54）；`GIT-GUIDE.md:35` | Scorecard（分支卫生） | W3-5 | P2 **（2026-10-03 复核，实测 → 保留）**：实测 `git branch -r --merged` **仍列出 3 个已合并远端分支**（Data-analysis, UI-design, member-panel ✓）→ **本条仍成立** ✓；清理需**删除远端分支（网络+破坏性操作 ✗）**，属**需你授权**的动作 ✓ → 保留并标注授权依赖 ✓。**（2026-10-09 复核，实测 → 关闭）**：`git ls-remote --heads origin` 与 `git branch -a` 实测远端**仅剩 `main`** ✓——3 个遗留分支已清理，无需再授权 → **关闭** ✓。 |
 | F-21 | 规范声明双远端，实际仅 `origin` | `GIT-GUIDE.md:15,18,166-174,281` vs `git remote -v` | 规范一致性 | W3-6 | P2 **（2026-10-03 复核，实测 → 关闭）**：实测 `git remote` 仅 **['origin']** ✓；`GIT-GUIDE.md` / `AGENTS.md §5` 已把镜像远端标注为**可选（决策 D-2）** ✓ → **文档与实际一致、不构成缺陷**，关闭 ✓。 |
 | F-22 | 制品版本与 tag 无联动（`frontend/package.json` 恒 `0.1.0`） | `frontend/package.json:4` | SemVer / 12-Factor V | W3-4 | P2 **（2026-10-03 复核，实测 → 保留）**：`frontend/package.json` **仍为 `0.1.0`** ✗（与 CHANGELOG 1.2.0 不一致 ✓）→ 仍成立；处置归 **J-2 决策（待你定 ✓）** → 保留 ✓。 |
 | F-23 | README 声明 MIT 但无 `LICENSE` 文件 | `README.md:134-136`；`Test-Path LICENSE` = False | SPDX/MIT | W0-1 | P2 |
@@ -334,7 +334,7 @@
 ## 7. 进度跟踪表
 
 
-> **进度汇总（2026-10-03 修正口径·以本文重算为准；2026-10-08 因 W2-7 撤销而重算）**：完成 **55/67**（82.1%）；未完成 **10**；其它 **2**（其中 W2-7 Dependabot 于 2026-10-08 由用户决定撤销 ⛔）。口径：**只统计 §7 内第一张连续表（任务表）** ✓，且**只按「状态」列**判定 ✓；汇总行每次由脚本从当前文件重算写回 ✓。
+> **进度汇总（2026-10-03 修正口径·以本文重算为准；2026-10-08 因 W2-7 撤销而重算；2026-10-09 因 W3-5 完成再重算）**：完成 **56/67**（83.6%）；未完成 **9**；其它 **2**（其中 W2-7 Dependabot 于 2026-10-08 由用户决定撤销 ⛔）。口径：**只统计 §7 内第一张连续表（任务表）** ✓，且**只按「状态」列**判定 ✓；汇总行每次由脚本从当前文件重算写回 ✓。
 | 任务 | 状态 | 完成日期 | 验证证据 | 关联提交 |
 |------|------|---------|---------|---------|
 | W0-1 新增 LICENSE | ⛔ 阻塞 | | 阻塞项：需用户提供版权人名称/年份（见 §3.1 D-1） | — |
@@ -370,7 +370,7 @@
 | W2-8 修复 props 变更债（10 处） | ✅ 已完成 | 2026-10-03 | ①**10 处告警集中在 4 个文件**（`SquadCardsGrid` 1、`MemberTablePanel` 2、`MemberToolbar` 3、`LogFilterBar` 4），模式统一：模板里 `v-model` 直接绑到 **prop 的嵌套字段**（`query.keyword` / `filters.level` / `compareChecked[name]` / `query.page`）。②**改法**：把四处 prop 改为 `defineModel('…', { required: true })`——这是 Vue 3.4+ 对「子组件需要写这份状态」的官方声明方式 ✓；`LogFilterBar` **本来就在用 defineModel**（`dateRange`）→ 与既有写法一致 ✓。③**关键取舍（父组件一行未动）**：`defineModel` 返回 ref，模板中就地写入的是**父组件共享的同一对象**（父组件用 `reactive`，`v-model:x` 反而无法编译）→ 行为与改前**完全一致** ✓，因此不触碰 3 个父组件，把改动面压到最小 **4 个文件** ✓。④**验证（静态与单测）**：`npm run lint` **10 warnings → 0** ✓；`npx vue-tsc -b --force` exit 0 ✓（类型全过）；`npm run build` exit 0 ✓；`npm run test` **60 passed / 7 文件 exit 0** ✓。⑤**诚实边界**：`AGENTS.md §7.4` 未获浏览器授权 → **页面级交互验收未做** ✗（筛选/分页/勾选的视觉效果需人工确认）；另「就地改共享对象」仍是设计层面的折中，若要彻底改为**每次变更 emit 新对象**，属可选后续改进（未单列任务）| fix(frontend): 用 defineModel 消除 10 处 props 变更告警 |
 | W2-9 整改计划结构一致性门禁 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_plan_integrity.py`（8 条内置自检）：①编号唯一性（§4 发现 / §5 任务 / §7 进度各自不得重复）；②**任务↔进度一一对应**（§5 有任务必有 §7 行、§7 有行必有 §5 任务）；③行内 `F-xx` 引用必须在 §4 有定义；④§7 行必须含 ✅/🔄/⏳/⛔ 状态标记。已接入 CI `repo-hygiene`（先自检再实跑）。**实战价值已兑现两次**：其一，最初版本正则不认**加粗编号**（计划里 `| **F-08** |`、`| **W2-8** |`），报出「§7 有进度但 §5 无任务：W2-8」——我据此**误给 §5 补了一行**，修好正则后门禁立刻报「§5 任务编号重复：W2-8」（那行本来就有，见 ai-checklist 第 42 条）；其二，修好后实跑即为 PASS（52 发现 / 42 任务 / 42 进度一一对应），并把 §8 回归命令补齐 | ci(quality): 新增整改计划结构一致性门禁 |
 | W2-10 陈旧绝对路径门禁脚本化 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_stale_paths.py`（5 条自检，纯标准库，只扫描 git 跟踪文件）：拦截「旧前缀 + 仓库名」的**完整字面量**，约定允许的省略号形式不拦截；CI 的内联 grep 与 §8 组 1 的本地命令**都改为调用该脚本**，使本地与 CI 口径完全一致。**动机**：该检查原先只在 CI 里，本地跑不了——本轮我手搓临时检查时把模式串写成「旧前缀」，9 处**省略号形式的说明性引用**被误报为违规（复核后确认仓库对 CI 模式 **0 命中**，因此未据此改动任何文档——第二次靠「先验证检测器」避免改错文档）。验证：自检 5/5；实跑扫描 353 个跟踪文件 0 命中 PASS | ci(quality): 陈旧绝对路径检查落地为本地可跑门禁并补验收清点 |
-| W2-11 文档数字/版本一致性门禁 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_doc_numbers.py`（8 条自检）：真值取自代码——模型 `__tablename__` 计数、`alembic/versions` 文件数、`database-design.md` 自身版本；校验各文档**当前态**声明（`N 张表`/`N 个 Alembic 迁移`/`database-design vX.Y`）彼此一致且与真值相符，日期开头的更新记录行按 §3.4 排除。**产出两处旧值并修正**：（a）`backend/docs/README.md` 引用 `database-design v1.9`（实际 v1.9）——**人工普查没发现，是门禁上线后抓到的**；（b）`memory-bank/tech-stack.md` 摘要行仍写 `Python 3.13`（同文件正文已按代码事实写 3.11）——人工普查发现，门禁不覆盖（Python 版本声明含「3.11–3.13 可用」等范围写法，机器判定易假阳性，故暂不纳入）。训练要点：**人工 grep 与门禁不是重复劳动**（各抓到一处）。验证：自检 8/8；实跑 PASS（真值 12 表 / 15 迁移 / v1.9，扫描全部当前态行）| ci(quality): 新增文档数字/版本一致性门禁并修正两处旧值 |
+| W2-11 文档数字/版本一致性门禁 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/check_doc_numbers.py`（8 条自检）：真值取自代码——模型 `__tablename__` 计数、`alembic/versions` 文件数、`database-design.md` 自身版本；校验各文档**当前态**声明（`N 张表`/`N 个 Alembic 迁移`/`database-design vX.Y`）彼此一致且与真值相符，日期开头的更新记录行按 §3.4 排除。**产出两处旧值并修正**：（a）`backend/docs/README.md` 的 database-design 版号引用**落后一版**（门禁以其自身声明为真值比对后抓出）——**人工普查没发现，是门禁上线后抓到的**；（b）`memory-bank/tech-stack.md` 摘要行仍写 `Python 3.13`（同文件正文已按代码事实写 3.11）——人工普查发现，门禁不覆盖（Python 版本声明含「3.11–3.13 可用」等范围写法，机器判定易假阳性，故暂不纳入）。训练要点：**人工 grep 与门禁不是重复劳动**（各抓到一处）。验证：自检 8/8；实跑 PASS（真值 12 表 / 15 迁移 / v1.9，扫描全部当前态行）| ci(quality): 新增文档数字/版本一致性门禁并修正两处旧值 |
 | W2-12 部署文档环境变量覆盖门禁 | ✅ 已完成 | 2026-10-02 | 扩展 `check_env_docs.py`：在原有「代码 ↔ `.env.example`」之外，新增「`.env.example` 的每个键必须在 `DEPLOY.md` 出现」——**两份清单缺一不可**（模板是给开发者看的，部署文档是运维照做的）。**实测证据**：用 `git show HEAD:DEPLOY.md` 取修复前内容并用**同一取键函数**比对，修复前有 **7 个键**（ADMIN_USERNAME、DATABASE_URL、DEBUG、DEFAULT_GUILD_NAME、DEVELOPER_USERNAME、LOG_RETENTION_DAYS、MEMBER_USERNAME）在部署文档中未出现；已补入 §六 表格，现为 **17/17 均已提及**。自检由 11 条增至 **14 条**（新增部署文档提及判定样例）。教训记入 ai-checklist 第 50 条（校验了 A↔B 不等于 A↔C 也一致）| ci(quality): 扩展环境变量门禁覆盖部署文档并补全 §六 表格 |
 | W2-13 构建产物移出版本库（F-60） | ⏳ 待开始（**待授权**） | — | **登记原因**：`git add -A` 把 `vue-tsc` 产物 `frontend/tsconfig.node.tsbuildinfo` 一并入库；`.gitignore` 已补 `*.tsbuildinfo`，但**已被跟踪的文件不会因忽略而自动移出** ✗；移出索引是 git 删除操作，按 §5 需用户授权 | — |
 | W2-14 lint/format/类型检查收紧（F-67） | ⏳ 待开始 | — | **首批清零（2026-10-03）**：mypy 诊断 **94 → 88** 条 ✓（零风险子集：`init_db.py` 分支语句位置 assert ✓、`core/config.py` 显式 `Path | None` ✓、`core/database.py` `-> AsyncGenerator[AsyncSession, None]` ✓、`services/member_service.py` 等价重写 `status_counts` ✓、`api/v1/guilds.py` 返回注解对齐实现 ✓）；**行为验证**：全量 pytest 绿 ✓、ruff ✓。**实测降幅 6 条**（原估 8 条；其中 4 条目标诊断仍在 → 已在下面如实列出 ✓）。**未动**：`arg-type` 约 60 条（多为 `current_user.guild_id` 的 `int | None` ✓，涉权限口径 → 待决策 ✗）。**过程缺陷**：首版 assert 插进 `User(...)` 实参中间 → 语法错误（mypy exit=2 ✓），而我的判据只看条数 ✗ → 同轮改为**退出码为判据** ✓。原证据：**登记原因**：W2-3 的完成说明里写有「待收紧：E501 行长、`ruff format`、`I`/`UP`/`B` 规则、vue `flat/recommended` 排版规则与 Prettier 一次性格式化；后端 mypy 尚未 | — **第二批（2026-10-03）**：`api/v1/guilds.py` 四条路由返回注解统一为 `GuildOut`（返回 ORM 的两条显式 `GuildOut.model_validate(...)` ✓，`response_model` 不变 → 行为中性 ✓）→ mypy **88 → 86** ✓，该文件诊断**归零** ✓；同时删去因此变为未用的 `from app.models.guild import Guild` ✓（ruff 先报出 ✓）。**行为验证**：全量 pytest 绿 ✓、ruff ✓。 **第三批（2026-10-03）**：mypy **86 → 82** ✓ —— `member_service` 两处 `sortable` 注为 `dict[str, Any]` ✓（-2）、`utils/image_export.py` 返回注解放宽为 `FreeTypeFont | ImageFont` ✓（-1）、**并由此发现真 bug `F-104`（P2）**：`match_data.py:43` 的 `file.filename.endswith(...)` 在文件名为 None 时会 **500** ✗ → 已修并加 5 用例 ✓（-1）；`utils/attendance_import.py` 与 `config_service` 的形态与预期不符 → **按计划跳过/回退，未硬改** ✓（前者返回式跨行、后者服务体非属性式 ✓）。全量 pytest 绿 ✓、ruff ✓。 **第四批（2026-10-03）**：mypy **82 → 71** ✓（本会话单批最大降幅 ✓）—— `services/match_data_csv.py` 的 **11 条 `assignment`** ✓ 全部来自 `parse_csv` 里的**异构行字典**：`data` 由初始化推断为 `dict[str, str]` ✗，而函数体写入 `kills`/`springs`/`revives` 等 **int** ✓ → **纯注解问题**（运行期无异常 ✓，非 bug ✓）→ 精确注解为 **`dict[str, str | int]`** ✓（准确且类型安全 ✓，行为零变化 ✓）。全量 pytest 绿 ✓、ruff ✓。 **5th batch (2026-10-03)**: mypy **71 -> 62**; match_data_service.py 5 operator -> camps annotated dict[str, dict[str, int]] (+1 max-key lambda fix, equivalent); members.py / lineups.py 4 return-value -> annotation aligned with implementation (response_model unchanged); config_service left unchanged. pytest green, ruff ok. Process: first attempt reverted 3 genuine wins because my acceptance required per-file zero diagnostics; corrected to per-diagnostic (kind+line) assertions + total-delta only. **6th batch (2026-10-03)**: mypy **61 -> 57**; `api/v1/config.py` route now converts `[c.model_dump() for c in body.configs]` -> fixes real bug **F-105 (P2)** (`PUT /config/professions` raised AttributeError/500 because the service is dict-based and the route passed pydantic models) + contract test (3 cases, including reverse lock); `utils/attendance_import.py` cross-line `set(...)` -> comprehension with None safety net (query already filters NULL). **F-106 (P3)** registered: 3 dynamic-attribute injections, awaiting the user's choice (not touching ORM models). pytest green, ruff ok. **Frontend F-102 fixed (2026-10-03)**: SchedulePayload split into ScheduleCreatePayload (3 required) and ScheduleUpdatePayload (all optional, no rounds); vue-tsc clean + vite build ok; vitest 69 passed (first vitest run failed on an environment EPERM in the system temp dir, unrelated to the change; rerun with a workspace-local TEMP passed). |
@@ -379,7 +379,7 @@
 | W3-2 备份自动化与演练 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/backup-db.sh.example`：把 `DEPLOY.md §五` 的「方式一（SQLite 在线 backup API）」自动化——**默认 dry-run**（`DRY_RUN=1` 只打印命令）、快照先在容器内生成并执行 `PRAGMA integrity_check`（**校验通过才拷出**，避免把坏库当备份）、产物 `nsh-YYYYmmdd-HHMMSS.db` 默认保留 30 天、cron 示例写在脚本头部；`DEPLOY.md §五` 新增「自动化备份」与「恢复演练记录（每季一次）」两小节（含演练要求与模板首行）。**实证设计理由**（本机 Python 3.14 实测）：WAL 模式且连接打开时，直接复制主库文件得到的副本报 `no such table: t`（表结构与数据仍在 `-wal` 中），而 backup API 快照读到 2000 行且 `integrity_check = ok`——该对比已写入 §五，作为「禁止直接 cp」⚠️ 警告的依据。验证：`bash -n` exit 0；dry-run 实跑 exit 0；非法参数路径 non-zero。**未验证**：`DRY_RUN=0` 真实全流程（需 Docker 守护进程与命名卷，本机不可用）；恢复演练本身未执行 | feat(ops): 新增备份与归档脚本模板并补齐回滚章节 |
 | W3-3 制品版本化与回滚 | ✅ 已完成 | 2026-10-02 | 新增 `scripts/release-archive.sh.example`：本项目**不使用镜像仓库**，故以带版本号的 tar 归档（`docker save`）+ `nsh-<version>.manifest.txt`（记录版本 / 提交号 / 镜像引用 / 归档时间）。**版本权威为 git 标签**：脚本校验 `vX.Y.Z` 格式、核对标签是否存在、工作区是否干净（不满足时**告警而非静默通过**）。`DEPLOY.md` 新增 **§九 版本归档与回滚**：9.1 发布前归档；9.2 回滚七步（停服 → `docker load` → 打 compose 期望的本地 tag → `up -d` → `ps` 需 healthy → 入口 200）；**9.3 数据库迁移不可逆警示**——容器每次启动执行 `alembic upgrade head` 且只前进不回退，若版本含破坏性迁移则**仅回滚镜像会与库不兼容**，必须先用 W3-2 的备份回退数据库；并把「先归档 + 先备份，再 `up -d --build`」写成发布纪律；9.4 归档保留建议。**实现位置偏差（如实记录）**：计划原文提到改 `deploy.sh.example`，实际另建独立脚本——`deploy.sh` 含服务器专属内容且已被忽略，把归档职责拆开更清晰。验证：`bash -n` exit 0；dry-run 实跑 exit 0 且正确识别标签 `v1.2.0` 与当前提交；非法版本号返回 **2**（双向验证）。**未验证**：真实 `docker save` / `docker load` 全流程（需 Docker 守护进程，本机不可用） | feat(ops): 新增备份与归档脚本模板并补齐回滚章节 |
 | W3-4 CHANGELOG 与版本联动 | 🔄 进行中 | 2026-10-02（CHANGELOG 部分） | **2026-10-03 核对（本机可验证部分全部通过）**：CHANGELOG 三段版本 [1.0.0]/[1.1.0]/[1.2.0] 的日期与 git 标签 v1.0.0/v1.1.0/v1.2.0 **逐一相符** ✓；比较链接引用 `compare/v1.2.0...HEAD` 等均指向**真实标签** ✓（缺失 0 ✓）。**已修**：`## [未发布]` → `## [Unreleased]`（KaC 1.1.0 规范名，CHANGELOG 内 3 处 ✓）。**未决**：版本联动（`frontend/package.json` 0.1.0 ✓ / 后端无版本声明 ✗ / CHANGELOG 1.2.0 ✓）取决于 D-4 ✓ → 保持进行中，见 F-103。原证据（2026-10-02）：`CHANGELOG.md` 已建立（Keep a Changelog 1.1.0 + SemVer 2.0.0）：`[未发布]` 段按新增/变更/修复/安全四类汇总本轮合规化改动；`[1.2.0] - 2026-10-02`、`[1.1.0] - 2026-09-16`、`[1.0.0] - 2026-08-27`  | — |
-| W3-5 分支治理 | ⏳ 待开始（**待授权**） | | **状态如实补充（2026-10-03）**：本地可见远端分支 4 个['origin/Data-analysis', 'origin/UI-design', 'origin/main', 'origin/member-panel']；已合并分支的**删除**属 git 删除操作，按 `AGENTS.md` §5 需**用户授权** ✗ → 保持待授权（同 W2-13） | — |
+| W3-5 分支治理 | ✅ 已完成 | 2026-10-09 | **2026-10-09 复核**：`git ls-remote --heads origin` 与 `git branch -a` 实测远端**仅剩 `main`** ✓——原记录的 3 个已合并遗留分支（`Data-analysis`/`UI-design`/`member-panel`）已清理，无需再授权 → 关闭 ✓（同源 F-20 同步关闭） | — |
 | W3-6 远端策略落地 | ✅ 已完成 | 2026-10-02 | 按 D-2（「单远端为准 + 可选镜像」）改写 `GIT-GUIDE.md`：§1 文首与仓库概览表（`gitee` 行改为「可选镜像远端」）、§1 策略段（原文「任何推到 main 的提交和 tag 都要同步推送到两个远程」→「`origin` 为唯一权威远端；镜像可选、非发布前置条件」，并给出配置镜像命令）、§4.4、§5.2、§6「镜像远端（可选）」（必做命令与可选命令分列）；历史事实备注按 §3.4 **保留不回改**，仅调整其结论句。同步权威源：`AGENTS.md §5`、`memory-bank/ai-context.md`、`memory-bank/progress.md` 代码树说明。**同时修一处文档与代码矛盾**：`GIT-GUIDE.md §7.1` 原写「禁止提交 `frontend/nginx.conf`」，而该文件自 2026-10-02 起已入库（容器构建输入，占位符版）——已按代码事实更正并补变更说明。事实依据：`git remote -v` 仅有 `origin` | docs(git): 远端策略改为单远端为准并同步发布清单 |
 | W4-1 关闭生产 API 文档 | ✅ 已完成 | 2026-10-02 | `core/config.py` 新增 `api_docs_enabled()`（生产 False / 开发 True，复用既有 `_is_production()`）；`app/main.py` 按该开关设置 `docs_url` / `redoc_url` / `openapi_url`（生产为 `None` → 404），本地开发保留。**未采用 `DEBUG` 作判据**：`DEBUG` 控制异常详情脱敏，与「部署环境」语义不同，用 `APP_ENV`/容器特征更贴合本任务原意。验证（子进程断言，因开关在 import 时求值）：`APP_ENV=production|prod` → 三者均 `None`；`development` → `/docs`、`/redoc`、`/openapi.json` 均在。文档同步 `DEPLOY.md §二`。`security-review.md` 的 ASVS/Top10 逐项对照仍由 W4-2 完成 | feat(ops): 新增健康检查端点并关闭生产 API 文档 |
 | W4-2 ASVS/Top10 对照补审查 | ✅ 已完成 | 2026-10-02 | `memory-bank/security-review.md` 新增 **§十五 暴露面清单与 OWASP 对照**：①**15.1 暴露面清单**（读配置得出，非推测）：仅边缘 Nginx 443 对外（TLS 1.2/1.3）、:80 仅跳转与 ACME 校验；frontend/backend 容器端口与 SQLite 文件均不对外；路径级处置表含 `/api/v1/auth/login` 独立限流 5r/m、`/api/*` 20r/s、生产 `/docs` 等 404。②**15.2 Top 10:2025 条目级对照**（依据官方 `top10.owasp.org/2025/` 本轮实取清单，含 2025 新增 A03/A10）：A01/A05/A07 已覆盖；A02/A03/A04/A06/A08/A09/A10 部分满足并逐条给出证据与缺口。③**15.3 ASVS 5.0.0 域级对照**（配置/认证/会话/访问控制/日志与错误处理）：ASVS 5.0.0 为当前稳定版、官方编号格式 `v5.0.0-x.y.z`、V1 为 Encoding and Sanitization——三项均本轮实取核实；**条目级未做**（已登记 W4-8）。④**15.4 新识别 6 项不足**（CSP 过宽、无告警通道、供应链完整性、无威胁建模、ASVS 条目级缺口、历史响应头），已登记为差距 F-43~F-46 与任务 W4-5~W4-8。**边界**：结论基于仓库内配置与代码证据，**未做**渗透测试或动态扫描 | docs(security): 补齐暴露面清单与 OWASP 对照 |
@@ -555,12 +555,12 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | 前端测试套件 | `npm run test`（vitest **4.1.11** + jsdom） | **69 passed / 8 files，exit 0，无 unhandled error**（2026-10-03 批次 90 重测） |
 | 前端 lint | `npm run lint` | **0 error / 0 warning**（W2-8 已于 2026-10-03 用 `defineModel` 清零；ESLint 无问题时**不打印 problems 行**） |
 | 前端类型检查 + 构建 | `npm run build`（`vue-tsc` + **vite 6.4.3**；TEMP 指向工作区） | exit 0（≈8.4s，2026-10-03 实测） |
-| 门禁 1 行数规则 | `check_file_length.py` | PASS（自检 9/9 + 实跑；自检为 2026-10-02 补齐，此前只有实跑） |
+| 门禁 1 行数规则 | `check_file_length.py` | PASS（自检 **10/10** + 实跑；2026-10-09 复核） |
 | 门禁 2 依赖锁定 | `check_requirements_pins.py` | PASS（自检 12/12） |
 | 门禁 3 环境变量文档 | `check_env_docs.py` | PASS（自检 **14/14**；17/17 已文档化 **且 17/17 已在 `DEPLOY.md` 提及**） |
-| 门禁 4 计划结构 | `check_plan_integrity.py` | PASS（自检 8/8；任务↔进度一一对应） |
+| 门禁 4 计划结构 | `check_plan_integrity.py` | PASS（自检 **15/15**；任务↔进度一一对应；2026-10-09 复核） |
 | 门禁 5 陈旧绝对路径 | `check_stale_paths.py` | PASS（自检 5/5；扫描 **383** 个跟踪文件 0 命中，2026-10-03 实测） |
-| 门禁 6 文档数字/版本一致性 | `check_doc_numbers.py` | PASS（自检 8/8；真值 12 表 / 16 迁移 / v1.9，扫描全部当前态行） |
+| 门禁 6 文档数字/版本一致性 | `check_doc_numbers.py` | PASS（自检 8/8；真值 12 表 / 16 迁移 / **v1.10**，扫描全部当前态行；2026-10-09 复核） |
 | 门禁 7 判定与修复状态同步 | `check_verdict_sync.py` | PASS（自检 **13/13**；严格模式 0 处） |
 | 仓库卫生 | `git status --porcelain` / `git ls-files --eol` | 工作区干净；索引无 CRLF（`i/lf`） |
 | UI 规范令牌值 ↔ `theme.css` | 抽取 `ui-style-guide.md` 令牌表中的 (名, 值) 对，与 `theme.css` 实际声明逐对归一化比对 | **22/23 对完全一致** ✓（唯一差异 `--gold-gradient` 属**记法差异**：规范用可读简写、CSS 用 `linear-gradient(...)`，色值相同）；颜色字面量归一化（含 `.ts` 图表色）后**规范独有 2 个**（2026-10-03 实测） |
@@ -615,7 +615,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 #### C. 获得推送授权时（J-1：解锁 CI 5 个 job 首跑）
 
 1. `git push origin main` → 打开 Actions 观察 **5 个 job**（frontend / backend / docker-build / repo-hygiene / commit-msg）。
-2. **已知预期** ✗：`commit-msg` job 会因 **F-110** 的 2 条历史摘要超 50 字符而失败（属**已知**，其余 job 不受影响）——修正需历史改写授权（见 §11.5.1）。
+2. **commit-msg 预期通过** ✓：F-110 已于 2026-10-03 经授权解决（重写 11 条首行）；2026-10-09 按 CI 口径独立复跑基线后 **289 条提交 / 0 违规** ✓。
 3. 记录 **3.11 全量 pytest** 结果，并用 3.11 生成 `requirements.lock`（与 B 节联动）。
 4. 回填 §11.2 的「CI 自身运行」为已验证 ✓。
 
@@ -648,7 +648,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 
 #### CI 静态引用核对（2026-10-03，可复跑）
 
-> 目的：CI **尚未首跑**（J-1）——先静态核对「引用的东西是否都存在」，降低首跑风险。
+> 目的：**首跑前**先静态核对「引用的东西是否都存在」，降低首跑风险（**2026-10-09 复核**：J-1 已推送、CI 已开始运行 ✓）。
 
 | 核对项 | 结果 |
 |--------|------|
@@ -710,7 +710,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 
 | # | 决策 | 实测事实（本轮） | 选项 | 影响面 | 我的建议 |
 |---|------|-----------------|------|--------|---------|
-| J-1 | **是否推送本地提交**（最高优先） | 领先 `origin/main` **214** 个提交 ✓；CI 从未运行 ✗；本机**无 Python 3.11** ✗ | ① 推送 ② 暂不 | 推送后立即获得：**3.11 全量测试** ✓、**5 个报告型步骤**真跑 ✓、`W1-4` 哈希锁可生成 ✓、远端可见 ✓ | **①** —— 这是唯一能补齐「环境不可验证」的钥匙 ✓ |
+| J-1 | **是否推送本地提交**（**已执行 ✓**） | 领先 `origin/main` **214** 个提交 ✓（2026-10-03 当时值）；CI 从未运行 ✗（当时）；本机**无 Python 3.11** ✗ | ① 推送 ② 暂不 | 推送后立即获得：**3.11 全量测试**、**5 个报告型步骤**真跑、`W1-4` 哈希锁可生成、远端可见 | **①（已执行）**：**2026-10-08 合并 PR #1 后 `main` 与 `origin/main` 完全同步** ✓（CI 已首跑，含一次 Node 版本修复提交）；遗留：3.11 全量 pytest 与哈希锁结果、§11.2 回填（转入 `W1-4` 收尾） |
 | J-2 | **D-4 版本联动**（`W3-4`） | `frontend/package.json` = **0.1.0** ✓、后端**无版本声明** ✗、`CHANGELOG.md` 最新 **1.2.0** ✓；三段版本日期与 git 标签**逐一相符** ✓ | ① 收敛到单一来源（以 CHANGELOG 为准，`package.json` 随 tag 发布）② 保持独立 | ① 制品可反查版本 ✓（SemVer / 12-Factor V）；② 现状无追溯能力 ✗ | **①**（成本低：改 1 处 + 加 1 条 CI 校验 ✓） |
 | J-3 | **开发者对按帮会隔离路径的访问**（决定 mypy 最后 **56** 条） | mypy 共 **57** 条 ✓，多数为 `current_user.guild_id`（`int | None`）传入要求 `int` 的服务 ✓；`deps.py` 的 `require_admin` **含** developer ✓ 而 `require_admin_strict` **不含** ✓ | ① 保持隐式放行 ② 显式收紧为管理员 ③ 仅收紧写操作、放行读操作 | ① 行为不变 ✓ 但类型层长期带 56 条噪声 ✗；② 语义最清晰 ✓ 但可能改变 developer 用法 ✗（**需你确认是否有人依赖**）；③ 折中 ✓ | **③**（先收紧写、读保留 ✓），可一次清 40+ 条并保留可用性 ✓ |
 | J-4 | **F-106 动态属性注入方案** | 3 处：`attendance.py:58/82` 的 `m.member_status = m.status` ✓、`recording_service.py:131` 的 `r.profession = …` ✓；schema **暴露**这些字段 ✓，ORM 模型**未声明** ✗；运行期可用 ✓ | ① 在模型上声明**非映射**属性 ② 由响应层计算 ③ 保留 + 显式 `setattr` | ① 类型可见 ✓ 且**不动 DB** ✓；② 更正统 ✓ 但需改响应组装；③ 最省事 ✓ 但类型检查仍沉默 ✗ | **①**（改 2 个模型 + 3 处赋值点，风险低 ✓） |
@@ -719,8 +719,9 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | J-7 | **已通过录屏是否允许重提交**（F-80） | `recording_service.py:167` 明确写「重新提交回到待审核」✓，**对上一次状态无限制** ✗（approved → 可回 pending） | ① 允许（现状）② 仅 `rejected` 可重提交 | ① 审核记录可被反复刷新 ✗（审计性弱）；② 审核结论更稳定 ✓ 但成员改错后无法自救 ✗ | **②**（配一条「管理员可退回」路径 ✓） |
 | J-8 | **职业目标之和是否设上限**（F-84） | 单条边界已校验 ✓（`0..MAX_PROFESSION_TARGET`，`config_service.py:60/115`）；**无总和校验** ✗；排表容量 **10 队 × 6 人 = 60** ✓ | ① 加总和上限/告警 ② 不加 | ① 防配置失真 ✓；② 允许超出 ✗ | **①（告警而非硬拦 ✓）** |
 | J-9 | **`F-100` 非调色板色调 5 处** | `#f6ecd0`×4 ✓、`#f3e6c4` ✓、`#fdf8ec` ✓、`#eef3f8`×3 ✓、`#f2f5f8` ✓ | ① 归并到 `theme.css` 令牌 ② 保留 | ① 视觉**可能**有极小变化 ✗（**需你确认可接受**）；② 现状 | **①**，但我会**先给颜色差异对照**再改 ✓ |
-| J-10 | **删除授权两项** | `W2-13`：`frontend/tsconfig.node.tsbuildinfo` 仍被跟踪 ✓（需 `git rm --cached`）；`W3-5`：远端 **3~4** 个已合并分支 ✓ | ① 授权执行 ② 暂缓 | ① 构建产物不再入库 ✓ / 分支清爽 ✓；② 现状 | **①** |
+| J-10 | **删除授权两项**（**W3-5 部分已自然消解 ✓**） | `W2-13`：`frontend/tsconfig.node.tsbuildinfo` 仍被跟踪 ✓（需 `git rm --cached` 授权）；`W3-5`：**2026-10-09 复核——远端仅剩 `main` ✓（3 个遗留分支已清理，无需授权）** | ① 授权执行 ② 暂缓 | ① 构建产物不再入库 ✓ / 分支清爽 ✓（已达成）；② 现状 | **①（仅余 `W2-13` 一项待授权）** |
 | J-1更新 | **领先提交（批次 150 实测，2026-10-03）** | 领先 `origin/main` = **188** 个提交 ✓（批次 90 记录的 137 为**历史值，不回改** ✓）；仓库跟踪文件 = **428** ✓；模型表 = **12** ✓；迁移文件 = **16** ✓。结论不变 ✓：推送仍是**唯一能补齐环境验证的钥匙** ✓ | — | — |
+| J-1更新 | **已推送（2026-10-09 复核）** | `main` 与 `origin/main` 完全同步（**领先 0** ✓）；远端分支仅剩 `main` ✓（`git ls-remote --heads origin` 实测）——J-1 的推送部分已闭环 ✓ | — | — |
 
 | J-6a | **`GET /members/attendance-rate` 的调用者**（本轮实测） | 前端 `api/members.ts:92` ✓；`views/HomeView.vue:116` 注释「获取出勤率（**非开发者**）」✓ → **帮众/管理员首页仪表盘**依赖它 ✓ | — | **若收紧为 `require_admin`，帮众首页「出勤率排行」将 403 失效** ✗✗ | 建议 **①保持现状** ✓（或为帮众单列一个只读端点 ✓） |
 | J-6b | **`GET /config/professions` 的调用者**（本轮实测） | 前端 `api/config.ts:17`（`getProfessionConfigs`）✓；其组件调用者见下表 ✓ | — | 收紧后**任何依赖职业目标配置的界面**会失效 ✗（含排表/赛程弹窗的职业配置块 ✓） | 建议 **①保持现状** ✓（数据属帮会内公开 ✓），仅对**写**保持 `require_admin` ✓ |
@@ -739,7 +740,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 
 | 决策 | 影响面（实测） | 最小改动 | 回滚方式 | 不做的后果 |
 |------|---------------|---------|---------|-----------|
-| **F-110(a)** 是否授权改写 2 条提交摘要 | 区间 167 个提交中有 **2 条**摘要超 50（`aed1639f` 58 / `a9aaa83e` 54 ✓），均**未推送** ✓ | `git rebase -i` 仅改这 2 条的首行摘要 ✓（历史其余不动 ✓） | 本地备份分支 + `reflog` ✓（未推送，风险极低 ✓） | 推送到 GitHub 后 **CI 的 `commit-msg` job 必然失败** ✗（其余 job 不受影响 ✓） |
+| **F-110(a)** 是否授权改写 2 条提交摘要（**已执行 ✓**） | 区间 167 个提交中有 **2 条**摘要超 50（`aed1639f` 58 / `a9aaa83e` 54 ✓），均**未推送** ✓；授权后按 CI 口径全量复查实际重写 **11 条**首行（2026-10-03）✓ | `git rebase -i` 仅改首行摘要 ✓（重写后整树差异 0、70 个提交 tree 序列一致 ✓） | 本地备份分支 + `reflog` ✓（备份 ref 已于验证通过后按授权删除 ✓） | **已消除**：2026-10-09 按 CI 口径复跑基线后 **289 条提交 / 0 违规** ✓（原预计的 job 失败不再发生） |
 | **F-112(a)** 是否修 **15 处**键盘可达性 | `div`/`span`/`li`/`td` 上的可点击行/卡片/筛选项 ✓，论坛式交互 ✓ | 每处加 `role="button"` + `tabindex="0"` + `@keydown.enter`/`@keydown.space` ✓（**不改视觉** ✓） | 逐文件 `git revert` ✓（无数据/Schema 影响 ✓） | 键盘用户**无法触发**这些交互 ✗（WCAG 2.1.1 不达标 ✗）；但**鼠标用户与现有测试不受影响** ✓ |
 | **F-112(b)** 2 处无 `label` 的 `el-form-item` | 需人工判定是否为**非字段布局**用法 ✓ | 若为字段则补 `label` 或 `aria-label` ✓；若为布局则加注释说明 ✓ | 单文件 `git revert` ✓ | 自动检查无法区分“布局用法”与“漏标签” ✗，保留为已知项 ✓ |
 | **F-73 收尾** 是否收紧读取类接口 | 现状：矩阵已**按代码对齐** ✓（`出勤表查看` / `排表总览查看` 改为帮众 ✅、补「读取类接口口径」说明 ✓）；实现为 `get_current_user` ✓，`security-review.md` **§14.10** 已记差异与处置 ✓ | 若要收紧：把读取类接口改回 `require_admin`/矩阵原口径 ✓（影响帮众的只读体验 ✓） | 单独一次变更 + 回滚简单 ✓（纯鉴权改动 ✓） | 不收紧则保持现状（已文档化为口径 ✓），帮众可读各项只读数据 ✓ |
@@ -752,7 +753,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 
 | 决策 | 若你选「建议项」，我立即执行的动作（含验证） |
 |------|------------------------------------------|
-| **J-1 推送** | `git push origin main`（141 个提交）→ 观察 CI **5 个 job** 首跑 → 记录 **Python 3.11** 全量 pytest 结果 → 用 3.11 生成 `requirements.lock`（哈希锁，补 `W1-4` 最后一环）→ 回填 §11.2「CI 自身运行」为已验证 ✓ |
+| **J-1 推送**（**已执行 ✓ 2026-10-08**） | `git push origin main` **已执行** ✓（合并 PR #1 → `main` 与 `origin/main` 同步）→ **遗留收尾**：观察 CI 5 个 job 全绿结果 → 记录 **Python 3.11** 全量 pytest 结果 → 用 3.11 生成 `requirements.lock`（哈希锁，补 `W1-4` 最后一环）→ 回填 §11.2「CI 自身运行」为已验证 |
 | **J-2 D-4 收敛** | 改 `frontend/package.json` 版本策略为「随 tag 发布」（或加 `scripts/set-version.mjs` 同步）→ 后端加 `version=__version__`（`app/main.py`，值取自单一来源）→ 在 `check_doc_numbers.py` 增 1 条断言（三处版本一致）→ `W3-4` 转 ✅ |
 | **J-3 权限口径（先收紧写）** | 在 `api/v1/*.py` 的**写**路由把 `current_user.guild_id` 前置为 `_require_guild()` 断言（读保留）→ 消除 mypy **40+** 条 `int \| None` → 补 403 用例（developer 访问写路径）→ `W2-14` 余量下降到 ~15 条 |
 | **J-4 F-106 声明非映射属性** | 在 `models/member.py`、`models/recording.py` 加 `__allow_unmapped__` 风格的普通注解（**不加 `Mapped`** → 不动 DB）→ `check_schema_vs_db` 复跑确认 12 表不变 ✓ → 删 3 处赋值点的类型噪声 → mypy **-3** |
@@ -870,7 +871,7 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 
 ### 11.14 CI 步骤的本地等价复跑（2026-10-03 实测）
 
-> 背景 ✗：仓库**从未推送**，CI 步骤**从未真实执行** ✗ → 把可本地等价复跑的步骤逐个跑一遍 ✓。
+> 背景 ✗：仓库**从未推送**，CI 步骤**从未真实执行** ✗ → 把可本地等价复跑的步骤逐个跑一遍 ✓。（**2026-10-09 现状**：已推送、CI 已首跑 ✓；本节保留当时的本地等价复跑证据。）
 
 | CI 步骤 | 本地等价命令 | 结果 |
 |---------|-------------|------|
@@ -879,9 +880,9 @@ bash scripts/check-config-drift.sh.example --strict   # 有漂移则 exit 1；�
 | 应用可导入 | `python -c "import app.main"` | **exit 0** ✓（启动门禁未误杀 ✓） |
 | ESLint | `npm run lint` | **exit 0** ✓ |
 | 换行归一 | `git ls-files --eol` 筛 `i/crlf` | **0 条** ✓ |
-| 提交消息区间 | `git rev-list --no-merges <基线>..HEAD` + `check_commit_msg.py` | 区间 167 / 违规 **2** ✗（F-110 ✓） |
+| 提交消息区间 | `git rev-list --no-merges <基线>..HEAD` + `check_commit_msg.py` | 区间 **289** / 违规 **0** ✓（2026-10-09 复核；F-110 经 2026-10-03 授权重写后清零） |
 
-**结论** ✓：6 项中 **5 项本地已验证通过** ✓；1 项暴露真问题 ✗（F-110，已修校验器误报 ✓，余下需用户授权 ✓）。
+**结论** ✓：6 项全部通过 ✓（2026-10-09 复核：F-110 经授权重写后违规清零）。
 **仍未验证** ✓：GitHub runner 镜像 / action 版本 / `permissions` 行为 ✓。
 
 

@@ -89,14 +89,14 @@ HTTPS/域名、一键更新、备份恢复、日志与故障排查见 [DEPLOY.md
 
 ### 本地开发补充
 
-**数据源模式（`DB_MODE`）**：`start.bat` 顶部通过 `DB_MODE` 切换本地启动所用数据库，**默认 `dev`**：
+**数据源模式（`DB_MODE`）**：`start.bat` 顶部通过 `DB_MODE` 切换本地启动所用数据库，**默认 `prod`**：
 
 | 模式 | 数据源 | 说明 |
 |------|--------|------|
-| `dev`（默认） | `backend\data\nsh.db` | 本地开发库；首次启动自动初始化默认账号（见上表） |
-| `prod` | `backend\data\nsh-server-<日期>.db` | 服务器数据**快照副本**，便于用真实数据调试；副本缺失时回退 `dev`。本地读写只作用于副本，**不影响生产服务器** |
+| `dev` | `backend\data\nsh.db` | 本地开发库；首次启动自动初始化默认账号（见上表） |
+| `prod`（默认） | `backend\data\nsh-server-<日期>.db` | 服务器数据**快照副本**，便于用真实数据调试；副本缺失时回退 `dev`。本地读写只作用于副本，**不影响生产服务器** |
 
-> 快照需自行从服务器导出后放入 `backend\data\`（`.gitignore` 已排除 `*.db`，不入库），并把 `start.bat` 的 `DB_MODE` 改为 `prod`、`PROD_SNAPSHOT` 改为实际文件名。
+> 快照需自行从服务器导出后放入 `backend\data\`（`.gitignore` 已排除 `*.db`，不入库），并把 `start.bat` 的 `PROD_SNAPSHOT` 改为实际文件名（`DB_MODE` 现默认 `prod`，本地空库测试可改回 `dev`）。
 
 **测试与静态检查**：
 

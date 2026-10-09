@@ -18,28 +18,6 @@
 
 ---
 
-### 安全
-
-- **口令策略调整（行为变更）**：不再要求「必须同时含字母和数字」（该要求违反 ASVS 6.2.5），改为 8–128 位 + 常见弱口令/项目相关词拦截 + 不得含登录名；纯字母、纯数字、纯符号口令现均可使用。
-
-- **审计留痕更完整**：除写操作外，**携带令牌却被拒的读请求（401/403）也会记入审计**（越权尝试不再无痕）；匿名 401 不记录以免探测刷日志。审计/日志中的控制字符（含换行）统一转义，防止伪造日志行。
-
-- **依赖安全性**：`python-jose` 由 3.3.0（2021 年）升级到 **3.5.0**（上游 3.4.0 即为修复 JWT 相关 CVE 发布）；同时把测试用 HTTP 客户端由 `httpx` 换成 `httpx2`，全量测试**告警清零**（0 warnings）。
-
-- **错误率告警**：新增后台告警循环——最近 `ALERT_WINDOW_MINUTES`（默认 30）分钟内 `level=error` 审计日志达 `ALERT_ERROR_THRESHOLD`（默认 20）条即触发；配置 `ALERT_WEBHOOK_URL` 时 POST JSON，**未配置时也会写 WARNING 日志**（不静默）。阈值 0 表示禁用（`DEPLOY.md §四/§六`、`.env.example`）。
-- **CSP 收紧**：边缘 Nginx 的 `script-src` 去掉 `'unsafe-inline'` 与 `'unsafe-eval'`（构建产物无内联脚本，唯一 `new Function` 为 core-js 的带 `window` 回退的全局探测），并补 `object-src 'none'`、`base-uri 'self'`、`form-action 'self'`；`X-XSS-Protection` 置 `0`（现代浏览器已弃用该过滤器）。
-
-### 修复
-
-- **导出 Excel 公式注入**：成员姓名/备注等用户输入以 `=`/`+`/`-`/`@` 开头时，导出文件可能被 Excel 当作公式求值；现已统一按文本单元格写入（回归用例 `backend/tests/test_excel_export_formula.py`）。
-
-### 新增
-
-- **自助修改口令**：新增 `POST /api/v1/auth/password`（需提供当前口令），界面入口在右上角用户名菜单 →「修改密码」；改密后**其他设备上的旧登录立即失效**，当前会话也会回到登录页。
-
-- **备份与制品归档脚本模板**：`scripts/backup-db.sh.example`（SQLite 在线 backup API、默认 dry-run、生成后完整性校验、保留轮转）与 `scripts/release-archive.sh.example`（镜像 tar + 清单，版本权威为 git 标签）。
-- **依赖精确锁定**：`fastapi`/`python-multipart` 由范围约束改为 `==` 精确版本，并显式锁定传递引入的 `starlette`；新增 CI 门禁 `scripts/check_requirements_pins.py`。
-
 ## [Unreleased]
 
 合规化整改带来的**使用者可见变更**（整改进度见 `memory-bank/progress.md`；差距清单见
@@ -66,8 +44,9 @@
 - **前端工具链升级**：`vite` 6.4.3、`vitest` 4.1.11（清除 dev 工具链公告），Node 侧要求 `^18 || ^20 || >=22`。
 - **依赖升级**：`python-jose` 3.5.0；`bcrypt` 4.3.0（**移除未维护的 passlib**，改为直连调用）；
   生产弱密钥门禁由**导入期**改为**应用启动期**（`startup_checks()`），运维可见文案与"拒绝启动"语义不变。
+- **依赖精确锁定**：`fastapi`/`python-multipart` 由范围约束改为 `==` 精确版本，并显式锁定传递引入的 `starlette`（防止部署时版本漂移）。
 - **Nginx 收紧**：内层 `frontend/nginx.conf` 对 `/assets/` 增加**静态资源扩展名白名单**（其余一律 404）；
-  边界层模板 `nginx.conf.example` 将 CSP `connect-src` 收窄为 `'self'`，并停用 `X-XSS-Protection`。
+  边界层模板 `nginx.conf.example` 将 CSP `script-src` 收紧为 `'self'`（移除 `'unsafe-inline'`/`'unsafe-eval'`，补 `object-src 'none'`/`base-uri 'self'`/`form-action 'self'`）、`connect-src` 收窄为 `'self'`，并停用 `X-XSS-Protection`。
 - **口令口径统一**：帮会面板初始口令校验与后端一致（前端不再拦截纯字母/纯数字口令）。
 - **仓库规范**：`.gitattributes` 换行与二进制策略、`.editorconfig`、`.githooks/commit-msg` 提交消息校验。
 
@@ -77,6 +56,7 @@
   并支持**旧哈希登录时惰性升级**；同时修复非法哈希导致的进程级 panic（改为校验失败）。
 - **弱密钥门禁**：拒绝**低熵**十六进制（如顺序串），CI 占位密钥显式封禁。
 - **静态资源与 CSP**：见「变更」的 Nginx 两条（修复的是可被探测的资源路径与过宽的 `connect-src`）。
+- **导出 Excel 公式注入**：成员姓名/备注等用户输入以 `=`/`+`/`-`/`@` 开头时，导出文件可能被 Excel 当作公式求值；现已统一按文本单元格写入（回归用例 `backend/tests/test_excel_export_formula.py`）。
 - **部署模板入库**：`frontend/nginx.conf` 与 `deploy.sh.example` 入库，修复镜像构建缺失 `nginx.conf` 的问题。
 
 
