@@ -3,17 +3,40 @@ import type { Recording, RoundProgress } from '@/types/recording'
 import type { ScheduleInfo } from '@/types/schedule'
 import { endedSchedules } from '@/utils/scheduleSort'
 
-/** 战绩统计：已赛场次 + 近 5 场战绩（胜/平/负）+ 局胜率（近 5 场已出结果的局）。 */
+/** 近 10 局战绩窗口大小（局，跨场次；一场比赛可含多局）。 */
+export const RECENT_ROUND_LIMIT = 10
+
+/**
+ * 按时间倒序收集「已出结果」的局（win/lose/draw；待定/空值不计入，窗口未满时继续向更旧的场次取）。
+ * schedules 须按时间倒序（endedSchedules 输出）；同场内后一局更近，故先取本场最后一局。
+ * limit 省略时取入参场次内的全部已出结果局（局胜率口径）。
+ */
+export function recentRoundResults(schedules: ScheduleInfo[], limit = Number.POSITIVE_INFINITY): string[] {
+  const rounds: string[] = []
+  for (const s of schedules) {
+    const results = s.round_results ?? []
+    for (let i = results.length - 1; i >= 0 && rounds.length < limit; i -= 1) {
+      const r = results[i]
+      if (r === 'win' || r === 'lose' || r === 'draw') rounds.push(r)
+    }
+    if (rounds.length >= limit) break
+  }
+  return rounds
+}
+
+/** 战绩统计：已赛场次 + 近 10 局战绩（跨场次，胜/平/负）+ 局胜率（近 5 场已出结果的局，待定不计入）。 */
 export function computeGuildStats(schedules: ScheduleInfo[]) {
   const ended = endedSchedules(schedules)
-  const last5 = ended.slice(0, 5)
-  const wins = last5.filter((s) => s.result === 'win').length
-  const loses = last5.filter((s) => s.result === 'lose').length
-  const draws = last5.filter((s) => s.result === 'draw').length
+  const recent = recentRoundResults(ended, RECENT_ROUND_LIMIT)
+  const wins = recent.filter((r) => r === 'win').length
+  const loses = recent.filter((r) => r === 'lose').length
+  const draws = recent.filter((r) => r === 'draw').length
   const recentRecord = wins + loses + draws === 0 ? '-' : `${wins}胜${draws > 0 ? `${draws}平` : ''}${loses}负`
-  const rounds = last5.flatMap((s) => (s.round_results ?? []).filter(Boolean))
-  const roundWinRate = rounds.length
-    ? Math.round((rounds.filter((r) => r === 'win').length / rounds.length) * 100)
+
+  const last5 = ended.slice(0, 5)
+  const roundResults = recentRoundResults(last5)
+  const roundWinRate = roundResults.length
+    ? Math.round((roundResults.filter((r) => r === 'win').length / roundResults.length) * 100)
     : null
   return { playedCount: ended.length, recentRecord, roundWinRate }
 }

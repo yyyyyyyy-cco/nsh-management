@@ -1,11 +1,11 @@
 /** 帮众首页类型：战绩看板、录屏待办与数据亮点。 */
 import type { ReportKingItem, ReportMvp } from '@/components/match-data/reportData'
 
-/** 战绩统计（近 5 场口径 + 最近一场录屏）。 */
+/** 战绩统计（近 10 局战绩 + 局胜率/录屏等口径）。 */
 export interface GuildStats {
   /** 已赛场次（全部已结束比赛） */
   playedCount: number
-  /** 近 5 场战绩，如 "3胜1负"；无可判定结果时 "-" */
+  /** 近 10 局战绩（跨场次、仅已出结果的局），如 "3胜1负"；无可判定结果时 "-" */
   recentRecord: string
   /** 近 5 场局胜率（%）；无已出结果的局为 null */
   roundWinRate: number | null

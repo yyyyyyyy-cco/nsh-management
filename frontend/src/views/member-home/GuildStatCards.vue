@@ -1,4 +1,4 @@
-<!-- 帮众首页·战绩统计卡：已赛场次 / 近5场战绩 / 局胜率 / 录屏完成 -->
+<!-- 帮众首页·战绩统计卡：已赛场次 / 近10局战绩 / 局胜率 / 录屏完成 -->
 <template>
   <div class="stat-grid">
     <div v-for="card in cards" :key="card.key" class="stat-card" :class="`stat-card--${card.theme}`" :title="card.hint">
@@ -36,13 +36,13 @@ const cards = computed(() => [
   },
   {
     key: 'record',
-    label: '近5场战绩',
+    label: '近10局战绩',
     icon: Trophy,
     theme: 'gold',
     numeric: false,
     display: props.stats.recentRecord,
     suffix: '',
-    hint: '最近 5 场已结束比赛的胜/平/负',
+    hint: '最近 10 局已出结果的胜/平/负（跨场次，一场可含多局）',
   },
   {
     key: 'rate',

@@ -19,7 +19,7 @@
       </div>
 
       <template v-else-if="!loading">
-        <!-- 战绩统计卡（已赛场次 / 近5场战绩 / 局胜率 / 录屏完成） -->
+        <!-- 战绩统计卡（已赛场次 / 近10局战绩 / 局胜率 / 录屏完成） -->
         <GuildStatCards :stats="stats" />
 
         <!-- 录屏待办：一行状态条（赛后 7 天内存在未交齐/驳回时出现） -->
@@ -79,7 +79,7 @@ const greeting = computed(() => {
   return '晚上好'
 })
 
-/** 战绩统计（近 5 场口径）+ 最近一场录屏已交率 */
+/** 战绩统计（近 10 局战绩口径）+ 最近一场录屏已交率 */
 const stats = computed<GuildStats>(() => ({
   ...computeGuildStats(schedules.value),
   recordingRate: recordingRate.value,
