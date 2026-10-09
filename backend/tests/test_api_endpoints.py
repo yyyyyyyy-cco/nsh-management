@@ -76,8 +76,9 @@ class ApiEndpointTestCase(unittest.TestCase):
                 (2, "a_member", "member", 1),
                 (3, "a_dev", "developer", None),
                 (4, "a_lockee", "admin", 1),
-                (5, "a_self", "member", 1),
-                (6, "a_weak", "member", 1),  # 弱口令用例专用：其口令不被其它用例修改
+                (5, "a_self", "member", 1),  # 帮众改密被拒用例专用
+                (6, "a_weak", "admin", 1),  # 弱口令用例专用（admin：帮众在依赖层被 403，到不了策略校验）
+                (7, "a_selfadmin", "admin", 1),  # 自助改密流程用例专用：其口令会被改密用例修改
             ):
                 conn.execute(
                     User.__table__.insert().values(
@@ -222,10 +223,26 @@ class ApiEndpointTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 403)
         self.assertIn("仅开发者", resp.json()["message"])
 
-    # ---------- 口令策略与自助改密（W4-10 / ASVS 6.2.2、6.2.3、6.2.5、6.2.11） ----------
-    def test_self_service_password_change_invalidates_old_token(self):
-        """自助改密：须提供当前口令；成功后旧令牌立即失效，新口令可登录。"""
+    # ---------- 口令策略与自助改密（W4-10 / ASVS 6.2.2、6.2.3、6.2.5、6.2.11；帮众禁用自助改密） ----------
+    def test_member_forbidden_to_change_own_password(self):
+        """产品决策（2026-10-09）：帮众禁用自助改密，依赖 `require_non_member` 硬拦截 403。
+
+        帮众账号为帮会共享账号，改密会致其他使用者失联；密码由管理员在账号管理重置。
+        """
         token = self._token(5, "member")
+        resp = self.client.post(
+            PASSWORD_CHANGE,
+            json={"current_password": PASSWORD, "new_password": "fresh-Passw0rd-2026"},
+            headers=self._auth(token),
+        )
+        self.assertEqual(resp.status_code, 403, resp.text)
+        self.assertIn("帮众", resp.json()["message"])
+        # 拦截发生在改密之前：原口令仍可登录
+        self.assertEqual(self._login("a_self", PASSWORD).status_code, 200)
+
+    def test_self_service_password_change_invalidates_old_token(self):
+        """自助改密（开发者/管理员）：须提供当前口令；成功后旧令牌立即失效，新口令可登录。"""
+        token = self._token(7, "admin")
         new_password = "fresh-Passw0rd-2026"
         resp = self.client.post(
             PASSWORD_CHANGE,
@@ -237,11 +254,11 @@ class ApiEndpointTestCase(unittest.TestCase):
         # 旧令牌失效：改密使 token_version +1（ASVS 7.4.3）
         self.assertEqual(self.client.get(ME, headers=self._auth(token)).status_code, 401)
         # 新口令可登录
-        login = self._login("a_self", new_password)
+        login = self._login("a_selfadmin", new_password)
         self.assertEqual(login.status_code, 200, login.text)
 
     def test_password_change_requires_correct_current_password(self):
-        token = self._token(5, "member")
+        token = self._token(7, "admin")
         resp = self.client.post(
             PASSWORD_CHANGE,
             json={"current_password": "not-the-password", "new_password": "fresh-Passw0rd-2026"},
@@ -257,9 +274,10 @@ class ApiEndpointTestCase(unittest.TestCase):
         self.assertEqual(resp.status_code, 401)
 
     def test_weak_new_password_is_rejected(self):
-        # 用 a_weak（专用账号）：自助改密用例会改掉 a_self 的口令并提升其 token_version，
-        # 共享账号会让本用例拿到 401（依赖先于 body 校验）而不是期望的 422。
-        token = self._token(6, "member")
+        # 用 a_weak（专用账号，admin）：其口令不被其它用例修改，能带「正确当前口令」到达
+        # 策略校验层拿到期望的 422；共享账号会被改密用例改写口令、提升 token_version，
+        # 从而先拿到 401（依赖先于 body 校验）。角色必须是 admin：帮众在角色依赖层就被 403。
+        token = self._token(6, "admin")
         for weak in ("short1", "password"):
             with self.subTest(weak=weak):
                 resp = self.client.post(

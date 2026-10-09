@@ -110,7 +110,9 @@ async def change_own_password(session: AsyncSession, user: User, current_passwor
 
     要点：①**必须提供当前口令**并通过 bcrypt 校验；②新口令过策略校验（含「不得含登录名」）；
     ③修改成功后 `token_version += 1`，使**其他会话的旧令牌立即失效**（ASVS 7.4.3）；
-    ④顺带清空失败计数与锁定，避免改密后仍被旧锁定拦住。
+    ④顺带清空失败计数与锁定，避免改密后仍被旧锁定拦住；
+    ⑤**仅开发者/管理员可达**（路由依赖 `require_non_member`）：帮众禁用自助改密
+    （产品决策 2026-10-09，共享账号防失联），帮众密码由管理员在账号管理重置。
     """
     if not await asyncio.to_thread(verify_password, current_password, user.password_hash):
         raise AuthError("当前密码不正确")

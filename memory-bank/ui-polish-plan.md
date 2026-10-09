@@ -1,11 +1,11 @@
 # UI 优化方案文档
 
-> 版本：v1.3  
+> 版本：v1.4  
 > 创建日期：2026-08-26  
-> 更新时间：2026-09-18  
+> 更新时间：2026-10-09  
 > 前置文档：`ui-style-guide.md`（权威视觉规范，动画族/卡片层级/交互反馈最终规范见其 §10）  
 > 实现位置：`frontend/src/styles/` + 各组件 `<style>` 区  
-> **状态**：全部完成（2026-09-18）——P0–P3 共 11 项 + §2.5 代码质量重构 2 项（2026-09-15 代码核对）+ 3 项可选项（§2.1.3 / §2.3.3 / §2.4.4，2026-09-18 实施）
+> **状态**：全部完成（2026-09-18）——P0–P3 共 11 项 + §2.5 代码质量重构 2 项（2026-09-15 代码核对）+ 3 项可选项（§2.1.3 / §2.3.3 / §2.4.4，2026-09-18 实施）；§2.1.2 数字滚动动画已取消（2026-10-09 用户要求，全站移除）
 
 ---
 
@@ -38,11 +38,12 @@
 - **涉及文件**：`HomeView.vue`、各 Tab 组件中的 `.card` 样式
 - **实现位置**：各组件内 `<style scoped>`
 
-#### 2.1.2 统计数字滚动动画
+#### 2.1.2 统计数字滚动动画（已取消，2026-10-09）
+- **取消说明（用户要求，2026-10-09）**：全站不再播放数字滚动动画——管理员首页统计卡与「历史总览」条、帮众首页战绩统计卡改为直接显示最终数值，composable useCountUp 连同用法一并删除；以下为原始方案存档。
 - **现状**：统计卡数字直接显示目标值，没有过渡
 - **方案**：数字从 0 滚动到目标值，时长 800ms，ease-out 缓动
-- **实现方式**：composable `useCountUp.ts`，基于 `requestAnimationFrame`，纯数字递增（不依赖第三方）
-- **涉及文件**：新增 `composables/useCountUp.ts`，修改 `HomeView.vue`、`OverviewTab.vue` 统计卡
+- **实现方式**：composable（基于 requestAnimationFrame，纯数字递增，不依赖第三方）
+- **涉及文件**：统计卡组件（文件清单见 §4）
 - **reduced-motion 适配**：检测 `prefers-reduced-motion: reduce` 时直接显示目标值
 
 #### 2.1.3 表格密度切换（已完成，2026-09-18）
@@ -167,8 +168,8 @@
 | `frontend/src/styles/theme.css` | 修改 | 无新增变量（所有新动画在组件内定义，避免全局污染） |
 | `frontend/src/styles/element-plus.css` | 修改 | ①按钮微光扫光加宽 ②弹窗金线加宽 ③滚动条配色 |
 | `frontend/src/styles/index.css` | 修改 | 新增 `stat-pop` / `card-slide` 动画定义 |
-| `frontend/src/composables/useCountUp.ts` | **新增** | 数字滚动 composable |
-| `frontend/src/views/HomeView.vue` | 修改 | ①统计卡用 countUp + stat-pop ②奖牌微光 ③辅助卡片层级 |
+| frontend/src/composables/useCountUp.ts（2026-10-09 已删除） | **新增 → 移除** | 数字滚动 composable；后按用户要求取消全站数字滚动动画，连同用法一并删除 |
+| `frontend/src/views/HomeView.vue` | 修改 | ①统计卡 stat-pop 入场（countUp 已于 2026-10-09 取消）②奖牌微光 ③辅助卡片层级 |
 | `frontend/src/layouts/MainLayout.vue` | 修改 | 菜单 hover 过渡 |
 | `frontend/src/components/match-data/OverviewTab.vue` | 修改 | 统计卡用 countUp |
 | `frontend/src/components/lineups/LineupEditor.vue` | 修改 | 槽位放入反馈 + 保存成功动效 |
@@ -187,7 +188,7 @@
 | 优化项 | 验收标准 |
 |--------|---------|
 | 卡片层级 | 辅助卡与主卡在视觉上有明显轻重之分 |
-| 数字滚动 | 页面加载时数字从 0 滚到目标值，动画流畅无跳帧 |
+| 数字滚动（2026-10-09 已取消） | ~~页面加载时数字从 0 滚到目标值，动画流畅无跳帧~~ 已停用：改为直接显示最终数值 |
 | 按钮微光 | hover 主按钮时白色扫光清晰可见，扫过后有短暂高光 |
 | 菜单过渡 | 侧边栏菜单 hover 有平滑渐变，无突兀跳变 |
 | 卡片入场 | 统计卡和列表卡入场动画族不同，可肉眼区分 |
@@ -216,3 +217,4 @@
 | 2026-08-26 | v1.1 新增 §2.5 代码质量重构：职业色映射统一（utils/profession.ts，14→1 文件）、结果类型函数统一（utils/constants.ts，5→1 文件） |
 | 2026-09-15 | v1.2：全部优化项标注完成状态（P0–P3 11 项 + §2.5 两项已完成；3 项可选未做已标注）；§2.5 归位至优化清单内；§3 更正动画/令牌实际落点（theme.css 无新增变量，最终规范以 ui-style-guide.md §10 为准） |
 | 2026-09-18 | v1.3：3 项可选项全部实施完成（§2.1.3 表格密度切换——顶栏全局开关替代每页按钮，用户确认；§2.3.3 空状态 SVG 插画 EmptyState 组件 4 变体全站替换；§2.4.4 职业标签 hover 微光）；§3 落点表与 §4 文件清单同步；vue-tsc + vite build 通过 |
+| 2026-10-09 | v1.4：§2.1.2 数字滚动动画按用户要求取消——全站移除（管理员首页统计卡与「历史总览」条、帮众首页战绩统计卡改为直接显示数值，composable useCountUp 已删除）；§4 文件清单同步标注；同期管理员首页「历史比赛」场数口径修正（全量已结束比赛，原 ±1 个月窗口会漏计）见 `progress.md` 同日条目 |

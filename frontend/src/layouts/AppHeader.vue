@@ -34,7 +34,8 @@
         <template #dropdown>
           <el-dropdown-menu>
             <el-dropdown-item v-if="auth.user?.role === 'member'" command="game-id-change">修改游戏 ID</el-dropdown-item>
-            <el-dropdown-item command="password">修改密码</el-dropdown-item>
+            <!-- 修改密码：帮众按产品决策禁用自助改密（共享账号防失联），仅开发者/管理员可见；后端同步 403 拦截 -->
+            <el-dropdown-item v-if="auth.user?.role !== 'member'" command="password">修改密码</el-dropdown-item>
             <el-dropdown-item command="logout">退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </template>

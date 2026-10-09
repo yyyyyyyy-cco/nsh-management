@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ScheduleInfo } from '@/types/schedule'
 
-import { sortSchedulesByProximity } from './scheduleSort'
+import { endedSchedules, sortSchedulesByProximity } from './scheduleSort'
 
 /**
  * 用例以「相对今天」构造赛程，故不依赖执行日期（跨天/跨时区运行结果稳定）。
@@ -56,5 +56,28 @@ describe('sortSchedulesByProximity（离今天越近越前，同距离未来优�
 
   it('空数组安全', () => {
     expect(sortSchedulesByProximity([])).toEqual([])
+  })
+})
+
+describe('endedSchedules（仅保留已结束场次，按时间倒序）', () => {
+  it('剔除未来的赛程，仅保留已过场次', () => {
+    const list = [schedule(-2, 20, 1), schedule(1, 20, 2), schedule(-1, 20, 3)]
+    expect(endedSchedules(list).map((s) => s.id)).toEqual([3, 1])
+  })
+
+  it('按比赛时间倒序排列', () => {
+    const list = [schedule(-3, 20, 1), schedule(-1, 20, 2), schedule(-2, 20, 3)]
+    expect(endedSchedules(list).map((s) => s.id)).toEqual([2, 3, 1])
+  })
+
+  it('不修改入参数组（返回副本）', () => {
+    const list = [schedule(-1, 20, 1), schedule(1, 20, 2)]
+    const before = list.map((s) => s.id)
+    endedSchedules(list)
+    expect(list.map((s) => s.id)).toEqual(before)
+  })
+
+  it('空数组安全', () => {
+    expect(endedSchedules([])).toEqual([])
   })
 })

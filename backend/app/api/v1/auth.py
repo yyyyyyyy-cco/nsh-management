@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, require_non_member
 from app.core.client_ip import get_client_ip
 from app.core.config import settings
 from app.core.database import get_db
@@ -58,10 +58,14 @@ async def logout() -> dict:
 @router.post("/password")
 async def change_password(
     body: PasswordChangeRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_non_member),
     session: AsyncSession = Depends(get_db),
 ) -> dict:
-    """自助修改口令（任意已登录角色）。需提供当前口令；修改后旧令牌立即失效。"""
+    """自助修改口令（仅开发者/管理员）。需提供当前口令；修改后旧令牌立即失效。
+
+    帮众按产品决策禁用自助改密（见 `require_non_member` 与 `change_own_password`）；
+    帮众密码由管理员在「系统配置 → 账号管理」重置。
+    """
     await change_own_password(session, current_user, body.current_password, body.new_password)
     return {"message": "密码已修改，请使用新密码重新登录"}
 

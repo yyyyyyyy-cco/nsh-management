@@ -1,7 +1,15 @@
-/** 赛程排序工具。 */
+/** 赛程工具：离今天距离排序与已结束筛选。 */
 import dayjs from 'dayjs'
 
 import type { ScheduleInfo } from '@/types/schedule'
+
+/** 已结束（比赛时间已过）的赛程，按时间倒序（首页「已赛场次/历史比赛」统一口径）。 */
+export function endedSchedules(schedules: ScheduleInfo[]): ScheduleInfo[] {
+  const now = dayjs()
+  return schedules
+    .filter((s) => !dayjs(s.match_time).isAfter(now))
+    .sort((a, b) => dayjs(b.match_time).valueOf() - dayjs(a.match_time).valueOf())
+}
 
 /**
  * 按离今天日期的绝对值排序：绝对值小的在前；

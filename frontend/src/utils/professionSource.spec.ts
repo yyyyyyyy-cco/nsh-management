@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { PROFESSIONS, PROF_ORDER } from './constants'
-import { PROF_COLORS, profColor, profTagStyle } from './profession'
+import { PROF_COLORS, profColor, profFillStyle, profTagStyle } from './profession'
 import { PROF_COLORS as ANALYSIS_COLORS } from '../components/match-data/analysis'
 import { PROF_ORDER as LINEUP_BOARD_PROF_ORDER } from '../composables/lineupBoard'
 import { TANK_PROFESSIONS } from '../components/match-data/professionDetailCharts'
@@ -52,6 +52,12 @@ describe('职业色对齐 ui-style-guide §7', () => {
   it('每个职业的文字颜色与规范一致（深色配白字、浅色配深字）', () => {
     for (const [prof, spec] of Object.entries(GUIDE)) {
       expect(profTagStyle(prof).color, `${prof} 文字颜色`).toBe(spec.text)
+    }
+  })
+
+  it('全底色填充（背景 + 文字色）与规范一致（与胶囊同口径）', () => {
+    for (const [prof, spec] of Object.entries(GUIDE)) {
+      expect(profFillStyle(prof), `${prof} 全底色`).toEqual({ background: spec.color, color: spec.text })
     }
   })
 

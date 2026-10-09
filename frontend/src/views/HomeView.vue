@@ -32,13 +32,13 @@
         <div class="overview-bar">
           <div class="overview-item">
             <span v-if="showSkeleton" class="sk sk-line sk-kpi-sm" />
-            <div v-else class="overview-item__value num">{{ animatedMemberCount }}</div>
+            <div v-else class="overview-item__value num">{{ memberCount }}</div>
             <div class="overview-item__label">帮众总数</div>
           </div>
           <div class="overview-item__sep" />
           <div class="overview-item">
             <span v-if="showSkeleton" class="sk sk-line sk-kpi-sm" />
-            <div v-else class="overview-item__value num">{{ animatedScheduleCount }}</div>
+            <div v-else class="overview-item__value num">{{ scheduleCount }}</div>
             <div class="overview-item__label">历史比赛</div>
           </div>
         </div>
@@ -64,8 +64,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getProfessionStats, listMembers, getAttendanceRate, type AttendanceRateItem } from '@/api/members'
 import { listSchedules } from '@/api/schedules'
 import type { ScheduleInfo } from '@/types/schedule'
-import { sortSchedulesByProximity } from '@/utils/scheduleSort'
-import { useCountUp } from '@/composables/useCountUp'
+import { sortSchedulesByProximity, endedSchedules } from '@/utils/scheduleSort'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 import { profColor } from '@/utils/profession'
 import HomeAttendanceRanking from './home/HomeAttendanceRanking.vue'
@@ -87,10 +86,6 @@ const recentSchedules = ref<ScheduleInfo[]>([])
 const topAttendance = ref<AttendanceRateItem[]>([])
 const professionStats = ref<{ name: string; count: number; color: string }[]>([])
 
-/** 数字滚动（历史总览条） */
-const animatedMemberCount = useCountUp(memberCount)
-const animatedScheduleCount = useCountUp(scheduleCount)
-
 /** 今日比赛：从完整赛程中筛选（recentSchedules 仅保留 5 条，不能作为判断依据）。 */
 const todaySchedules = computed(() => allSchedules.value.filter((s) => dayjs(s.match_time).isSame(dayjs(), 'day')))
 
@@ -106,14 +101,13 @@ onMounted(async () => {
       }),
     )
 
-    // 获取近期比赛
-    const start = dayjs().subtract(1, 'month').format('YYYY-MM-DD')
-    const end = dayjs().add(1, 'month').format('YYYY-MM-DD')
+    // 获取全部赛程（历史比赛统计 + 今日提醒 + 最近 5 场）
     tasks.push(
-      listSchedules({ start, end }).then((r) => {
+      listSchedules().then((r) => {
         allSchedules.value = r
         recentSchedules.value = sortSchedulesByProximity(r).slice(0, 5)
-        scheduleCount.value = r.length
+        // 「历史比赛」= 已结束（比赛时间已过）的场次，与帮众首页「已赛场次」同口径
+        scheduleCount.value = endedSchedules(r).length
       }),
     )
 

@@ -19,15 +19,9 @@
 import { computed } from 'vue'
 import { Calendar, TrendCharts, Trophy, VideoCamera } from '@element-plus/icons-vue'
 
-import { useCountUp } from '@/composables/useCountUp'
 import type { GuildStats } from './types'
 
 const props = defineProps<{ stats: GuildStats }>()
-
-/** 数字滚动（非数值卡静态展示；reduced-motion 由 composable 处理） */
-const played = useCountUp(computed(() => props.stats.playedCount))
-const winRate = useCountUp(computed(() => props.stats.roundWinRate ?? 0))
-const recRate = useCountUp(computed(() => props.stats.recordingRate ?? 0))
 
 const cards = computed(() => [
   {
@@ -36,7 +30,7 @@ const cards = computed(() => [
     icon: Calendar,
     theme: 'primary',
     numeric: true,
-    display: played.value,
+    display: props.stats.playedCount,
     suffix: '场',
     hint: '全部已结束的比赛',
   },
@@ -56,7 +50,7 @@ const cards = computed(() => [
     icon: TrendCharts,
     theme: 'success',
     numeric: true,
-    display: props.stats.roundWinRate != null ? winRate.value : '-',
+    display: props.stats.roundWinRate != null ? props.stats.roundWinRate : '-',
     suffix: props.stats.roundWinRate != null ? '%' : '',
     hint: '近 5 场已出结果局的胜率',
   },
@@ -66,7 +60,7 @@ const cards = computed(() => [
     icon: VideoCamera,
     theme: 'warning',
     numeric: true,
-    display: props.stats.recordingRate != null ? recRate.value : '-',
+    display: props.stats.recordingRate != null ? props.stats.recordingRate : '-',
     suffix: props.stats.recordingRate != null ? '%' : '',
     hint: '最近一场录屏已交占比（已通过 + 待审）',
   },

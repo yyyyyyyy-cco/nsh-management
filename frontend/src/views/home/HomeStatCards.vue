@@ -13,7 +13,6 @@
       </div>
       <div class="stat-card__value">
         <span v-if="loading" class="sk sk-kpi" />
-        <span v-else-if="card.numeric" class="stat-card__number num">{{ card.display }}</span>
         <span v-else class="stat-card__number num">{{ card.value }}</span>
         <span class="stat-card__suffix">{{ card.suffix }}</span>
       </div>
@@ -26,8 +25,6 @@
 import { computed } from 'vue'
 import { Calendar, TrendCharts, Trophy, UserFilled } from '@element-plus/icons-vue'
 
-import { useCountUp } from '@/composables/useCountUp'
-
 const props = defineProps<{
   loading: boolean
   memberCount: number
@@ -35,14 +32,6 @@ const props = defineProps<{
   topName: string
   topRate: number | null | undefined
 }>()
-
-/** 数字滚动 */
-const animatedMemberCount = useCountUp(computed(() => props.memberCount))
-const animatedScheduleCount = useCountUp(computed(() => props.scheduleCount))
-const animatedTopRate = useCountUp(
-  computed(() => props.topRate),
-  { decimals: 0 },
-)
 
 const statCards = computed(() => {
   const rate = props.topRate
@@ -54,8 +43,6 @@ const statCards = computed(() => {
       suffix: '人',
       icon: UserFilled,
       theme: 'primary',
-      numeric: true,
-      display: animatedMemberCount.value,
     },
     {
       key: 'matches',
@@ -64,8 +51,6 @@ const statCards = computed(() => {
       suffix: '场',
       icon: Calendar,
       theme: 'gold',
-      numeric: true,
-      display: animatedScheduleCount.value,
     },
     {
       key: 'top',
@@ -74,8 +59,6 @@ const statCards = computed(() => {
       suffix: '',
       icon: Trophy,
       theme: 'success',
-      numeric: false,
-      display: '',
     },
     {
       key: 'rate',
@@ -84,8 +67,6 @@ const statCards = computed(() => {
       suffix: rate != null ? '%' : '',
       icon: TrendCharts,
       theme: 'warning',
-      numeric: rate != null,
-      display: rate != null ? Math.round(animatedTopRate.value * 100) : '-',
     },
   ]
 })

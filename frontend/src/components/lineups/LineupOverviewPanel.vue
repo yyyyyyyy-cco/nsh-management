@@ -5,15 +5,22 @@
         <div class="overview-header">
           <span class="overview-title">排表总览</span>
           <span class="overview-sub">按ID查找位置</span>
-          <el-button
-            class="overview-export"
-            size="small"
-            :loading="exporting"
-            :icon="Picture"
-            @click="onExportOverview"
-          >
-            导出 PNG
-          </el-button>
+          <div class="overview-actions">
+            <!-- 显示方案：圆点 = 职业色圆点标识（默认）；全底色 = 职业色铺满整格。导出 PNG 截取实时 DOM，自动同步当前方案 -->
+            <el-radio-group v-model="displayMode" size="small">
+              <el-radio-button value="dot">圆点</el-radio-button>
+              <el-radio-button value="fill">全底色</el-radio-button>
+            </el-radio-group>
+            <el-button
+              class="overview-export"
+              size="small"
+              :loading="exporting"
+              :icon="Picture"
+              @click="onExportOverview"
+            >
+              导出 PNG
+            </el-button>
+          </div>
         </div>
       </template>
       <div v-if="titleRemark" class="title-remark-bar">{{ titleRemark }}</div>
@@ -22,7 +29,13 @@
       <template v-else>
         <!-- 四组卡片 -->
         <div class="overview-grid">
-          <LineupOverviewGroup v-for="g in groupViews" :key="g.category" :group="g" :groups-remark="groupsRemark" />
+          <LineupOverviewGroup
+            v-for="g in groupViews"
+            :key="g.category"
+            :group="g"
+            :groups-remark="groupsRemark"
+            :fill-bg="displayMode === 'fill'"
+          />
         </div>
 
         <!-- 职业分布 -->
@@ -68,6 +81,8 @@ const loading = ref(false)
 const showSkeleton = useSkeletonLoading(loading)
 const teams = ref<LineupTeam[]>([])
 const exporting = ref(false)
+/** 总览显示方案：dot = 职业色圆点（默认、现有方案），fill = 职业色铺满整格。 */
+const displayMode = ref<'dot' | 'fill'>('dot')
 const overviewRef = ref<HTMLElement | null>(null)
 const titleRemark = ref('')
 const groupsRemark = ref<Record<string, string>>({})
@@ -100,7 +115,7 @@ const profCount = computed(() => {
   return map
 })
 
-/** 导出排表总览为 PNG。 */
+/** 导出排表总览为 PNG（截取实时 DOM，圆点 / 全底色方案自动同步）。 */
 async function onExportOverview() {
   const el = overviewRef.value
   if (!el) return
@@ -161,8 +176,11 @@ onMounted(loadOverview)
   gap: 10px;
 }
 
-.overview-export {
+.overview-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -176,6 +194,20 @@ onMounted(loadOverview)
   font-size: 12px;
   color: var(--ink-400);
   font-weight: normal;
+}
+
+/* 显示方案切换：雅金分段控件（与赛程列表「本月/全部」同款配色） */
+.overview-actions :deep(.el-radio-button__inner) {
+  border-color: var(--gold-200);
+  color: var(--gold-700);
+  background: var(--ink-bg-paper);
+}
+
+.overview-actions :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background: var(--gold-gradient);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: -1px 0 0 0 var(--gold-400);
 }
 
 /* ===== 总备注横幅 ===== */
@@ -250,10 +282,6 @@ onMounted(loadOverview)
 
   .overview-sub {
     display: none; /* 窄屏隐藏副标题，避免溢出 */
-  }
-
-  .overview-export {
-    margin-left: auto;
   }
 
   .overview-grid {

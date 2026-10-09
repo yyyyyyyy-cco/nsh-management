@@ -6,7 +6,7 @@ import { getIndicators } from '@/api/matchData'
 import { buildReportData } from '@/components/match-data/reportData'
 import type { IndicatorsResponse } from '@/types/matchData'
 import type { ScheduleInfo } from '@/types/schedule'
-import { endedSchedules } from './stats'
+import { endedSchedules } from '@/utils/scheduleSort'
 import type { HighlightData } from './types'
 
 /** 最多尝试的候选场次（最近已结束的比赛）。 */

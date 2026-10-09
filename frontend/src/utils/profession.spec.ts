@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { PROF_COLORS, profColor, profTagStyle } from './profession'
+import { PROF_COLORS, profColor, profFillStyle, profTagStyle } from './profession'
 
 const FALLBACK = '#c9a13b'
 const NEUTRAL_BG = '#e5e7eb'
@@ -37,5 +37,17 @@ describe('profTagStyle（胶囊内联样式：深底白字 / 浅底深字）', (
   it('未知职业使用中性灰底 + 深字', () => {
     expect(profTagStyle(null)).toEqual({ background: NEUTRAL_BG, color: '#333' })
     expect(profTagStyle('不存在的职业')).toEqual({ background: NEUTRAL_BG, color: '#333' })
+  })
+})
+
+describe('profFillStyle（全底色：职业色铺满整格）', () => {
+  it('深色职业白字 / 浅色职业深字（与胶囊同口径）', () => {
+    expect(profFillStyle('神相')).toEqual({ background: '#3E6BF4', color: '#fff' })
+    expect(profFillStyle('铁衣')).toEqual({ background: '#ffc800', color: '#333' })
+  })
+
+  it('未知职业回退主色（与职业圆点一致，非胶囊中性灰）', () => {
+    expect(profFillStyle(null)).toEqual({ background: FALLBACK, color: '#333' })
+    expect(profFillStyle('不存在的职业')).toEqual({ background: FALLBACK, color: '#333' })
   })
 })

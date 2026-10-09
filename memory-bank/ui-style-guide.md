@@ -231,7 +231,6 @@
 | `styles/index.css` | 入口：字体、页面背景纹理、`.page-enter` 动效、工具类 |
 | `layouts/MainLayout.vue` | 宣纸米白侧边栏、宣纸顶栏、用户头像 |
 | `views/LoginView.vue` | 水墨登录页 |
-| `composables/useCountUp.ts` | 数字滚动动画 composable（UI 优化新增） |
 | `components/common/EmptyState.vue` | 空状态统一插画（empty/search/chart/error 4 变体，UI 优化新增） |
 | `composables/useTableDensity.ts` | 表格密度档（标准/紧凑，顶栏全局开关，UI 优化新增） |
 

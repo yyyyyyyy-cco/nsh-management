@@ -43,6 +43,17 @@ async def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+async def require_non_member(current_user: User = Depends(get_current_user)) -> User:
+    """非帮众（开发者/管理员）——自助修改密码接口专用。
+
+    产品决策（2026-10-09）：帮众禁用自助改密。帮众账号为帮会共享账号，改密会使其他
+    使用者无法登录；帮众密码一律由管理员在「系统配置 → 账号管理」重置。
+    """
+    if current_user.role == "member":
+        raise HTTPException(status_code=403, detail="帮众账号不支持自助修改密码，请联系管理员重置")
+    return current_user
+
+
 async def require_developer(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "developer":
         raise HTTPException(status_code=403, detail="仅开发者可操作")

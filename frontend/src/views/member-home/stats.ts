@@ -1,16 +1,7 @@
 /** 帮众首页纯计算：已赛场次/近期战绩/局胜率与录屏摘要（不依赖组件状态）。 */
-import dayjs from 'dayjs'
-
 import type { Recording, RoundProgress } from '@/types/recording'
 import type { ScheduleInfo } from '@/types/schedule'
-
-/** 已结束（比赛时间已过）的赛程，按时间倒序。 */
-export function endedSchedules(schedules: ScheduleInfo[]): ScheduleInfo[] {
-  const now = dayjs()
-  return schedules
-    .filter((s) => !dayjs(s.match_time).isAfter(now))
-    .sort((a, b) => dayjs(b.match_time).valueOf() - dayjs(a.match_time).valueOf())
-}
+import { endedSchedules } from '@/utils/scheduleSort'
 
 /** 战绩统计：已赛场次 + 近 5 场战绩（胜/平/负）+ 局胜率（近 5 场已出结果的局）。 */
 export function computeGuildStats(schedules: ScheduleInfo[]) {

@@ -11,7 +11,13 @@
     <div class="og-teams">
       <div v-for="team in group.teams" :key="team.category + team.team_index" class="og-team">
         <div class="og-team__header">{{ team.category }} {{ team.team_index + 1 }} 队</div>
-        <div v-for="(slot, si) in team.slots" :key="si" class="og-slot">
+        <div
+          v-for="(slot, si) in team.slots"
+          :key="si"
+          class="og-slot"
+          :class="{ 'og-slot--fill': isFill(slot) }"
+          :style="fillStyle(slot)"
+        >
           <template v-if="slot.member_name">
             <span class="og-slot__dot" :style="{ background: profColor(slot.profession) }" />
             <span class="og-slot__name">{{ slot.member_name }}</span>
@@ -26,13 +32,25 @@
 </template>
 
 <script setup lang="ts">
-import type { LineupTeam } from '@/types/lineup'
-import { profColor } from '@/utils/profession'
+import type { LineupSlot, LineupTeam } from '@/types/lineup'
+import { profColor, profFillStyle } from '@/utils/profession'
 
-defineProps<{
+const props = defineProps<{
   group: { category: string; label: string; type: string; teams: LineupTeam[] }
   groupsRemark: Record<string, string>
+  /** 全底色方案：职业色铺满整格（总览面板切换，导出 PNG 同步当前方案） */
+  fillBg?: boolean
 }>()
+
+/** 该槽位是否应用全底色（仅对已排成员生效，空槽保持中性样式）。 */
+function isFill(slot: LineupSlot): boolean {
+  return !!props.fillBg && !!slot.member_name
+}
+
+/** 全底色内联样式（背景 + 对比文字色）；圆点方案返回 undefined 走默认样式。 */
+function fillStyle(slot: LineupSlot) {
+  return isFill(slot) ? profFillStyle(slot.profession) : undefined
+}
 
 function filledCount(team: LineupTeam): number {
   return team.slots.filter((s) => s.member_name).length
@@ -197,6 +215,20 @@ function footerClass(team: LineupTeam): string {
   width: 100%;
   text-align: center;
   color: var(--ink-300);
+}
+
+/* ===== 全底色方案（总览可切换）：职业色铺满整格、隐藏圆点、文字随底色取对比色 ===== */
+.og-slot--fill .og-slot__dot {
+  display: none;
+}
+
+.og-slot--fill .og-slot__name {
+  color: inherit;
+}
+
+.og-slot--fill .og-slot__remark {
+  background: rgba(0, 0, 0, 0.16);
+  color: inherit;
 }
 
 .og-team__footer {
