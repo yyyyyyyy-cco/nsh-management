@@ -57,7 +57,7 @@
   `200 {"status":"ok","database":"ok"}`；数据库不可用 → `503 {"status":"degraded","database":"error"}`。
   数据库异常刻意**不抛 500**：否则对外表现为「应用崩溃」而非「依赖不可用」，不利排查。
   同一端点也挂在 `/api/v1/health`，可经既有 `/api/*` 反向代理对外访问，供外部 uptime 监控探活；
-  若不希望对外暴露，可在边缘 Nginx 拦掉该路径（探活改用内网方式）。**注意**：服务器截至 2026-10-08 尚未部署该端点（`/health` 实测 404、compose 仍探 `/`），见 §三「服务器实况核对」。
+  若不希望对外暴露，可在边缘 Nginx 拦掉该路径（探活改用内网方式）。**服务器已于 2026-10-09 部署启用该端点**（compose 探 `/health`、外部 `/api/v1/health` 实测 200），见 §三「服务器实况核对」。
 - **手动探活**：backend 不映射宿主端口，宿主机直接 `curl` 不通。可执行
   `docker compose exec backend python -c "import urllib.request;print(urllib.request.urlopen('http://127.0.0.1:8000/health').read().decode())"`。
 - **生产环境关闭在线 API 文档**：`/docs`、`/redoc`、`/openapi.json` 一律 404（本地开发环境保留，便于调试）。
@@ -126,8 +126,10 @@ bash scripts/check-config-drift.sh /srv/nsh-management/docker-compose.yml ./dock
 > 如 `--exclude='backend/logs'`。
 
 > **反向提醒（不在上表 = 会被覆盖）**：`backend/requirements.txt` **不在排除清单内**——它必须随代码更新，
-> 所以每次 `deploy.sh` 都会把仓库的锁定版本推到服务器，并随镜像重建真正生效。服务器当前仍是旧版
-> （见「服务器实况核对」），下次部署将升级 fastapi / starlette / python-jose / bcrypt / Pillow 并**移除 passlib**。
+> 所以每次 `deploy.sh` 都会把仓库的锁定版本推到服务器，并随镜像重建真正生效。
+> **已于 2026-10-09 部署时升级** fastapi / starlette / python-jose / bcrypt / Pillow 并**移除 passlib**
+> （旧文件已备份 `requirements.txt.bak-2026-10-09`，容器实装版本经实测核对 ✓；`backend/.env.example`
+> 同样随部署自动更新，失效键已清理）。
 > 按 §9.3 纪律：**先做数据库备份 + 备份服务器原 `requirements.txt`，再 `up -d --build`**。
 
 ### 服务器配置类文件的变更规则
@@ -191,6 +193,14 @@ bash scripts/check-config-drift.sh /srv/nsh-management/docker-compose.yml ./dock
 > 站点运行正常：HTTPS 入口 200、HTTP 301、`/api/v1/health` 404（佐证镜像为合并前版本）；双容器
 > Up 10 天（backend healthy）；每日备份与证书巡检 cron 均正常；边缘反代（keepalive 32、login/api 限流）
 > 与本文档描述一致。**部署时仍需先做上表 4 项人工同步 + 部署前数据库备份。**
+
+> **2026-10-09 部署完成（同日）**：上表 5 处漂移**全部清零**——3 项构建输入已人工同步（`frontend/nginx.conf` 白名单版、
+> `frontend/Dockerfile` `node:22-alpine`、`docker-compose.yml` 探 `/health` + `APP_ENV`，均先备份 `*.bak-20261009`；
+> 前两者与本地 SHA256 逐一核对一致）；`backend/requirements.txt` 与 `backend/.env.example` 随部署**自动更新并复核**
+> （容器实装 fastapi 0.142.2 / starlette 1.7.0 / python-jose 3.5.0 / bcrypt 4.3.0 / Pillow 12.3.0，**无 passlib**）。
+> 部署前后两次数据库备份均已完成；现役旧镜像已归档 `~/archives/nsh-images-20261009-pre.tar.gz`（回滚用）。
+> 部署后实测：迁移升至 `p0q1r2s3t4u5`、双容器 Up（backend healthy 探 `/health`）、域名入口 200、
+> `/api/v1/health` 200、后端根路径 `/docs` / `/redoc` / `/openapi.json` 均 404（生产关闭生效）。
 
 ## 四、日志系统
 ### 逐层日志清单（2026-10-02 新增，对应 ASVS 16.1.1）

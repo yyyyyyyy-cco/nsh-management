@@ -18,7 +18,7 @@
 
 ---
 
-## [Unreleased]
+## [1.3.0] - 2026-10-09
 
 合规化整改带来的**使用者可见变更**（整改进度见 `memory-bank/progress.md`；差距清单见
 `.agent/plans/compliance-remediation-plan.md`）。条目按**使用者影响**归并，非逐提交罗列。
@@ -125,7 +125,8 @@
 首个标签，记录项目初始可发布版本。本文件建立于 1.2.0 发布日，未回溯此版本的逐条变更，
 历史请查该标签对应的提交记录（`git log v1.0.0`）。
 
-[Unreleased]: https://github.com/yyyyyyyy-cco/nsh-management/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/yyyyyyyy-cco/nsh-management/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/yyyyyyyy-cco/nsh-management/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/yyyyyyyy-cco/nsh-management/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/yyyyyyyy-cco/nsh-management/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/yyyyyyyy-cco/nsh-management/releases/tag/v1.0.0
