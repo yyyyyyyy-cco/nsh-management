@@ -18,6 +18,11 @@ indent_size = 4
 [*.{bat,cmd}]
 end_of_line = crlf
 
+# start.bat 须保持 GBK 编码（cmd 在 cp65001 下解析含中文 .bat 会错位，见 ai-checklist 第 199 条）；
+# EditorConfig 无 gbk 取值，用 unset 防止编辑器保存时把编码强制改回 UTF-8
+[start.bat]
+charset = unset
+
 [Makefile]
 indent_style = tab
 
