@@ -107,7 +107,7 @@
 | L-3 | 帮众共享账号本身 | 每个帮会一个共享帮众账号，无法区分个体、无操作审计。建议后续引入个人账号 + 操作日志。 |
 | L-4 | 前端 Token 存 localStorage | 标准 SPA 做法但受 XSS 影响；建议评估 HttpOnly Cookie + CSRF 防护，或至少配置 CSP。 |
 | L-5 | 无 CSP / server_tokens 未关闭 | [nginx.conf](frontend/nginx.conf) 已有 X-Frame-Options 等头，但无 `Content-Security-Policy`；未加 `server_tokens off`（泄露 nginx 版本）。**已定方案**：补充 `server_tokens off`；CSP 降级为可选后续（html2canvas/echarts 内联样式配错有白屏风险，本系统无 v-html 无外部脚本，XSS 面小、收益低）。 |
-| L-6 | SQLite 未启用 WAL | [database.py](backend/app/core/database.py) 未设置 `PRAGMA journal_mode=WAL`，读多写少场景可提升并发读性能与写入稳定性。**已定方案：默认搁置不做**（数据量小，避免引入 -wal/-shm 文件与备份复杂度），遗留风险记录在案。 |
+| L-6 | SQLite 未启用 WAL | [database.py](backend/app/core/database.py) 未设置 `PRAGMA journal_mode=WAL`，读多写少场景可提升并发读性能与写入稳定性。**已定方案：默认搁置不做**（数据量小，避免引入 -wal/-shm 文件与备份复杂度），遗留风险记录在案。**2026-10-09 复核更正：本条已过时**——后续性能优化专项（2026-09-11）已实际启用：每条连接执行 `journal_mode=WAL` + `synchronous=NORMAL` + `busy_timeout=30000`（见 [database.py](backend/app/core/database.py) 的 `_set_sqlite_pragma`）；§七 状态行与 §八 决策行中的「搁置/不做」同被该变更取代。 |
 | L-7 | `limit` 参数无上限 | [match_data.py](backend/app/api/v1/match_data.py#L71) `limit: int = 20` 无 `le` 上限；[lineup.py](backend/app/schemas/lineup.py#L7-18) 槽位 remark 无长度限制。**已定方案**：`limit` 加 `ge=1, le=100`；`LineupSlot.remark` 加 `max_length=255`。 |
 | L-8 | CORS 配置 | `allow_methods/headers=["*"]`，当前仅 localhost 来源，生产同源部署影响小；若未来多域名部署需收紧。 |
 | L-9 | 登录不存在账号锁定存内存 | 服务重启清零（已知设计），多实例部署时失效。数据量小，可接受，记录在案。 |
@@ -166,7 +166,7 @@
 | C | 出勤状态接口改 require_admin（UI 不改） | L-2 | ✅ 已修复 |
 | C | nginx `server_tokens off`（CSP 可选后续） | L-5 | ✅ 已修复 |
 | C | `limit` 1~100、remark ≤255 | L-7 | ✅ 已修复 |
-| — | SQLite WAL | L-6 | ⏸ 默认搁置 |
+| — | SQLite WAL | L-6 | ✅ 已启用（2026-09-11 性能优化专项引入；2026-10-09 复核） |
 | — | 帮众个人账号体系、Token 改 Cookie | L-3/L-4 | 📋 遗留风险记录 |
 
 ---
