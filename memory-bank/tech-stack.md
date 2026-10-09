@@ -53,7 +53,7 @@
 
 ### 依赖清单
 
-> **权威源**：`backend/requirements.txt`（运行时依赖，实际锁定版本，含 bcrypt、Pillow 等固定版本与升级依据说明）；开发/CI 依赖见 `backend/requirements-dev.txt`（ruff、pytest、httpx）。
+> **权威源**：`backend/requirements.txt`（运行时依赖，实际锁定版本，含 bcrypt、Pillow 等固定版本与升级依据说明）；开发/CI 依赖见 `backend/requirements-dev.txt`（ruff、mypy、pytest、httpx2）。
 >
 > **编码声明（2026-10-02）**：两个依赖清单首行均为 `# -*- coding: utf-8 -*-`——文件含中文注释，中文 Windows 的 pip 按 cp936 解码会失败（`UnicodeDecodeError`），新增中文内容时**勿删除该行**。
 > **锁定状态（2026-10-02，W1-4）**：`fastapi` 由 `>=0.115.0` 改为 **`==0.142.2`**、`python-multipart` 由 `>=0.0.18` 改为 **`==0.0.32`**，并显式锁定传递引入的 **`starlette==1.7.0`**——三者均为**本仓已实测通过**的组合（pytest 93 用例 + selfcheck 全绿；PyPI 元数据 `requires_python >=3.10`，与 3.11 基座兼容）。范围约束的漂移风险与实测证据见合规化计划 F-15；门禁 `scripts/check_requirements_pins.py` 已接入 CI，阻止再次引入范围约束。
@@ -106,8 +106,8 @@
 - **前端容器**：多阶段构建（`npm run build:only` → Nginx 静态托管，类型检查在本地/CI 执行）；生产**不映射宿主端口**，由边缘反代回源；依赖后端健康检查
 - **后端容器**：**单阶段**构建（`pip install` → uvicorn，见 `backend/Dockerfile`）；`:8000` 仅容器网络可达；SQLite 数据卷持久化
 - **数据卷**：命名卷 `nsh-data:/app/data`（SQLite，WAL 模式）与 `nsh-logs:/app/logs`（文件日志，`RotatingFileHandler` 10MB×5）
-- **健康检查**：后端 `/health`（同时反映数据库连通性）探活，前端 `depends_on` 等待 `service_healthy`。**注意**：仓库内 compose 探 `/health`，服务器上仍是旧版 `/`（服务器配置单独维护，见 `DEPLOY.md` §三「服务器实况核对」）
-- **环境变量**：通过 `.env` 注入（`SECRET_KEY`、`DEVELOPER_PASSWORD`、`ADMIN_PASSWORD`、`MEMBER_PASSWORD`）；仓库内「本地/单机」compose 固定 `APP_ENV=production`，**服务器版本没有该行**（由服务器 `.env` 的 `APP_ENV` 承担，见 `DEPLOY.md` §三）
+- **健康检查**：后端 `/health`（同时反映数据库连通性）探活，前端 `depends_on` 等待 `service_healthy`。仓库内 compose 与服务器均已探 `/health`（服务器于 2026-10-09 部署时同步，见 `DEPLOY.md` §三「服务器实况核对」）
+- **环境变量**：通过 `.env` 注入（`SECRET_KEY`、`DEVELOPER_PASSWORD`、`ADMIN_PASSWORD`、`MEMBER_PASSWORD`）；仓库内「本地/单机」compose 固定 `APP_ENV=production`，服务器版本已于 2026-10-09 同步补入该行（见 `DEPLOY.md` §三）
 - **本地开发**：`start.bat`（Windows 一键启动，含 `DB_MODE` 数据源切换，见 `README.md`）
 - **一键部署**：本地 `deploy.sh` 打包上传后 `docker compose up -d --build`；该脚本**不入库**（含服务器 IP/凭据），模板化与配置漂移治理见 [`.agent/plans/compliance-remediation-plan.md`](../.agent/plans/compliance-remediation-plan.md) 的 W1-2 / W1-3
 
@@ -126,7 +126,8 @@
 | Ruff 0.12 | 后端 Python 静态检查（配置 `backend/ruff.toml`，依赖见 `backend/requirements-dev.txt`，CI 门禁） |
 | ESLint 10 + Prettier 3 | 前端静态检查与格式化（配置 `frontend/eslint.config.js`、`frontend/.prettierrc.json`；`npm run lint` / `format`，CI 门禁） |
 
-> **2026-10-02 更新（合规化计划 W2-3）**：**后端 Ruff 与前端 ESLint 10 + Prettier 3 均已配置并接入 CI**——后端 `ruff check .` 通过；前端 `npm run lint` 为 **0 error / 0 warning**（10 处 `vue/no-mutating-props` 债已于 2026-10-03 由 W2-8 用 `defineModel` 清零；ESLint 在无问题时**不打印 problems 行**）、`npm run build`（vue-tsc + vite）通过。**待收紧**：`E501` 行长、`ruff format`、`I`/`UP`/`B` 规则、vue `flat/recommended` 排版规则与 Prettier 一次性格式化；后端 mypy 尚未引入。
+> **2026-10-02 更新（合规化计划 W2-3）**：**后端 Ruff 与前端 ESLint 10 + Prettier 3 均已配置并接入 CI**——后端 `ruff check .` 通过；前端 `npm run lint` 为 **0 error / 0 warning**（10 处 `vue/no-mutating-props` 债已于 2026-10-03 由 W2-8 用 `defineModel` 清零；ESLint 在无问题时**不打印 problems 行**）、`npm run build`（vue-tsc + vite）通过。
+> **收紧进展（2026-10-03，W2-14）**：`I`/`UP`/`E501`/`ruff format` 与前端 Prettier 一次性格式化**均已完成**（`ruff check .` 与 `ruff format --check` 双全绿）；`B` 规则经评估**不照单全收**（`B008` 与 FastAPI `Depends()` 惯用法冲突）；vue `flat/recommended` 排版规则与 Prettier 冲突、**有意不引入**；后端 **mypy 已引入**（`mypy==2.4.0`，配置 `backend/mypy.ini`，CI 为报告型步骤，存量诊断待清）。
 
 ### VS Code推荐插件
 - Volar (Vue官方插件)

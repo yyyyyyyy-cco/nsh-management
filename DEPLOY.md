@@ -42,7 +42,7 @@
   覆盖这两个头**，否则真实 IP 会被冲成容器 IP（曾导致限流退化为「全站共享桶」、登录审计 IP 记为容器 IP）。
 - 边缘层 upstream 启用 keepalive(32)，内层不再做 TLS：每请求少一次 TLS 握手与连接建立。
 - 数据库迁移在**容器每次启动时自动执行**（Dockerfile CMD 含 `alembic upgrade head`），
-  当前 head：`o9p0q1r2s3t4`（member_game_id_requests 游戏 ID 修改申请表；此前为 `n8o9p0q1r2s3` 出勤备注列）。
+  当前 head：`p0q1r2s3t4u5`（补人部分唯一索引，F-79；此前为 `o9p0q1r2s3t4` member_game_id_requests 游戏 ID 修改申请表）。
 - SQLite 以 **WAL 模式**运行（`journal_mode=WAL` + `synchronous=NORMAL` + `busy_timeout=30s`，
   见 `backend/app/core/database.py` 连接事件），读写不互斥；**备份方式需注意 WAL 文件**（见第五节）。
 - 后端以 `appuser`（非 root）运行，`entrypoint.sh` 负责修复 `/app/data`、`/app/logs`
@@ -283,7 +283,7 @@ docker compose start backend
 | `DEVELOPER_PASSWORD` / `ADMIN_PASSWORD` / `MEMBER_PASSWORD` | 三角色密码（仅首次建库生效） |
 | `CORS_ORIGINS` | 允许的跨域来源（逗号分隔，可选）。默认值仅本地开发来源；生产由 Nginx **同源**反代 `/api`，通常**无需设置**；仅当 API 被跨域直连时显式列出。**不要填 `*`**（本项目 `allow_credentials=True`） |
 | `ALERT_WEBHOOK_URL` | 错误率告警的 webhook 地址（可选）。**未配置时仍会在容器日志写 WARNING**（不静默）；阈值 / 窗口 / 检查间隔分别为 `ALERT_ERROR_THRESHOLD`（默认 20）/ `ALERT_WINDOW_MINUTES`（30）/ `ALERT_CHECK_INTERVAL_MINUTES`（15），阈值为 0 表示禁用 |
-| `APP_ENV` | 运行环境标识。仓库内 compose 在 backend 服务固定 `production`；**服务器版本没有这一行**，改由服务器 `.env` 设置（当前已设 `production`，两者等效，见 §三「服务器实况核对」）。非 Compose 部署（k8s / 裸机）**必须显式设为 `production`**，否则启动弱密钥校验的兜底判定可能失效 |
+| `APP_ENV` | 运行环境标识。仓库内 compose 在 backend 服务固定 `production`；**服务器已于 2026-10-09 部署时同步补入该行**（compose 与服务器 `.env` 双处均为 `production`，见 §三）。非 Compose 部署（k8s / 裸机）**必须显式设为 `production`**，否则启动弱密钥校验的兜底判定可能失效 |
 | `DEBUG` | 调试模式（默认 `false`）。**生产必须保持 false**；生产环境下 `/docs`、`/redoc`、`/openapi.json` 亦被关闭 |
 | `DATABASE_URL` | 数据库连接串（可选）。默认 `sqlite+aiosqlite:///<数据目录>/nsh.db`（容器内为挂载卷）；改用其它路径或外部数据库时才需设置，SQLite 路径须为绝对路径（四个斜杠） |
 | `LOG_RETENTION_DAYS` | 审计日志保留天数（默认 `90`）：服务启动时清理更早的记录 |
@@ -352,9 +352,10 @@ awk -F= '/^SECRET_KEY=/{print length($2)}' .env
 grep -E '^SECRET_KEY=(please-change-me|your-secret-key|dev-secret-key)' .env
 ```
 
-**服务器侧同步项（2026-09-28）**：`docker-compose.yml` 在 deploy.sh 排除清单中，本地已为
-backend 服务新增 `environment: APP_ENV: production`，**服务器侧需手动同步**（先备份）。同步前
-容器特征兜底（`/.dockerenv`）在 Docker 部署下仍生效，但显式声明可避免迁移 k8s/裸机时校验被静默跳过。
+**服务器侧同步项（2026-09-28；2026-10-09 已完成）**：`docker-compose.yml` 在 deploy.sh 排除清单中，本地已为
+backend 服务新增 `environment: APP_ENV: production`，服务器侧已按「先备份（`*.bak-20261009`）后修改」同步完成
+（与健康检查改探 `/health` 同批落地）。同步前容器特征兜底（`/.dockerenv`）在 Docker 部署下仍生效，
+但显式声明可避免迁移 k8s/裸机时校验被静默跳过。
 
 ## 七、常见问题
 

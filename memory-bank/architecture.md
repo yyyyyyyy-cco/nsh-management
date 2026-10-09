@@ -303,6 +303,16 @@ nsh-management/
 | 2026-10-02 | Wave 4 批次 20（合规化计划 **W4-17**）：抽样复核 `§17.6~17.8`（V6/V7/V9，73 条，此前未抽）——更正 `6.1.2`（❌→🟡：口令上下文词表已在 `password_policy.CONTEXT_WORDS`，只是未成文）与 `9.2.3` 的「待办/取舍」措辞矛盾；统计重算为 **54✅ / 29🟡 / 13❌ / 28⚪**；给 `check_verdict_sync.py` 补**反向方向**（自称已修复但计划未标修复 → 报矛盾），自检 10→13 条 | security-review.md, check_verdict_sync.py, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-02 | Wave 4 批次 21（合规化计划 **W4-18**）：`DEPLOY.md §六` 新增「**关键秘密清单**」（7 类秘密的存放位置/访问边界/泄漏影响 + `git check-ignore -v` 验证命令）与「**秘密轮换与泄漏处置**」（周期建议、6 类秘密的轮换命令与验证、泄漏处置四步），闭合 ASVS `13.1.4`（🟡→✅）并改善 `13.3.4`（❌→🟡）；修 **F-55**：`frontend/.dockerignore` 补 `.env*`、`.gitignore` 补 `.env.development` 并显式 `!.env.example`（双向验证：`.env.development` 命中忽略、`.env.example` 不被忽略且跟踪状态不变）；统计重算为 **55✅ / 29🟡 / 12❌ / 28⚪** | DEPLOY.md, frontend/.dockerignore, .gitignore, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-02 | Wave 4 批次 22（合规化计划 **W4-19**）：成文三份「清单型」控制——`security-review.md §15.5 通信需求清单`（入站/容器间/卷/出站/构建期/宿主运维面/用户外链，含「服务端不抓取用户 URL」的全仓检索证据）、`DEPLOY.md §四 逐层日志清单`（边缘/内层/backend/审计表/告警五层的载体·格式·留存·检索方式）、`security-review.md §十八 安全事件清单`（11 类事件 + 检测信号 + 响应动作 + **自动化状态如实标注**）；ASVS 判定 `13.1.1`/`16.1.1`/`16.3.3` 🟡→✅，统计重算为 **58✅ / 26🟡 / 12❌ / 28⚪** | security-review.md, DEPLOY.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-02 | Wave 4 批次 23（合规化计划 **W4-20**）：`frontend/nginx.conf.example` 的 CSP `connect-src` 由 `'self' https:` **收窄为 `'self'`**（依据：前端无跨域 XHR/fetch/WS、baseURL 同源相对路径、唯二 https 链接为备案号 `<a href>` 顶层导航），文件头写明依据/收益/边界；`security-review.md` `13.2.4` 🟡→✅、CSP 相关行补 W4-20 完成标注，统计 **59✅ / 25🟡 / 12❌ / 28⚪** | nginx.conf.example, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-02 | Wave 4 批次 24（合规化计划 **W4-21**）：`frontend/nginx.conf` 的 `/assets/` 增加**静态资源扩展名白名单**（依据 `npm run build` 产物实测扩展名集合）+ 非白名单 `return 404` 兜底，并按 nginx 语义确认缓存头仍继承；`security-review.md` `13.4.7` 🟡→✅，统计 **60✅ / 24🟡 / 12❌ / 28⚪**；计划 §9 补本轮全量回归结果与「nginx 配置无自动校验」缺口；**主动放弃**给 Dockerfile 加 `nginx -t`（构建期解析 `backend` 主机名会失败，无 Docker 无法验证）| nginx.conf, security-review.md, compliance-remediation-plan.md, architecture.md, progress.md |
+| 2026-10-02 | 收口核对（批次 25，**无代码改动**）：重跑全量回归与 7 道门禁（全绿）；按计划 §7 现场解析真实完成度并纠正汇报口径——**Wave 2 实为 11/12**（`W2-8` props 债始终待开始，我此前多轮误报 12/12），Wave 0 8/9、Wave 1 3/9、Wave 3 4/6、Wave 4 21/21，**合计 47/57**；教训记入 ai-checklist 第 60 条（进度数字必须现场解析） | ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | Wave 1 批次 26（合规化计划 **W1-8 续**）：**Pillow `11.1.0` → `12.3.0`**（上游依据 `GHSA-62p4-gmf7-7g93` = `CVE-2026-54058`，high，受影响 `< 12.3.0`；**可达性：不可达**——只生成导出图、全仓无 `Image.open`）；实测导入级兼容 + 后端全量 **158 passed + 84 subtests exit 0**；`security-review.md` 新增 §14.7；新登记 **F-56**（导出路径无测试覆盖）、**W1-10**（bcrypt 直连、移除 passlib）、**W1-11**（补 image_export 覆盖） | requirements.txt, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | Wave 1 批次 27（合规化计划 **W1-11**，收口 **F-56**）：新增 `backend/tests/test_image_export.py`（6 用例）固定 `draw_members_png` 的行为契约——PNG 合法性、宽度恒定、高度按模块常量独立重算、空列表不抛异常、正式/替补/副职业分支、人数上限守卫；全量 pytest **158 → 164 passed**；`security-review.md §14.7` 的测试缺口条目标注收口；教训记入 ai-checklist 第 62 条 | test_image_export.py, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | Wave 1 批次 28（合规化计划 **W1-10**）：移除未维护的 **`passlib`**、改用 `bcrypt` 直连，`bcrypt` `4.0.1` → **`4.3.0`**；新增 `tests/test_password_hash_compat.py`（5 用例）；**过程中抓到并修复真实缺陷 F-58**（`bcrypt` 4.x 对截断哈希 Rust panic，`PanicException` 非 `Exception` 子类 → 格式预校验 + 宽捕获）；登记 **F-57**（72 字节静默截断）与 **W1-12**；`tech-stack.md`/`security-review.md §14.7` 同步；教训记入 ai-checklist 第 63 条 | security.py, requirements.txt, test_password_hash_compat.py, test_core_security.py, tech-stack.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | Wave 1 批次 29（合规化计划 **W1-12**，收口 **F-57**）：口令改为**预哈希方案**——新哈希先 `base64(SHA-256(口令))` 再 bcrypt（`sha256$<bcrypt>`），任意长度口令完整参与，解除 72 字节静默截断；旧哈希仍走直连并在**登录时惰性升级**；**实测否决**「策略收紧到 72 字节」（中文仅 24 字符，违反 ASVS 6.2.9）与「立即升 bcrypt 5.0.0」（对 >72 字节连 `checkpw` 都报错 → 会锁死既有用户）；新增 `tests/test_password_hash_migration.py`（3 用例）并扩展兼容性用例；教训记入 ai-checklist 第 64 条 | security.py, auth_service.py, test_password_hash_compat.py, test_password_hash_migration.py, test_core_security.py, requirements.txt, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | Wave 1 批次 30（合规化计划 **W1-8 收口**）：用 GitHub Advisory API 逐包核对**全部依赖公告**——后端 12 个固定依赖**受影响 0 条** ✓（Pillow 78 条公告修复版均 ≤12.3.0、starlette 最新上限 <1.3.1、python-jose critical 修复于 3.4.0）；前端 19 包运行期 0 条、开发期 6 条（vite/esbuild/vitest，**dev-only**，`vite.config.ts` 未设 `host` → 默认仅绑 localhost ✓ 已缓解）；`security-review.md` 新增 §14.8 全量核对表；登记 **F-59 / W1-13**（前端工具链跨大版本升级）；教训记入 ai-checklist 第 65 条 | security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | Wave 1 批次 31（合规化计划 **W1-13**，收口 **F-59**）：前端工具链升级——`vite` 5.4.21 → **6.4.3**、`esbuild` → **0.25.12**（随 vite 依赖）、`vitest` 3.2.7 → **4.1.11**；升级后逐包复核公告：**6 条中 5 条清除**，剩余 1 条（esbuild）经 API `withdrawn_at` **实证为上游已撤回**；回归证据 build exit 0 / test 60 passed / lint 0 error；`CONTRIBUTING.md` 补充换源指引；教训记入 ai-checklist 第 66 条 | frontend/package.json, frontend/package-lock.json, CONTRIBUTING.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
+| 2026-10-03 | Wave 2 批次 32（合规化计划 **W2-8**）：用 `defineModel` 消除 **10 处 `vue/no-mutating-props`** 告警（4 个文件：`SquadCardsGrid`/`MemberTablePanel`/`MemberToolbar`/`LogFilterBar`）；因父组件为 `reactive` 常量、`defineModel` 就地写共享对象语义与改前一致 → **父组件零改动**；验证：lint **10→0**、`vue-tsc` exit 0、`build` exit 0、`test` 60 passed；**页面级交互验收仍待浏览器授权**；教训记入 ai-checklist 第 67 条 | SquadCardsGrid.vue, MemberTablePanel.vue, MemberToolbar.vue, LogFilterBar.vue, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 仓库卫生（发现 **F-60**）：`git add -A` 把 `vue-tsc` 产物 `frontend/tsconfig.node.tsbuildinfo` 一并提交；`.gitignore` **已补** `*.tsbuildinfo`/`.eslintcache`；**移出版本库属 git 删除操作，按 §5 待用户授权 → 登记 W2-13**；教训记入 ai-checklist 第 68 条 | .gitignore, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 34（**W4-22 文档引用存活核对**，新增检查）：`scripts/check_doc_refs.py`（自检 18/18）扫描 26 个文档的 **942 处**反引号引用 → 有效 860、缺失 44、行号越界 0、歧义 38；**44 条缺失中 37 条为故意不存在**（运维脚本/运行时数据/改名历史/占位符/忽略目录/容器路径）→ **不接入门禁、保持报告模式**；两条真引用（`styles/medals.css`、`verify_e2e.py`）已核实不存在并在原文档标注「已移除」；工具自身 3 个缺陷（`lstrip` 误用 ×2、glob 误抽）已修并补回归样例；教训记入 ai-checklist 第 69 条 | check_doc_refs.py, code-ui-audit-2026-09.md, data-analysis-complete.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-03 | 批次 35（公开前**仓库密钥扫描** + **F-62 修复**）：扫描 399 个跟踪文件与 git 全历史——**历史无任何真实密钥** ✓（无 `.env`/`*.pem`/`*.key` 提交、`jsdz` 零命中、5 个 `SECRET_KEY=` 提交逐个复核为 0 处真实赋值 ✓）；发现并修复 **F-62**：`_secret_key_is_weak` 的 hex 豁免通道放过了 CI 的 `0123456789abcdef…`（零熵）✗ → 增加 `_hex_is_low_entropy`（周期性 + 不同字符数 <8）+ 显式封禁 + `HexEntropyTest` 4 用例；登记 **F-61**（默认 `admin123` 在自身黑名单中）与 **W1-14**；`security-review.md` 新增 **§14.9**；教训记入 ai-checklist 第 70 条 | config.py, test_config_gate.py, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
@@ -500,83 +510,13 @@ nsh-management/
 | 2026-10-03 | 批次 248（**按授权删除重写备份 ref**）：①**前置确认（正确口径）** ✓ —— 重写点 `544759e` 与备份 `backup/pre-commit-msg-rewrite`（`a7c2669`）**整树差异为空** ✓（无损已证 ✓）；分支相对重写点仅**多 1 条重写后的登记/收尾文档提交** ✓（内容不含备份独有物 ✓）；备份的**唯一独特内容 = 11 条旧首行** ✗ → 已**完整登记在 F-110 的旧→新映射**（11/11 ✓，旧哈希作为历史时间戳 ✓，遵 §3.3 第 6 条 ✓）。②**执行** ✓：`git branch -D backup/pre-commit-msg-rewrite` ✓（跨历史需 `-D` ✓），复核 `rev-parse --verify` 已失败 ✓；其余本地/远端跟踪分支与当前分支未受影响 ✓。③**仍可临时找回** ✓：对象仍在本地库（`cat-file -t a7c2669` ✓），可用 `git branch backup/pre-commit-msg-rewrite a7c2669` 复原 ✓，之后由 git GC 回收 ✓。④全套验收 ✓。⑤**并更正** ✗：我首次前置断言写成「分支与备份整树必须为空」✗ —— 忽略了重写后的登记提交 ✓（被自身断言拦下、零写入 ✓）。 | memory-bank/architecture.md, progress.md, .agent/plans/compliance-remediation-plan.md |
 | 2026-10-03 | 批次 249（**排查并记录：仓库根目录的 22 个 `pip-*` 目录**）：①**实测根因** ✓：本机 `TEMP`/`TMP` 为短名路径 `C:\Users\GYPSOP~1\…`（**解析不可用** ✗）、`TMPDIR` 空 ✗ → `tempfile.gettempdir()` **回退到 cwd** ✓（**干净环境**实测 = 仓库根 ✓）→ pip 的工作目录建在当时 cwd ✓（时间与本会话早期装依赖时段吻合 ✓，残留者为中断/卡死的安装 ✓）。②**影响** ✓：已被 `.gitignore` 覆盖（`pip-unpack-*/`、`pip-metadata-*/` ✓，见清单第 27 条 ✓）→ **不进提交** ✓、`git status` 仍 0 项 ✓、不影响推送 ✓。③**处置** ✓：目录在仓库根但**不在版本库内** ✓；清理命令（待用户确认 ✓）：`Remove-Item -Recurse -Force pip-*`；预防：跑 pip 前显式设 `TEMP`/`TMP`/`TMPDIR` ✓。④新增 ai-checklist 第 195 条 ✓（含「测 gettempdir 时别自覆盖 TEMP/TMP」的自我教训 ✓）。 | memory-bank/ai-checklist.md, memory-bank/architecture.md, progress.md |
 | 2026-10-03 | 批次 250（**清理仓库根的 22 个 `pip-*` 临时目录**）：①**删除前逐条校验** ✓ —— 22 个目录**绝对路径的父目录均为仓库根** ✓、名字匹配 `pip-*` ✓、`git ls-files` 在其下**无任何被跟踪文件** ✓（故删除不影响版本库 ✓）。②**执行** ✓：逐条 `shutil.rmtree` 显式路径删除（非通配 ✗）✓，删后残留 = 0 ✓；`.git`/`.agent`/`backend`/`frontend`/`memory-bank`/`scripts`/`.github` **完好** ✓；`git status` 0 项 ✓。③**根因与预防**见 ai-checklist 第 195 条 ✓（`TEMP/TMP` 短名路径不可用 → `tempfile.gettempdir()` 回退 cwd ✓；跑 pip 前显式设 `TEMP/TMP/TMPDIR` ✓）。 | memory-bank/architecture.md, progress.md |
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
----
-
-| 2026-10-02 | Wave 4 批次 23（合规化计划 **W4-20**）：`frontend/nginx.conf.example` 的 CSP `connect-src` 由 `'self' https:` **收窄为 `'self'`**（依据：前端无跨域 XHR/fetch/WS、baseURL 同源相对路径、唯二 https 链接为备案号 `<a href>` 顶层导航），文件头写明依据/收益/边界；`security-review.md` `13.2.4` 🟡→✅、CSP 相关行补 W4-20 完成标注，统计 **59✅ / 25🟡 / 12❌ / 28⚪** | nginx.conf.example, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
-
-| 2026-10-02 | Wave 4 批次 24（合规化计划 **W4-21**）：`frontend/nginx.conf` 的 `/assets/` 增加**静态资源扩展名白名单**（依据 `npm run build` 产物实测扩展名集合）+ 非白名单 `return 404` 兜底，并按 nginx 语义确认缓存头仍继承；`security-review.md` `13.4.7` 🟡→✅，统计 **60✅ / 24🟡 / 12❌ / 28⚪**；计划 §9 补本轮全量回归结果与「nginx 配置无自动校验」缺口；**主动放弃**给 Dockerfile 加 `nginx -t`（构建期解析 `backend` 主机名会失败，无 Docker 无法验证）| nginx.conf, security-review.md, compliance-remediation-plan.md, architecture.md, progress.md |
-
-| 2026-10-02 | 收口核对（批次 25，**无代码改动**）：重跑全量回归与 7 道门禁（全绿）；按计划 §7 现场解析真实完成度并纠正汇报口径——**Wave 2 实为 11/12**（`W2-8` props 债始终待开始，我此前多轮误报 12/12），Wave 0 8/9、Wave 1 3/9、Wave 3 4/6、Wave 4 21/21，**合计 47/57**；教训记入 ai-checklist 第 60 条（进度数字必须现场解析） | ai-checklist.md, architecture.md, progress.md |
-
-| 2026-10-03 | Wave 1 批次 26（合规化计划 **W1-8 续**）：**Pillow `11.1.0` → `12.3.0`**（上游依据 `GHSA-62p4-gmf7-7g93` = `CVE-2026-54058`，high，受影响 `< 12.3.0`；**可达性：不可达**——只生成导出图、全仓无 `Image.open`）；实测导入级兼容 + 后端全量 **158 passed + 84 subtests exit 0**；`security-review.md` 新增 §14.7；新登记 **F-56**（导出路径无测试覆盖）、**W1-10**（bcrypt 直连、移除 passlib）、**W1-11**（补 image_export 覆盖） | requirements.txt, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
-
-| 2026-10-03 | Wave 1 批次 27（合规化计划 **W1-11**，收口 **F-56**）：新增 `backend/tests/test_image_export.py`（6 用例）固定 `draw_members_png` 的行为契约——PNG 合法性、宽度恒定、高度按模块常量独立重算、空列表不抛异常、正式/替补/副职业分支、人数上限守卫；全量 pytest **158 → 164 passed**；`security-review.md §14.7` 的测试缺口条目标注收口；教训记入 ai-checklist 第 62 条 | test_image_export.py, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
-
-| 2026-10-03 | Wave 1 批次 28（合规化计划 **W1-10**）：移除未维护的 **`passlib`**、改用 `bcrypt` 直连，`bcrypt` `4.0.1` → **`4.3.0`**；新增 `tests/test_password_hash_compat.py`（5 用例）；**过程中抓到并修复真实缺陷 F-58**（`bcrypt` 4.x 对截断哈希 Rust panic，`PanicException` 非 `Exception` 子类 → 格式预校验 + 宽捕获）；登记 **F-57**（72 字节静默截断）与 **W1-12**；`tech-stack.md`/`security-review.md §14.7` 同步；教训记入 ai-checklist 第 63 条 | security.py, requirements.txt, test_password_hash_compat.py, test_core_security.py, tech-stack.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
-
-| 2026-10-03 | Wave 1 批次 29（合规化计划 **W1-12**，收口 **F-57**）：口令改为**预哈希方案**——新哈希先 `base64(SHA-256(口令))` 再 bcrypt（`sha256$<bcrypt>`），任意长度口令完整参与，解除 72 字节静默截断；旧哈希仍走直连并在**登录时惰性升级**；**实测否决**「策略收紧到 72 字节」（中文仅 24 字符，违反 ASVS 6.2.9）与「立即升 bcrypt 5.0.0」（对 >72 字节连 `checkpw` 都报错 → 会锁死既有用户）；新增 `tests/test_password_hash_migration.py`（3 用例）并扩展兼容性用例；教训记入 ai-checklist 第 64 条 | security.py, auth_service.py, test_password_hash_compat.py, test_password_hash_migration.py, test_core_security.py, requirements.txt, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
-
-| 2026-10-03 | Wave 1 批次 30（合规化计划 **W1-8 收口**）：用 GitHub Advisory API 逐包核对**全部依赖公告**——后端 12 个固定依赖**受影响 0 条** ✓（Pillow 78 条公告修复版均 ≤12.3.0、starlette 最新上限 <1.3.1、python-jose critical 修复于 3.4.0）；前端 19 包运行期 0 条、开发期 6 条（vite/esbuild/vitest，**dev-only**，`vite.config.ts` 未设 `host` → 默认仅绑 localhost ✓ 已缓解）；`security-review.md` 新增 §14.8 全量核对表；登记 **F-59 / W1-13**（前端工具链跨大版本升级）；教训记入 ai-checklist 第 65 条 | security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
-
-| 2026-10-03 | Wave 1 批次 31（合规化计划 **W1-13**，收口 **F-59**）：前端工具链升级——`vite` 5.4.21 → **6.4.3**、`esbuild` → **0.25.12**（随 vite 依赖）、`vitest` 3.2.7 → **4.1.11**；升级后逐包复核公告：**6 条中 5 条清除**，剩余 1 条（esbuild）经 API `withdrawn_at` **实证为上游已撤回**；回归证据 build exit 0 / test 60 passed / lint 0 error；`CONTRIBUTING.md` 补充换源指引；教训记入 ai-checklist 第 66 条 | frontend/package.json, frontend/package-lock.json, CONTRIBUTING.md, security-review.md, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
-
-| 2026-10-03 | Wave 2 批次 32（合规化计划 **W2-8**）：用 `defineModel` 消除 **10 处 `vue/no-mutating-props`** 告警（4 个文件：`SquadCardsGrid`/`MemberTablePanel`/`MemberToolbar`/`LogFilterBar`）；因父组件为 `reactive` 常量、`defineModel` 就地写共享对象语义与改前一致 → **父组件零改动**；验证：lint **10→0**、`vue-tsc` exit 0、`build` exit 0、`test` 60 passed；**页面级交互验收仍待浏览器授权**；教训记入 ai-checklist 第 67 条 | SquadCardsGrid.vue, MemberTablePanel.vue, MemberToolbar.vue, LogFilterBar.vue, compliance-remediation-plan.md, ai-checklist.md, architecture.md, progress.md |
 | 2026-10-08 | 文档冗余审查与开发/部署说明准确性修正（含**服务器配置只读 diff**）：`DEPLOY.md` 新增 §三「服务器实况核对（2026-10-08 只读 diff）」（7 个配置文件 5 处漂移 + 4 项需人工同步 + `requirements.txt` 会随部署自动升级）并删除 §四 重复的旧日志表、更正 §六 `APP_ENV` 表述；`README.md` 环境变量表改为引用、Node 要求改 `22+`；`CONTRIBUTING.md` Node 要求改 `22+`；`tech-stack.md` 补 Node.js 行与健康检查/`APP_ENV` 表述；`deploy.sh.example` 补服务器侧备份步骤并修正归档路径；`start.bat` / `docker-compose.yml` / `frontend/Dockerfile` / `frontend/package.json` 同步修正；详见 progress.md 同日条目 | DEPLOY.md, README.md, CONTRIBUTING.md, tech-stack.md, start.bat, docker-compose.yml, deploy.sh.example, frontend/Dockerfile, frontend/package.json, ai-checklist.md |
 | 2026-10-08 | **移除 `.qoder/plans/`（3 份外部 AI 工具草案，466 行）**（用户决定，对应合规化计划 F-36 的「整体移出仓库」选项）：其内容已被 `design-game-id-change.md` / `ui-polish-plan.md` / `.agent/rules/file-length-rule.md` 覆盖，无文档再引用；本索引三处同步（目录树删 `.qoder/` 两行、删除原 §22 外部工具草案节并把 §23 社区与流程文档顺位改为 §22、本条更新记录）。历史条目中的 `.qoder` 引用（本文件 2026-10-02 / 2026-10-03 行、`progress.md`、合规化计划）按 §3.4 保留不回改 | architecture.md, progress.md, .agent/plans/compliance-remediation-plan.md |
 | 2026-10-09 | 文档修复批次（本日全仓分析的四项 C 类清单，用户指示「先做文档修复」）：CHANGELOG 孤儿区块归并清理（3 条独有内容并入 [Unreleased]）；`database-design.md` 版本号 v1.9 → **v1.10**（§4 已有 v1.10 行：补人部分唯一索引）并修复一处错位残片，本文件 §2 描述与 `progress.md` / `backend/docs/README.md` / 合规化计划引用同步；`security-review.md` §17.5 统计按独立脚本重算收敛为 **58✅/20🟡/12❌/34⚪**；合规化计划过时文本更新（F-110 已解决 → 289/0、J-1 已推送、W3-5 关闭后 §7 汇总 **56/67**）；7 道门禁复跑全部通过。详见 progress.md 同日条目 | CHANGELOG.md, database-design.md, security-review.md, compliance-remediation-plan.md, progress.md, architecture.md, backend/docs/README.md |
 | 2026-10-09 | 首页场数口径修复与全站取消数字滚动动画的文档同步：ui-polish-plan v1.4（§2.1.2 取消标注、§4 文件清单同步）、ui-style-guide §9 移除已删除 composable 行、ai-context §8.3、frontend docs（功能描述 + 更新记录）；代码、测试与验证记录见 progress.md 同日条目 | ui-polish-plan.md, ui-style-guide.md, ai-context.md, frontend/docs/README.md, progress.md |
+| 2026-10-09 | 文档全面审查修复批次 2（用户指示：以实际代码为基准逐条核对并修复）：①**结构修复**——本文件与 progress.md 的更新记录错位记录（14/28 条：Wave 批次 23–32 插入时间位、10-08/09 条目并入表尾）归位，堆积空行（63/71 行）与错位分隔线清理，记录行数无损（314/412）；②**内容修复**——database-design（match_data 字段表损坏修复 + §4 记录顺序）、DEPLOY（迁移 head `p0q1r2s3t4u5`、APP_ENV/健康检查服务器同步状态）、tech-stack（mypy/httpx2 依赖清单、收紧进展、服务器 compose 状态）、design-document-v2（v2.8 头部、去重复句、过时描述 3 处）、ai-context（迁移数/head、补游戏 ID 改名模块、§8.2）、frontend/docs（比赛焦点→战绩看板、vitest 已配置）、backend/docs（记录顺序）、SECURITY（支持版本 v1.3.0）、security-review（F-53 与 §17.6 对齐）、CHANGELOG（空行格式）；③7 道门禁复跑全部通过。详见 progress.md 同日条目 | 文档体系 |
+
+---
 
 ## 使用说明
 

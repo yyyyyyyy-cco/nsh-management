@@ -25,6 +25,7 @@
 | 系统配置 | 职业配置、账号管理、帮会管理（开发者专属） | `api/v1/config.py` | `views/config/ConfigView.vue` |
 | 联赛日程 | 日历视图、赛程 CRUD、级联创建/删除、帮众联赛总览 | `api/v1/schedules.py` | `views/schedules/ScheduleListView.vue` |
 | 个人战绩 | 按游戏 ID 聚合历史比赛数据（单局指标与排名、个人概览） | `api/v1/my_stats.py` | `views/member/MyStatsView.vue` |
+| 游戏 ID 改名 | 帮众提交改名申请、管理员审核（通过即同事务同步常驻库并建立新旧 ID 关联） | `api/v1/game_id_requests.py` | `views/member/GameIdChangeView.vue` |
 | 系统日志 | 操作审计日志查询/统计/清理（仅开发者） | `api/v1/logs.py` | `views/logs/LogView.vue` |
 
 ### 1.3 三级角色权限
@@ -114,7 +115,7 @@ member（帮众）→ 绑定帮会，只读 + 有限操作
 
 - SQLite 单文件存储（`backend/data/nsh.db`）
 - SQLAlchemy 异步模式（`aiosqlite` 驱动）
-- Alembic 管理迁移（`backend/alembic/versions/`，当前 15 个版本，head `o9p0q1r2s3t4`）
+- Alembic 管理迁移（`backend/alembic/versions/`，当前 16 个版本，head `p0q1r2s3t4u5`）
 - 多帮会隔离：核心表通过 `guild_id` 字段隔离数据
 - JSON 字段：排表（60 槽位）、局数结果、比赛数据扩展列、分析调整
 
@@ -168,10 +169,10 @@ member（帮众）→ 绑定帮会，只读 + 有限操作
 - 拆分手法：子组件 / composable / 图表 option 模块外移；样式随组件迁移，跨组件共享样式经 `<style scoped src>` 复用
 - 后续新增代码再超限时，按规则文件的「拆分 / 豁免」机制处理（豁免必须打标记并登记）
 
-### 8.2 安全加固待办
-- `config.py` 的 `SECRET_KEY` 默认值应改为未设置时报错退出
-- 生产 `.env` 应使用强随机密钥（`openssl rand -hex 32`）
-- `deploy.sh` 中 `StrictHostKeyChecking=no` 应移除
+### 8.2 安全加固（2026-09-28 起陆续落地；2026-10-09 复核）
+- 生产弱密钥启动门禁**已实施**（`config.py` 启动期校验：弱密钥拒绝启动、低熵 hex 亦拒绝；`DEPLOY.md` §六 含部署前核对命令）——原「`SECRET_KEY` 默认值应改为未设置时报错退出」由该门禁承接
+- 生产 `.env` 强随机密钥：部署文档已强制要求（`openssl rand -hex 32`），服务器当前密钥已按此执行
+- `deploy.sh.example`（入库模板）使用 `ssh/scp -i` 密钥方式，**不含** `StrictHostKeyChecking=no`；本地 `deploy.sh`（不入库）由部署者自行维护
 
 ### 8.3 UI 优化（2026-09-18 全部完成；数字滚动 2026-10-09 取消）
 > **权威源**：`ui-polish-plan.md`（已全部完成归档）；最终规范见 `ui-style-guide.md` §10。

@@ -234,8 +234,7 @@ JSON 结构示例：
 | id | INTEGER | PK, AUTOINCREMENT | 主键 |
 | schedule_id | INTEGER | NOT NULL, FK → schedules.id | 所属赛程 |
 | round_no | INTEGER | NOT NULL, default 1 | 第几局（1~rounds）；历史数据归为第 1 局（迁移 f6a7b8c9d0e1） |
-| player_name
-| round_no | INTEGER | NOT NULL, default 1 | 第几局（1~rounds）；历史数据归为第 1 局（迁移 f6a7b8c9d0e1） | | TEXT | NOT NULL | 玩家名字 |
+| player_name | TEXT | NOT NULL | 玩家名字 |
 | profession | TEXT | NULL | 职业 |
 | camp | TEXT | NOT NULL | 阵营（CSV 区块标题，第一块为己方） |
 | kills | INTEGER | NOT NULL, default 0 | 击败数（击败+清泉合计，见 §3.5） |
@@ -402,5 +401,5 @@ JSON 结构示例：
 | 2026-09-15 | v1.8：补全 operation_logs 操作审计日志表（§1.2 表清单 + §2.11 字段级设计），表数 10 张更新为 11 张 |
 | 2026-09-20 | v1.9：新增 member_game_id_requests 游戏 ID 修改申请表（§1.2 表清单 + §2.12 字段/约束/生命周期），表数 11 张更新为 12 张；approved 记录兼作战绩新旧 ID 关联来源（Alembic 迁移 o9p0q1r2s3t4） |
 | 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |
-| 2026-10-03 | **v1.10**：补上「补人」部分唯一索引（迁移 `p0q1r2s3t4u5`，F-79）——`attendance_records` 增加 `(schedule_id, member_name) WHERE is_filler = 1`、`recordings` 增加 `(schedule_id, member_name, round_number) WHERE member_id IS NULL`，使 §2.6/§2.8 早已声明的补人唯一性**真正由数据库约束**（此前仅应用层查重，存在竞态）；表数不变（12 张）|
 | 2026-10-03 | v1.9 补记（**无结构变更，仅补齐文档**）：补登 **6 个已由迁移引入但未记录的列**——`guilds.icon_char`（g1h2i3j4k5l6）、`users.token_version`（h2i3j4k5l6m7）、`match_data.round_no`（f6a7b8c9d0e1）、`schedules.profession_config`（j4k5l6m7n8o9）、`recordings.note`（l6m7n8o9p0q1）、`attendance_records.remark`（n8o9p0q1r2s3）；并补 `match_data` 的 `round_no` 索引说明。来源：以 `backend/app/models/**` 与 `backend/alembic/versions/**` 为准逐列核对 |
+| 2026-10-03 | **v1.10**：补上「补人」部分唯一索引（迁移 `p0q1r2s3t4u5`，F-79）——`attendance_records` 增加 `(schedule_id, member_name) WHERE is_filler = 1`、`recordings` 增加 `(schedule_id, member_name, round_number) WHERE member_id IS NULL`，使 §2.6/§2.8 早已声明的补人唯一性**真正由数据库约束**（此前仅应用层查重，存在竞态）；表数不变（12 张） |
