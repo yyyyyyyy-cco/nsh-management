@@ -388,11 +388,13 @@ function formatNumber(value: number): string {
   color: var(--ink-600);
 }
 
+/* 工具栏：允许换行（缩放适配——1366@150% 等窄桌面带固定宽筛选项换行，不挤压/溢出） */
 .toolbar {
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .spacer {
@@ -417,7 +419,6 @@ function formatNumber(value: number): string {
   }
 
   .toolbar {
-    flex-wrap: wrap;
     gap: 8px;
   }
 

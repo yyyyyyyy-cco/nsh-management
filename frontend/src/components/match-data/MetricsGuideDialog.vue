@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-model="visible" title="数据指标说明" width="820px" top="4vh" destroy-on-close>
+  <el-dialog v-model="visible" title="数据指标说明" width="min(820px, 94vw)" top="4vh" destroy-on-close>
     <div class="guide">
       <el-tabs v-model="tab" class="guide-tabs">
         <!-- CSV 原始字段 -->

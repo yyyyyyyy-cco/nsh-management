@@ -469,11 +469,14 @@ onMounted(reload)
   font-weight: 400;
 }
 
+                                                                                                                                                                                                                                                                                      /* 工具栏：允许换行（缩放适配——1366@150% 等窄桌面带操作按钮整组换行，不挤压/溢出） */
 .toolbar {
   display: flex;
   align-items: center;
   gap: 12px;
+  row-gap: 8px;
   margin-bottom: 14px;
+  flex-wrap: wrap;
 }
 
 .stat {
@@ -993,10 +996,24 @@ onMounted(reload)
   display: none;
 }
 
+/* ===== 缩放适配：中等宽度（≤1140px 视口，如 1366@125%/150%）===== */
+@media (max-width: 1140px) {
+  /* 统计条收窄，为右侧操作按钮争取单行空间 */
+  .stat-bar {
+    width: 110px;
+  }
+}
+
+@media (max-width: 1100px) {
+  /* 攻击组由 3 队/行降为 2 队/行：3×165px+间距最小宽在窄幅下超出容器，避免引发内部横向滚动 */
+  .team-row--attack {
+    grid-template-columns: repeat(2, minmax(165px, 1fr));
+  }
+}
+
 /* ===== 移动端适配 ===== */
 @media (max-width: 768px) {
   .toolbar {
-    flex-wrap: wrap;
     gap: 8px;
   }
 

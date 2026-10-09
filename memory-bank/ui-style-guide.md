@@ -275,3 +275,11 @@
 - 统一组件：`components/common/EmptyState.vue`（内核 el-empty + 自定义插画，默认 slot 承接操作按钮）
 - 插画风格：手绘线条 SVG——金线（`--gold-400`/`--gold-500`）描边 + 宣纸白（`--ink-bg-paper`）填充 + 墨色淡线（`--ink-300`），尺寸对齐原 el-empty image-size（60/72/80，默认 88）
 - 变体映射：`empty` 无数据（空白册页）· `search` 无结果（放大镜）· `chart` 图表无数据（折线坐标）· `error` 加载失败（朱砂警示圆）
+
+### 10.5 缩放与窄桌面适配规范
+
+> 背景：浏览器缩放（如 150%）等效视口收窄、但 >768px 时仍走桌面布局；扣除侧边栏 208px 与内边距后，内容可用宽 ≈ 视口 − 300px（2026-10-09 缩放审查落定；新组件默认遵循）。
+
+- 工具栏 `.toolbar` 一律 `flex-wrap: wrap` + `row-gap`：空间不足时整组换行，不挤压 nowrap 按钮
+- 联赛排表：`≤1140px` 统计条 160→110px（争取单行）；`≤1100px` 攻击组 3 队/行 → 2 队/行（消除队区内部横向滚动）
+- 固定宽弹窗一律 `width="min(设计宽, 94vw)"`（flex 居中下超宽弹窗左缘不可滚动到达；先例：GuideDialog / MetricsGuide / ImportHistory）

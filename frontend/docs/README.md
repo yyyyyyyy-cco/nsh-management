@@ -219,3 +219,4 @@ npm --prefix frontend run build:only -- --emptyOutDir=false
 | 2026-10-09 | 新增使用指南（顶栏问号入口 HelpGuide + GuideDialog 弹窗 + guideContent.ts 内容数据；四章节按角色过滤、≤768px 全屏）；vue-tsc + vite build、lint、prettier 通过（vitest 由用户执行） |
 | 2026-10-09 | 移除表格密度切换（用户批注：不再需要）——顶栏密度按钮、useTableDensity.ts 与 element-plus.css 紧凑档规则删除；vue-tsc + vite build、lint、prettier 通过（vitest 由用户执行） |
 | 2026-10-09 | 使用指南增补「页面详解」（用户指示：详细新手入门、各页面具体引导）：原「功能说明」Tab 升级为「页面详解」——12 个页面分 4 组，每页含入口/简介/步骤/要点/小贴士，支持「打开该页面」一键跳转（仅独立路由页面）、折叠条目卡片化金色描边（gold-200，悬停 gold-300）；新增 pageGuides/ 四组内容文件 + 组装；vue-tsc + vite build、lint、prettier 通过（vitest 由用户执行） |
+| 2026-10-09 | 浏览器缩放适配 P1 修复（用户指示）：①数据分析工具栏与联赛排表工具栏基础样式加 `flex-wrap: wrap`（1366@150% 等窄桌面带整组换行，不再挤压/溢出）；②排表新增缩放断点（≤1140px 统计条 160→110px、≤1100px 攻击组 3 队/行→2 队/行）；③「数据指标说明」（820px）/「导入历史排表」（760px）弹窗改为 `min(设计宽, 94vw)` 自适应宽度（769–819px 视口不再超宽裁切）；vue-tsc + vite build、lint、prettier 通过（vitest 由用户执行） |
