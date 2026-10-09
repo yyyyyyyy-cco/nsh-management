@@ -67,6 +67,7 @@ import type { ScheduleInfo } from '@/types/schedule'
 import { sortSchedulesByProximity, endedSchedules } from '@/utils/scheduleSort'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 import { profColor } from '@/utils/profession'
+import { sortAttendanceRate } from '@/utils/attendance'
 import HomeAttendanceRanking from './home/HomeAttendanceRanking.vue'
 import HomeProfessionOverview from './home/HomeProfessionOverview.vue'
 import HomeQuickActions from './home/HomeQuickActions.vue'
@@ -115,10 +116,11 @@ onMounted(async () => {
     if (!auth.isDeveloper) {
       tasks.push(
         getAttendanceRate().then((r) => {
-          topAttendance.value = r
-            .filter((m) => m.attendance_rate !== null)
-            .sort((a, b) => (b.attendance_rate ?? 0) - (a.attendance_rate ?? 0))
-            .slice(0, 5)
+          // 出勤排行：出勤率降序 + 同率按正常次数（与常驻库出勤率面板同口径，见 utils/attendance.ts）
+          topAttendance.value = sortAttendanceRate(
+            r.filter((m) => m.attendance_rate !== null),
+            'desc',
+          ).slice(0, 5)
         }),
       )
 

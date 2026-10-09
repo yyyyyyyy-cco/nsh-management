@@ -42,8 +42,14 @@
       </div>
     </div>
 
-    <!-- 桌面端：表格形态保持不变 -->
-    <el-table v-else :data="rateItems" size="small">
+    <!-- 桌面端：表格形态保持不变（排序自管：custom 模式 + sortedItems，与分段控件同源） -->
+    <el-table
+      v-else
+      :data="sortedItems"
+      size="small"
+      :default-sort="{ prop: 'attendance_rate', order: 'ascending' }"
+      @sort-change="onSortChange"
+    >
       <el-table-column prop="name" label="ID" min-width="110">
         <template #default="{ row }">
           <span class="member-name">{{ row.name }}</span>
@@ -54,7 +60,7 @@
           <span class="prof-name" :style="{ color: profColor(row.main_profession) }">{{ row.main_profession }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="attendance_rate" label="出勤率" min-width="180" sortable>
+      <el-table-column prop="attendance_rate" label="出勤率" min-width="180" sortable="custom">
         <template #default="{ row }">
           <div v-if="row.attendance_rate !== null" class="rate-cell">
             <el-progress
@@ -87,7 +93,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 
 import { getAttendanceRate, type AttendanceRateItem } from '@/api/members'
 import { profColor } from '@/utils/profession'
-import { attendanceProgressColor, formatRatePercent, isLowAttendance } from '@/utils/attendance'
+import { attendanceProgressColor, formatRatePercent, isLowAttendance, sortAttendanceRate } from '@/utils/attendance'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 const rateItems = ref<AttendanceRateItem[]>([])
@@ -99,17 +105,18 @@ const onMqChange = (e: MediaQueryListEvent) => {
   isMobile.value = e.matches
 }
 
-// 移动端排序：默认升序（与接口默认一致：出勤率升序、无记录排最后）；桌面端仍用表格表头排序
-const sortOrder = ref<'asc' | 'desc'>('asc')
-const sortedItems = computed(() => {
-  const dir = sortOrder.value === 'asc' ? 1 : -1
-  return [...rateItems.value].sort((a, b) => {
-    if (a.attendance_rate === null && b.attendance_rate === null) return 0
-    if (a.attendance_rate === null) return 1 // 无记录始终排最后
-    if (b.attendance_rate === null) return -1
-    return (a.attendance_rate - b.attendance_rate) * dir
-  })
-})
+// 排序口径（桌面表头 / 移动端分段控件同源）：默认升序（与接口默认一致：出勤率升序、无记录排最后）；
+// 相同出勤率按正常次数（方向与主排序一致）；'none' = 桌面端第三次点击恢复接口默认序
+const sortOrder = ref<'asc' | 'desc' | 'none'>('asc')
+const sortedItems = computed(() =>
+  sortOrder.value === 'none' ? rateItems.value : sortAttendanceRate(rateItems.value, sortOrder.value),
+)
+
+/** 桌面端表头排序（custom 模式）：仅「出勤率」列；第三次点击（order=null）恢复接口默认序。 */
+function onSortChange(payload: { prop: string; order: 'ascending' | 'descending' | null }) {
+  if (payload.prop !== 'attendance_rate') return
+  sortOrder.value = payload.order === 'ascending' ? 'asc' : payload.order === 'descending' ? 'desc' : 'none'
+}
 
 onMounted(async () => {
   mq.addEventListener('change', onMqChange)
