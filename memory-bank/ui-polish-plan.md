@@ -46,9 +46,10 @@
 - **涉及文件**：统计卡组件（文件清单见 §4）
 - **reduced-motion 适配**：检测 `prefers-reduced-motion: reduce` 时直接显示目标值
 
-#### 2.1.3 表格密度切换（已完成，2026-09-18）
+#### 2.1.3 表格密度切换（已取消，2026-10-09）
+- **取消说明（用户要求，2026-10-09）**：全站不再提供表格密度切换——顶栏密度按钮、composables/useTableDensity.ts 与 `element-plus.css` 紧凑档规则一并删除；以下为原始方案存档。
 - **方案（实施调整：全局开关替代每页按钮，用户确认）**：顶栏 AppHeader 新增密度切换按钮（Rank 图标，紧凑态金底高亮），一处切换全站 `el-table` 生效；localStorage 持久化；移动端隐藏（≤768px 为行列表无表格）
-- **实现**：新增 `composables/useTableDensity.ts`（模块级单例，`html[data-table-density]`）；`element-plus.css` 紧凑档规则（12.5px 字号 + 6px 单元格内边距，仅覆盖 `.el-table`）
+- **实现**：新增 composables/useTableDensity.ts（模块级单例，`html[data-table-density]`）；`element-plus.css` 紧凑档规则（12.5px 字号 + 6px 单元格内边距，仅覆盖 `.el-table`）
 
 ---
 
@@ -155,7 +156,7 @@
 | `slot-bounce` / `save-flash` | `LineupEditor.vue` | 槽位放入 / 保存反馈 |
 | 滚动条配色（thumb `#d4c5a0`） | `styles/element-plus.css` | 全局滚动条 |
 | `prof-tag-sweep` | `styles/index.css` | 职业色标签 hover 微光（2026-09-18） |
-| 表格紧凑密度档 | `styles/element-plus.css`（`html[data-table-density=compact]`） | 全站 el-table（顶栏全局开关，2026-09-18） |
+| ~~表格紧凑密度档~~（2026-10-09 已移除） | `styles/element-plus.css`（`html[data-table-density=compact]`，规则已删除） | 全站 el-table（原顶栏全局开关，2026-09-18） |
 
 > `theme.css` 无新增变量（所有新动画在组件内定义，避免全局污染）。
 
@@ -174,9 +175,9 @@
 | `frontend/src/components/match-data/OverviewTab.vue` | 修改 | 统计卡用 countUp |
 | `frontend/src/components/lineups/LineupEditor.vue` | 修改 | 槽位放入反馈 + 保存成功动效 |
 | `frontend/src/App.vue` | 修改 | 路由切换过渡 |
-| `frontend/src/composables/useTableDensity.ts` | **新增** | 表格密度偏好（标准/紧凑，localStorage 持久化，2026-09-18） |
+| frontend/src/composables/useTableDensity.ts（2026-10-09 已删除） | **新增 → 移除** | 表格密度偏好（标准/紧凑，localStorage 持久化，2026-09-18）；后按用户要求取消密度切换，文件已删除 |
 | `frontend/src/components/common/EmptyState.vue` | **新增** | 空状态统一插画（empty/search/chart/error 4 变体，2026-09-18） |
-| `frontend/src/layouts/AppHeader.vue` | 修改 | 密度切换按钮（紧凑态金底高亮，移动端隐藏，2026-09-18） |
+| `frontend/src/layouts/AppHeader.vue` | 修改 | 密度切换按钮（已于 2026-10-09 移除；紧凑态金底高亮，移动端隐藏，2026-09-18） |
 | 各组件 / 视图（20 处） | 修改 | `el-empty` → `EmptyState` 空态替换（2026-09-18） |
 
 ---
@@ -218,3 +219,4 @@
 | 2026-09-15 | v1.2：全部优化项标注完成状态（P0–P3 11 项 + §2.5 两项已完成；3 项可选未做已标注）；§2.5 归位至优化清单内；§3 更正动画/令牌实际落点（theme.css 无新增变量，最终规范以 ui-style-guide.md §10 为准） |
 | 2026-09-18 | v1.3：3 项可选项全部实施完成（§2.1.3 表格密度切换——顶栏全局开关替代每页按钮，用户确认；§2.3.3 空状态 SVG 插画 EmptyState 组件 4 变体全站替换；§2.4.4 职业标签 hover 微光）；§3 落点表与 §4 文件清单同步；vue-tsc + vite build 通过 |
 | 2026-10-09 | v1.4：§2.1.2 数字滚动动画按用户要求取消——全站移除（管理员首页统计卡与「历史总览」条、帮众首页战绩统计卡改为直接显示数值，composable useCountUp 已删除）；§4 文件清单同步标注；同期管理员首页「历史比赛」场数口径修正（全量已结束比赛，原 ±1 个月窗口会漏计）见 `progress.md` 同日条目 |
+| 2026-10-09 | v1.5：§2.1.3 表格密度切换按用户要求取消——顶栏密度按钮、composables/useTableDensity.ts 与 element-plus.css 紧凑档规则全部移除；§3 落点表与 §4 文件清单同步标注 |

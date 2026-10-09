@@ -137,13 +137,46 @@
   background-color: var(--el-table-row-hover-bg-color);
 }
 
-/* finesse · register=product · shell=global: 紧凑密度档（顶栏全局开关切换，html[data-table-density=compact]） */
-html[data-table-density='compact'] .el-table {
-  font-size: 12.5px;
+/* finesse · register=product · shell=global: 折叠面板卡片化（使用指南 FAQ / 页面详解）——
+   描边对齐顶栏图标按钮的 gold-200；原 EP 默认边线（--el-border-color-lighter #f4efe5）在宣纸底上不可见，
+   且 header 无水平内边距致文字贴边（2026-10-09 用户批注强化） */
+.el-collapse {
+  border: none;
 }
 
-html[data-table-density='compact'] .el-table .el-table__cell {
-  padding: 6px 0;
+.el-collapse-item {
+  border: 1px solid var(--gold-200);
+  border-radius: var(--radius-sm);
+  background: var(--ink-bg-paper);
+  overflow: hidden;
+  transition: border-color var(--dur-fast);
+}
+
+.el-collapse-item + .el-collapse-item {
+  margin-top: 8px;
+}
+
+.el-collapse-item:hover {
+  border-color: var(--gold-300);
+}
+
+.el-collapse .el-collapse-item__header {
+  padding: 0 14px;
+  border-bottom: 1px solid transparent; /* 折叠态无分隔线 */
+  background-color: transparent;
+}
+
+.el-collapse .el-collapse-item__header.is-active {
+  border-bottom-color: var(--edge-soft); /* 展开态：头部与内容间浅分隔线 */
+}
+
+.el-collapse-item__wrap {
+  border-bottom: none;
+  background-color: transparent;
+}
+
+.el-collapse-item__content {
+  padding: 0 14px 14px;
 }
 
 /* ===== 弹窗：宣纸面板 + 宋体标题 ===== */

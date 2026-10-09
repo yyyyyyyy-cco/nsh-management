@@ -232,7 +232,6 @@
 | `layouts/MainLayout.vue` | 宣纸米白侧边栏、宣纸顶栏、用户头像 |
 | `views/LoginView.vue` | 水墨登录页 |
 | `components/common/EmptyState.vue` | 空状态统一插画（empty/search/chart/error 4 变体，UI 优化新增） |
-| `composables/useTableDensity.ts` | 表格密度档（标准/紧凑，顶栏全局开关，UI 优化新增） |
 
 ---
 
@@ -269,7 +268,7 @@
 | 侧边栏菜单 | hover | background 渐变过渡 |
 | 滚动条 | 全局 | thumb #d4c5a0，track #f5f0e6 |
 | 职业色标签 | hover | 微光扫过（与主按钮扫光同族，峰值 0.42 更克制；触屏与 reduced-motion 停用） |
-| 表格密度 | 顶栏开关 | 标准 13.5px/10px ↔ 紧凑 12.5px/6px（localStorage 持久化，移动端隐藏） |
+| 折叠面板（使用指南 FAQ / 页面详解） | 展开收起 | 卡片式金色描边（gold-200，悬停加深 gold-300）+ 圆角；条目间距 8px；展开态头部浅分隔线（edge-soft） |
 
 ### 10.4 空状态插画规范
 
