@@ -115,7 +115,7 @@ const profCount = computed(() => {
   return map
 })
 
-/** 导出排表总览为 PNG（截取实时 DOM，圆点 / 全底色方案自动同步）。 */
+/** 导出排表总览为 PNG：不含顶部标题/操作行与底部职业分布统计；截取实时 DOM（圆点 / 全底色自动同步）。 */
 async function onExportOverview() {
   const el = overviewRef.value
   if (!el) return
@@ -127,6 +127,9 @@ async function onExportOverview() {
       backgroundColor: '#ffffff',
       scale: 2,
       useCORS: true,
+      // 导出图不含顶部标题/操作行与底部职业分布统计（仅克隆文档中移除，实时界面不受影响）
+      onclone: (_doc: Document, clonedEl: HTMLElement) =>
+        clonedEl.querySelectorAll('.el-card__header,.prof-stats').forEach((n) => n.remove()),
       // 固定 PC 视口尺寸渲染，导出的图片大小与布局不受当前浏览器窗口影响
       windowWidth: 1440,
       windowHeight: Math.max(window.innerHeight, 3000),
