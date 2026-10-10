@@ -42,7 +42,7 @@
         <div class="prof-stats">
           <span class="prof-stats__label">职业分布</span>
           <span
-            v-for="p in PROF_ORDER"
+            v-for="p in professionStore.activeNames"
             :key="p"
             class="prof-stats__item"
             :class="{ active: (profCount[p] || 0) > 0 }"
@@ -68,7 +68,7 @@ import { Picture } from '@element-plus/icons-vue'
 
 import { getLineup } from '@/api/lineups'
 import type { LineupTeam } from '@/types/lineup'
-import { PROF_ORDER } from '@/composables/lineupBoard'
+import { useProfessionStore } from '@/stores/profession'
 import { profColor } from '@/utils/profession'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
@@ -76,6 +76,7 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import LineupOverviewGroup from './LineupOverviewGroup.vue'
 
 const props = defineProps<{ scheduleId: number }>()
+const professionStore = useProfessionStore()
 
 const loading = ref(false)
 const showSkeleton = useSkeletonLoading(loading)

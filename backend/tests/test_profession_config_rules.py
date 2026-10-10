@@ -12,6 +12,7 @@ import unittest
 from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from support import PROFESSION_SEED, profession_seed_rows
 
 from app.core.database import Base
 from app.models.guild import Guild
@@ -23,10 +24,10 @@ from app.schemas.config import (
 )
 from app.services import config_service
 from app.services.config_service import ConfigServiceError
-from app.utils.constants import MAX_PROFESSION_TARGET, PROFESSIONS
+from app.utils.constants import MAX_PROFESSION_TARGET
 
-# 职业名从常量推导，避免硬编码（sorted 对 list/dict 都可用）
-PROF = sorted(PROFESSIONS)[0]
+# 职业名从种子推导，避免硬编码（与迁移种子一致）
+PROF = sorted(name for name, _, _ in PROFESSION_SEED)[0]
 
 
 class _Base(unittest.IsolatedAsyncioTestCase):
@@ -37,6 +38,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         self.maker = async_sessionmaker(self.engine, expire_on_commit=False)
         self.session = self.maker()
         self.session.add(Guild(id=1, name="职业配置测试"))
+        self.session.add_all(profession_seed_rows())
         await self.session.commit()
 
     async def asyncTearDown(self) -> None:

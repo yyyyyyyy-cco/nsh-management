@@ -27,6 +27,11 @@
         </el-card>
       </el-tab-pane>
 
+      <!-- 职业目录（仅开发者） -->
+      <el-tab-pane v-if="auth.isDeveloper" label="职业目录" name="catalog">
+        <ConfigProfessionCatalogPanel :is-mobile="isMobile" />
+      </el-tab-pane>
+
       <!-- 账号管理（仅开发者） -->
       <el-tab-pane v-if="auth.isDeveloper" label="账号管理" name="account">
         <!-- 帮会管理（创建/更名/删除，帮会变更后刷新账号列表） -->
@@ -47,6 +52,7 @@ import { updateGuildIcon } from '@/api/config'
 import { useAuthStore } from '@/stores/auth'
 import ConfigAccountPanel from './ConfigAccountPanel.vue'
 import ConfigGuildPanel from './ConfigGuildPanel.vue'
+import ConfigProfessionCatalogPanel from './ConfigProfessionCatalogPanel.vue'
 import ConfigProfessionPanel from './ConfigProfessionPanel.vue'
 
 const auth = useAuthStore()

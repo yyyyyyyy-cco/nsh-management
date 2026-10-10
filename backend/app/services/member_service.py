@@ -10,12 +10,13 @@ from app.models.member import Member
 from app.models.schedule import Schedule
 from app.models.user import User
 from app.schemas.member import MemberCreate, MemberUpdate
+from app.services import profession_service
 from app.services.game_id_request_lifecycle import (
     detach_member,
     invalidate_pending_by_member,
     record_admin_rename,
 )
-from app.utils.constants import MEMBER_STATUSES, PROFESSIONS
+from app.utils.constants import MEMBER_STATUSES
 
 
 class MemberServiceError(Exception):
@@ -27,10 +28,15 @@ class MemberServiceError(Exception):
         self.status_code = status_code
 
 
-def validate_profession(main: str, sub: str | None) -> None:
-    if main not in PROFESSIONS:
+async def validate_profession(
+    session: AsyncSession, main: str, sub: str | None, grandfathered: set[str] | None = None
+) -> None:
+    """校验职业取值为启用目录中的职业；grandfathered 命中（与成员现值相同）时豁免（旧值兼容）。"""
+    allowed = grandfathered or set()
+    active = await profession_service.active_names(session)
+    if main not in active and main not in allowed:
         raise MemberServiceError(f"无效的主职业：{main}")
-    if sub and sub not in PROFESSIONS:
+    if sub and sub not in active and sub not in allowed:
         raise MemberServiceError(f"无效的副职业：{sub}")
 
 
@@ -153,7 +159,7 @@ async def profession_stats(session: AsyncSession, guild_id: int, formal_only: bo
 async def create_member(session: AsyncSession, guild_id: int | None, data: MemberCreate) -> Member:
     if guild_id is None:
         raise MemberServiceError("当前账号未绑定帮会，无法创建成员", 403)
-    validate_profession(data.main_profession, data.sub_profession)
+    await validate_profession(session, data.main_profession, data.sub_profession)
     if data.status not in MEMBER_STATUSES:
         raise MemberServiceError("无效的成员状态")
     member = Member(guild_id=guild_id, **data.model_dump())
@@ -170,10 +176,15 @@ async def update_member(
     member = await get_member(session, guild_id, member_id)
     changes = data.model_dump(exclude_unset=True)
     if "main_profession" in changes or "sub_profession" in changes:
-        validate_profession(
-            changes.get("main_profession", member.main_profession),
-            changes.get("sub_profession", member.sub_profession),
-        )
+        new_main = changes.get("main_profession", member.main_profession)
+        new_sub = changes.get("sub_profession", member.sub_profession)
+        # 旧值豁免：字段未变更（与成员现值相同）时允许停用职业，保证存量数据可继续编辑其他字段
+        grandfathered: set[str] = set()
+        if new_main == member.main_profession:
+            grandfathered.add(member.main_profession)
+        if new_sub and new_sub == member.sub_profession:
+            grandfathered.add(new_sub)
+        await validate_profession(session, new_main, new_sub, grandfathered)
     if "status" in changes and changes["status"] not in MEMBER_STATUSES:
         raise MemberServiceError("无效的成员状态")
     renamed = "name" in changes and changes["name"] != member.name

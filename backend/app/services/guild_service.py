@@ -20,9 +20,9 @@ from app.models.recording import Recording
 from app.models.schedule import Schedule
 from app.models.squad_adjustment import SquadAdjustment
 from app.models.user import User
+from app.services import profession_service
 from app.services.config_service import ConfigServiceError
 from app.services.game_id_request_lifecycle import purge_guild
-from app.utils.constants import PROFESSIONS
 
 
 async def list_guilds(session: AsyncSession) -> list[Guild]:
@@ -76,14 +76,9 @@ async def create_guild(session: AsyncSession, name: str, admin_password: str, me
     )
     session.add(member_user)
 
-    # 初始化职业配置
-    for profession in PROFESSIONS:
-        config = ProfessionConfig(
-            guild_id=guild.id,
-            profession=profession,
-            target_count=0,
-        )
-        session.add(config)
+    # 初始化职业配置（仅启用职业；停用职业不建行，重新启用后由 config_service 在读取时补齐）
+    for profession in await profession_service.list_professions(session, include_inactive=False):
+        session.add(ProfessionConfig(guild_id=guild.id, profession=profession.name, target_count=0))
 
     await session.commit()
     await session.refresh(guild)

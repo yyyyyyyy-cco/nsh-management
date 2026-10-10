@@ -44,7 +44,7 @@
 |------|------|------|-------------|
 | AGENTS.md（本文件） | 根目录 | AI 入口：规范 + 文档维护 + 同步流程 | 项目结构、规范或维护流程变更 |
 | 产品设计 | `memory-bank/design-document-v2.md` | 功能定义、权限矩阵、页面结构 | 需求 / 功能 / 权限调整 |
-| 数据库设计 | `memory-bank/database-design.md` | 12 张表、字段约束、业务规则落表 | 表结构变更 / Alembic 迁移 |
+| 数据库设计 | `memory-bank/database-design.md` | 13 张表、字段约束、业务规则落表 | 表结构变更 / Alembic 迁移 |
 | 技术栈 | `memory-bank/tech-stack.md` | 依赖版本、部署方案 | 依赖 / 构建 / 部署调整 |
 | UI 规范 | `memory-bank/ui-style-guide.md` | 浅色雅金风最终规范 | UI 规范调整 |
 | UI 优化方案 | `memory-bank/ui-polish-plan.md` | 已完成归档（全部完成） | 方案调整时 |
@@ -60,6 +60,7 @@
 | 后端 / 前端开发文档 | `backend/docs/README.md`、`frontend/docs/README.md` | 各端功能清单与**功能点勾选清单**（阶段完成度 / 模块状态以 `progress.md` 为准，见 §3.4） | 各端功能点完成 |
 | 代码 / 提交流程规则 | `.agent/rules/*.md` | 行数限制、模块文档、提交信息、项目规则 | 规范调整 |
 | 合规化整改计划 | `.agent/plans/compliance-remediation-plan.md` | 全仓合规差距清单（F 编号持续追加）与分波次整改路线、验收命令、授权边界 | 每完成一项整改任务 / 波次结束 / 决策变更 |
+| 职业目录动态化计划 | `.agent/plans/profession-catalog-plan.md` | 方案 B（职业清单迁数据库、开发者维护）实施计划、决策确认与执行记录 | 实施完成后按需更新 |
 | 部署文档 | `DEPLOY.md` | Docker Compose 部署全流程 | 部署配置变更 |
 | 更新日志 | `CHANGELOG.md` | 面向使用者的版本变更（Keep a Changelog 1.1.0） | 每次发布前 / 有使用者可见变更时 |
 | 贡献指南 | `CONTRIBUTING.md` | 协作约定摘要与权威源入口（环境、分支、门禁、PR） | 协作流程或 CI 门禁变化时 |

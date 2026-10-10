@@ -14,7 +14,7 @@
       title="保存后仅本场生效，不影响系统配置；恢复默认后沿用系统配置的职业目标。"
     />
     <div class="cfg-list">
-      <div v-for="p in PROF_ORDER" :key="p" class="cfg-row">
+      <div v-for="p in professionStore.activeNames" :key="p" class="cfg-row">
         <span class="prof-name" :style="{ color: profColor(p) }">{{ p }}</span>
         <el-input-number
           :aria-label="p"
@@ -40,7 +40,7 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { updateScheduleProfessionConfig } from '@/api/schedules'
-import { PROF_ORDER } from '@/composables/lineupBoard'
+import { useProfessionStore } from '@/stores/profession'
 import { profColor } from '@/utils/profession'
 
 const props = defineProps<{
@@ -57,13 +57,14 @@ const emit = defineEmits<{
   (e: 'saved', configs: Record<string, number> | null): void
 }>()
 
+const professionStore = useProfessionStore()
 const loading = ref(false)
 const form = ref<Record<string, number>>({})
 
 /** 打开弹窗时以当前生效配置初始化表单。 */
 function initForm() {
   const next: Record<string, number> = {}
-  for (const p of PROF_ORDER) next[p] = props.initial[p] ?? 0
+  for (const p of professionStore.activeNames) next[p] = props.initial[p] ?? 0
   form.value = next
 }
 

@@ -9,7 +9,7 @@
 - 多帮会数据隔离（guild_id），每个帮会一个管理员账号 + 一个帮众共享账号
 - JWT 认证 + 角色权限控制（developer/admin/member）
 - 登录限流（5 次失败锁定 5 分钟）
-- 全部业务规则按 database-design.md v1.10 落表
+- 全部业务规则按 database-design.md v1.11 落表
 
 ### 用户场景
 - 开发者：创建帮会、派发账号、删除帮会、全局管理
@@ -22,7 +22,7 @@
 - [x] 后端项目初始化、目录结构搭建（P0）
 - [x] 依赖安装（FastAPI、SQLAlchemy、Pydantic、JWT、Alembic 等）（P0）
 - [x] 数据库配置（异步连接、Session 管理）（P0）
-- [x] 数据模型定义（12 张表，见 database-design.md v1.10）（P0）
+- [x] 数据模型定义（13 张表，见 database-design.md v1.11）（P0）
 - [x] Pydantic Schema 定义（P0）
 - [x] 全局异常处理、CORS 配置（P0）
 - [x] 认证模块：登录/登出/获取用户信息 + 登录限流（含未知账号锁定）（P0）
@@ -33,14 +33,14 @@
 - [x] 录屏审核 API（提交、审核、批量审核、全局进度）（P2）
 - [x] 数据分析 API（CSV 导入解析、6 榜排行、职业 17 项统计、16 项衍生指标、阵营对比、小队分析）（P2）
 - [x] 分析调整 API（小队分析内未排表成员→目标队伍临时分配，仅作用于分析视图）（P2）
-- [x] 系统配置 API（职业配置、账号管理、帮会管理、开发者角色）（P2）
+- [x] 系统配置 API（职业配置、账号管理、帮会管理、开发者角色、职业目录）（P2）
 - [x] 个人战绩 API（玩家名搜索、按游戏 ID 聚合历史比赛数据与排名）（P2）
 - [x] 系统日志 API（审计中间件自动落库写操作与 5xx、查询/统计/清理，仅开发者）（P2）
 - [x] 游戏 ID 改名申请 API（帮众提交/成员历史、管理员审核列表与原子审核、经审核通过的新旧 ID 战绩关联）（P1）
 - [x] Docker 部署（Dockerfile、docker-compose、deploy.sh、entrypoint.sh）（P2）
 
 ### 依赖关系
-- 依赖 database-design.md v1.10（表结构）
+- 依赖 database-design.md v1.11（表结构）
 - 依赖 tech-stack.md（技术选型、requirements.txt）
 - 认证模块是其他所有 API 的前置（依赖注入校验 Token）
 - 排表/录屏/分析依赖赛程模块的级联创建
@@ -56,7 +56,7 @@
 ### 已完成
 - ✅ 项目初始化、目录结构、依赖安装（venv，Python 3.11；本机 3.12 亦可）
 - ✅ 数据库配置（SQLAlchemy 2.0.36 异步 + aiosqlite）
-- ✅ 12 张表模型 + 16 个 Alembic 迁移（data/nsh.db）
+- ✅ 13 张表模型 + 17 个 Alembic 迁移（data/nsh.db）
 - ✅ Pydantic Schema、全局异常处理、CORS
 - ✅ 认证模块（登录/登出/me + 5 次失败锁定 5 分钟 + 未知账号锁定 + 锁定倒计时 remaining_seconds）
 - ✅ 开发者角色（developer，不绑定帮会，可创建帮会/派发账号/删除帮会）
@@ -86,6 +86,7 @@
 - ✅ 个人战绩 API（玩家名搜索、按游戏 ID 聚合历史战绩与排名）
 - ✅ 系统日志 API（审计中间件：写操作 + 5xx 自动落库、登录埋点、查询/统计/清理、90 天保留清理，仅开发者）
 - ✅ 系统配置 API：职业配置（含 remark 说明字段）、账号管理、帮会管理（开发者）
+- ✅ 职业目录 API（2026-10-10，新增 professions 表 + 迁移 q1r2s3t4u5v6）：全局职业清单——GET 全角色、POST/PUT 仅开发者；创建（名称含停用全局唯一）/停用（至少保留一个启用）/改名级联（成员、职业配置、单场覆盖；历史快照不动）；成员/出勤/配置/导入导出全部改查目录（旧值豁免见 database-design §2.13）
 - ✅ 级联删除帮会（DELETE /config/guilds/{id}，仅开发者，删除全部关联数据）
 - ✅ 删除账号（DELETE /config/accounts/{id}，不能删自己/开发者）
 - ✅ 用户表新增 plain_password 字段（本地管理工具查看明文密码）
@@ -131,7 +132,7 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_gam
 |------|------|--------|
 | `app/api/v1/` | 薄路由：参数校验 + 调用 service | `progress.md` 目录树 |
 | `app/services/` | 业务逻辑层 | `progress.md` |
-| `app/models/` | SQLAlchemy 模型（12 张表） | `database-design.md` |
+| `app/models/` | SQLAlchemy 模型（13 张表） | `database-design.md` |
 | `app/schemas/` | Pydantic 模型（请求/响应契约） | `design-document-v2.md` |
 | `app/core/` | 配置、数据库、安全等基础设施 | `tech-stack.md` |
 | `app/utils/` | 纯工具函数 | — |
@@ -167,3 +168,4 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_gam
 | 2026-09-20 | 管理员直接改名自动记录关联：`game_id_request_lifecycle.record_admin_rename`（同一事务写入 approved 关联，提交/审核人=操作管理员快照，备注标注来源）；`member_service.update_member` 增加 operator 参数并接入；selfcheck_game_id_requests 扩展直接改名断言、selfcheck_my_stats_aliases 新增直接改名合并用例（13/5/10/1 项全部通过） |
 | 2026-10-02 | 新增 `POST /api/v1/auth/password`（自助改密：须提供当前口令，成功后 `token_version+1` 使所有旧令牌失效）；口令策略改为 ASVS 5.0.0 对齐（删除强制字母+数字，改长度+词表，见 `app/core/password_policy.py`）；审计中间件补充「携带凭证的读请求被拒（401/403）」留痕与控制字符转义 |
 | 2026-10-09 | 帮众禁用自助改密（产品决策）：`app/api/deps.py` 新增依赖 `require_non_member`——`POST /api/v1/auth/password` 仅开发者/管理员可用，member 返回 403（依赖先于 body 校验）；帮众密码由管理员在账号管理重置（既有 `PUT /config/accounts/{id}` 带 `password` 字段）；`test_api_endpoints.py` 调整专用账号（新增 a_selfadmin）并新增帮众 403 用例；全量 pytest **267 passed**、ruff 通过 |
+| 2026-10-10 | 职业目录动态化（方案 B）：新增 professions 全局目录表 + 迁移 q1r2s3t4u5v6（11 职业种子）；新增 api/v1/professions.py 与 services/profession_service.py（读=全角色/写=仅开发者；改名级联）；`PROFESSIONS` 常量删除，6 处消费点改查目录（含旧值豁免与导出排序）；pytest 366 全过、ruff 全绿、schema 双绿、mypy 基线不变 |

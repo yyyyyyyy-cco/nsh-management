@@ -6,7 +6,7 @@
       </el-form-item>
       <el-form-item label="职业" prop="profession">
         <el-select v-model="form.profession" placeholder="请选择职业" style="width: 100%">
-          <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p" />
+          <el-option v-for="p in professionStore.activeNames" :key="p" :label="p" :value="p" />
         </el-select>
       </el-form-item>
     </el-form>
@@ -22,11 +22,12 @@ import { computed, reactive, ref } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 
 import { addFiller } from '@/api/attendance'
-import { PROFESSIONS } from '@/utils/constants'
+import { useProfessionStore } from '@/stores/profession'
 
 const props = defineProps<{ modelValue: boolean; scheduleId: number }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; success: [] }>()
 
+const professionStore = useProfessionStore()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
 const visible = computed({

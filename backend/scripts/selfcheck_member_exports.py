@@ -30,6 +30,7 @@ from app.core.database import Base
 from app.models.attendance import AttendanceRecord
 from app.models.guild import Guild
 from app.models.member import Member
+from app.models.profession import Profession
 from app.models.schedule import Schedule
 from app.services.member_service import MemberServiceError, attendance_rate
 from app.utils.excel_export import HEADERS, build_members_xlsx, member_export_filename
@@ -96,6 +97,13 @@ class MemberDataTests(unittest.IsolatedAsyncioTestCase):
             await conn.run_sync(Base.metadata.create_all)
         self.session = async_sessionmaker(self.engine, expire_on_commit=False)()
         self.session.add_all([Guild(id=1, name="测试帮会甲"), Guild(id=2, name="测试帮会乙")])
+        # 职业目录种子（仅本自检涉及的两职业；导入校验自职业目录动态化起以目录为准）
+        self.session.add_all(
+            [
+                Profession(name="铁衣", sort_order=1, color="#ffc800"),
+                Profession(name="素问", sort_order=2, color="#FF9CF2"),
+            ]
+        )
         await self.session.commit()
 
     async def asyncTearDown(self):

@@ -28,6 +28,7 @@ from app.services.lineup_service import LineupServiceError
 from app.services.match_data_csv import MatchDataError
 from app.services.member_service import MemberServiceError
 from app.services.player_identity_service import PlayerIdentityError
+from app.services.profession_service import ProfessionServiceError
 from app.services.recording_service import RecordingServiceError
 from app.services.schedule_service import ScheduleServiceError
 from app.services.squad_adjustment_service import SquadAdjustmentError
@@ -281,6 +282,11 @@ async def excel_import_error_handler(request: Request, exc: ExcelImportError) ->
 
 @app.exception_handler(ConfigServiceError)
 async def config_error_handler(request: Request, exc: ConfigServiceError) -> JSONResponse:
+    return error_response(exc.status_code, exc.message)
+
+
+@app.exception_handler(ProfessionServiceError)
+async def profession_error_handler(request: Request, exc: ProfessionServiceError) -> JSONResponse:
     return error_response(exc.status_code, exc.message)
 
 

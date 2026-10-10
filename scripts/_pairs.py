@@ -13,6 +13,7 @@ PAIRS: dict[str, list[str]] = {
     "Recording": ["RecordingOut"],
     "MatchData": ["MatchDataOut"],
     "ProfessionConfig": ["ProfessionConfigOut"],
+    "ProfessionOut": ["ProfessionOut"],
     "Account": ["AccountOut"],
     "Guild": ["GuildOut"],
     "OperationLog": ["OperationLogOut"],
@@ -30,6 +31,8 @@ PAIRS_REQ: dict[str, list[str]] = {
     "AccountCreateRequest": ["AccountCreate"],
     "AccountUpdateRequest": ["AccountUpdate"],
     "AccountStatusUpdateRequest": ["AccountStatusUpdate"],
+    "ProfessionCreateRequest": ["ProfessionCreate"],
+    "ProfessionUpdateRequest": ["ProfessionUpdate"],
     "GameIdRequestItem": ["GameIdRequestMemberOut"],
     "GameIdRequestMemberPage": ["GameIdRequestMemberPage"],
 }

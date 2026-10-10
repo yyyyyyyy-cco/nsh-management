@@ -8,9 +8,9 @@ nsh-management/
 │   ├── app/
 │   │   ├── api/               # API 路由（v1/ 路由注册 + deps 依赖注入）
 │   │   ├── core/              # 配置、数据库、安全（JWT/密码）、客户端 IP 解析（client_ip）
-│   │   ├── models/            # 12 张表 SQLAlchemy 模型（含 squad_adjustments/operation_logs/member_game_id_requests）
+│   │   ├── models/            # 13 张表 SQLAlchemy 模型（含 squad_adjustments/operation_logs/member_game_id_requests/professions）
 │   │   ├── schemas/           # Pydantic 数据模型
-│   │   ├── services/          # 业务逻辑（account/auth/config/guild/game_id_request/game_id_request_lifecycle/lineup/lineup_attendance/log/match_data/match_data_aggregate/match_data_csv/match_data_stats/member/my_stats/player_identity/recording/attendance/schedule/squad_adjustment）
+│   │   ├── services/          # 业务逻辑（account/auth/config/guild/game_id_request/game_id_request_lifecycle/lineup/lineup_attendance/log/match_data/match_data_aggregate/match_data_csv/match_data_stats/member/my_stats/player_identity/profession/recording/attendance/schedule/squad_adjustment）
 │   │   ├── utils/             # 工具函数（attendance_import/excel_import/excel_export/image_export/constants/member_names/lineup_structure）
 │   │   ├── init_db.py         # 初始化默认帮会与账号（开发者/admin/member）
 │   │   └── main.py            # 应用入口（CORS/异常处理/AuthError锁定秒数）
@@ -42,7 +42,7 @@ nsh-management/
 │   └── .venv/                 # 虚拟环境（本地目录，不入库）
 ├── frontend/                  # 前端项目（Vue3+TS+Vite）
 │   ├── src/
-│   │   ├── api/               # Axios 封装（http/auth/config/lineups/members/attendance/matchData/recording/schedules/squadAdjustments）
+│   │   ├── api/               # Axios 封装（http/auth/config/professions/lineups/members/attendance/matchData/recording/schedules/squadAdjustments）
 │   │   ├── components/        # 业务组件（account/ 为账号自助操作，guide/ 为使用指南）
 │   │   │   ├── attendance/    # 出勤库（AttendanceTab+AttendanceStatsBar/AttendanceToolbar/AttendanceTablePanel/AttendanceMobileList/FillerDialog/ImportMemberDialog/LeaveImportDialog/SubstituteImportDialog）
 │   │   │   ├── common/        # 通用组件（SkeletonTable/EmptyState）
@@ -56,9 +56,9 @@ nsh-management/
 │   │   ├── composables/       # 组合式函数（lineupBoard/useAttendanceList/useRecordingList/useMemberList/useRouteProgress）
 │   │   ├── layouts/           # 主布局（MainLayout + AppSidebar/AppHeader；深檀侧边栏208px+宣纸顶栏62px，支持折叠64px）
 │   │   ├── router/            # 路由与守卫
-│   │   ├── stores/            # Pinia（auth）
+│   │   ├── stores/            # Pinia（auth/profession，含同名 *.spec.ts 单测）
 │   │   ├── styles/            # 浅色雅金风主题（theme.css 令牌 / element-plus.css 组件 / index.css 入口）
-│   │   ├── types/             # TS 类型定义（attendance/auth/config/lineup/matchData/member/recording/schedule）
+│   │   ├── types/             # TS 类型定义（attendance/auth/config/lineup/matchData/member/profession/recording/schedule）
 │   │   ├── utils/             # 工具函数（constants/profession/scheduleSort/attendance/passwordForm，含同名 *.spec.ts 单测）
 │   │   └── views/             # 页面
 │   │       ├── HomeView.vue           # 首页仪表盘（壳）+ home/ 卡片组件（HomeWelcome/HomeTodayBanner/HomeStatCards/HomeRecentSchedules/HomeProfessionOverview/HomeAttendanceRanking/HomeQuickActions + home-shared.css）
@@ -89,7 +89,7 @@ nsh-management/
 │   ├── architecture.md         # 文档索引
 │   ├── code-ui-audit-2026-09.md # 2026-09 代码审查与 UI 评估结论快照
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
-│   ├── database-design.md      # 数据库设计文档（v1.10）
+│   ├── database-design.md      # 数据库设计文档（v1.11）
 │   ├── design-document-v2.md   # 产品设计文档（当前主文档）
 │   ├── design-game-id-change.md # 游戏 ID 改名申请与战绩关联设计（已实施，待浏览器验收）
 │   ├── implementation-plan.md  # 实施方案文档
@@ -145,6 +145,7 @@ nsh-management/
 | 录屏审核页面 | src/components/recording | 列表/提交/审核/进度/按姓名搜索/链接脱敏 | ✅ 已完成 |
 | 数据分析页面 | src/components/match-data | CSV导入/8Tab可视化（总览/列表/排行榜/阵营对比/小队分析/职业分析/职业深度/综合评分）/16项衍生指标/指标说明/单场图文战报（PNG 导出）/ECharts图表（HTML tooltip 输出转义） | ✅ 已完成（F01 交互待验收） |
 | 系统配置页面 | src/views/config | 职业配置/账号管理/帮会管理（开发者） | ✅ 已完成 |
+| 职业目录分发 | src/stores/profession.ts + src/utils/profession.ts | 全站职业清单/顺序/色彩单一来源（目录水合色表缓存；禁止组件自维护清单） | ✅ 已完成 |
 | 个人战绩页面 | src/views/member + src/components/my-stats | 玩家搜索/单局明细/概览（按游戏 ID 聚合，支持合并经审核确认的新旧 ID；冲突时仅查此 ID）；管理员菜单入口开放，同组件复用于成员详情页 | ✅ 已完成 |
 | 游戏 ID 改名页面 | src/views/member/GameIdChangeView + src/components/members（GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog） | 帮众提交改名申请与查看记录；管理员在常驻库「改名审核」Tab 通过/驳回 | ✅ 已完成 |
 | 系统日志页面 | src/views/logs | 审计日志筛选/分页/清理（开发者） | ✅ 已完成 |
@@ -156,7 +157,7 @@ nsh-management/
 | 模块 | 路径 | 作用 | 状态 |
 |------|------|------|------|
 | 基础框架 | app/core | 配置（JWT 10h）、异步数据库、JWT/密码 | ✅ 已完成 |
-| 数据模型 | app/models | 12 张表 SQLAlchemy 模型 + 16 个 Alembic 迁移 | ✅ 已完成 |
+| 数据模型 | app/models | 13 张表 SQLAlchemy 模型 + 17 个 Alembic 迁移 | ✅ 已完成 |
 | 认证模块 | app/api/v1/auth.py | 登录/登出/me + 登录限流（含未知账号锁定）+ 自助改密（仅开发者/管理员；帮众禁用，依赖 `require_non_member`） | ✅ 已完成 |
 | 常驻库 API | app/api/v1/members.py | CRUD/筛选/批量删/Excel导入/出勤率/职业统计/单成员详情 | ✅ 已完成 |
 | 联赛日程 API | app/api/v1/schedules.py | CRUD/时间范围/级联创建删除 | ✅ 已完成 |
@@ -167,6 +168,7 @@ nsh-management/
 | 分析调整 API | app/api/v1/squad_adjustments.py | 小队分析内未排表成员→目标队伍的临时分配（仅作用于分析视图，不改正式排表） | ✅ 已完成 |
 | 开发者 API | app/api/v1/developer.py | 开发者专属路由（帮会管理/账号管理等） | ✅ 已完成 |
 | 系统配置 API | app/api/v1/config.py + accounts.py + guilds.py | 职业配置/账号管理/帮会管理（开发者）/删除帮会/删除账号（URL 前缀均为 /config） | ✅ 已完成 |
+| 职业目录 API | app/api/v1/professions.py + app/services/profession_service.py | 全局职业清单：读=全角色、写=仅开发者；改名级联活跃数据（成员/职业配置/单场覆盖），历史快照不动 | ✅ 已完成 |
 | 个人战绩 API | app/api/v1/my_stats.py | 玩家名搜索/按游戏 ID 聚合历史战绩（支持经审核确认的新旧 ID 合并；冲突 409） | ✅ 已完成 |
 | 游戏 ID 改名 API | app/api/v1/game_id_requests.py + services/game_id_request_service.py/game_id_request_lifecycle.py/player_identity_service.py | 候选检索/提交/成员历史/审核列表/原子审核；生命周期联动与战绩新旧 ID 关联 | ✅ 已完成 |
 | 系统日志 API | app/api/v1/logs.py | 审计日志查询/统计/清理（开发者，审计中间件自动写入） | ✅ 已完成 |
@@ -613,6 +615,9 @@ nsh-management/
 | 2026-10-09 | 浏览器缩放适配 P1 修复（用户指示：修复缩放审查 P1 三项；静态审查→代码修复，未开浏览器）：①**数据分析工具栏**（`MatchDataTab.vue`）——基础 `.toolbar` 加 `flex-wrap: wrap`（原仅 ≤768 生效；1366@150% 视口 911 时工具栏 ~670px 需求 vs 内容可用 ~611px，现放不下整组换行、不挤压）；②**联赛排表**（`LineupEditor.vue`）——工具栏同加 `flex-wrap` + `row-gap`（原 ~850px 需求）+ 新增缩放断点区：`≤1140px` 统计条 160→110px（1366@125%=1093 恢复单行）、`≤1100px` 攻击组 3 队/行→2 队/行（3×165px+2×12px=519px 最小宽在窄幅下超出队区，原触发 `.teams` 内部横向滚动）；③**弹窗固定宽**——`MetricsGuideDialog` 820px→`min(820px, 94vw)`（769–819px 视口原超宽且 flex 居中下左缘不可滚达）、`ImportHistoryDialog` 760px→`min(760px, 94vw)`（同款先例 GuideDialog/AttendanceTab）；④验证：prettier + eslint 通过、`vue-tsc + vite build` 通过（20.82s）、行数门禁 260 文件通过；⑤边界：未动 768 移动布局与 P2/P3 项；vitest 由用户执行（`npm run test`） | 数据分析、联赛排表、前端、文档 |
 | 2026-10-10 | 排表总览导出 PNG 精简（用户批注：不截入顶部「排表总览」标题/按钮行与底部人数统计）：①**实现**——`LineupOverviewPanel.vue` 的 html2canvas 调用新增 `onclone` 钩子，在**克隆文档**中移除 `.el-card__header`（标题/操作行）与 `.prof-stats`（职业分布/合计人数），克隆 iframe 重排后区域正确塌陷；**选 onclone 而非 `ignoreElements`**（后者只跳过渲染、保留占位会在图上留空白，见 ai-checklist 第 202 条）；实时界面不受影响（无闪动）；②**边界**——总备注横幅（title-remark-bar）与四组阵容保留；组件行数 297→300（prettier 排版后）满足 300 硬限；③**验证**——prettier --check / eslint 0 error / `vue-tsc + vite build` 通过 / `check_file_length` 260 文件通过；vitest 由用户执行（`npm run test`） | 排表、前端、文档 |
 | 2026-10-10 | 服务器 IP 脱敏修正（全面审计 P1-1；登记 F-123）：①**发现** ✗：2026-10-08 条目（本表 594 行）写入真实服务器 IP（`ubuntu@…` 形式）与另一台主机 IP——与「真实地址/账号不入库、文档一律占位符」纪律冲突（引入提交 `4bd3ef1`）；②**修复** ✓：两处替换为 `<SERVER_IP>` / `<OTHER_HOST_IP>` 占位符（历史条目按安全例外修正，其余文字逐字未动）；全仓 IPv4 复扫 0 真实残留（`127.0.0.1` / 内网网段等安全项除外）；③**登记**：`security-review.md` §14.9 追加复核段（扫描模式扩展 IPv4/域名）、合规计划 F-123、ai-checklist 第 203 条；④**待决策**：历史提交 `4bd3ef1` 仍含原 IP，是否重写 git 历史（破坏性操作）需用户授权 | 文档、安全 |
+| 2026-10-10 | 职业目录动态化（方案 B）后端实施（步骤 1–4；计划/决策/执行微调见 `.agent/plans/profession-catalog-plan.md`）：①数据层——新增 professions 全局目录表（`models/profession.py` + 迁移 `q1r2s3t4u5v6` 建表并写入 11 职业种子，顺序/色值与升级前前端一致、可逆）+ `database-design.md` v1.11（§1.2 表清单、新增 §2.13）；②服务层——新增 `profession_service`（创建/「至少保留一个启用职业」守卫/改名级联成员·职业配置·单场覆盖/停用替代物理删除）；`PROFESSIONS` 常量删除，6 处消费点改查目录（成员/出勤含「旧值豁免」；职业配置仅返回启用并按目录序；建帮会按启用目录初始化；Excel 导入拒绝停用、导出 Sheet 顺序由目录传入）；③接口层——GET（全角色）/POST/PUT `/api/v1/professions`（仅开发者）+ `ProfessionServiceError` 处理器；④测试——`DbTestCase` 默认播种目录种子、5 个既有测试适配、新增 `test_profession_catalog_rules.py`（10 用例）；⑤验证——pytest **366 用例全过**（failures/errors/skipped=0，junit 实证）、ruff 全绿、`check_schema_drift`/`check_schema_vs_db` --strict 双绿、3 个自检脚本全过（含迁移三态）、mypy **57 条=基线不变**、`check_doc_numbers` PASS | 职业目录、后端、数据库 |
+| 2026-10-10 | 职业目录动态化（方案 B）前端实施（步骤 5–8）：①核心——新增 `stores/profession.ts`（全站清单/顺序单一分发；加载后把含停用职业的色彩缓存水合到 `utils/profession.ts` 响应式色表）、`api/professions.ts`、`types/profession.ts`；`utils/profession.ts` 重写（静态色表→目录水合 + WCAG 亮度自动对比文字色，阈值 0.35 校准 11 色与规范一致）；`utils/constants.ts` 删除 `PROFESSIONS/PROF_ORDER`；路由守卫登录后 `ensureLoaded`（失败静默、下次导航重试）；`scripts/_pairs.py` 登记三类新模型对；②消费点迁移 10 文件（成员表单编辑态保留「已停用」选项回显；成员/出勤/补人筛选、单场职业配置弹窗、排表总览职业分布、候选池分组〔未知职业排末尾〕、useAttendanceList 缺口 chips、lineupBoard 转出移除）；③开发者 UI——系统配置新增「职业目录」Tab + `ConfigProfessionCatalogPanel.vue`（新增表单；颜色/排序变更即保存；停用二次确认；重命名弹窗提示级联范围）；④验证——prettier/lint/`vue-tsc + vite build` 全过（vitest 由用户执行 `npm run test`）；顺带归一化 `LineupEditor.vue` 一条带超长前导空格的 CSS 注释（HEAD 即不满足 `prettier --check`） | 职业目录、前端 |
+| 2026-10-10 | 职业目录动态化配套文档同步：`design-document-v2` v2.9（§2 职业色摘要、§3.2 矩阵新增「职业目录管理/读取」并修正「职业配置」写侧口径、§4.1 职业列表改动态说明、§5 页面树补职业目录）；`ui-style-guide` §7（「不变」→「初始内置色板」+ 亮度对比说明）；`AGENTS` §2.2 登记本计划文档；`architecture`/`backend docs`/`frontend docs`（功能清单/已完成/更新记录）；`README` 系统配置行；`CHANGELOG [Unreleased]`；`ai-checklist` 第 204–206 条；`compliance-remediation-plan` 与 `database-design` v1.11 数字声明先行同步（见后端条目） | 文档体系 |
 
 ---
 

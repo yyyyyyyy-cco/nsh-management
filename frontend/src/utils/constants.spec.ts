@@ -1,13 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { MEMBER_STATUSES, PROFESSIONS, SCHEDULE_RESULTS, resultLabel, resultType } from './constants'
+import { MEMBER_STATUSES, SCHEDULE_RESULTS, resultLabel, resultType } from './constants'
 
 describe('业务常量（权威源：utils/constants.ts）', () => {
-  it('职业共 11 种且无重复', () => {
-    expect(PROFESSIONS).toHaveLength(11)
-    expect(new Set(PROFESSIONS).size).toBe(11)
-  })
-
   it('成员状态与赛程结果取值完整', () => {
     expect(MEMBER_STATUSES.map((s) => s.value)).toEqual(['formal', 'substitute'])
     expect(SCHEDULE_RESULTS.map((r) => r.value)).toEqual(['pending', 'win', 'lose', 'draw'])

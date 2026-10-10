@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from support import profession_seed_rows
 
 from app.core.config import settings
 from app.core.database import Base
@@ -33,6 +34,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
             await conn.run_sync(Base.metadata.create_all)
         self.maker = async_sessionmaker(self.engine, expire_on_commit=False)
         self.session = self.maker()
+        self.session.add_all(profession_seed_rows())
         guild = Guild(name="日程规则测试")
         self.session.add(guild)
         await self.session.flush()
@@ -69,13 +71,15 @@ class ScheduleRulesTest(_Base):
         await self.session.rollback()
 
     async def test_profession_config_bounds(self) -> None:
+        # rollback 会过期 ORM 实例：ID 提前取出（本次迭代起校验先查职业目录，rollback 真正生效）
+        schedule_id = self.schedule.id
         with self.assertRaises(ScheduleServiceError):
-            await schedule_service.update_profession_config(self.session, self.gid, self.schedule.id, {"铁衣": 61})
+            await schedule_service.update_profession_config(self.session, self.gid, schedule_id, {"铁衣": 61})
         await self.session.rollback()
         with self.assertRaises(ScheduleServiceError):
-            await schedule_service.update_profession_config(self.session, self.gid, self.schedule.id, {"不存在职业": 3})
+            await schedule_service.update_profession_config(self.session, self.gid, schedule_id, {"不存在职业": 3})
         await self.session.rollback()
-        ok = await schedule_service.update_profession_config(self.session, self.gid, self.schedule.id, {"铁衣": 60})
+        ok = await schedule_service.update_profession_config(self.session, self.gid, schedule_id, {"铁衣": 60})
         self.assertEqual(ok.profession_config, {"铁衣": 60})
 
     def test_default_retention_days_is_90(self) -> None:

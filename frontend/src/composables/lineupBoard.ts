@@ -5,7 +5,7 @@ import { computed, onScopeDispose, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { getLineup, getLineupCandidates, saveLineup } from '@/api/lineups'
-import { PROF_ORDER } from '@/utils/constants'
+import { useProfessionStore } from '@/stores/profession'
 import type { LineupCandidate, LineupSlot, LineupTeam } from '@/types/lineup'
 
 export interface CandidateItem {
@@ -30,10 +30,6 @@ export interface TeamBox {
   team_index: number
   slots: SlotItem[][]
 }
-
-// 职业展示顺序：唯一来源是 `@/utils/constants`（2026-10-03，F-91）。
-// 本文件只转出，既有 `import { PROF_ORDER } from '@/composables/lineupBoard'` 调用方无需改动。
-export { PROF_ORDER }
 
 /**
  * vuedraggable 拖拽事件对象的**最小结构声明**：只覆盖本项目实际读取的字段
@@ -110,6 +106,7 @@ function emptySlot(si: number): SlotItem {
 }
 
 export function useLineupBoard(scheduleId: number) {
+  const professionStore = useProfessionStore()
   const loading = ref(false)
   const saving = ref(false)
   const teams = ref<TeamBox[]>([])
@@ -230,7 +227,7 @@ export function useLineupBoard(scheduleId: number) {
     return set
   })
 
-  /** 候选池按职业分组（按 ui-style-guide 顺序，仅未排成员）。 */
+  /** 候选池按职业分组（按职业目录顺序；未知职业排在末尾，仅未排成员）。 */
   const professionGroups = computed(() => {
     const map = new Map<string, CandidateItem[]>()
     for (const c of candidates.value) {
@@ -238,7 +235,7 @@ export function useLineupBoard(scheduleId: number) {
       if (!map.has(prof)) map.set(prof, [])
       map.get(prof)!.push(c)
     }
-    return [...map.entries()].sort(([a], [b]) => PROF_ORDER.indexOf(a) - PROF_ORDER.indexOf(b))
+    return [...map.entries()].sort(([a], [b]) => professionStore.orderIndex(a) - professionStore.orderIndex(b))
   })
 
   function backToCandidate(el: SlotItem | CandidateItem) {

@@ -16,10 +16,11 @@ import { getLineup, getLineupCandidates } from '@/api/lineups'
 import type { ProfessionConfig } from '@/types/config'
 import type { AttendanceRecord, AttendanceStats } from '@/types/attendance'
 import type { ScheduleInfo } from '@/types/schedule'
-import { PROF_ORDER } from '@/composables/lineupBoard'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
+import { useProfessionStore } from '@/stores/profession'
 
 export function useAttendanceList(props: { scheduleId: number; schedule: ScheduleInfo }) {
+  const professionStore = useProfessionStore()
   const loading = ref(false)
   const showSkeleton = useSkeletonLoading(loading)
   const items = ref<AttendanceRecord[]>([])
@@ -91,7 +92,7 @@ export function useAttendanceList(props: { scheduleId: number; schedule: Schedul
     for (const r of items.value) {
       if (r.status === 'normal') current[r.profession] = (current[r.profession] || 0) + 1
     }
-    return PROF_ORDER.map((p) => {
+    return professionStore.activeNames.map((p) => {
       const target = effectiveTargets.value[p] || 0
       return { profession: p, target, current: current[p] || 0, gap: target - (current[p] || 0) }
     })

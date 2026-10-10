@@ -8,8 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.member import Member
+from app.services import profession_service
 from app.services.member_service import MemberServiceError
-from app.utils.constants import PROFESSIONS
 
 # 导入限制：与 CSV 导入接口保持一致，防止超大文件/超多行耗尽内存
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
@@ -116,6 +116,7 @@ async def import_members(session: AsyncSession, guild_id: int | None, content: b
     header, data_rows = await asyncio.to_thread(_parse_workbook, content)
 
     existing = set((await session.execute(select(Member.name).where(Member.guild_id == guild_id))).scalars())
+    active_professions = await profession_service.active_names(session)
 
     imported = 0
     skipped = 0
@@ -135,8 +136,8 @@ async def import_members(session: AsyncSession, guild_id: int | None, content: b
             skipped += 1
             continue
         profession = str(record.get("main_profession") or "").strip()
-        if profession not in PROFESSIONS:
-            errors.append(f"{name}：无效职业「{profession}」")
+        if profession not in active_professions:
+            errors.append(f"{name}：无效职业「{profession}」（不存在或已停用）")
             skipped += 1
             continue
         sub_profession = str(record.get("sub_profession") or "").strip() or None

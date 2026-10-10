@@ -12,7 +12,7 @@ from app.models.recording import Recording
 from app.models.schedule import Schedule
 from app.models.squad_adjustment import SquadAdjustment
 from app.schemas.schedule import ScheduleCreate, ScheduleUpdate
-from app.utils.constants import PROFESSIONS
+from app.services import profession_service
 
 SCHEDULE_RESULTS = ["win", "lose", "draw", "pending"]
 
@@ -83,8 +83,11 @@ async def update_profession_config(
     """设置/清除单场职业配置覆盖。configs 为 None 时恢复默认（沿用系统配置）。"""
     schedule = await get_schedule(session, guild_id, schedule_id)
     if configs is not None:
+        # 旧值豁免：该赛程既有覆盖键允许保留（对应职业可能已停用），新增键必须为启用职业
+        existing = set((schedule.profession_config or {}).keys())
+        active = await profession_service.active_names(session)
         for profession, target in configs.items():
-            if profession not in PROFESSIONS:
+            if profession not in active and profession not in existing:
                 raise ScheduleServiceError(f"无效的职业：{profession}")
             if not isinstance(target, int) or not 0 <= target <= 60:
                 raise ScheduleServiceError(f"职业「{profession}」的目标人数无效（0-60）")

@@ -10,8 +10,6 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from app.utils.constants import PROFESSIONS
-
 if TYPE_CHECKING:  # 仅用于类型标注：本模块是**纯格式化工具**，运行时不需要 ORM（便于独立测试）
     from app.models.member import Member
 
@@ -41,18 +39,18 @@ def _text_cell(sheet, row: int, column: int, value: object):
     return cell
 
 
-def _group_members(members: list[Member]) -> list[tuple[str, list[Member]]]:
-    """按主职业分组：Sheet 顺序按 PROFESSIONS 常量，未知职业兜底到最后；
+def _group_members(members: list[Member], profession_order: list[str] | None = None) -> list[tuple[str, list[Member]]]:
+    """按主职业分组：Sheet 顺序按职业目录（profession_order），未知职业兜底到最后；
     组内正式在前、替补在后，同状态按姓名排序。"""
     buckets: dict[str, list[Member]] = {}
     for member in members:
         buckets.setdefault(member.main_profession, []).append(member)
 
     ordered: list[tuple[str, list[Member]]] = []
-    for profession in PROFESSIONS:
+    for profession in profession_order or []:
         if profession in buckets:
             ordered.append((profession, buckets.pop(profession)))
-    for profession in sorted(buckets):  # 兜底：非常规职业名
+    for profession in sorted(buckets):  # 兜底：目录外职业名 / 未提供目录顺序
         ordered.append((profession, buckets[profession]))
 
     result = []
@@ -92,12 +90,17 @@ def _write_group(sheet, members: list[Member], guild_name: str | None, guild_id:
     sheet.freeze_panes = "A3"  # 冻结来源与表头两行
 
 
-def build_members_xlsx(members: list[Member], guild_name: str | None = None, guild_id: int | None = None) -> bytes:
-    """按主职业生成多 Sheet，来源标识只用于辨认，不作为导入授权依据。"""
+def build_members_xlsx(
+    members: list[Member],
+    guild_name: str | None = None,
+    guild_id: int | None = None,
+    profession_order: list[str] | None = None,
+) -> bytes:
+    """按主职业生成多 Sheet（Sheet 顺序按职业目录），来源标识只用于辨认，不作为导入授权依据。"""
     workbook = Workbook()
     workbook.remove(workbook.active)  # 移除默认空 Sheet
 
-    for profession, group in _group_members(members) or [("成员", [])]:
+    for profession, group in _group_members(members, profession_order) or [("成员", [])]:
         sheet = workbook.create_sheet(title=profession.translate(_SHEET_ILLEGAL)[:31])
         _write_group(sheet, group, guild_name, guild_id)
 

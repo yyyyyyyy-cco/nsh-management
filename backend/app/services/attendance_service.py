@@ -5,8 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.attendance import AttendanceRecord
 from app.models.member import Member
+from app.services import profession_service
 from app.services.schedule_service import get_schedule
-from app.utils.constants import PROFESSIONS
 from app.utils.member_names import normalize_member_name
 
 MAX_NORMAL_COUNT = 60  # 出勤表正常状态人数上限（v2 §6.2）
@@ -86,7 +86,8 @@ async def update_record_profession(
     record = await session.get(AttendanceRecord, record_id)
     if record is None or record.schedule_id != schedule_id:
         raise AttendanceServiceError("出勤记录不存在", 404)
-    if profession not in PROFESSIONS:
+    # 职业须为启用目录中的职业；与记录现值相同的情形豁免（兼容停用职业的存量快照）
+    if profession != record.profession and profession not in await profession_service.active_names(session):
         raise AttendanceServiceError(f"无效的职业：{profession}")
     # 校验职业在该成员可选范围内（常驻成员主/副，补人仅当前）
     if record.member_id is not None:
@@ -130,7 +131,7 @@ async def add_filler(
         raise AttendanceServiceError("请输入补人名称，不能只包含空白字符")
     if len(name) > 32:
         raise AttendanceServiceError("补人姓名不能超过 32 字符")
-    if profession not in PROFESSIONS:
+    if profession not in await profession_service.active_names(session):
         raise AttendanceServiceError(f"无效的职业：{profession}")
     existing_names = (
         (await session.execute(select(AttendanceRecord.member_name).where(AttendanceRecord.schedule_id == schedule_id)))

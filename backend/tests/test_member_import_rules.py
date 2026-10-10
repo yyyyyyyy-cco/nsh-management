@@ -19,6 +19,7 @@ from types import SimpleNamespace
 from openpyxl import Workbook
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from support import profession_seed_rows
 
 from app.api.v1.members import import_excel
 from app.core.database import Base
@@ -49,6 +50,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
         self.maker = async_sessionmaker(self.engine, expire_on_commit=False)
         self.session = self.maker()
         self.session.add(Guild(id=1, name="上限测试帮会"))
+        self.session.add_all(profession_seed_rows())
         await self.session.commit()
 
     async def asyncTearDown(self) -> None:

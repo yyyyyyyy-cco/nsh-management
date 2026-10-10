@@ -16,6 +16,7 @@ import unittest
 from pydantic import ValidationError
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from support import PROFESSION_SEED, profession_seed_rows
 
 from app.core.database import Base
 from app.core.password_policy import PasswordPolicyError
@@ -26,7 +27,6 @@ from app.models.user import User
 from app.schemas.config import GuildCreate
 from app.services import guild_service
 from app.services.config_service import ConfigServiceError
-from app.utils.constants import PROFESSIONS
 
 STRONG = "Tq7#vLm2Zr9p"
 
@@ -38,6 +38,9 @@ class _Base(unittest.IsolatedAsyncioTestCase):
             await conn.run_sync(Base.metadata.create_all)
         self.maker = async_sessionmaker(self.engine, expire_on_commit=False)
         self.session = self.maker()
+        # 职业目录种子：create_guild 按启用目录初始化职业配置
+        self.session.add_all(profession_seed_rows())
+        await self.session.commit()
 
     async def asyncTearDown(self) -> None:
         await self.session.close()
@@ -78,7 +81,7 @@ class GuildCreateServiceTest(_Base):
             .scalars()
             .all()
         )
-        self.assertEqual(len(configs), len(PROFESSIONS), "应为全部职业建配置")
+        self.assertEqual(len(configs), len(PROFESSION_SEED), "应为全部启用职业建配置")
         self.assertEqual({c.target_count for c in configs}, {0})
 
     async def test_passwords_hashed_and_verifiable(self) -> None:

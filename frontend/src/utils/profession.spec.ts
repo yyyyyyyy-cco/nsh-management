@@ -1,12 +1,31 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
-import { PROF_COLORS, profColor, profFillStyle, profTagStyle } from './profession'
+import { PROF_COLORS, profColor, profFillStyle, profTagStyle, setProfessionColors } from './profession'
 
 const FALLBACK = '#c9a13b'
 const NEUTRAL_BG = '#e5e7eb'
 
-describe('profColor（未知职业回退主色）', () => {
-  it('已知职业返回 ui-style-guide §7 规定色', () => {
+/** ui-style-guide §7 全表（色值 + 文字颜色）——作为色彩缓存的水合样本与规范校准。 */
+const GUIDE: Record<string, { color: string; text: '#333' | '#fff' }> = {
+  铁衣: { color: '#ffc800', text: '#333' },
+  素问: { color: '#FF9CF2', text: '#333' },
+  神相: { color: '#3E6BF4', text: '#fff' },
+  碎梦: { color: '#00FFFB', text: '#333' },
+  血河: { color: '#F04545', text: '#fff' },
+  玄机: { color: '#f6ff00', text: '#333' },
+  九灵: { color: '#8B5CF6', text: '#fff' },
+  潮光: { color: '#4F95FF', text: '#fff' },
+  龙吟: { color: '#3fe155', text: '#333' },
+  鸿音: { color: '#C6834D', text: '#fff' },
+  沧澜: { color: '#605EF0', text: '#fff' },
+}
+
+beforeEach(() => {
+  setProfessionColors(Object.fromEntries(Object.entries(GUIDE).map(([name, spec]) => [name, spec.color])))
+})
+
+describe('setProfessionColors / profColor（色彩缓存由目录水合）', () => {
+  it('水合后：已知职业返回目录色值', () => {
     expect(profColor('铁衣')).toBe('#ffc800')
     expect(profColor('素问')).toBe('#FF9CF2')
     expect(profColor('神相')).toBe('#3E6BF4')
@@ -18,20 +37,21 @@ describe('profColor（未知职业回退主色）', () => {
     }
   })
 
-  it('色表覆盖 11 种职业（与 utils/constants 的 PROFESSIONS 数量一致）', () => {
-    expect(Object.keys(PROF_COLORS)).toHaveLength(11)
+  it('水合是原地更新：对象身份不变，且删除不再存在的键', () => {
+    const identity = PROF_COLORS
+    setProfessionColors({ 铁衣: '#111111' })
+    expect(PROF_COLORS).toBe(identity)
+    expect(Object.keys(PROF_COLORS)).toEqual(['铁衣'])
+    expect(profColor('铁衣')).toBe('#111111')
+    expect(profColor('素问')).toBe(FALLBACK)
   })
 })
 
-describe('profTagStyle（胶囊内联样式：深底白字 / 浅底深字）', () => {
-  it('深色职业配白字', () => {
-    expect(profTagStyle('神相')).toEqual({ background: '#3E6BF4', color: '#fff' })
-    expect(profTagStyle('血河')).toEqual({ background: '#F04545', color: '#fff' })
-  })
-
-  it('浅色职业配深字', () => {
-    expect(profTagStyle('素问')).toEqual({ background: '#FF9CF2', color: '#333' })
-    expect(profTagStyle('铁衣')).toEqual({ background: '#ffc800', color: '#333' })
+describe('profTagStyle（胶囊内联样式：亮度自动对比）', () => {
+  it('阈值 0.35 与规范文字颜色逐色一致', () => {
+    for (const [name, spec] of Object.entries(GUIDE)) {
+      expect(profTagStyle(name), `${name} 文字颜色`).toEqual({ background: spec.color, color: spec.text })
+    }
   })
 
   it('未知职业使用中性灰底 + 深字', () => {
@@ -41,9 +61,10 @@ describe('profTagStyle（胶囊内联样式：深底白字 / 浅底深字）', (
 })
 
 describe('profFillStyle（全底色：职业色铺满整格）', () => {
-  it('深色职业白字 / 浅色职业深字（与胶囊同口径）', () => {
-    expect(profFillStyle('神相')).toEqual({ background: '#3E6BF4', color: '#fff' })
-    expect(profFillStyle('铁衣')).toEqual({ background: '#ffc800', color: '#333' })
+  it('与胶囊同口径（逐色）', () => {
+    for (const [name, spec] of Object.entries(GUIDE)) {
+      expect(profFillStyle(name), `${name} 全底色`).toEqual({ background: spec.color, color: spec.text })
+    }
   })
 
   it('未知职业回退主色（与职业圆点一致，非胶囊中性灰）', () => {

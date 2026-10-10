@@ -6,15 +6,27 @@
       </el-form-item>
       <el-form-item label="主职业" prop="main_profession">
         <el-select v-model="form.main_profession" placeholder="请选择主职业" style="width: 100%">
-          <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p">
-            <span class="opt"><i class="opt-dot" :style="{ background: profColor(p) }" />{{ p }}</span>
+          <el-option
+            v-for="p in professionOptions"
+            :key="p.name"
+            :label="p.label"
+            :value="p.name"
+            :disabled="p.disabled"
+          >
+            <span class="opt"><i class="opt-dot" :style="{ background: profColor(p.name) }" />{{ p.label }}</span>
           </el-option>
         </el-select>
       </el-form-item>
       <el-form-item label="副职业" prop="sub_profession">
         <el-select v-model="form.sub_profession" placeholder="可选" clearable style="width: 100%">
-          <el-option v-for="p in PROFESSIONS" :key="p" :label="p" :value="p">
-            <span class="opt"><i class="opt-dot" :style="{ background: profColor(p) }" />{{ p }}</span>
+          <el-option
+            v-for="p in professionOptions"
+            :key="p.name"
+            :label="p.label"
+            :value="p.name"
+            :disabled="p.disabled"
+          >
+            <span class="opt"><i class="opt-dot" :style="{ background: profColor(p.name) }" />{{ p.label }}</span>
           </el-option>
         </el-select>
       </el-form-item>
@@ -39,11 +51,14 @@ import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 
 import { createMember, updateMember } from '@/api/members'
-import { MEMBER_STATUSES, PROFESSIONS } from '@/utils/constants'
+import { useProfessionStore } from '@/stores/profession'
+import { MEMBER_STATUSES } from '@/utils/constants'
 import { profColor } from '@/utils/profession'
 
 const props = defineProps<{ modelValue: boolean; member: unknown }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean]; success: [] }>()
+
+const professionStore = useProfessionStore()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)
@@ -60,6 +75,19 @@ const form = reactive({
   sub_profession: undefined as string | undefined,
   status: 'formal' as 'formal' | 'substitute',
   remark: '',
+})
+
+/** 职业下拉选项：启用职业按目录顺序；编辑态下当前值若已停用，保留该项（禁用并标注）以便回显。 */
+const professionOptions = computed(() => {
+  const active = professionStore.activeNames
+  const extras = [form.main_profession, form.sub_profession].filter(
+    (value): value is string => typeof value === 'string' && value.length > 0 && !active.includes(value),
+  )
+  return [...new Set([...active, ...extras])].map((name) => ({
+    name,
+    disabled: !active.includes(name),
+    label: active.includes(name) ? name : `${name}（已停用）`,
+  }))
 })
 
 const rules: FormRules = {

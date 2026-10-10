@@ -26,7 +26,7 @@
       class="keyword-input"
     />
     <el-select aria-label="职业筛选" v-model="professionFilter" placeholder="职业筛选" clearable class="prof-filter">
-      <el-option v-for="p in PROF_ORDER" :key="p" :label="p" :value="p" />
+      <el-option v-for="p in professionStore.activeNames" :key="p" :label="p" :value="p" />
     </el-select>
     <el-select aria-label="类型筛选" v-model="typeFilter" placeholder="类型筛选" clearable class="small-filter">
       <el-option v-for="t in TYPE_OPTIONS" :key="t.value" :label="t.label" :value="t.value" />
@@ -40,7 +40,9 @@
 <script setup lang="ts">
 import { Search } from '@element-plus/icons-vue'
 
-import { PROF_ORDER } from '@/composables/lineupBoard'
+import { useProfessionStore } from '@/stores/profession'
+
+const professionStore = useProfessionStore()
 
 defineProps<{ isAdmin: boolean; loading: boolean; selectedCount: number }>()
 

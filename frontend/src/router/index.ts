@@ -2,6 +2,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { useProfessionStore } from '@/stores/profession'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -122,6 +123,14 @@ router.beforeEach(async (to) => {
   // 开发者仅允许访问 首页、系统配置、系统日志、登录页
   if (auth.isDeveloper && to.name !== 'home' && to.name !== 'config' && to.name !== 'logs' && !to.meta.public) {
     return { name: 'config' }
+  }
+  // 职业目录：登录后首次导航预加载（失败静默不阻塞导航；颜色/下拉退化为兜底值，下次导航自动重试）
+  if (auth.isLoggedIn) {
+    try {
+      await useProfessionStore().ensureLoaded()
+    } catch {
+      // 静默：错误提示由 http 拦截器统一处理
+    }
   }
 })
 

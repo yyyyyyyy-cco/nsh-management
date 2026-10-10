@@ -24,7 +24,7 @@ from app.schemas.member import (
     MemberUpdate,
     ProfessionStat,
 )
-from app.services import member_service
+from app.services import member_service, profession_service
 from app.utils.excel_export import build_members_xlsx, member_export_filename
 from app.utils.excel_import import MAX_FILE_SIZE, ExcelImportError, import_members
 from app.utils.image_export import MAX_IMAGE_MEMBERS, draw_members_png
@@ -130,10 +130,12 @@ async def export_members(
     members = await member_service.export_members(
         session, current_user.guild_id, keyword, profession, status, sort_by, sort_order
     )
+    # Sheet 顺序按职业目录（含停用职业，保持其成员分组位次不变）
+    profession_order = [p.name for p in await profession_service.list_professions(session, include_inactive=True)]
     # openpyxl 写表为 CPU 密集操作，放线程池避免阻塞事件循环
     guild = await session.get(Guild, current_user.guild_id) if current_user.guild_id else None
     guild_name = guild.name if guild else None
-    content = await asyncio.to_thread(build_members_xlsx, members, guild_name, current_user.guild_id)
+    content = await asyncio.to_thread(build_members_xlsx, members, guild_name, current_user.guild_id, profession_order)
     date_tag = datetime.now(UTC).astimezone().strftime("%Y%m%d")
     # ASCII fallback + RFC 5987 编码中文文件名（均携带帮会来源）
     filename = f"members_{current_user.guild_id}_{date_tag}.xlsx"

@@ -1,7 +1,7 @@
 # 帮会管理系统 - 数据库设计
 
-> 版本：v1.10
-> 更新日期：2026-10-03
+> 版本：v1.11
+> 更新日期：2026-10-10
 > 依据：design-document-v2.md（产品设计 v2）、tech-stack.md（技术栈）、design-game-id-change.md（改名申请与战绩关联）
 
 ## 1. 设计总览
@@ -30,6 +30,7 @@ guilds（帮会）
      └── squad_adjustments（分析调整）    schedule_id（1:1）
 member_game_id_requests（游戏 ID 改名申请）  guild_id, member_id（可空）
 operation_logs（操作审计日志）          guild_id（可空）
+professions（职业目录）                全局（无 guild_id）
 ```
 
 | # | 表名 | 用途 | 关联 |
@@ -46,6 +47,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 | 10 | squad_adjustments | 分析调整（小队分析内临时分配） | schedules（1:1） |
 | 11 | operation_logs | 操作审计日志（写操作/异常落库，仅开发者可查） | guilds（guild_id 可空） |
 | 12 | member_game_id_requests | 游戏 ID 修改申请与审核记录（兼作战绩新旧 ID 关联来源） | guilds、members（可空）、users（可空） |
+| 13 | professions | 职业目录（全局职业清单：名称/排序/颜色/启停） | 无（全局表；被成员等各表的职业字符串引用） |
 
 ### 1.3 设计决策
 
@@ -104,7 +106,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 |------|------|------|------|
 | id | INTEGER | PK, AUTOINCREMENT | 主键 |
 | guild_id | INTEGER | NOT NULL, FK → guilds.id | 所属帮会 |
-| profession | TEXT | NOT NULL | 职业名（11种：铁衣、血河、沧澜、龙吟、潮光、玄机、碎梦、神相、九灵、鸿音、素问） |
+| profession | TEXT | NOT NULL | 职业名（取值见 §2.13 职业目录） |
 | target_count | INTEGER | NOT NULL, default 0 | 目标人数（用于出勤库职业缺口分析） |
 | remark | TEXT | NULL, max 255 | 职业说明（可编辑，默认空） |
 
@@ -339,6 +341,25 @@ JSON 结构示例：
   - 账号被删除：`requester_id` / `reviewer_id` 置空，账号名快照保留；
   - 整帮会删除：先删本表该帮会记录，再删成员与账号。
 
+### 2.13 professions — 职业目录表
+
+> 全局职业清单（不按帮会隔离）：名称、展示排序、职业色与启停由开发者在「系统配置 → 职业目录」维护。成员/出勤/录屏/比赛数据中的职业均为写入时的字符串快照，不受本表启停影响（历史数据保留原名原值）。
+
+| 字段 | 类型 | 约束 | 说明 |
+|------|------|------|------|
+| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| name | TEXT | NOT NULL, UNIQUE | 职业名（≤16 字符；含停用职业不可重名，唯一索引 `ix_professions_name`） |
+| sort_order | INTEGER | NOT NULL, default 0 | 展示排序（升序，同值按 id；全站下拉/筛选/排表分组的展示顺序） |
+| color | TEXT | NOT NULL, default '#c9a13b' | 职业色（`#RRGGBB`）；全站标签/圆点/全底色取此值，文字对比色由前端按亮度自动计算 |
+| is_active | BOOLEAN | NOT NULL, default 1 | 启用状态；停用后不再出现在选择器/配置面板，历史数据保留且可随时重新启用 |
+| created_at | DATETIME | NOT NULL, default now | 创建时间 |
+
+业务规则：
+- **停用替代删除**：不提供物理删除；「至少保留一个启用职业」由服务层守卫。
+- **改名级联（单事务）**：重命名同步更新 `members.main_profession` / `members.sub_profession` / `profession_configs.profession` / `schedules.profession_config` 的键；`attendance_records` / `recordings` / `match_data` 历史快照保持原名。
+- **旧值豁免**：任何"变更后的新值"必须是启用职业；"与现值相同"的值允许为停用职业（保证存量数据可继续编辑其他字段）。
+- **初始种子（迁移 `q1r2s3t4u5v6`）**：旧代码常量 11 种职业，展示顺序与色值与升级前前端完全一致。
+
 ---
 
 ## 3. 关键业务规则落表方案
@@ -403,3 +424,4 @@ JSON 结构示例：
 | 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |
 | 2026-10-03 | v1.9 补记（**无结构变更，仅补齐文档**）：补登 **6 个已由迁移引入但未记录的列**——`guilds.icon_char`（g1h2i3j4k5l6）、`users.token_version`（h2i3j4k5l6m7）、`match_data.round_no`（f6a7b8c9d0e1）、`schedules.profession_config`（j4k5l6m7n8o9）、`recordings.note`（l6m7n8o9p0q1）、`attendance_records.remark`（n8o9p0q1r2s3）；并补 `match_data` 的 `round_no` 索引说明。来源：以 `backend/app/models/**` 与 `backend/alembic/versions/**` 为准逐列核对 |
 | 2026-10-03 | **v1.10**：补上「补人」部分唯一索引（迁移 `p0q1r2s3t4u5`，F-79）——`attendance_records` 增加 `(schedule_id, member_name) WHERE is_filler = 1`、`recordings` 增加 `(schedule_id, member_name, round_number) WHERE member_id IS NULL`，使 §2.6/§2.8 早已声明的补人唯一性**真正由数据库约束**（此前仅应用层查重，存在竞态）；表数不变（12 张） |
+| 2026-10-10 | **v1.11**：新增 professions 职业目录表（§1.2 表清单 + §2.13 字段/约束/业务规则），表数 12 张更新为 13 张；职业清单权威源自此由代码常量迁至本表（迁移 q1r2s3t4u5v6，种子 = 原 11 种职业） |

@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from support import profession_seed_rows
 
 from app.core.database import Base
 from app.models.attendance import AttendanceRecord
@@ -34,6 +35,7 @@ class _Base(unittest.IsolatedAsyncioTestCase):
             await conn.run_sync(Base.metadata.create_all)
         self.maker = async_sessionmaker(self.engine, expire_on_commit=False)
         self.session = self.maker()
+        self.session.add_all(profession_seed_rows())
         guild = Guild(name="导入路径测试")
         self.session.add(guild)
         await self.session.flush()

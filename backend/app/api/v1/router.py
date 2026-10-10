@@ -15,6 +15,7 @@ from app.api.v1 import (
     match_data,
     members,
     my_stats,
+    professions,
     recording,
     schedules,
     squad_adjustments,
@@ -32,6 +33,7 @@ api_router.include_router(lineups.router)
 api_router.include_router(recording.router)
 api_router.include_router(match_data.router)
 api_router.include_router(config.router)
+api_router.include_router(professions.router)
 api_router.include_router(accounts.router)
 api_router.include_router(guilds.router)
 api_router.include_router(developer.router)

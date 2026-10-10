@@ -67,7 +67,7 @@ nsh-management/
 
 ### 2. 数据库设计文档
 - **路径**：`memory-bank/database-design.md`
-- **作用**：定义全部数据表结构（12 表，含 squad_adjustments、operation_logs、member_game_id_requests）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.10（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计、游戏 ID 修改申请、补人部分唯一索引）
+- **作用**：定义全部数据表结构（13 表，含 squad_adjustments、operation_logs、member_game_id_requests、professions）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.11（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计、游戏 ID 修改申请、补人部分唯一索引、职业目录）
 - **更新时机**：表结构变更、业务规则调整时更新
 
 ### 3. 技术栈文档
@@ -516,6 +516,7 @@ nsh-management/
 | 2026-10-09 | 首页场数口径修复与全站取消数字滚动动画的文档同步：ui-polish-plan v1.4（§2.1.2 取消标注、§4 文件清单同步）、ui-style-guide §9 移除已删除 composable 行、ai-context §8.3、frontend docs（功能描述 + 更新记录）；代码、测试与验证记录见 progress.md 同日条目 | ui-polish-plan.md, ui-style-guide.md, ai-context.md, frontend/docs/README.md, progress.md |
 | 2026-10-09 | 文档全面审查修复批次 2（用户指示：以实际代码为基准逐条核对并修复）：①**结构修复**——本文件与 progress.md 的更新记录错位记录（14/28 条：Wave 批次 23–32 插入时间位、10-08/09 条目并入表尾）归位，堆积空行（63/71 行）与错位分隔线清理，记录行数无损（314/412）；②**内容修复**——database-design（match_data 字段表损坏修复 + §4 记录顺序）、DEPLOY（迁移 head `p0q1r2s3t4u5`、APP_ENV/健康检查服务器同步状态）、tech-stack（mypy/httpx2 依赖清单、收紧进展、服务器 compose 状态）、design-document-v2（v2.8 头部、去重复句、过时描述 3 处）、ai-context（迁移数/head、补游戏 ID 改名模块、§8.2）、frontend/docs（比赛焦点→战绩看板、vitest 已配置）、backend/docs（记录顺序）、SECURITY（支持版本 v1.3.0）、security-review（F-53 与 §17.6 对齐）、CHANGELOG（空行格式）；③7 道门禁复跑全部通过。详见 progress.md 同日条目 | 文档体系 |
 | 2026-10-09 | 移除表格密度切换的文档同步：ui-polish-plan v1.5（§2.1.3 取消标注、§3 落点表与 §4 文件清单同步）、ui-style-guide §9/§10.3 移除已删除 composable 与密度行、ai-context §8.3、frontend docs 更新记录、CHANGELOG [Unreleased] 新增「移除」段；代码与验证记录见 progress.md 同日条目 | ui-polish-plan.md, ui-style-guide.md, ai-context.md, frontend/docs/README.md, progress.md, CHANGELOG.md |
+| 2026-10-10 | 职业目录动态化（方案 B）全批次文档同步：`database-design` v1.11（新增 professions 表 §2.13、表清单更新，见同日先行条目）、`design-document-v2` v2.9（§2/§3.2/§4.1/§5 页面树）、`ui-style-guide` §7（初始内置色板 + 亮度对比）、`AGENTS` §2.2（登记 `.agent/plans/profession-catalog-plan.md`）、`progress.md`（目录树/模块表/更新记录）、`backend docs`、`frontend docs`、`README`、`CHANGELOG`、`ai-checklist`（204–206）；代码与验证记录见 progress.md 同日条目 | design-document-v2.md, ui-style-guide.md, AGENTS.md, progress.md, backend/docs/README.md, frontend/docs/README.md, README.md, CHANGELOG.md, ai-checklist.md |
 
 ---
 
