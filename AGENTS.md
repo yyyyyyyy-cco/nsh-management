@@ -50,6 +50,7 @@
 | UI 优化方案 | `memory-bank/ui-polish-plan.md` | 已完成归档（全部完成） | 方案调整时 |
 | 成员战绩与战报方案 | `memory-bank/stats-report-plan.md` | 已实施完成（2026-09-17） | 方案调整时 |
 | 游戏 ID 改名与战绩关联设计 | `memory-bank/design-game-id-change.md` | 专项设计（2026-09-20 已实施，待验收） | 功能调整或实施完成时 |
+| 成员详情档案化设计 | `memory-bank/design-member-archive.md` | 专项设计（2026-10-12 已实施，待验收）：三档案 Tab + 个人战绩跳转 | 功能调整或实施完成时 |
 | 实施方案 | `memory-bank/implementation-plan.md` | 历史规划存档（已完工） | 不维护 |
 | 项目进度 | `memory-bank/progress.md` | 代码目录树 + 模块状态 + 变更记录（**进度唯一权威**） | **每次代码变更后** |
 | 文档索引 | `memory-bank/architecture.md` | 文档结构、说明、更新记录（**文档索引唯一权威**） | **每次新增 / 改名 / 职责变更文档后** |

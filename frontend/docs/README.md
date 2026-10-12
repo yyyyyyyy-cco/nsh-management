@@ -115,6 +115,7 @@
 - ✅ 游戏 ID 改名（2026-09-20）：帮众页 `/game-id-change`（共享账号说明 + 成员远程检索选择 + 当前 ID 只读 + 新 ID 输入 + 申请记录，侧边栏与账号下拉入口）；常驻库「改名审核」Tab（状态筛选/关键词搜索/分页，通过需确认身份、驳回需填原因，≤768px 行列表）；个人战绩支持「合并历史 ID / 仅查此 ID」切换与冲突提示；成员详情战绩默认合并，冲突时跳转个人战绩精确查询；明细赛程单元格展示当场 ID
 - ✅ 帮众首页（2026-09-24，`/member-home`）：帮会战绩看板——战绩统计卡（已赛场次/近10局战绩/局胜率/录屏完成）+ 最近比赛结果列表（含各局比分，点击进详情）+ 数据亮点（最近一场 MVP 与数据之王六格，与「生成战报」同源口径）+ 录屏待办一行状态条（未交齐/驳回人数，悬停看完整名单）+ 快捷入口整行四格；帮众登录默认落点，赛程详情支持 from=home 回跳
 - ✅ 使用指南（2026-10-09）：顶栏「?」入口（全角色可达，零导航改动）+ 四章节弹窗（快速上手/页面详解/FAQ/角色差异——页面详解含 12 个页面逐步引导与「打开该页面」跳转），内容按登录角色过滤、当前角色列高亮；键盘可达（原生 button + Tabs/Collapse）、≤768px 全屏；内容与渲染分离（guideContent.ts + pageGuides/ 分域）
+- ✅ 成员详情档案（2026-10-12）：成员详情页改「信息卡固定顶部 + 档案 Tabs」——历史战绩（原有区迁入）/ 出勤档案（每场明细 + 正常/请假统计）/ 录屏记录（含未提交，按状态筛选，链接可复制/新窗口）/ 排表历史（分组·队·位）；档案 Tab 懒加载、全量前端分页（20/50/100 默认 20）；个人战绩查询命中成员时（仅管理员）显示「查看成员详情」跳转
 
 ### F04 保存约定
 
@@ -221,3 +222,4 @@ npm --prefix frontend run build:only -- --emptyOutDir=false
 | 2026-10-09 | 使用指南增补「页面详解」（用户指示：详细新手入门、各页面具体引导）：原「功能说明」Tab 升级为「页面详解」——12 个页面分 4 组，每页含入口/简介/步骤/要点/小贴士，支持「打开该页面」一键跳转（仅独立路由页面）、折叠条目卡片化金色描边（gold-200，悬停 gold-300）；新增 pageGuides/ 四组内容文件 + 组装；vue-tsc + vite build、lint、prettier 通过（vitest 由用户执行） |
 | 2026-10-09 | 浏览器缩放适配 P1 修复（用户指示）：①数据分析工具栏与联赛排表工具栏基础样式加 `flex-wrap: wrap`（1366@150% 等窄桌面带整组换行，不再挤压/溢出）；②排表新增缩放断点（≤1140px 统计条 160→110px、≤1100px 攻击组 3 队/行→2 队/行）；③「数据指标说明」（820px）/「导入历史排表」（760px）弹窗改为 `min(设计宽, 94vw)` 自适应宽度（769–819px 视口不再超宽裁切）；vue-tsc + vite build、lint、prettier 通过（vitest 由用户执行） |
 | 2026-10-10 | 排表总览导出 PNG 精简（用户批注：导出图不含顶部「排表总览」标题/按钮行与底部人数统计）：html2canvas 调用新增 `onclone` 钩子，在克隆文档中移除 `.el-card__header` 与 `.prof-stats`（实时界面不受影响、无闪动；组件 297→300 行）；vue-tsc + vite build、lint、prettier 通过（vitest 由用户执行） |
+| 2026-10-12 | 成员详情档案实施（用户指示：完成成员详情档案化；方案见 [design-member-archive.md](../../memory-bank/design-member-archive.md)）：①MemberDetailView 改「信息卡固定顶部 + 档案 Tabs（历史战绩/出勤档案/录屏记录/排表历史，lazy 首次激活加载）」；②新增 components/members/MemberAttendanceHistory / MemberRecordingHistory / MemberLineupHistory + member-archive-shared.css（桌面表格 + ≤768px 卡片列表 + el-pagination 20/50/100 默认 20）；③新增 types/memberArchive + api/members 三函数（attendance/recording/lineup-history）；④StatsIdentityNotice 新增 `allowMemberLink` prop 与 `view-member` 事件（仅 MyStatsView 对管理员传入），MyStatsView 命中成员可跳转成员详情；⑤附带 `LineupEditor.vue` 仅空白归一化（prettier，HEAD 既有偏差，`git diff -w` 验证零内容变化）；验证：format:check / eslint / vue-tsc + vite build 全绿（vitest 由用户执行） |

@@ -1,7 +1,7 @@
 # 帮会管理系统 - 数据库设计
 
 > 版本：v1.10
-> 更新日期：2026-10-03
+> 更新日期：2026-10-12
 > 依据：design-document-v2.md（产品设计 v2）、tech-stack.md（技术栈）、design-game-id-change.md（改名申请与战绩关联）
 
 ## 1. 设计总览
@@ -61,6 +61,17 @@ operation_logs（操作审计日志）          guild_id（可空）
 | 时间戳 | 所有表含 created_at；变更表含 updated_at | 出勤、录屏等含审核/更新语义 |
 | 改名申请 | 独立申请表存原/新 ID 与审核轨迹；通过时同步 members.name | 待审不污染常驻库，保留审计；兼作战绩新旧 ID 关联来源（见 design-game-id-change.md） |
 
+- **主键与 ID 复用口径（2026-10-12 更正与补记，与实现一致）**：
+  - **实态**：全表 `id` 均为 `INTEGER PRIMARY KEY`（SQLite rowid 别名）；**仅 `users` 显式启用 `AUTOINCREMENT`**（`e5f6a7b8c9d0` 迁移重建 users 表时手写 SQL 引入），其余 **11 张业务表均未启用**——模型中 `mapped_column(primary_key=True, autoincrement=True)` 只表示「由数据库自动分配」，**不会**生成 `AUTOINCREMENT` 关键字（该关键字需 `sqlite_autoincrement=True` 表参数）；
+  - **行为**：未启用 `AUTOINCREMENT` 时，新 id = **当前** `max(id) + 1`（非「历史最大 + 1」）→ **删除当前最大 id 的行后，下一条新记录会复用该 id**；`users.id` 因启用 `AUTOINCREMENT` **不会复用**；
+  - **实测（2026-10-12，只读）**：服务器快照库与本地库逐表 DDL 核对——仅 `users` 含 `AUTOINCREMENT`；同 DDL 内存库复现：`[1,2,3]` 删除 id=3（当前最大）后新增**复用 id=3**；对照删除非最大 id（1）后新增 → id=4 不复用；
+  - **既有防线（防「新记录继承旧归属」，新增开发沿用本口径）**：
+    - 成员删除：`detach_member` 置空 `member_game_id_requests` / `attendance_records` / `recordings` 的 `member_id`（F-78）；
+    - 排表 `lineups.data` JSON 槽位：读取时惰性清理（`_purge_deleted_members`）+ 成员档案查询层双条件过滤；**不主动清理**（2026-10-12 用户裁决；理由与残余窗口见 `design-member-archive.md` §3.2/§3.3）；
+    - 赛程删除：全部子表级联删除（F-75/F-77），不留孤儿行被新赛程「继承」；
+    - 删除路径必须「级联删除 / 置空引用 / 读取时按存在性校验」三选一——**纯 JSON 引用（如排表槽位）无法由数据库兜底，必须在读取层校验**；
+  - **备选（未采纳，未评估）**：迁移启用 `sqlite_autoincrement`（涉及全表重建）可根除复用；如需处理另行评估。
+
 ---
 
 ## 2. 数据表详细设计
@@ -69,7 +80,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | name | TEXT | NOT NULL, UNIQUE | 帮会名称 |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
 | icon_char | TEXT | NULL, 最多 4 字符 | 侧边栏折叠按钮显示的首字（迁移 g1h2i3j4k5l6） |
@@ -82,7 +93,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK, AUTOINCREMENT（显式启用） | 主键 |
 | guild_id | INTEGER | NULL, FK → guilds.id | 所属帮会（developer 角色可为 NULL） |
 | username | TEXT | NOT NULL, UNIQUE | 登录名 |
 | password_hash | TEXT | NOT NULL | bcrypt 哈希 |
@@ -102,7 +113,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | guild_id | INTEGER | NOT NULL, FK → guilds.id | 所属帮会 |
 | profession | TEXT | NOT NULL | 职业名（11种：铁衣、血河、沧澜、龙吟、潮光、玄机、碎梦、神相、九灵、鸿音、素问） |
 | target_count | INTEGER | NOT NULL, default 0 | 目标人数（用于出勤库职业缺口分析） |
@@ -116,7 +127,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | guild_id | INTEGER | NOT NULL, FK → guilds.id | 所属帮会 |
 | name | TEXT | NOT NULL | 姓名 |
 | main_profession | TEXT | NOT NULL | 主职业 |
@@ -133,7 +144,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | guild_id | INTEGER | NOT NULL, FK → guilds.id | 所属帮会 |
 | opponent | TEXT | NOT NULL | 对手 |
 | match_time | DATETIME | NOT NULL | 比赛时间 |
@@ -157,7 +168,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | schedule_id | INTEGER | NOT NULL, FK → schedules.id | 所属赛程 |
 | member_id | INTEGER | NULL, FK → members.id | 常驻成员；补人为 NULL |
 | member_name | TEXT | NOT NULL | 姓名快照（补人必须，正式/替补冗余存储便于展示） |
@@ -175,7 +186,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | schedule_id | INTEGER | NOT NULL, FK → schedules.id, UNIQUE | 所属赛程（1:1） |
 | data | TEXT (JSON) | NOT NULL | 排表数据（60 槽位） |
 | title_remark | TEXT | NULL, max 255 | 标题备注（排表页面顶部显示） |
@@ -205,7 +216,7 @@ JSON 结构示例：
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | schedule_id | INTEGER | NOT NULL, FK → schedules.id | 所属赛程 |
 | member_id | INTEGER | NULL, FK → members.id | 常驻成员；补人为 NULL |
 | member_name | TEXT | NOT NULL | 姓名快照 |
@@ -231,7 +242,7 @@ JSON 结构示例：
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | schedule_id | INTEGER | NOT NULL, FK → schedules.id | 所属赛程 |
 | round_no | INTEGER | NOT NULL, default 1 | 第几局（1~rounds）；历史数据归为第 1 局（迁移 f6a7b8c9d0e1） |
 | player_name | TEXT | NOT NULL | 玩家名字 |
@@ -262,7 +273,7 @@ JSON 结构示例：
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | schedule_id | INTEGER | NOT NULL, UNIQUE, FK → schedules.id | 所属赛程（1:1） |
 | data | TEXT (JSON) | NOT NULL, default `{}` | 分配方案 `{player_name: "category:team_index"}` |
 | updated_at | DATETIME | NOT NULL, default now, onupdate now | 最后更新时间 |
@@ -282,7 +293,7 @@ JSON 结构示例：
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | user_id | INTEGER | NULL | 操作账号 ID（匿名请求为空） |
 | username | STRING(64) | NULL, index | 操作账号名 |
 | role | STRING(16) | NULL | 角色（developer/admin/member） |
@@ -307,7 +318,7 @@ JSON 结构示例：
 
 | 字段 | 类型 | 约束 | 说明 |
 |------|------|------|------|
-| id | INTEGER | PK, AUTOINCREMENT | 主键 |
+| id | INTEGER | PK（自增 rowid，未启用 AUTOINCREMENT） | 主键 |
 | guild_id | INTEGER | NOT NULL, FK → guilds.id | 所属帮会（取认证上下文） |
 | member_id | INTEGER | NULL, FK → members.id | 目标常驻成员；成员删除后置空，防主键复用误关联 |
 | old_game_id | TEXT | NOT NULL, max 32 | 提交时从成员表读取的原 ID 快照 |
@@ -403,3 +414,4 @@ JSON 结构示例：
 | 2026-09-20 | v1.9 补充（无结构变更）：管理员直接改名在同一事务写入一条 approved 关联记录（提交/审核人=操作管理员，备注标注来源），§2.12 说明与生命周期规则同步 |
 | 2026-10-03 | v1.9 补记（**无结构变更，仅补齐文档**）：补登 **6 个已由迁移引入但未记录的列**——`guilds.icon_char`（g1h2i3j4k5l6）、`users.token_version`（h2i3j4k5l6m7）、`match_data.round_no`（f6a7b8c9d0e1）、`schedules.profession_config`（j4k5l6m7n8o9）、`recordings.note`（l6m7n8o9p0q1）、`attendance_records.remark`（n8o9p0q1r2s3）；并补 `match_data` 的 `round_no` 索引说明。来源：以 `backend/app/models/**` 与 `backend/alembic/versions/**` 为准逐列核对 |
 | 2026-10-03 | **v1.10**：补上「补人」部分唯一索引（迁移 `p0q1r2s3t4u5`，F-79）——`attendance_records` 增加 `(schedule_id, member_name) WHERE is_filler = 1`、`recordings` 增加 `(schedule_id, member_name, round_number) WHERE member_id IS NULL`，使 §2.6/§2.8 早已声明的补人唯一性**真正由数据库约束**（此前仅应用层查重，存在竞态）；表数不变（12 张） |
+| 2026-10-12 | **v1.10 更正与补记**（无结构变更）：①修正 §2.1–§2.12 中 11 张表的 `id` 错误标注「PK, AUTOINCREMENT」→「PK（自增 rowid，未启用 AUTOINCREMENT）」（users 保留原标注——实态仅其显式启用）；②§1.3 新增「主键与 ID 复用口径」——机制（新 id = 当前 max+1，删除当前最大 id 后复用）、2026-10-12 只读实测（真实库仅 users 含 `AUTOINCREMENT`；内存库复现复用）、既有防线与新增开发口径 |

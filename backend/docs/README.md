@@ -95,6 +95,7 @@
 - ✅ 成员详情接口（GET /members/{member_id}，require_admin；注册于 /export、/export-image、/profession-stats、/attendance-rate 等具体路径之后，防动态路由捕获 422）
 - ✅ 游戏 ID 改名申请 API（2026-09-20，新增 member_game_id_requests 表 + 迁移 o9p0q1r2s3t4）：候选检索（member）、提交（member，条件写入 + 部分唯一索引防并发重复）、成员历史（member/admin 分角色脱敏）、审核列表与审核（严格 admin，申请状态与 members.name 同事务原子提交）；成员直接改名（同一事务失效待审 + 自动记录 approved 关联，操作管理员为提交/审核人快照）/删除、账号删除、整帮会删除均同步维护关联
 - ✅ 个人战绩新旧 ID 关联（2026-09-20）：approved 申请作为已确认名称关系来源，输入任一端合并查询最近 10 场；可检测冲突（其他成员占用、他人批准记录重叠、失效引用、同局多名称/阵营）一律 409 并可退回精确查询；指标公式与单局排名口径不变
+- ✅ 成员档案 API（2026-10-12，`member_archive`）：`GET /members/{id}/attendance-history` / `recording-history` / `lineup-history` 三个只读端点（require_admin）；三档案按 `member_id` 关联天然跨改名；排表历史叠加「该场出勤库存在同 member_id」双条件过滤防主键复用误关联（与 `_purge_deleted_members` 同口径）；注册于 members.router 之前（防御性顺序）；测试 `backend/tests/test_member_archive.py` 9 用例；方案见 `memory-bank/design-member-archive.md`
 
 ### 进行中
 - 无
@@ -167,3 +168,4 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_gam
 | 2026-09-20 | 管理员直接改名自动记录关联：`game_id_request_lifecycle.record_admin_rename`（同一事务写入 approved 关联，提交/审核人=操作管理员快照，备注标注来源）；`member_service.update_member` 增加 operator 参数并接入；selfcheck_game_id_requests 扩展直接改名断言、selfcheck_my_stats_aliases 新增直接改名合并用例（13/5/10/1 项全部通过） |
 | 2026-10-02 | 新增 `POST /api/v1/auth/password`（自助改密：须提供当前口令，成功后 `token_version+1` 使所有旧令牌失效）；口令策略改为 ASVS 5.0.0 对齐（删除强制字母+数字，改长度+词表，见 `app/core/password_policy.py`）；审计中间件补充「携带凭证的读请求被拒（401/403）」留痕与控制字符转义 |
 | 2026-10-09 | 帮众禁用自助改密（产品决策）：`app/api/deps.py` 新增依赖 `require_non_member`——`POST /api/v1/auth/password` 仅开发者/管理员可用，member 返回 403（依赖先于 body 校验）；帮众密码由管理员在账号管理重置（既有 `PUT /config/accounts/{id}` 带 `password` 字段）；`test_api_endpoints.py` 调整专用账号（新增 a_selfadmin）并新增帮众 403 用例；全量 pytest **267 passed**、ruff 通过 |
+| 2026-10-12 | 新增成员档案 API（`member_archive`）：出勤明细 / 录屏记录（含未提交）/ 排表历史三个只读端点（require_admin，注册于 members.router 之前）；排表历史按「槽位命中 + 该场出勤库存在同 member_id」双条件过滤防主键复用误关联；新增 `schemas/member_archive.py` 与 `services/member_archive_service.py`；`tests/test_member_archive.py` 9 用例（含删除复用 id 的陈旧引用过滤、改名后按 member_id 仍可见、跨帮会 404、接线断言）；全量 pytest **276 passed + 89 subtests**、ruff check+format 通过 |

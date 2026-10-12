@@ -10,7 +10,7 @@ nsh-management/
 │   │   ├── core/              # 配置、数据库、安全（JWT/密码）、客户端 IP 解析（client_ip）
 │   │   ├── models/            # 12 张表 SQLAlchemy 模型（含 squad_adjustments/operation_logs/member_game_id_requests）
 │   │   ├── schemas/           # Pydantic 数据模型
-│   │   ├── services/          # 业务逻辑（account/auth/config/guild/game_id_request/game_id_request_lifecycle/lineup/lineup_attendance/log/match_data/match_data_aggregate/match_data_csv/match_data_stats/member/my_stats/player_identity/recording/attendance/schedule/squad_adjustment）
+│   │   ├── services/          # 业务逻辑（account/auth/config/guild/game_id_request/game_id_request_lifecycle/lineup/lineup_attendance/log/match_data/match_data_aggregate/match_data_csv/match_data_stats/member/member_archive/my_stats/player_identity/recording/attendance/schedule/squad_adjustment）
 │   │   ├── utils/             # 工具函数（attendance_import/excel_import/excel_export/image_export/constants/member_names/lineup_structure）
 │   │   ├── init_db.py         # 初始化默认帮会与账号（开发者/admin/member）
 │   │   └── main.py            # 应用入口（CORS/异常处理/AuthError锁定秒数）
@@ -38,7 +38,7 @@ nsh-management/
 │   ├── requirements-dev.txt    # 开发/CI 依赖（ruff、pytest、httpx2；含 PEP 263 编码声明）
 │   ├── pytest.ini             # pytest 配置（新用例 + 既有 selfcheck_*.py，内存库）
 │   ├── ruff.toml              # 后端静态检查配置（E4/E7/E9/F）
-│   ├── tests/                 # pytest 用例 **30** 个模块（conftest/support 之外；清单以 `git ls-files backend/tests/*.py` 为准——安全工具、弱密钥与启动门禁、权限矩阵、姓名规范化、口令哈希兼容与迁移、口令策略、健康检查与文档暴露面、告警策略与服务、审计拒绝、导出公式注入、图片导出、指标自检、**接口级端到端**、改名审核语义、日程规则、排表导入与结构、补人唯一性与成员导入规则、录屏审核状态、职业配置规则；2026-10-03 更正计数）
+│   ├── tests/                 # pytest 用例 **31** 个模块（conftest/support 之外；清单以 `git ls-files backend/tests/*.py` 为准——安全工具、弱密钥与启动门禁、权限矩阵、姓名规范化、口令哈希兼容与迁移、口令策略、健康检查与文档暴露面、告警策略与服务、审计拒绝、导出公式注入、图片导出、指标自检、**接口级端到端**、改名审核语义、日程规则、排表导入与结构、补人唯一性与成员导入规则、录屏审核状态、职业配置规则、成员档案查询；2026-10-12 复核计数）
 │   └── .venv/                 # 虚拟环境（本地目录，不入库）
 ├── frontend/                  # 前端项目（Vue3+TS+Vite）
 │   ├── src/
@@ -49,7 +49,7 @@ nsh-management/
 │   │   │   ├── guide/         # 使用指南（HelpGuide 顶栏入口 + GuideDialog 弹窗 + guideContent.ts 内容数据 + pageGuides/ 页面详解四组）
 │   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab+LineupOverviewPanel/LineupOverviewGroup/ImportHistoryDialog/MatchConfirmDialog）
 │   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/paretoChart/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/kdaScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/MatchReportDialog/reportData.ts/report（MatchReportPoster/PosterHeader/PosterOverview/PosterMvpKings/PosterRankings/PosterRounds/PosterSquads）/EChart/analysis.ts/chartTheme.ts）
-│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/MemberDetailHeader/ProfessionShortage/GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog + game-id-shared.css）
+│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/MemberDetailHeader/ProfessionShortage/GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog/MemberAttendanceHistory/MemberRecordingHistory/MemberLineupHistory + game-id-shared.css + member-archive-shared.css）
 │   │   │   ├── my-stats/      # 个人战绩（PlayerSearch/StatsOverview/StatsMatchTable/StatsRankingPosition/StatsTrendChart/StatsIdentityNotice）
 │   │   │   ├── recording/     # 录屏审核（RecordingTab+RecordingProgressBar/RecordingTablePanel/RecordingMobileList/recording-shared.css）
 │   │   │   └── schedules/     # 联赛日程（ScheduleCalendar）
@@ -58,7 +58,7 @@ nsh-management/
 │   │   ├── router/            # 路由与守卫
 │   │   ├── stores/            # Pinia（auth）
 │   │   ├── styles/            # 浅色雅金风主题（theme.css 令牌 / element-plus.css 组件 / index.css 入口）
-│   │   ├── types/             # TS 类型定义（attendance/auth/config/lineup/matchData/member/recording/schedule）
+│   │   ├── types/             # TS 类型定义（attendance/auth/config/lineup/matchData/member/memberArchive/recording/schedule）
 │   │   ├── utils/             # 工具函数（constants/profession/scheduleSort/attendance/passwordForm，含同名 *.spec.ts 单测）
 │   │   └── views/             # 页面
 │   │       ├── HomeView.vue           # 首页仪表盘（壳）+ home/ 卡片组件（HomeWelcome/HomeTodayBanner/HomeStatCards/HomeRecentSchedules/HomeProfessionOverview/HomeAttendanceRanking/HomeQuickActions + home-shared.css）
@@ -69,7 +69,7 @@ nsh-management/
 │   │       ├── member/MyStatsView.vue # 个人战绩（帮众/管理员；支持合并新旧 ID 与冲突退路）
 │   │       ├── member/GameIdChangeView.vue # 修改游戏 ID（帮众：提交改名申请 + 查看记录）
 │   │       ├── members/MemberListView.vue  # 常驻库
-│   │       ├── members/MemberDetailView.vue # 成员详情（管理员：信息卡+出勤率+历史战绩，复用 my-stats 组件）
+│   │       ├── members/MemberDetailView.vue # 成员详情（管理员：信息卡 + 档案 Tabs：历史战绩/出勤档案/录屏记录/排表历史）
 │   │       └── schedules/             # 联赛日程
 │   │           ├── ScheduleListView.vue      # 日程列表
 │   │           ├── ScheduleDetailView.vue    # 赛程详情（管理员：出勤/排表/录屏/分析；帮众：录屏/分析）
@@ -92,6 +92,7 @@ nsh-management/
 │   ├── database-design.md      # 数据库设计文档（v1.10）
 │   ├── design-document-v2.md   # 产品设计文档（当前主文档）
 │   ├── design-game-id-change.md # 游戏 ID 改名申请与战绩关联设计（已实施，待浏览器验收）
+│   ├── design-member-archive.md # 成员详情档案化设计（出勤明细 + 录屏记录 + 排表历史；评审中）
 │   ├── implementation-plan.md  # 实施方案文档
 │   ├── progress.md             # 本文档 - 代码结构与进度
 │   ├── security-review.md      # 安全审查文档
@@ -138,14 +139,14 @@ nsh-management/
 | 认证链路 | src/{api,stores,router} | Axios 封装、Pinia、路由守卫 | ✅ 已完成 |
 | 布局与登录 | src/{layouts,views} | 主布局（可折叠侧边栏）、登录页（锁定倒计时）、首页仪表盘 | ✅ 已完成 |
 | 帮众首页 | src/views/member-home | 战绩看板（统计卡/最近比赛/数据亮点（MVP/数据之王））+ 录屏待办状态条 + 快捷入口；帮众登录默认落点 | ✅ 已完成 |
-| 常驻库页面 | src/views/members | 列表/筛选/弹窗/Excel导入/出勤率/成员详情战绩页（复用 my-stats 组件）/改名审核 Tab（严格管理员） | ✅ 已完成 |
+| 常驻库页面 | src/views/members | 列表/筛选/弹窗/Excel导入/出勤率/成员详情（档案 Tabs：历史战绩/出勤档案/录屏记录/排表历史）/改名审核 Tab（严格管理员） | ✅ 已完成 |
 | 联赛日程页面 | src/views/schedules | 日历/创建弹窗/详情Tab/联赛总览 | ✅ 已完成 |
 | 出勤库页面 | src/components/attendance | 统计/导入成员/导入请假/替补/补人/状态/保存 | ✅ 已完成 |
 | 排表页面 | src/components/lineups | 候选池/拖拽编排/总览（圆点/全底色切换）/导出PNG/导入历史排表/串行保存与重载防覆盖 | ✅ 已完成（F04 交互待验收） |
 | 录屏审核页面 | src/components/recording | 列表/提交/审核/进度/按姓名搜索/链接脱敏 | ✅ 已完成 |
 | 数据分析页面 | src/components/match-data | CSV导入/8Tab可视化（总览/列表/排行榜/阵营对比/小队分析/职业分析/职业深度/综合评分）/16项衍生指标/指标说明/单场图文战报（PNG 导出）/ECharts图表（HTML tooltip 输出转义） | ✅ 已完成（F01 交互待验收） |
 | 系统配置页面 | src/views/config | 职业配置/账号管理/帮会管理（开发者） | ✅ 已完成 |
-| 个人战绩页面 | src/views/member + src/components/my-stats | 玩家搜索/单局明细/概览（按游戏 ID 聚合，支持合并经审核确认的新旧 ID；冲突时仅查此 ID）；管理员菜单入口开放，同组件复用于成员详情页 | ✅ 已完成 |
+| 个人战绩页面 | src/views/member + src/components/my-stats | 玩家搜索/单局明细/概览（按游戏 ID 聚合，支持合并经审核确认的新旧 ID；冲突时仅查此 ID）；管理员菜单入口开放，同组件复用于成员详情页；命中成员可跳转成员详情（仅管理员） | ✅ 已完成 |
 | 游戏 ID 改名页面 | src/views/member/GameIdChangeView + src/components/members（GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog） | 帮众提交改名申请与查看记录；管理员在常驻库「改名审核」Tab 通过/驳回 | ✅ 已完成 |
 | 系统日志页面 | src/views/logs | 审计日志筛选/分页/清理（开发者） | ✅ 已完成 |
 | 使用指南 | src/components/guide | 顶栏「?」入口 + 弹窗（快速上手/功能说明/常见问题/角色差异；内容按登录角色过滤；≤768px 全屏） | ✅ 已完成 |
@@ -158,7 +159,7 @@ nsh-management/
 | 基础框架 | app/core | 配置（JWT 10h）、异步数据库、JWT/密码 | ✅ 已完成 |
 | 数据模型 | app/models | 12 张表 SQLAlchemy 模型 + 16 个 Alembic 迁移 | ✅ 已完成 |
 | 认证模块 | app/api/v1/auth.py | 登录/登出/me + 登录限流（含未知账号锁定）+ 自助改密（仅开发者/管理员；帮众禁用，依赖 `require_non_member`） | ✅ 已完成 |
-| 常驻库 API | app/api/v1/members.py | CRUD/筛选/批量删/Excel导入/出勤率/职业统计/单成员详情 | ✅ 已完成 |
+| 常驻库 API | app/api/v1/members.py（成员档案见 member_archive.py） | CRUD/筛选/批量删/Excel导入/出勤率/职业统计/单成员详情 + 成员档案（出勤/录屏/排表历史） | ✅ 已完成 |
 | 联赛日程 API | app/api/v1/schedules.py | CRUD/时间范围/级联创建删除 | ✅ 已完成 |
 | 出勤库 API | app/api/v1/attendance.py | 导入成员/替补/补人/请假导入/状态/保存/职业切换 | ✅ 已完成 |
 | 排表 API | app/api/v1/lineups.py | 候选池/读写/保存校验/规范化/导入历史/备注 | ✅ 已完成 |
@@ -613,6 +614,10 @@ nsh-management/
 | 2026-10-09 | 浏览器缩放适配 P1 修复（用户指示：修复缩放审查 P1 三项；静态审查→代码修复，未开浏览器）：①**数据分析工具栏**（`MatchDataTab.vue`）——基础 `.toolbar` 加 `flex-wrap: wrap`（原仅 ≤768 生效；1366@150% 视口 911 时工具栏 ~670px 需求 vs 内容可用 ~611px，现放不下整组换行、不挤压）；②**联赛排表**（`LineupEditor.vue`）——工具栏同加 `flex-wrap` + `row-gap`（原 ~850px 需求）+ 新增缩放断点区：`≤1140px` 统计条 160→110px（1366@125%=1093 恢复单行）、`≤1100px` 攻击组 3 队/行→2 队/行（3×165px+2×12px=519px 最小宽在窄幅下超出队区，原触发 `.teams` 内部横向滚动）；③**弹窗固定宽**——`MetricsGuideDialog` 820px→`min(820px, 94vw)`（769–819px 视口原超宽且 flex 居中下左缘不可滚达）、`ImportHistoryDialog` 760px→`min(760px, 94vw)`（同款先例 GuideDialog/AttendanceTab）；④验证：prettier + eslint 通过、`vue-tsc + vite build` 通过（20.82s）、行数门禁 260 文件通过；⑤边界：未动 768 移动布局与 P2/P3 项；vitest 由用户执行（`npm run test`） | 数据分析、联赛排表、前端、文档 |
 | 2026-10-10 | 排表总览导出 PNG 精简（用户批注：不截入顶部「排表总览」标题/按钮行与底部人数统计）：①**实现**——`LineupOverviewPanel.vue` 的 html2canvas 调用新增 `onclone` 钩子，在**克隆文档**中移除 `.el-card__header`（标题/操作行）与 `.prof-stats`（职业分布/合计人数），克隆 iframe 重排后区域正确塌陷；**选 onclone 而非 `ignoreElements`**（后者只跳过渲染、保留占位会在图上留空白，见 ai-checklist 第 202 条）；实时界面不受影响（无闪动）；②**边界**——总备注横幅（title-remark-bar）与四组阵容保留；组件行数 297→300（prettier 排版后）满足 300 硬限；③**验证**——prettier --check / eslint 0 error / `vue-tsc + vite build` 通过 / `check_file_length` 260 文件通过；vitest 由用户执行（`npm run test`） | 排表、前端、文档 |
 | 2026-10-10 | 服务器 IP 脱敏修正（全面审计 P1-1；登记 F-123）：①**发现** ✗：2026-10-08 条目（本表 594 行）写入真实服务器 IP（`ubuntu@…` 形式）与另一台主机 IP——与「真实地址/账号不入库、文档一律占位符」纪律冲突（引入提交 `4bd3ef1`）；②**修复** ✓：两处替换为 `<SERVER_IP>` / `<OTHER_HOST_IP>` 占位符（历史条目按安全例外修正，其余文字逐字未动）；全仓 IPv4 复扫 0 真实残留（`127.0.0.1` / 内网网段等安全项除外）；③**登记**：`security-review.md` §14.9 追加复核段（扫描模式扩展 IPv4/域名）、合规计划 F-123、ai-checklist 第 203 条；④**待决策**：历史提交 `4bd3ef1` 仍含原 IP，是否重写 git 历史（破坏性操作）需用户授权 | 文档、安全 |
+| 2026-10-12 | 新增设计文档 `design-member-archive.md`（成员详情档案化设计：出勤明细 / 录屏记录 / 排表历史 + 个人战绩→成员详情跳转；**设计评审中，未进入编码**）：①三项用户决策（Tab 切换 / 录屏含未提交 / 全量历史前端分页）；②数据口径核实（三档案均按 member_id 关联、天然跨改名；出勤/录屏已受 F-78 防主键复用保护；排表 JSON 需查询层双条件过滤，主动清理列为待评审项 D4）；③接口（3 个 require_admin 只读端点）/ 前后端实现 / 测试 / 文档联动设计；architecture.md 同步三处登记（目录树 + §23 + 更新记录）；④门禁复跑：check_tree_coverage（memory-bank 文档 16/16 命中）与 check_doc_numbers PASS；check_doc_refs（报告型）新增 13 条「实施阶段待创建文件」引用属预期（缺失 52 → 65） | 文档、成员详情档案（设计） |
+| 2026-10-12 | 设计文档 `design-member-archive.md` 修订 v1.1（**用户评审 D4**）：排表 JSON 主动清理**不纳入**——排表历史保持原文不被主动改写（与「历史出勤/排表/录屏/比赛数据原文不变」既定原则一致），成员删除路径（`detach_member` 等）零改动；残余窗口（id 被复用且新成员进入旧场次出勤的窄场景）按既有惰性清理语义登记在案，功能正确性由 §3.2 查询层双条件过滤兜底；**实测复核**：服务器快照库真实迁移 DDL 无 `AUTOINCREMENT`，同 DDL 内存库复现「删除当前最大 id 的成员后，新增成员复用同一 id」（删非最大 id 则不复用；与 F-78 事实前提一致）；architecture.md §23 同步 | 文档、成员详情档案（设计） |
+| 2026-10-12 | **ID 复用问题记录**（用户指示）：①`database-design.md` 更正 11 张表 `id` 的错误「AUTOINCREMENT」标注——只读核对真实库（服务器快照 + 本地）实态：**仅 `users` 含该关键字**（`e5f6a7b8c9d0` 迁移重建 users 时手写 SQL 引入），其余表未启用 → id 可复用（新 id = 当前 max+1；内存库实测：删当前最大 id 后新增复用、对照删非最大 id 不复用）；②§1.3 新增「主键与 ID 复用口径」（机制 / 实测 / 既有防线 F-78 置空、排表惰性清理 + 档案查询层过滤（D4 裁决不主动清理）、赛程级联删除 F-75/77 / 新增表与引用方「级联删除 / 置空引用 / 读取校验」口径）；③`design-member-archive.md` §3.2 实测明细收敛为引用；④补充 `ai-checklist` 第 204 条（「N 张表」子串触发数字门禁误判的子集计数坑，实测触发并改措辞修复） | 数据库设计、文档、ai-checklist |
+| 2026-10-12 | **成员详情档案化实施交付**（用户指示：完成成员详情档案化；设计见 `design-member-archive.md` v1.2）：①后端新增 `api/v1/member_archive.py` + `services/member_archive_service.py` + `schemas/member_archive.py`（3 个 require_admin 只读端点：出勤明细/录屏记录含未提交/排表历史；排表历史叠加「该场出勤库存在同 member_id」双条件过滤防主键复用误关联），router.py 注册于 members 之前；②测试 `tests/test_member_archive.py` 9 用例（过滤/排序/改名可见/陈旧引用过滤/404/403/接线/空数据）；全量 **pytest 276 passed + 89 subtests**、ruff check+format 通过；③前端新增 types/memberArchive + api 3 函数 + 三档案组件（桌面表格 + ≤768px 卡片 + 前端分页 20/50/100）+ member-archive-shared.css；MemberDetailView 改档案 Tabs（lazy）；StatsIdentityNotice/MyStatsView 跳转入口（仅管理员）；④实现细化：分页口径由设计稿「10 条/页」调整为 el-pagination（20/50/100 默认 20，对齐录屏 Tab）；⑤附带修复 `LineupEditor.vue` 的 HEAD 既有 prettier 偏差（仅空白归一化，`git diff -w` 验证零内容变化）；⑥门禁：type-drift 19 对 / nullability / request-required / file-length（266 文件）/ api-paths --strict 全过；前端 format:check / eslint / vue-tsc+vite build 全绿（vitest 由用户执行）；⑦文档联动：design-document-v2 v2.9、stats-report-plan §6、backend/frontend docs、CHANGELOG、AGENTS、architecture 同步 | 成员详情档案、常驻库、前端、文档 |
 
 ---
 
