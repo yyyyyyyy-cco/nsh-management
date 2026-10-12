@@ -1,4 +1,4 @@
-<!-- 成员详情页（管理员）：成员信息卡 + 历史战绩（复用个人战绩组件，最近 10 场） -->
+<!-- 成员详情页（管理员）：成员信息卡 + 档案 Tabs（历史战绩 / 出勤档案 / 录屏记录 / 排表历史） -->
 <template>
   <div class="member-detail">
     <!-- 成员信息卡 -->
@@ -29,24 +29,36 @@
       <MemberDetailHeader v-else-if="member" :member="member" :attendance-rate="attendanceRate" />
     </el-card>
 
-    <!-- 历史战绩（默认合并已确认的新旧 ID；冲突时提示并跳转个人战绩精确查询） -->
-    <template v-if="member">
-      <template v-if="summary && records.length > 0">
-        <StatsIdentityNotice class="section" :identity="identity" />
-        <StatsOverview :summary="summary" class="section" />
-        <StatsTrendChart :records="records" class="section" />
-        <StatsRankingPosition :records="records" class="section" />
-        <StatsMatchTable :records="records" class="section" />
-      </template>
-      <el-card v-else-if="statsConflict" shadow="never" class="empty-card section">
-        <EmptyState variant="error" :description="statsConflict" :image-size="72">
-          <el-button type="primary" plain @click="goExactStats">前往个人战绩精确查询</el-button>
-        </EmptyState>
-      </el-card>
-      <el-card v-else shadow="never" class="empty-card section">
-        <EmptyState variant="chart" description="该成员暂无比赛数据" :image-size="72" />
-      </el-card>
-    </template>
+    <!-- 档案 Tabs：历史战绩（默认，原有组件区迁入；合并新旧 ID，冲突时提示并跳转精确查询）
+         + 三个档案 Tab（lazy 首次激活才挂载与请求） -->
+    <el-tabs v-if="member" v-model="activeTab" class="archive-tabs">
+      <el-tab-pane label="历史战绩" name="stats">
+        <template v-if="summary && records.length > 0">
+          <StatsIdentityNotice :identity="identity" />
+          <StatsOverview :summary="summary" class="section" />
+          <StatsTrendChart :records="records" class="section" />
+          <StatsRankingPosition :records="records" class="section" />
+          <StatsMatchTable :records="records" class="section" />
+        </template>
+        <el-card v-else-if="statsConflict" shadow="never" class="empty-card">
+          <EmptyState variant="error" :description="statsConflict" :image-size="72">
+            <el-button type="primary" plain @click="goExactStats">前往个人战绩精确查询</el-button>
+          </EmptyState>
+        </el-card>
+        <el-card v-else shadow="never" class="empty-card">
+          <EmptyState variant="chart" description="该成员暂无比赛数据" :image-size="72" />
+        </el-card>
+      </el-tab-pane>
+      <el-tab-pane label="出勤档案" name="attendance" lazy>
+        <MemberAttendanceHistory :member-id="memberId" />
+      </el-tab-pane>
+      <el-tab-pane label="录屏记录" name="recording" lazy>
+        <MemberRecordingHistory :member-id="memberId" />
+      </el-tab-pane>
+      <el-tab-pane label="排表历史" name="lineup" lazy>
+        <MemberLineupHistory :member-id="memberId" />
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 
@@ -59,7 +71,10 @@ import { getAttendanceRate, getMember } from '@/api/members'
 import { getMyStats } from '@/api/myStats'
 import type { MemberInfo } from '@/types/member'
 import type { PlayerIdentity, PlayerRecord, PlayerSummary } from '@/types/myStats'
+import MemberAttendanceHistory from '@/components/members/MemberAttendanceHistory.vue'
 import MemberDetailHeader from '@/components/members/MemberDetailHeader.vue'
+import MemberLineupHistory from '@/components/members/MemberLineupHistory.vue'
+import MemberRecordingHistory from '@/components/members/MemberRecordingHistory.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import StatsIdentityNotice from '@/components/my-stats/StatsIdentityNotice.vue'
 import StatsMatchTable from '@/components/my-stats/StatsMatchTable.vue'
@@ -70,6 +85,10 @@ import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 
 const route = useRoute()
 const router = useRouter()
+const memberId = Number(route.params.id)
+
+// 档案 Tab 切换（历史战绩默认；档案 Tab lazy 首次激活加载）
+const activeTab = ref('stats')
 
 // 初始即加载态，避免先渲染空态再切骨架的闪烁
 const loading = ref(true)
@@ -83,12 +102,11 @@ const identity = ref<PlayerIdentity | null>(null)
 const statsConflict = ref<string | null>(null)
 
 async function load() {
-  const id = Number(route.params.id)
   loading.value = true
   loadFailed.value = false
   statsConflict.value = null
   try {
-    const m = await getMember(id)
+    const m = await getMember(memberId)
     member.value = m
     // 战绩：默认合并已确认的新旧 ID；单独捕获冲突，避免与“成员不存在”共用错误态
     const [rates, stats] = await Promise.all([
@@ -103,7 +121,7 @@ async function load() {
         return null
       }),
     ])
-    attendanceRate.value = rates.find((r) => r.member_id === id)?.attendance_rate ?? null
+    attendanceRate.value = rates.find((r) => r.member_id === memberId)?.attendance_rate ?? null
     if (stats) {
       records.value = stats.records
       summary.value = stats.summary
@@ -167,6 +185,14 @@ onMounted(load)
 
 .section {
   margin-top: 16px;
+}
+
+.archive-tabs {
+  margin-top: 16px;
+}
+
+.archive-tabs :deep(.el-tabs__content) {
+  padding-top: 4px;
 }
 
 /* finesse · register=product · shell=member-detail: info-card（header + 骨架/错误态）+ my-stats 战绩区复用；≤768px 卡片内边距收紧 */

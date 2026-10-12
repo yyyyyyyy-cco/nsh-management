@@ -1,0 +1,104 @@
+/* 成员档案模块共享样式（三个档案组件经 scoped src 引入，规则按各自组件作用域隔离） */
+
+/* 顶部统计/工具行 */
+.arch-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.arch-stats {
+  font-size: 13px;
+  color: var(--ink-500);
+}
+
+.arch-stats b {
+  color: var(--ink-900);
+  font-weight: 600;
+}
+
+/* 空单元格占位 */
+.empty-cell {
+  color: var(--ink-300);
+}
+
+/* 链接（与录屏模块同款视觉） */
+.url-link {
+  color: var(--gold-700);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+  border-bottom: 1px dashed var(--gold-300);
+  padding-bottom: 1px;
+}
+
+.url-link:hover {
+  color: var(--gold-600);
+  border-bottom-style: solid;
+}
+
+.empty-url {
+  color: var(--ink-300);
+}
+
+/* 分页条：底部右对齐（与录屏 Tab 一致） */
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+/* ===== 移动端行列表（≤768px 时渲染） ===== */
+.arch-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 120px;
+  touch-action: manipulation;
+}
+
+.arch-row {
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--edge-faint);
+}
+
+.arch-row:last-child {
+  border-bottom: none;
+}
+
+.arch-row__main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.arch-row__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.arch-row__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 12.5px;
+  color: var(--ink-500);
+}
+
+.arch-row__remark {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--ink-500);
+  overflow-wrap: anywhere;
+}

@@ -1,6 +1,11 @@
 /** 常驻库成员接口。 */
 import http from './http'
 import type { MemberInfo } from '@/types/member'
+import type {
+  MemberAttendanceHistoryItem,
+  MemberLineupHistoryItem,
+  MemberRecordingHistoryItem,
+} from '@/types/memberArchive'
 
 export interface MemberStats {
   formal_count: number
@@ -94,4 +99,19 @@ export function getAttendanceRate(): Promise<AttendanceRateItem[]> {
 
 export function getProfessionStats(params?: { formal_only?: boolean }): Promise<ProfessionStat[]> {
   return http.get('/members/profession-stats', { params })
+}
+
+/** 成员档案：出勤明细（成员详情页「出勤档案」Tab）。 */
+export function getMemberAttendanceHistory(id: number): Promise<MemberAttendanceHistoryItem[]> {
+  return http.get(`/members/${id}/attendance-history`)
+}
+
+/** 成员档案：录屏记录（含未提交，成员详情页「录屏记录」Tab）。 */
+export function getMemberRecordingHistory(id: number): Promise<MemberRecordingHistoryItem[]> {
+  return http.get(`/members/${id}/recording-history`)
+}
+
+/** 成员档案：排表历史（成员详情页「排表历史」Tab）。 */
+export function getMemberLineupHistory(id: number): Promise<MemberLineupHistoryItem[]> {
+  return http.get(`/members/${id}/lineup-history`)
 }

@@ -35,6 +35,10 @@
           {{ alias }}{{ alias === identity.current_game_id ? '（当前）' : '' }}
         </el-tag>
       </div>
+      <!-- 成员详情入口（仅个人战绩页对管理员传入；成员详情页复用本组件时不传） -->
+      <div v-if="allowMemberLink && identity.member_id" class="identity__actions">
+        <el-button size="small" type="primary" plain @click="emit('view-member')">查看成员详情</el-button>
+      </div>
     </template>
 
     <!-- 原始按名查询 -->
@@ -59,9 +63,11 @@ defineProps<{
   identity: PlayerIdentity | null
   /** 合并冲突提示（非空时优先展示，并显示「仅查此 ID」入口） */
   conflict?: string | null
+  /** 允许跳转成员详情（仅个人战绩页传入管理员判断；成员详情页自身不传） */
+  allowMemberLink?: boolean
 }>()
 
-const emit = defineEmits<{ exact: [] }>()
+const emit = defineEmits<{ exact: []; 'view-member': [] }>()
 </script>
 
 <style scoped>

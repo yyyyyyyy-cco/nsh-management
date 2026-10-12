@@ -30,7 +30,14 @@
       </EmptyState>
 
       <!-- 名称归属/关联说明 -->
-      <StatsIdentityNotice v-else-if="identity" class="section" :identity="identity" @exact="useExactMode" />
+      <StatsIdentityNotice
+        v-else-if="identity"
+        class="section"
+        :identity="identity"
+        :allow-member-link="auth.isAdmin"
+        @exact="useExactMode"
+        @view-member="goMemberDetail"
+      />
 
       <!-- 空状态（已查询但无数据） -->
       <EmptyState
@@ -61,10 +68,11 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { TrendCharts } from '@element-plus/icons-vue'
 
 import { getMyStats } from '@/api/myStats'
+import { useAuthStore } from '@/stores/auth'
 import EmptyState from '@/components/common/EmptyState.vue'
 import type { PlayerIdentity, PlayerRecord, PlayerSummary } from '@/types/myStats'
 import PlayerSearch from '@/components/my-stats/PlayerSearch.vue'
@@ -77,6 +85,8 @@ import StatsRankingPosition from '@/components/my-stats/StatsRankingPosition.vue
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 
 const loading = ref(false)
 const showSkeleton = useSkeletonLoading(loading)
@@ -135,6 +145,13 @@ function onModeChange() {
 function useExactMode() {
   mergeAliases.value = false
   if (inputName.value.trim()) query(inputName.value.trim(), false)
+}
+
+/** 跳转成员详情（仅管理员可见入口；member_id 由名称归属解析提供）。 */
+function goMemberDetail() {
+  const id = identity.value?.member_id
+  if (!id) return
+  router.push({ name: 'member-detail', params: { id } })
 }
 
 onMounted(() => {
