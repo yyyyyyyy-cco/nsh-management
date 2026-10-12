@@ -13,6 +13,7 @@ from app.api.v1 import (
     lineups,
     logs,
     match_data,
+    member_archive,
     members,
     my_stats,
     recording,
@@ -22,9 +23,11 @@ from app.api.v1 import (
 
 api_router = APIRouter()
 api_router.include_router(auth.router)
-# 注意：game_id_requests 也挂在 /members 前缀下，必须先于 members.router 注册，
-# 否则 /members/game-id-options、/members/game-id-requests 会被 /members/{member_id} 捕获
+# 注意：game_id_requests 与 member_archive 均挂在 /members 前缀下，必须先于 members.router 注册——
+# 前者是单段路径（/members/game-id-options 等）会被 /members/{member_id} 捕获；后者为两段路径
+# （如 /{member_id}/attendance-history）实际不会被捕获，前置注册仅为防御性顺序（design-member-archive.md §4）
 api_router.include_router(game_id_requests.router)
+api_router.include_router(member_archive.router)
 api_router.include_router(members.router)
 api_router.include_router(schedules.router)
 api_router.include_router(attendance.router)

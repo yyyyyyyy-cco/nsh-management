@@ -20,6 +20,9 @@ PAIRS: dict[str, list[str]] = {
     "UserInfo": ["UserOut"],
     "LogStats": ["LogStatsOut"],
     "WeeklyErrorItem": ["WeeklyErrorItem"],
+    "MemberAttendanceHistoryItem": ["AttendanceHistoryOut"],
+    "MemberRecordingHistoryItem": ["RecordingHistoryOut"],
+    "MemberLineupHistoryItem": ["LineupHistoryOut"],
 }
 
 # 前端类型名 → 后端请求模型名（*Update 类全可选，配对后天然通过）
