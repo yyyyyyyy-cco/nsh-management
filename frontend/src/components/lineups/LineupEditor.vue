@@ -469,7 +469,7 @@ onMounted(reload)
   font-weight: 400;
 }
 
-                                                                                                                                                                                                                                                                                      /* 工具栏：允许换行（缩放适配——1366@150% 等窄桌面带操作按钮整组换行，不挤压/溢出） */
+/* 工具栏：允许换行（缩放适配——1366@150% 等窄桌面带操作按钮整组换行，不挤压/溢出） */
 .toolbar {
   display: flex;
   align-items: center;
