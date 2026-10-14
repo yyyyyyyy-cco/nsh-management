@@ -49,7 +49,7 @@ cd nsh-management
 cd backend
 python -c "import sys; assert sys.version_info[:2] in [(3,11),(3,12),(3,13)], sys.version"
 python -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 .venv\Scripts\alembic upgrade head
 
 # 3. 前端（Node 22+）

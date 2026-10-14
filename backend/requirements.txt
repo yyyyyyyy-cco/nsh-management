@@ -35,3 +35,4 @@ openpyxl==3.1.5
 #   本机实测（2026-10-03）：导入级兼容（`_load_font` 返回 FreeTypeFont）+ 后端全量 pytest 158 passed / 84 subtests exit 0。
 Pillow==12.3.0  # 常驻库导出图片
 alembic==1.13.1
+greenlet==3.5.6
