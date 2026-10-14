@@ -86,6 +86,9 @@
                   element.attendance_remark
                 }}</span>
                 <el-tag v-if="element.member_status === 'filler'" size="small" type="warning" effect="light">补</el-tag>
+                <el-tag v-else-if="element.member_status === 'deleted'" size="small" type="info" effect="light"
+                  >已删</el-tag
+                >
                 <el-tag v-else-if="element.member_status === 'substitute'" size="small" type="info" effect="plain"
                   >替</el-tag
                 >

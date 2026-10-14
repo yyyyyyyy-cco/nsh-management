@@ -15,6 +15,7 @@
         <span class="match-item__name">{{ m.member_name }}</span>
         <span class="match-item__prof" :style="{ color: profColor(m.profession) }">{{ m.profession }}</span>
         <el-tag v-if="m.member_status === 'filler'" size="small" type="warning" effect="light">补</el-tag>
+        <el-tag v-else-if="m.member_status === 'deleted'" size="small" type="info" effect="light">已删</el-tag>
         <el-tag v-else-if="m.member_status === 'substitute'" size="small" type="info" effect="plain">替补</el-tag>
       </div>
     </div>

@@ -119,6 +119,8 @@ class LineupImportTest(_Base):
 
     async def test_unselected_teams_are_untouched(self) -> None:
         await self._attend(self.dst.id, "在池甲", 31)
+        # 前置合法化：排表补人应与本场出勤库同名记录对应（无记录的幽灵槽位会被读取时清理）
+        await self._attend(self.dst.id, "目标队自有", None)
         await self._source_lineup([{"member_id": 31, "member_name": "在池甲"}])
         existing = empty_lineup_data()
         existing[1]["slots"][0] = {**existing[1]["slots"][0], "member_id": None, "member_name": "目标队自有"}

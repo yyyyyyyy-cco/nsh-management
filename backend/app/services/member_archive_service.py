@@ -3,8 +3,9 @@
 设计依据：memory-bank/design-member-archive.md §3（数据口径与正确性）：
 - 三档案均按 member_id 关联，改名只更新 members.name、历史行不变，天然跨改名正确；
 - 排表 JSON 槽位无数据库级清理，须叠加「该场出勤库存在同 member_id」双条件过滤，
-  与 lineup_service._purge_deleted_members 判定口径一致（防主键复用误关联，
-  见 database-design.md §1.3「主键与 ID 复用口径」）。
+  与 lineup_attendance.purge_stale_slots 的主判定同口径（防主键复用误关联；
+  该清理 2026-10-14 起另有快照语义——转补人形态的槽位 member_id 置空、姓名不在出勤库的补人槽位被清空，
+  均不再命中本过滤，见 database-design.md §1.3「主键与 ID 复用口径」）。
 """
 
 from sqlalchemy import select
@@ -70,7 +71,7 @@ async def lineup_history(session: AsyncSession, guild_id: int, member_id: int) -
     """该成员每场排表位置（按比赛时间倒序，同场唯一）。
 
     排表槽位 JSON 无数据库级清理：叠加「该场出勤库存在同 member_id」双条件过滤
-    （与 _purge_deleted_members 同口径），避免陈旧 member_id 被新成员复用后误算归属。
+    （与 purge_stale_slots 主判定同口径），避免陈旧 member_id 被新成员复用后误算归属。
     """
     await member_service.get_member(session, guild_id, member_id)
     rows = (

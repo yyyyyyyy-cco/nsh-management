@@ -52,14 +52,15 @@
 ### 3.2 防主键复用（F-78 口径）与排表 JSON 的查询层过滤
 
 - 成员删除时 `detach_member`（`game_id_request_lifecycle.py`）已置空 `MemberGameIdRequest` / `AttendanceRecord` / `Recording` 的 `member_id` → 出勤/录屏查询天然不误算（已受 F-78 保护）。
-- **排表 JSON 是例外**：`lineups.data` 槽位内的 `member_id` 没有数据库级清理；既有 `_purge_deleted_members`（`lineup_service.py`）是「读取该场排表时」的**惰性**清理。若成员删除后该场排表从未被再次打开，且新成员复用了 `members.id`（全库实态、复用机制与 2026-10-12 实测见 `database-design.md` §1.3「主键与 ID 复用口径」；与 F-78 同一事实前提），直接按 `member_id` 扫描 JSON 会把旧槽位计入新成员。
-- **查询层过滤（本设计必选）**：排表历史仅收录「槽位命中 `member_id`」且「该场出勤库存在同 `member_id` 行」的记录——与 `_purge_deleted_members` 判定口径完全一致（不区分正常/请假）。实现为对命中 `schedule_id` 集合的一次附加存在性查询，成本可忽略。
+- **排表 JSON 是例外**：`lineups.data` 槽位内的 `member_id` 没有数据库级清理；既有 `purge_stale_slots`（原 `_purge_deleted_members`，2026-10-14 迁入 `lineup_attendance.py`）是「读取该场排表时」的**惰性**清理。若成员删除后该场排表从未被再次打开，且新成员复用了 `members.id`（全库实态、复用机制与 2026-10-12 实测见 `database-design.md` §1.3「主键与 ID 复用口径」；与 F-78 同一事实前提），直接按 `member_id` 扫描 JSON 会把旧槽位计入新成员。
+- **2026-10-14 语义修订（两轮，用户确认）**：清理函数迁入 `lineup_attendance.py`（`purge_leave_members` / `purge_stale_slots`；`lineup_service` 临近行数硬限）。①**姓名快照兜底**——成员删除后 `detach_member` 会置空出勤记录的 `member_id`，若本场出勤库仍存在「`member_id` 为空且 `is_filler=False`」的同名快照，失效槽位不再清空，而是**转为补人形态保留**（`member_id` 置空、姓名与备注保留）：历史排表不再丢人，同时不残留悬空 `member_id`。②**补人/快照侧对称清理**——补人形态槽位的规范化姓名在本场出勤库**完全不存在**（对应出勤记录已被删除）时，槽位同步清空（保留备注）：与正式成员口径统一，消除「排表残留有名字、无职业的槽位」（槽位职业系读取时按姓名从出勤库动态填充，记录删除后即无来源，见 `api/v1/lineups.py`）。
+- **查询层过滤（本设计必选）**：排表历史仅收录「槽位命中 `member_id`」且「该场出勤库存在同 `member_id` 行」的记录——与 `purge_stale_slots` 的主判定（本场出勤库存在同 `member_id`）一致（不区分正常/请假；2026-10-14 起转为补人形态的槽位 `member_id` 为空，不再命中，也不误算）。实现为对命中 `schedule_id` 集合的一次附加存在性查询，成本可忽略。
 
 ### 3.3 D4 裁决：不做主动清理（用户评审，2026-10-12）
 
-- **裁决**：**不纳入**。排表 JSON 属历史原文，**不主动改写**（与既定原则「历史出勤/排表/录屏/比赛数据原文不变」一致，见 `design-document-v2.md` §4.1）；保留 `_purge_deleted_members` 的既有惰性行为，成员删除路径（`detach_member` / `delete_member` / `batch_delete`）**零改动**。
-- **残余窗口（登记在案）**：「成员删除 → 该场排表再次被打开」之间，旧槽位 `member_id` 仍留在 JSON；若该 id 被新成员复用**且**新成员出现在该旧场次的出勤库中，档案与该场排表编辑器会同样无法区分归属（与 `_purge_deleted_members` 同一盲区，属既有语义）。
-- **兜底**：本功能自身正确性不受影响——§3.2 查询层双条件过滤与之同口径（槽位命中且该场出勤库存在同 `member_id`）。
+- **裁决**：**不纳入**。排表 JSON 属历史原文，**不主动改写**（与既定原则「历史出勤/排表/录屏/比赛数据原文不变」一致，见 `design-document-v2.md` §4.1）；成员删除路径（`detach_member` / `delete_member` / `batch_delete`）**零改动**。读取时惰性清理保留，其判定语义 2026-10-14 修订（两轮：姓名快照兜底转补人形态 + 补人/快照侧对称清空，见 §3.2）。
+- **残余窗口（登记在案）**：「成员删除 → 该场排表再次被打开」之间，旧槽位 `member_id` 仍留在 JSON；若该 id 被新成员复用**且**新成员出现在该旧场次的出勤库中，档案会无法区分归属——该场景下 `purge_stale_slots` 因槽位 id 仍在出勤库而不进入兜底分支，同属既有盲区（2026-10-14 修订未覆盖此窄窗口）。
+- **兜底**：本功能自身正确性不受影响——§3.2 查询层双条件过滤以「该场出勤库存在同 `member_id`」为准（槽位命中且该场出勤库存在同 `member_id`）。
 - **备选（未提议）**：若未来希望从根上杜绝 id 复用，需迁移启用 `sqlite_autoincrement`（涉及全表重建），另行评估。
 
 ### 3.4 排表历史查询的性能取舍

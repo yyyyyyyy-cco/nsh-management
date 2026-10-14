@@ -67,7 +67,7 @@ operation_logs（操作审计日志）          guild_id（可空）
   - **实测（2026-10-12，只读）**：服务器快照库与本地库逐表 DDL 核对——仅 `users` 含 `AUTOINCREMENT`；同 DDL 内存库复现：`[1,2,3]` 删除 id=3（当前最大）后新增**复用 id=3**；对照删除非最大 id（1）后新增 → id=4 不复用；
   - **既有防线（防「新记录继承旧归属」，新增开发沿用本口径）**：
     - 成员删除：`detach_member` 置空 `member_game_id_requests` / `attendance_records` / `recordings` 的 `member_id`（F-78）；
-    - 排表 `lineups.data` JSON 槽位：读取时惰性清理（`_purge_deleted_members`）+ 成员档案查询层双条件过滤；**不主动清理**（2026-10-12 用户裁决；理由与残余窗口见 `design-member-archive.md` §3.2/§3.3）；
+    - 排表 `lineups.data` JSON 槽位：读取时惰性清理（`lineup_attendance.purge_stale_slots`；2026-10-14 定稿语义——正式槽位 id 失效时姓名快照在库则转补人形态保留，补人/快照槽位姓名在本场出勤库完全不存在则清空，见 `design-member-archive.md` §3.2）+ 成员档案查询层双条件过滤；**不主动清理**（2026-10-12 用户裁决；理由与残余窗口见 `design-member-archive.md` §3.2/§3.3）；
     - 赛程删除：全部子表级联删除（F-75/F-77），不留孤儿行被新赛程「继承」；
     - 删除路径必须「级联删除 / 置空引用 / 读取时按存在性校验」三选一——**纯 JSON 引用（如排表槽位）无法由数据库兜底，必须在读取层校验**；
   - **备选（未采纳，未评估）**：迁移启用 `sqlite_autoincrement`（涉及全表重建）可根除复用；如需处理另行评估。

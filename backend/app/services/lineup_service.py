@@ -6,93 +6,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.attendance import AttendanceRecord
 from app.models.lineup import Lineup
 from app.models.schedule import Schedule
-from app.services.lineup_attendance import LineupServiceError, candidate_pool, get_profession_map
+from app.services.lineup_attendance import (
+    LineupServiceError,
+    candidate_pool,
+    get_profession_map,
+    purge_leave_members,
+    purge_stale_slots,
+)
 from app.services.schedule_service import get_schedule
 from app.utils.lineup_structure import empty_lineup_data
 from app.utils.lineup_structure import validate_structure as _validate_structure
 from app.utils.member_names import normalize_member_name
 
-# 结构与唯一占位校验、标准空结构见 app/utils/lineup_structure.py（2026-10-03 抽出，见 F-85）：
-# 本服务此前已接近 300 行上限（.agent/rules/file-length-rule.md），抽到工具层后仍在此转出，
+# 结构与唯一占位校验、标准空结构见 app/utils/lineup_structure.py（2026-10-03 抽出，见 F-85）；
+# 请假/失效槽位清理见 app/services/lineup_attendance.py（2026-10-14 迁入，同上行数硬限），
 # 调用方（含 save_lineup / get_lineup 与测试）无需改动。
-
-
-async def _purge_leave_members(session: AsyncSession, lineup: Lineup, schedule_id: int) -> None:
-    """将出勤库中已请假成员从排表槽位清空（正式按 ID、补人按姓名匹配）。"""
-    leave_ids: set[int] = set()
-    leave_names: set[str] = set()
-    rows = (
-        await session.execute(
-            select(AttendanceRecord.member_id, AttendanceRecord.member_name, AttendanceRecord.is_filler).where(
-                AttendanceRecord.schedule_id == schedule_id,
-                AttendanceRecord.status == "leave",
-            )
-        )
-    ).all()
-    for mid, name, is_filler in rows:
-        if mid is not None:
-            leave_ids.add(mid)
-        elif is_filler:
-            leave_names.add(normalize_member_name(name))
-
-    if not leave_ids and not leave_names:
-        return
-
-    changed = False
-    new_data = []
-    for team in lineup.data:
-        slots = []
-        for slot in team["slots"]:
-            mid = slot.get("member_id")
-            name = normalize_member_name(slot.get("member_name"))
-            if mid is not None and mid in leave_ids:
-                changed = True
-                slot = {**slot, "member_id": None, "member_name": ""}
-            elif mid is None and name in leave_names:
-                changed = True
-                slot = {**slot, "member_name": ""}
-            slots.append(slot)
-        new_data.append({**team, "slots": slots})
-
-    if changed:
-        # JSON 列嵌套修改需整体替换才能触发变更检测
-        lineup.data = new_data
-        await session.commit()
-
-
-async def _purge_deleted_members(session: AsyncSession, lineup: Lineup, schedule_id: int) -> None:
-    """将本场出勤库中已不存在的成员从排表槽位清空（按 member_id 匹配）。"""
-    ids = {slot.get("member_id") for team in lineup.data for slot in team["slots"] if slot.get("member_id")}
-    if not ids:
-        return
-    valid_ids = set(
-        (
-            await session.execute(
-                select(AttendanceRecord.member_id).where(
-                    AttendanceRecord.schedule_id == schedule_id,
-                    AttendanceRecord.member_id.in_(ids),
-                )
-            )
-        ).scalars()
-    )
-    stale_ids = ids - valid_ids
-    if not stale_ids:
-        return
-
-    changed = False
-    new_data = []
-    for team in lineup.data:
-        slots = []
-        for slot in team["slots"]:
-            if slot.get("member_id") in stale_ids:
-                changed = True
-                slot = {**slot, "member_id": None, "member_name": ""}
-            slots.append(slot)
-        new_data.append({**team, "slots": slots})
-
-    if changed:
-        lineup.data = new_data
-        await session.commit()
 
 
 async def get_lineup(session: AsyncSession, guild_id: int, schedule_id: int) -> Lineup:
@@ -112,9 +40,9 @@ async def get_lineup(session: AsyncSession, guild_id: int, schedule_id: int) -> 
         await session.commit()
         await session.refresh(lineup)
     # 请假成员自动移出排表（出勤库状态变动后同步）
-    await _purge_leave_members(session, lineup, schedule_id)
-    # 出勤库中已不存在的成员自动移出排表
-    await _purge_deleted_members(session, lineup, schedule_id)
+    await purge_leave_members(session, lineup, schedule_id)
+    # 出勤库中已不存在的成员/补人自动移出排表（口径见 lineup_attendance.purge_stale_slots）
+    await purge_stale_slots(session, lineup, schedule_id)
     return lineup
 
 
