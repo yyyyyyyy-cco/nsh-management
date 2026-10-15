@@ -27,7 +27,23 @@ DOMAIN="<YOUR_DOMAIN>"
 # -----------------------------------------
 
 REMOTE_DIR="${REMOTE_DIR:-~/nsh-management}"
-SSH_KEY="${SSH_KEY:-$HOME/.ssh/id_rsa}"
+# SSH 私钥：优先用环境变量 SSH_KEY；未指定时按 ed25519 → rsa → ecdsa 顺序探测本机可用私钥。
+# 2026-10-15 修复：旧默认值写死 $HOME/.ssh/id_rsa，而现今机器普遍只生成 id_ed25519，
+# 导致脚本在第 1 步就报私钥不存在而中断（Windows 下还会因 ACL 过宽报 Bad permissions）。
+if [ -z "${SSH_KEY:-}" ]; then
+    for _key in "$HOME/.ssh/id_ed25519" "$HOME/.ssh/id_rsa" "$HOME/.ssh/id_ecdsa"; do
+        if [ -f "$_key" ]; then
+            SSH_KEY="$_key"
+            break
+        fi
+    done
+fi
+if [ ! -f "${SSH_KEY:-}" ]; then
+    echo "[错误] 未找到 SSH 私钥：请显式指定，例如 SSH_KEY=\"\$HOME/.ssh/id_ed25519\" ./deploy.sh" >&2
+    exit 1
+fi
+echo "[信息] 使用 SSH 私钥: ${SSH_KEY}"
+
 # 归档写在「被归档目录之外」：写在仓库根目录内时，tar 会读到自身创建文件引起的目录 mtime 变化，
 # 报 `file changed as we read it` 并以退出码 1 结束 → set -e 会直接中断本次部署（已实测复现）
 ARCHIVE_DIR="${TMPDIR:-/tmp}"

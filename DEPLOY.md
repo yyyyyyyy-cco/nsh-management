@@ -158,6 +158,17 @@ bash scripts/check-config-drift.sh /srv/nsh-management/docker-compose.yml ./dock
 > 按「备份（`*.bak-20260915`）→ 改文件 → 重建镜像 → 热重载」在服务器侧落地并验证；
 > 切换采用两阶段（内层先 80+443 双监听 → 边缘切 80 → 收尾删 443），配置切换零停机，
 > 仅容器重建瞬间有约 1 秒 502。
+>
+> 2026-10-15 同步记录（SPA「假 200」修复）：`frontend/nginx.conf` 在 `location /` 前新增两条探测路径
+> 404 规则（`location ~* ^/(wp-admin|wp-login|wp-content|wp-includes|phpmyadmin|\.env|\.git|\.svn|\.hg)`
+> 与 `location ~* \.php$`）。起因：`location /` 的 `try_files … /index.html` 是无差别兜底，使
+> `/wp-admin/install.php`、`/.env` 等**并不存在**的路径返回 **200 + index.html**（实测 72h 内 222 条），
+> 既让扫描器误判站点类型，也让审计/监控里的 200 失去意义。落地方式：备份
+> （`nginx.conf.bak-20261015-170845`）→ 改服务器文件 → 临时容器 `nginx -t` 预校验 →
+> `docker compose up -d --build`（仅 frontend 容器重建，停机约 1-3 秒）→ 验证：探测路径全 404、
+> `/` 与 SPA 路由 `/lineups`、静态资源均 200、`/.well-known/acme-challenge/` 不受影响
+> （规则只列具体路径，未用 `~ /\.` 通配）。仓库同名文件已同步为**同一内容**（两份哈希一致）；
+> 该文件仍在 `deploy.sh` 排除清单内，**只改本地仓库版本不会生效**，后续再改仍需重复本流程。
 
 **重要**：改动 `entrypoint.sh` / `Dockerfile` / `nginx.conf` 后必须
 `docker compose up -d --build` 重建对应镜像才生效（nginx.conf 随 frontend 镜像 COPY 进容器，
