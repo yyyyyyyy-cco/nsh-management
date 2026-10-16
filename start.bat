@@ -12,7 +12,7 @@ REM 切换时改下一行即可；副本文件由服务器快照拉取，勿在本地业务操作中依赖它回写生
 REM 仓库不含任何 .db：快照缺失时会自动回退 dev；快照由服务器导出后放入 backend\data\（见下行文件名）
 set "DB_MODE=prod"
 REM DB_MODE=prod 时使用的快照文件名（把服务器导出的快照放进 backend\data\ 并按实际名字改这里）
-set "PROD_SNAPSHOT=nsh-server-20261009.db"
+set "PROD_SNAPSHOT=nsh-server-20261015.db"
 
 set "DATABASE_URL="
 if /i "%DB_MODE%"=="prod" (
