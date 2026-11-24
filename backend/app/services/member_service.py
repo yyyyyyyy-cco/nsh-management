@@ -42,7 +42,12 @@ async def get_member(session: AsyncSession, guild_id: int, member_id: int) -> Me
 
 
 def apply_filters(
-    stmt: Select, guild_id: int, keyword: str | None, profession: str | None, status: str | None
+    stmt: Select,
+    guild_id: int,
+    keyword: str | None,
+    profession: str | None,
+    status: str | None,
+    statuses: list[str] | None = None,
 ) -> Select:
     stmt = stmt.where(Member.guild_id == guild_id)
     if keyword:
@@ -53,6 +58,10 @@ def apply_filters(
         if status not in MEMBER_STATUSES:
             raise MemberServiceError("无效的状态筛选值")
         stmt = stmt.where(Member.status == status)
+    elif statuses:
+        if any(item not in MEMBER_STATUSES for item in statuses):
+            raise MemberServiceError("无效的状态筛选值")
+        stmt = stmt.where(Member.status.in_(statuses))
     return stmt
 
 
@@ -69,31 +78,17 @@ async def list_members(
 ) -> tuple[list[Member], int, dict]:
     base = apply_filters(select(Member), guild_id, keyword, profession, status)
     total = (await session.execute(select(func.count()).select_from(base.subquery()))).scalar_one()
-    # 正式/替补人数（跟随当前筛选条件，供列表页统计展示）
+    # 三类状态按筛选结果分别计数；职业筛选下副职业命中的成员也按实际状态归类
     sub = base.subquery()
-    if profession:
-        # 职业筛选下的统计口径：主职业命中且本身为正式 → 正式；副职业命中或本身为替补 → 替补
-        formal_count = (
-            await session.execute(
-                select(func.count())
-                .select_from(sub)
-                .where(sub.c.main_profession == profession, sub.c.status == "formal")
-            )
-        ).scalar_one()
-        stats = {
-            "formal_count": int(formal_count),
-            "substitute_count": int(total) - int(formal_count),
-        }
-    else:
-        # 注意：必须引用子查询列 sub.c.status，若引用 ORM 列 Member.status 会令原始表加入 FROM 产生笛卡尔积
-        status_rows = (
-            await session.execute(select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status))
-        ).all()
-        status_counts: dict[str, int] = {str(s): int(c) for s, c in status_rows}
-        stats = {
-            "formal_count": int(status_counts.get("formal", 0)),
-            "substitute_count": int(status_counts.get("substitute", 0)),
-        }
+    status_rows = (
+        await session.execute(select(sub.c.status, func.count()).select_from(sub).group_by(sub.c.status))
+    ).all()
+    status_counts: dict[str, int] = {str(s): int(c) for s, c in status_rows}
+    stats = {
+        "formal_count": int(status_counts.get("formal", 0)),
+        "substitute_count": int(status_counts.get("substitute", 0)),
+        "external_count": int(status_counts.get("external", 0)),
+    }
     # 排序（白名单字段防注入）：指定字段时按 asc/desc，否则默认按创建时间倒序
     sortable: dict[str, Any] = {
         "name": Member.name,
@@ -119,9 +114,10 @@ async def export_members(
     status: str | None = None,
     sort_by: str | None = None,
     sort_order: str = "asc",
+    statuses: list[str] | None = None,
 ) -> list[Member]:
-    """导出用：按列表同款筛选与排序拉取全量成员（不分页）。"""
-    base = apply_filters(select(Member), guild_id, keyword, profession, status)
+    """导出用：按列表同款筛选与排序拉取全量成员（不分页）；statuses 支持多类型导出。"""
+    base = apply_filters(select(Member), guild_id, keyword, profession, status, statuses)
     sortable: dict[str, Any] = {
         "name": Member.name,
         "main_profession": Member.main_profession,

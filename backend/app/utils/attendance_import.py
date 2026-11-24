@@ -66,7 +66,7 @@ async def substitute_candidates(session: AsyncSession, guild_id: int, schedule_i
 
 
 async def all_member_candidates(session: AsyncSession, guild_id: int, schedule_id: int) -> list[Member]:
-    """常驻库所有成员（正式+替补），已导入本场的排除。"""
+    """常驻库所有成员（含编外），已导入本场的排除。"""
     await get_schedule(session, guild_id, schedule_id)
     imported_ids = await _imported_member_ids(session, schedule_id)
     all_members = list((await session.execute(select(Member).where(Member.guild_id == guild_id))).scalars().all())
@@ -74,7 +74,7 @@ async def all_member_candidates(session: AsyncSession, guild_id: int, schedule_i
 
 
 async def import_members(session: AsyncSession, guild_id: int, schedule_id: int, member_ids: list[int]) -> dict:
-    """导入选中的常驻库成员（正式/替补均可），已导入的跳过。"""
+    """导入选中的常驻库成员（不限制状态），已导入的跳过。"""
     await get_schedule(session, guild_id, schedule_id)
     imported_ids = await _imported_member_ids(session, schedule_id)
     members = list(

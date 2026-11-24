@@ -12,6 +12,7 @@ import {
   type MemberStats,
 } from '@/api/members'
 import type { MemberInfo } from '@/types/member'
+import { MEMBER_STATUSES } from '@/utils/constants'
 import { useSkeletonLoading } from '@/composables/useSkeletonLoading'
 import { useAuthStore } from '@/stores/auth'
 
@@ -20,7 +21,7 @@ export function useMemberList() {
   const showSkeleton = useSkeletonLoading(loading)
   const items = ref<MemberInfo[]>([])
   const total = ref(0)
-  const stats = ref<MemberStats>({ formal_count: 0, substitute_count: 0 })
+  const stats = ref<MemberStats>({ formal_count: 0, substitute_count: 0, external_count: 0 })
   const selectedIds = ref<number[]>([])
   const shortageRefreshKey = ref(0) // 成员数据变更（添加/导入/删除）后递增，驱动缺少职业组件刷新
   const exporting = ref(false)
@@ -61,29 +62,37 @@ export function useMemberList() {
     load()
   }
 
-  /** 一键导出：沿用当前筛选与排序（不含分页），浏览器直接下载 xlsx / png。 */
-  async function onExport(format: 'xlsx' | 'png') {
+  /** 一键导出：沿用关键词/职业/排序（不含分页），类型由导出弹窗多选。 */
+  async function onExport(format: 'xlsx' | 'png', statuses: string[]): Promise<boolean> {
     exporting.value = true
     // 请求前捕获帮会名，避免下载等待期间切换账号后误标来源。
     const guildName = (useAuthStore().user?.guild_name || '未命名帮会').replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
     try {
+      const allStatuses = statuses.length === MEMBER_STATUSES.length
       const params = {
         keyword: query.keyword,
         profession: query.profession,
-        status: query.status,
         sort_by: query.sort_by,
         sort_order: query.sort_order,
+        ...(allStatuses ? {} : { statuses: statuses.join(',') }),
       }
       const blob = format === 'xlsx' ? await exportMembers(params) : await exportMembersImage(params)
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       const tag = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      const typeTag = allStatuses
+        ? ''
+        : `_${MEMBER_STATUSES.filter((item) => statuses.includes(item.value))
+            .map((item) => item.label)
+            .join('_')}`
       link.href = url
-      link.download = `常驻库_${guildName}_${tag}.${format}`
+      link.download = `常驻库_${guildName}_${tag}${typeTag}.${format}`
       link.click()
       URL.revokeObjectURL(url)
+      return true
     } catch {
       ElMessage.error('导出失败，请稍后重试')
+      return false
     } finally {
       exporting.value = false
     }

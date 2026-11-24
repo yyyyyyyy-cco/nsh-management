@@ -10,6 +10,7 @@ import type {
 export interface MemberStats {
   formal_count: number
   substitute_count: number
+  external_count: number
 }
 
 export interface MemberPage {
@@ -33,6 +34,11 @@ export interface MemberQuery {
   status?: string
   sort_by?: string
   sort_order?: 'asc' | 'desc'
+}
+
+/** 导出参数：类型多选走 statuses（逗号分隔），不再使用列表的单状态筛选。 */
+export interface MemberExportParams extends Omit<MemberQuery, 'page' | 'page_size' | 'status'> {
+  statuses?: string
 }
 
 export interface AttendanceRateItem {
@@ -84,12 +90,12 @@ export function importMembers(file: File): Promise<ImportResult> {
 }
 
 /** 一键导出成员 Excel（与列表同款筛选/排序，不分页），返回二进制流。 */
-export async function exportMembers(params: MemberQuery): Promise<Blob> {
+export async function exportMembers(params: MemberExportParams): Promise<Blob> {
   return http.get('/members/export', { params, responseType: 'blob' })
 }
 
 /** 一键导出成员长图 PNG（按主职业分区），返回二进制流。 */
-export async function exportMembersImage(params: MemberQuery): Promise<Blob> {
+export async function exportMembersImage(params: MemberExportParams): Promise<Blob> {
   return http.get('/members/export-image', { params, responseType: 'blob' })
 }
 

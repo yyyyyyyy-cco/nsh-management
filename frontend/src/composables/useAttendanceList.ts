@@ -43,7 +43,7 @@ export function useAttendanceList(props: { scheduleId: number; schedule: Schedul
       if (professionFilter.value && r.profession !== professionFilter.value) return false
       if (statusFilter.value && r.status !== statusFilter.value) return false
       if (typeFilter.value) {
-        const type = r.is_filler ? 'filler' : r.member_status === 'substitute' ? 'substitute' : 'formal'
+        const type = r.is_filler ? 'filler' : r.member_status || 'formal'
         if (type !== typeFilter.value) return false
       }
       return !kw || r.member_name.toLowerCase().includes(kw)

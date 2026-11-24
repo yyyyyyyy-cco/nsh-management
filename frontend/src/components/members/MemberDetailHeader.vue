@@ -9,8 +9,8 @@
           {{ member.sub_profession }}
         </span>
       </span>
-      <el-tag class="dh-status" :type="member.status === 'formal' ? 'primary' : 'info'" effect="light" size="small">
-        {{ member.status === 'formal' ? '正式' : '替补' }}
+      <el-tag class="dh-status" :type="MEMBER_STATUS_TAG_TYPES[member.status]" effect="light" size="small">
+        {{ MEMBER_STATUS_LABELS[member.status] }}
       </el-tag>
       <span class="dh-rate">
         <span class="dh-rate-label">出勤率</span>
@@ -30,6 +30,7 @@
 
 <script setup lang="ts">
 import type { MemberInfo } from '@/types/member'
+import { MEMBER_STATUS_LABELS, MEMBER_STATUS_TAG_TYPES } from '@/utils/constants'
 import { profTagStyle } from '@/utils/profession'
 import { formatRatePercent, isLowAttendance } from '@/utils/attendance'
 

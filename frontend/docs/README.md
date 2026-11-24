@@ -64,8 +64,9 @@
 - ✅ 首页仪表盘（统计卡片、职业分布、最近赛程、快捷操作、出勤率排行（同率按正常次数）、录屏进度）
 - ✅ 构建验证（vue-tsc + vite build 通过）
 - ✅ 前后端联调（vite 代理 /api → 127.0.0.1:8000，认证链路冒烟通过）
-- ✅ 常驻库页面：列表（搜索/职业/状态筛选、分页、多选批量删除）
+- ✅ 常驻库页面：列表（搜索/职业/状态筛选，状态支持正式/替补/编外；分页、多选批量删除）
 - ✅ 添加/编辑弹窗、删除确认、Excel 导入弹窗（格式提示 + 结果反馈）
+- ✅ Excel/PNG 导出弹窗按类型多选（默认全选，至少一类；子集导出文件名带类型后缀）
 - ✅ 出勤率统计面板（低于 50% 标红预警；排序口径：同率按正常次数、无记录恒排最后，与首页出勤排行一致）
 - ✅ 管理员菜单与路由权限（帮众不可见常驻库）
 - ✅ 联赛日程页面：自研月历（月份切换、赛程卡片、结果着色）
@@ -224,3 +225,4 @@ npm --prefix frontend run build:only -- --emptyOutDir=false
 | 2026-10-10 | 排表总览导出 PNG 精简（用户批注：导出图不含顶部「排表总览」标题/按钮行与底部人数统计）：html2canvas 调用新增 `onclone` 钩子，在克隆文档中移除 `.el-card__header` 与 `.prof-stats`（实时界面不受影响、无闪动；组件 297→300 行）；vue-tsc + vite build、lint、prettier 通过（vitest 由用户执行） |
 | 2026-10-12 | 成员详情档案实施（用户指示：完成成员详情档案化；方案见 [design-member-archive.md](../../memory-bank/design-member-archive.md)）：①MemberDetailView 改「信息卡固定顶部 + 档案 Tabs（历史战绩/出勤档案/录屏记录/排表历史，lazy 首次激活加载）」；②新增 components/members/MemberAttendanceHistory / MemberRecordingHistory / MemberLineupHistory + member-archive-shared.css（桌面表格 + ≤768px 卡片列表 + el-pagination 20/50/100 默认 20）；③新增 types/memberArchive + api/members 三函数（attendance/recording/lineup-history）；④StatsIdentityNotice 新增 `allowMemberLink` prop 与 `view-member` 事件（仅 MyStatsView 对管理员传入），MyStatsView 命中成员可跳转成员详情；⑤附带 `LineupEditor.vue` 仅空白归一化（prettier，HEAD 既有偏差，`git diff -w` 验证零内容变化）；验证：format:check / eslint / vue-tsc + vite build 全绿（vitest 由用户执行） |
 | 2026-10-14 | 修复「删除帮众后历史排表丢人、候选池显示为补」的前端联动（用户报告）：①`types/lineup.ts` 的 `member_status` 联合类型新增 `'deleted'`；②排表候选池（`LineupEditor.vue`）与输入模式匹配弹窗（`MatchConfirmDialog.vue`）新增灰色「已删」标签（与真补人的「补」区分）；配合后端槽位转补人形态的修复——历史排表保留姓名与备注、候选池已删除成员不再显示为「补」；验证：prettier --check / eslint / vue-tsc 全绿（vitest 由用户执行） |
+| 2026-11-24 | 常驻库新增「编外」类型与导出类型多选：①`types/member.ts` 抽出 `MemberStatus` 三值联合，`constants.ts` 新增标签/标签色映射并替换页面二元三目；②统计条新增编外人数；③新增 `MemberExportDialog`（Excel/PNG 导出前多选类型，默认沿用列表状态筛选或全选，至少一类；子集导出文件名带类型后缀）；④出勤类型筛选与出勤/排表标签、改名候选类型同步扩展；验证：eslint / vitest 88 通过 / vue-tsc + vite build 通过 |

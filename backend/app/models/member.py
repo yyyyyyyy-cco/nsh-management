@@ -16,7 +16,8 @@ class Member(Base):
     name: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     main_profession: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
     sub_profession: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    status: Mapped[str] = mapped_column(String(16), default="formal", nullable=False, index=True)  # formal / substitute
+    # 状态：formal / substitute / external
+    status: Mapped[str] = mapped_column(String(16), default="formal", nullable=False, index=True)
     remark: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False

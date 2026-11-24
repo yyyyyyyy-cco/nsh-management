@@ -16,7 +16,7 @@
 
 | 模块 | 核心功能 | 后端入口 | 前端入口 |
 |------|---------|---------|---------|
-| 常驻库 | 成员 CRUD、Excel 批量导入、职业/状态筛选、出勤率统计 | `api/v1/members.py` | `views/members/MemberListView.vue` |
+| 常驻库 | 成员 CRUD、Excel 批量导入、职业/状态筛选（正式/替补/编外）、导出类型多选、出勤率统计 | `api/v1/members.py` | `views/members/MemberListView.vue` |
 | 出勤库 | 一键导入正式成员、批量导入请假、替补/补人管理、职业缺口分析 | `api/v1/attendance.py` | `components/attendance/AttendanceTab.vue` |
 | 联赛排表 | 拖拽编排 10 队 × 6 人、候选池按职业分组、导入历史排表、自动保存、导出 PNG | `api/v1/lineups.py` | `components/lineups/LineupEditor.vue` |
 | 录屏审核 | 多局链接提交、审核/批量审核、进度统计、链接脱敏 | `api/v1/recording.py` | `components/recording/RecordingTab.vue` |

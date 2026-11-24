@@ -13,8 +13,8 @@
         <span class="mr-name mr-name--link" title="查看成员详情" @click="$emit('detail', row)">
           {{ row.name }}<el-icon class="mr-link-icon"><ArrowRight /></el-icon>
         </span>
-        <el-tag class="mr-status" :type="row.status === 'formal' ? 'primary' : 'info'" effect="light" size="small">
-          {{ row.status === 'formal' ? '正式' : '替补' }}
+        <el-tag class="mr-status" :type="MEMBER_STATUS_TAG_TYPES[row.status]" effect="light" size="small">
+          {{ MEMBER_STATUS_LABELS[row.status] }}
         </el-tag>
       </div>
       <div v-if="row.remark" class="mr-remark">备注：{{ row.remark }}</div>
@@ -63,8 +63,8 @@
     </el-table-column>
     <el-table-column label="状态" min-width="80">
       <template #default="{ row }">
-        <el-tag :type="row.status === 'formal' ? 'primary' : 'info'" effect="light">
-          {{ row.status === 'formal' ? '正式' : '替补' }}
+        <el-tag :type="MEMBER_STATUS_TAG_TYPES[row.status]" effect="light">
+          {{ MEMBER_STATUS_LABELS[row.status] }}
         </el-tag>
       </template>
     </el-table-column>
@@ -93,6 +93,7 @@ import { ArrowRight } from '@element-plus/icons-vue'
 
 import type { MemberQuery } from '@/api/members'
 import type { MemberInfo } from '@/types/member'
+import { MEMBER_STATUS_LABELS, MEMBER_STATUS_TAG_TYPES } from '@/utils/constants'
 import { profTagStyle } from '@/utils/profession'
 import SkeletonTable from '@/components/common/SkeletonTable.vue'
 import EmptyState from '@/components/common/EmptyState.vue'

@@ -49,7 +49,7 @@ nsh-management/
 │   │   │   ├── guide/         # 使用指南（HelpGuide 顶栏入口 + GuideDialog 弹窗 + guideContent.ts 内容数据 + pageGuides/ 页面详解四组）
 │   │   │   ├── lineups/       # 排表（LineupEditor/LineupTab+LineupOverviewPanel/LineupOverviewGroup/ImportHistoryDialog/MatchConfirmDialog）
 │   │   │   ├── match-data/    # 数据分析（MatchDataTab/OverviewTab/IndicatorsTab/RankingTab+rankingCharts/paretoChart/CampCompareTab/SquadAnalysisTab+SquadOverviewPanel/SquadCardsGrid/SquadDetailDialog/SquadMembersTabs/SquadCompareDialog/SquadAssignDialog/squadCharts/squadCompareCharts/ProfessionTab/ProfessionDetailTab+ProfessionMetricTables/ProfessionCompareTable/professionDetailCharts/ScoreTab/PlayerAnalysis+playerScatterCharts/kdaScatterCharts/playerAggregateCharts/playerRadar/CampCompare/MetricsGuideDialog/MatchReportDialog/reportData.ts/report（MatchReportPoster/PosterHeader/PosterOverview/PosterMvpKings/PosterRankings/PosterRounds/PosterSquads）/EChart/analysis.ts/chartTheme.ts）
-│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/MemberDetailHeader/ProfessionShortage/GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog/MemberAttendanceHistory/MemberRecordingHistory/MemberLineupHistory + game-id-shared.css + member-archive-shared.css）
+│   │   │   ├── members/       # 常驻库（AttendanceRatePanel/MemberStatsBar/MemberToolbar/MemberTablePanel/MemberFormDialog/MemberImportDialog/MemberExportDialog/MemberDetailHeader/ProfessionShortage/GameIdRequestForm/GameIdRequestHistory/GameIdReviewPanel/GameIdReviewDialog/MemberAttendanceHistory/MemberRecordingHistory/MemberLineupHistory + game-id-shared.css + member-archive-shared.css）
 │   │   │   ├── my-stats/      # 个人战绩（PlayerSearch/StatsOverview/StatsMatchTable/StatsRankingPosition/StatsTrendChart/StatsIdentityNotice）
 │   │   │   ├── recording/     # 录屏审核（RecordingTab+RecordingProgressBar/RecordingTablePanel/RecordingMobileList/recording-shared.css）
 │   │   │   └── schedules/     # 联赛日程（ScheduleCalendar）
@@ -89,7 +89,7 @@ nsh-management/
 │   ├── architecture.md         # 文档索引
 │   ├── code-ui-audit-2026-09.md # 2026-09 代码审查与 UI 评估结论快照
 │   ├── data-analysis-complete.md # 数据分析模块完整方案
-│   ├── database-design.md      # 数据库设计文档（v1.10）
+│   ├── database-design.md      # 数据库设计文档（v1.11）
 │   ├── design-document-v2.md   # 产品设计文档（当前主文档）
 │   ├── design-game-id-change.md # 游戏 ID 改名申请与战绩关联设计（已实施，待浏览器验收）
 │   ├── design-member-archive.md # 成员详情档案化设计（出勤明细 + 录屏记录 + 排表历史；评审中）
@@ -139,7 +139,7 @@ nsh-management/
 | 认证链路 | src/{api,stores,router} | Axios 封装、Pinia、路由守卫 | ✅ 已完成 |
 | 布局与登录 | src/{layouts,views} | 主布局（可折叠侧边栏）、登录页（锁定倒计时）、首页仪表盘 | ✅ 已完成 |
 | 帮众首页 | src/views/member-home | 战绩看板（统计卡/最近比赛/数据亮点（MVP/数据之王））+ 录屏待办状态条 + 快捷入口；帮众登录默认落点 | ✅ 已完成 |
-| 常驻库页面 | src/views/members | 列表/筛选/弹窗/Excel导入/出勤率/成员详情（档案 Tabs：历史战绩/出勤档案/录屏记录/排表历史）/改名审核 Tab（严格管理员） | ✅ 已完成 |
+| 常驻库页面 | src/views/members | 列表/筛选（正式/替补/编外）/弹窗/Excel导入/导出类型多选（Excel/PNG）/出勤率/成员详情（档案 Tabs：历史战绩/出勤档案/录屏记录/排表历史）/改名审核 Tab（严格管理员） | ✅ 已完成 |
 | 联赛日程页面 | src/views/schedules | 日历/创建弹窗/详情Tab/联赛总览 | ✅ 已完成 |
 | 出勤库页面 | src/components/attendance | 统计/导入成员/导入请假/替补/补人/状态/保存 | ✅ 已完成 |
 | 排表页面 | src/components/lineups | 候选池/拖拽编排/总览（圆点/全底色切换）/导出PNG/导入历史排表/串行保存与重载防覆盖 | ✅ 已完成（F04 交互待验收） |
@@ -159,7 +159,7 @@ nsh-management/
 | 基础框架 | app/core | 配置（JWT 10h）、异步数据库、JWT/密码 | ✅ 已完成 |
 | 数据模型 | app/models | 12 张表 SQLAlchemy 模型 + 16 个 Alembic 迁移 | ✅ 已完成 |
 | 认证模块 | app/api/v1/auth.py | 登录/登出/me + 登录限流（含未知账号锁定）+ 自助改密（仅开发者/管理员；帮众禁用，依赖 `require_non_member`） | ✅ 已完成 |
-| 常驻库 API | app/api/v1/members.py（成员档案见 member_archive.py） | CRUD/筛选/批量删/Excel导入/出勤率/职业统计/单成员详情 + 成员档案（出勤/录屏/排表历史） | ✅ 已完成 |
+| 常驻库 API | app/api/v1/members.py（成员档案见 member_archive.py） | CRUD/筛选/批量删/Excel导入/多状态导出（Excel/PNG）/出勤率/职业统计/单成员详情 + 成员档案（出勤/录屏/排表历史） | ✅ 已完成 |
 | 联赛日程 API | app/api/v1/schedules.py | CRUD/时间范围/级联创建删除 | ✅ 已完成 |
 | 出勤库 API | app/api/v1/attendance.py | 导入成员/替补/补人/请假导入/状态/保存/职业切换 | ✅ 已完成 |
 | 排表 API | app/api/v1/lineups.py | 候选池/读写/保存校验/规范化/导入历史/备注 | ✅ 已完成 |
@@ -623,6 +623,7 @@ nsh-management/
 | 2026-10-15 | **线上服务巡检 + SPA「假 200」修复 + deploy.sh 私钥探测修复**（用户指示：巡检 nsh 服务、修复探测路径返回 200、并修部署脚本）：①**巡检（只读）**——`<SERVER_IP>` / `<YOUR_DOMAIN>`：backend/frontend 容器 Up 30h、重启 0、backend healthy、内存 105MiB/512MiB；`/api/v1/health` 200、无 token 访问 `/api/v1/members` 401、登录限流生效；库 `quick_check ok`、14 表（members 70 / attendance_records 1467 / match_data 4440 / recordings 2345 / operation_logs 618）；每日 03:30 备份正常（`backup-databases.sh` 用 SQLite `.backup` API，WAL 下一致）；证书 31 天 + `certbot.timer` 活跃；②**版本一致性**——容器内 `backend/app/main.py`、`frontend/package.json`、`CHANGELOG.md` 哈希与本地 HEAD `1e49302` 完全一致（`docker-compose.yml` 为服务器本地定制，按 DEPLOY §三 单独维护）；③**「假 200」修复**——`frontend/nginx.conf` 的 `location / { try_files … /index.html; }` 是无差别兜底，`/wp-admin/install.php`、`/.env` 等不存在路径也返回 200 + index.html（实测 72h 内 222 条）→ 在 `location /` 前新增 `location ~* ^/(wp-admin\|wp-login\|wp-content\|wp-includes\|phpmyadmin\|\.env\|\.git\|\.svn\|\.hg) { return 404; }` 与 `location ~* \.php$ { return 404; }`（刻意不用 `~ /\.` 通配以免误伤 `/.well-known/acme-challenge/`）；**服务器与仓库两份同步为同一内容**（该文件在 `deploy.sh` 排除清单内，只改本地版不会生效）→ 临时容器 `nginx -t` 预校验 → `docker compose up -d --build`（仅 frontend 容器重建，停机约 1-3 秒）→ 验证：探测路径全 404、`/` + SPA 路由 `/lineups` + 静态资源 200；④**deploy.sh 修复**（`deploy.sh.example` 模板同步）——`SSH_KEY` 旧默认值写死 `$HOME/.ssh/id_rsa`，而本机仅有 `id_ed25519` → 脚本第 1 步必然失败；改为「环境变量优先 → ed25519/rsa/ecdsa 顺序探测 → 找不到即报错退出 1」并打印实际使用的私钥；`bash -n` + 三段隔离测试（正常解析 / 缺失非零退出 / 显式覆盖优先）通过；⑤**文档联动**：`DEPLOY.md` §三 新增 2026-10-15 同步记录、`ai-checklist.md` 新增 207/208 | 部署、前端配置、文档 |
 | 2026-10-15 | **本地测试数据源接入：拉取服务器库快照**（用户指示：把服务器数据库拉到本地并接入以便测试）：①**快照方式**——容器内用 SQLite `.backup` API 做一致性快照（WAL 模式下不可 `cp`）→ `docker cp` → 下载；`integrity_check ok`、13 业务表 + `sqlite_sequence`、`alembic_version=p0q1r2s3t4u5` 与本地 `alembic heads` **一致**；行数与拉取时刻的线上实时库逐项核对一致（members 70 / attendance_records 1467 / match_data 4440）✓；②**落位与接线**——按 README §本地开发补充 约定存入 `backend/data/nsh-server-20261015.db`（`.gitignore` 的 `*.db` + `data/` 已覆盖，不入库），`start.bat` 的 `PROD_SNAPSHOT` 由 `nsh-server-20261009.db`（该文件并不存在，此前一直静默回退 dev 库）改为实际文件名；`DB_MODE` 本就是默认 `prod`（其分支已跳过 `init_db`，故快照内**不存在** dev 默认账号，登录须用生产账号）；③**schema 等价性证明**——快照与本地迁移产物（`backend/data/nsh.db`，同日迁移）逐表、逐列、逐索引比对：13 表 / 119 列 / **0 差异** ✓；④**数据特征观察（刻意未改动数据）**——`PRAGMA foreign_key_check` 报 548 条悬空：`recordings` 353 行、`attendance_records` 195 行指向已删除成员 id（`typeof` 全为 integer，已排除类型不匹配造成的假阳性），另 `attendance_records` 有 205 行 `member_id` 为 NULL（F-78 置空机制生效的正面证据）；与应用既有「陈旧引用过滤」口径一致，不影响本地测试，为保持与生产一致**不修数据**；⑤**过程缺陷（如实记录，教训入 ai-checklist 209）**——首次改 `start.bat` 采用 GBK「解码→改字符串→重编码」往返，中文注释与文案被静默替换为 `?`（字节数 3461→3268）；靠「等长替换却字节数变化」发现，用 `git checkout -- start.bat` 从 HEAD 恢复（本会话开始时工作区干净，HEAD 即原始版本）后改为**字节级替换**，最终与 HEAD 相比仅 1 行改动、恰 2 字节差异 ✓ | 本地环境、部署、文档 |
 | 2026-11-24 | **重新拉取服务器库快照并接入本地**（用户指示：把服务器数据库复制下来并链接到本地项目）：①**快照**——容器内 SQLite `.backup` API 一致性导出（WAL 下不可 `cp`）→ `docker cp` → scp；`quick_check=ok`、`alembic_version=p0q1r2s3t4u5`；行数与导出时刻一致（members 139 / attendance_records 2644 / match_data 7920 / schedules 40 / recordings 4035 / operation_logs 3553），本地与服务器 sha256 一致（`1f57579d…`）；②**接线**——存入 `backend/data/nsh-server-20261124.db`（`.gitignore` 的 `*.db` + `data/` 覆盖，不入库），`start.bat` 的 `PROD_SNAPSHOT` 由 `nsh-server-20261015.db`（文件已不存在、此前静默回退 dev 库）改为实际文件名；采用**字节级替换**（3461→3461 字节、`git diff --numstat` 为 1/1、GBK 校验通过），未走「解码→重编码」；`DB_MODE` 维持 `prod`，启动跳过 `init_db`，登录用生产账号；③**清理**——服务器 `~/nsh-server-20261124.db` 临时副本已删除（`~/backups` 每日备份仍在） | 本地环境 |
+| 2026-11-24 | 常驻库新增「编外」成员类型（`external`）与导出类型多选（用户需求，四项口径经确认）：①后端状态常量/模型/校验扩展三值，列表统计新增 `external_count` 且职业筛选按实际状态计数；②Excel/PNG 导出支持 `statuses` 多选，状态标签与排序按正式→替补→编外，PNG 增加「（编外）」角标与分区统计；③Excel 导入识别编外并更新模板；④前端新增 `MemberExportDialog`，状态标签/标签色集中映射并覆盖常驻库/出勤/排表/改名类型；⑤编外不参与一键导入正式与替补候选，可在「导入成员」手动导入；新增后端外部状态用例、前端常量断言；验证：后端全量 pytest + ruff check/format 通过，前端 eslint / vitest 88 / vue-tsc + vite build 通过 | 常驻库、出勤、排表、导出 |
 
 ---
 

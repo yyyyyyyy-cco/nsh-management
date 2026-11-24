@@ -1,8 +1,9 @@
 # 帮会管理系统 - 数据库设计
 
-> 版本：v1.10
-> 更新日期：2026-10-12
+> 版本：v1.11
+> 更新日期：2026-11-24
 > 依据：design-document-v2.md（产品设计 v2）、tech-stack.md（技术栈）、design-game-id-change.md（改名申请与战绩关联）
+> v1.11 变更：`members.status` 新增 `external`（编外）枚举值；无表结构变更。
 
 ## 1. 设计总览
 
@@ -132,7 +133,7 @@ operation_logs（操作审计日志）          guild_id（可空）
 | name | TEXT | NOT NULL | 姓名 |
 | main_profession | TEXT | NOT NULL | 主职业 |
 | sub_profession | TEXT | NULL | 副职业（可选） |
-| status | TEXT | NOT NULL, default 'formal' | `formal` 正式 / `substitute` 替补 |
+| status | TEXT | NOT NULL, default 'formal' | `formal` 正式 / `substitute` 替补 / `external` 编外（v1.11 新增枚举，无表结构变更） |
 | remark | TEXT | NULL | 备注 |
 | created_at | DATETIME | NOT NULL, default now | 创建时间 |
 

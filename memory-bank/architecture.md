@@ -68,7 +68,7 @@ nsh-management/
 
 ### 2. 数据库设计文档
 - **路径**：`memory-bank/database-design.md`
-- **作用**：定义全部数据表结构（12 表，含 squad_adjustments、operation_logs、member_game_id_requests）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.10（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计、游戏 ID 修改申请、补人部分唯一索引）
+- **作用**：定义全部数据表结构（12 表，含 squad_adjustments、operation_logs、member_game_id_requests）、字段约束、索引、JSON存储结构及关键业务规则落表方案；当前版本 v1.11（含 developer 角色、plain_password、remark、title_remark、groups_remark、分析调整、操作审计、游戏 ID 修改申请、补人部分唯一索引、编外成员枚举）
 - **更新时机**：表结构变更、业务规则调整时更新
 
 ### 3. 技术栈文档

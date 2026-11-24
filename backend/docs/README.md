@@ -9,7 +9,7 @@
 - 多帮会数据隔离（guild_id），每个帮会一个管理员账号 + 一个帮众共享账号
 - JWT 认证 + 角色权限控制（developer/admin/member）
 - 登录限流（5 次失败锁定 5 分钟）
-- 全部业务规则按 database-design.md v1.10 落表
+- 全部业务规则按 database-design.md v1.11 落表
 
 ### 用户场景
 - 开发者：创建帮会、派发账号、删除帮会、全局管理
@@ -22,7 +22,7 @@
 - [x] 后端项目初始化、目录结构搭建（P0）
 - [x] 依赖安装（FastAPI、SQLAlchemy、Pydantic、JWT、Alembic 等）（P0）
 - [x] 数据库配置（异步连接、Session 管理）（P0）
-- [x] 数据模型定义（12 张表，见 database-design.md v1.10）（P0）
+- [x] 数据模型定义（12 张表，见 database-design.md v1.11）（P0）
 - [x] Pydantic Schema 定义（P0）
 - [x] 全局异常处理、CORS 配置（P0）
 - [x] 认证模块：登录/登出/获取用户信息 + 登录限流（含未知账号锁定）（P0）
@@ -40,7 +40,7 @@
 - [x] Docker 部署（Dockerfile、docker-compose、deploy.sh、entrypoint.sh）（P2）
 
 ### 依赖关系
-- 依赖 database-design.md v1.10（表结构）
+- 依赖 database-design.md v1.11（表结构）
 - 依赖 tech-stack.md（技术选型、requirements.txt）
 - 认证模块是其他所有 API 的前置（依赖注入校验 Token）
 - 排表/录屏/分析依赖赛程模块的级联创建
@@ -61,8 +61,9 @@
 - ✅ 认证模块（登录/登出/me + 5 次失败锁定 5 分钟 + 未知账号锁定 + 锁定倒计时 remaining_seconds）
 - ✅ 开发者角色（developer，不绑定帮会，可创建帮会/派发账号/删除帮会）
 - ✅ 默认数据初始化（app/init_db.py：仅空库时初始化，admin/member 密码可选）
-- ✅ 常驻库 API：CRUD、搜索（姓名）、职业/状态筛选、分页、批量删除、职业统计聚合
-- ✅ 常驻库 Excel 导入（openpyxl 后端解析、表头自动识别、重名跳过、非法职业跳过）
+- ✅ 常驻库 API：CRUD、搜索（姓名）、职业/状态筛选（正式/替补/编外）、分页、批量删除、职业统计聚合
+- ✅ 常驻库 Excel 导入（openpyxl 后端解析、表头自动识别、重名跳过、非法职业跳过、编外回导）
+- ✅ 常驻库导出类型多选（Excel/PNG；statuses 筛选，状态标签与正式→替补→编外排序）
 - ✅ 出勤率统计接口（正常/(正常+请假)，无记录为 null）
 - ✅ 联赛日程 API：CRUD + 时间范围查询（日历用）
 - ✅ 级联创建（建赛程自动建空排表，验证 lineups=1）
@@ -171,3 +172,4 @@ backend\.venv\Scripts\python.exe -X utf8 backend\scripts\selfcheck_migration_gam
 | 2026-10-12 | 新增成员档案 API（`member_archive`）：出勤明细 / 录屏记录（含未提交）/ 排表历史三个只读端点（require_admin，注册于 members.router 之前）；排表历史按「槽位命中 + 该场出勤库存在同 member_id」双条件过滤防主键复用误关联；新增 `schemas/member_archive.py` 与 `services/member_archive_service.py`；`tests/test_member_archive.py` 9 用例（含删除复用 id 的陈旧引用过滤、改名后按 member_id 仍可见、跨帮会 404、接线断言）；全量 pytest **276 passed + 89 subtests**、ruff check+format 通过 |
 | 2026-10-14 | 修复「删除帮众后历史排表丢人、候选池显示为补」（用户报告）：①`lineup_service._purge_deleted_members` 增加姓名快照兜底——本场存在「member_id 为空且 is_filler=False」的同名出勤记录时，失效槽位转补人形态保留（member_id 置空、姓名与备注保留），无快照仍照旧清空；②`lineup_attendance.candidate_pool` 三档判定（is_filler → filler；非补人但关联不到成员 → deleted；其余取常驻库状态）；③新增 `tests/test_lineup_member_delete.py` 4 用例（槽位保留并落库 / 候选池 deleted 标记 / 无快照仍清空 / 删除后可直接重新保存）；全量 pytest 通过、ruff 通过 |
 | 2026-10-14 | 出勤记录删除后排表幽灵槽位同步清理（用户报告「删出勤库记录后排表残留无职业槽位」；方案经用户确认）：①两个槽位清理函数（请假/失效）自 `lineup_service` 迁入 `lineup_attendance.py`（`purge_leave_members` / `purge_stale_slots`；原服务临近 300 行硬限，语义同属「出勤→排表」联动）；②`purge_stale_slots` 扩展——补人/快照槽位（member_id 为空且有姓名）的规范化姓名在本场出勤库完全不存在 → 清空（保留备注），与正式成员口径统一；③`test_lineup_member_delete.py` +2 用例、`test_lineup_import.py` 未选中队伍用例前置合法化（补人需在本场出勤库有同名记录）；全量 pytest 通过、ruff 通过 |
+| 2026-11-24 | 常驻库新增「编外」成员类型（`external`）：①`MEMBER_STATUSES` 与 Excel/PNG 状态标签/排序扩展为三类；②统计接口新增 `external_count`，职业筛选下按实际状态计数；③`/members/export` 与 `/members/export-image` 新增 `statuses` 逗号分隔多选参数；④Excel 导入识别「编外 / external / 2」，模板增加编外示例；⑤出勤快捷入口保持仅正式/替补，编外经「导入成员」手动加入；新增 `tests/test_member_external_status.py`、扩展 image 导出用例；全量 pytest 与 ruff 通过 |

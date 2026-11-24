@@ -60,10 +60,11 @@ const professionFilter = defineModel<string>('professionFilter', { required: tru
 const typeFilter = defineModel<string>('typeFilter', { required: true })
 const statusFilter = defineModel<string>('statusFilter', { required: true })
 
-/** 类型筛选选项：正式 / 替补 / 补人。 */
+/** 类型筛选选项：正式 / 替补 / 编外 / 补人。 */
 const TYPE_OPTIONS = [
   { value: 'formal', label: '正式' },
   { value: 'substitute', label: '替补' },
+  { value: 'external', label: '编外' },
   { value: 'filler', label: '补人' },
 ]
 

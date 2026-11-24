@@ -32,6 +32,13 @@ from app.utils.image_export import MAX_IMAGE_MEMBERS, draw_members_png
 router = APIRouter(prefix="/members", tags=["常驻库"])
 
 
+def _status_list(raw: str | None) -> list[str] | None:
+    """逗号分隔的类型筛选（导出多选）；空串或直接调用时的 Query 默认对象等同未指定。"""
+    if not isinstance(raw, str) or not raw:
+        return None
+    return [part.strip() for part in raw.split(",") if part.strip()]
+
+
 @router.get("", response_model=MemberPage)
 async def list_members(
     page: int = Query(1, ge=1),
@@ -121,6 +128,7 @@ async def export_members(
     keyword: str | None = Query(None, max_length=32),
     profession: str | None = Query(None, max_length=16),
     status: str | None = Query(None, max_length=16),
+    statuses: str | None = Query(None, max_length=64, description="导出类型，逗号分隔：formal,substitute,external"),
     sort_by: str | None = Query(None, description="排序字段：name/main_profession/status/created_at"),
     sort_order: str = Query("asc", pattern="^(asc|desc)$"),
     current_user: User = Depends(require_admin),
@@ -128,7 +136,14 @@ async def export_members(
 ) -> Response:
     """一键导出成员 Excel（支持与列表一致的筛选/排序，不分页）。"""
     members = await member_service.export_members(
-        session, current_user.guild_id, keyword, profession, status, sort_by, sort_order
+        session,
+        current_user.guild_id,
+        keyword,
+        profession,
+        status,
+        sort_by,
+        sort_order,
+        statuses=_status_list(statuses),
     )
     # openpyxl 写表为 CPU 密集操作，放线程池避免阻塞事件循环
     guild = await session.get(Guild, current_user.guild_id) if current_user.guild_id else None
@@ -150,11 +165,19 @@ async def export_image(
     keyword: str | None = Query(None, max_length=32),
     profession: str | None = Query(None, max_length=16),
     status: str | None = Query(None, max_length=16),
+    statuses: str | None = Query(None, max_length=64, description="导出类型，逗号分隔：formal,substitute,external"),
     current_user: User = Depends(require_admin),
     session: AsyncSession = Depends(get_db),
 ) -> Response:
     """一键导出成员长图 PNG（按主职业分区，供群内分享）。"""
-    members = await member_service.export_members(session, current_user.guild_id, keyword, profession, status)
+    members = await member_service.export_members(
+        session,
+        current_user.guild_id,
+        keyword,
+        profession,
+        status,
+        statuses=_status_list(statuses),
+    )
     # 长图内存占用随人数线性增长，超过上限提示分批导出（先于绘制拦截，避免内存峰值）
     if len(members) > MAX_IMAGE_MEMBERS:
         raise HTTPException(
