@@ -17,6 +17,7 @@
         <el-tag v-if="m.member_status === 'filler'" size="small" type="warning" effect="light">补</el-tag>
         <el-tag v-else-if="m.member_status === 'deleted'" size="small" type="info" effect="light">已删</el-tag>
         <el-tag v-else-if="m.member_status === 'substitute'" size="small" type="info" effect="plain">替补</el-tag>
+        <el-tag v-else-if="m.member_status === 'external'" size="small" type="warning" effect="plain">编外</el-tag>
       </div>
     </div>
     <template #footer>

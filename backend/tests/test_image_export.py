@@ -7,7 +7,7 @@
 
 - 输出是**合法 PNG**，画布**宽度固定**，**高度**按实现公式随「职业区块数」与「行数」线性增长；
 - **空列表不抛异常**（0 人时高度公式含 `(groups-1)*SECTION_GAP` 负项，属易错点）；
-- 「正式 / 替补 / 副职业」三类文本分支都能跑通；
+- 「正式 / 替补 / 编外 / 副职业」四类文本分支都能跑通；
 - **人数上限守卫**：超过 `MAX_IMAGE_MEMBERS` 抛 `ValueError` 且消息含上限数字。
 
 **字体**：`_load_font` 有完整回退链（Linux `wqy` → Windows 雅黑 → glob → `ImageFont.load_default()`），
@@ -105,6 +105,12 @@ class ImageExportTest(unittest.TestCase):
         data = draw_members_png(members, guild_name="帮会")
         self.assertTrue(data.startswith(PNG_MAGIC))
         self.assertEqual(_size_of(members)[1], _expected_height({"铁衣": 2, "九灵": 1}))
+
+    def test_external_status_branch(self) -> None:
+        members = [_Member("编外甲", status="external"), _Member("正式乙", status="formal")]
+        data = draw_members_png(members, guild_name="帮会")
+        self.assertTrue(data.startswith(PNG_MAGIC))
+        self.assertEqual(_size_of(members)[1], _expected_height({"铁衣": 2}))
 
     def test_member_limit_guard(self) -> None:
         over = [_Member(f"m{i}") for i in range(image_export.MAX_IMAGE_MEMBERS + 1)]

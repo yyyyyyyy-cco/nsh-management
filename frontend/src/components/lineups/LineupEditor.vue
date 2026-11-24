@@ -92,6 +92,9 @@
                 <el-tag v-else-if="element.member_status === 'substitute'" size="small" type="info" effect="plain"
                   >替</el-tag
                 >
+                <el-tag v-else-if="element.member_status === 'external'" size="small" type="warning" effect="plain"
+                  >编外</el-tag
+                >
               </div>
             </template>
           </draggable>

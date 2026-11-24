@@ -9,7 +9,7 @@ class MemberBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=32)
     main_profession: str = Field(..., max_length=16)
     sub_profession: str | None = Field(None, max_length=16)
-    status: str = "formal"  # formal / substitute
+    status: str = "formal"  # formal / substitute / external
     remark: str | None = Field(None, max_length=255)
 
 
@@ -36,6 +36,7 @@ class MemberOut(MemberBase):
 class MemberStats(BaseModel):
     formal_count: int
     substitute_count: int
+    external_count: int
 
 
 class MemberPage(BaseModel):

@@ -1,4 +1,4 @@
-"""Excel 成员导出：按主职业分 Sheet，组内正式在前、替补在后，与导入模板表头一致。"""
+"""Excel 成员导出：按主职业分 Sheet，组内按正式→替补→编外排序，与导入模板表头一致。"""
 
 from __future__ import annotations
 
@@ -10,14 +10,13 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from app.utils.constants import PROFESSIONS
+from app.utils.constants import MEMBER_STATUS_LABELS, MEMBER_STATUS_ORDER, PROFESSIONS
 
 if TYPE_CHECKING:  # 仅用于类型标注：本模块是**纯格式化工具**，运行时不需要 ORM（便于独立测试）
     from app.models.member import Member
 
 # 表头与 excel_import 的表头识别一一对应，确保导出文件可直接回导
 HEADERS = ["姓名", "主职业", "副职业", "状态", "备注"]
-STATUS_LABELS = {"formal": "正式", "substitute": "替补"}
 COL_WIDTHS = [14, 14, 14, 10, 30]
 
 # Sheet 名中的 Excel 非法字符（职业名为固定中文，正常不会命中，兜底防御）
@@ -43,7 +42,7 @@ def _text_cell(sheet, row: int, column: int, value: object):
 
 def _group_members(members: list[Member]) -> list[tuple[str, list[Member]]]:
     """按主职业分组：Sheet 顺序按 PROFESSIONS 常量，未知职业兜底到最后；
-    组内正式在前、替补在后，同状态按姓名排序。"""
+    组内按正式→替补→编外排序，同状态按姓名排序。"""
     buckets: dict[str, list[Member]] = {}
     for member in members:
         buckets.setdefault(member.main_profession, []).append(member)
@@ -57,7 +56,7 @@ def _group_members(members: list[Member]) -> list[tuple[str, list[Member]]]:
 
     result = []
     for profession, group in ordered:
-        group.sort(key=lambda m: (m.status != "formal", m.name))
+        group.sort(key=lambda m: (MEMBER_STATUS_ORDER.get(m.status, 9), m.name))
         result.append((profession, group))
     return result
 
@@ -86,7 +85,7 @@ def _write_group(sheet, members: list[Member], guild_name: str | None, guild_id:
         _text_cell(sheet, row, 1, member.name)
         _text_cell(sheet, row, 2, member.main_profession)
         _text_cell(sheet, row, 3, member.sub_profession or "")
-        _text_cell(sheet, row, 4, STATUS_LABELS.get(member.status, member.status))
+        _text_cell(sheet, row, 4, MEMBER_STATUS_LABELS.get(member.status, member.status))
         _text_cell(sheet, row, 5, member.remark or "")
 
     sheet.freeze_panes = "A3"  # 冻结来源与表头两行

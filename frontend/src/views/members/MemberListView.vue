@@ -12,7 +12,7 @@
             @search="handleSearch"
             @create="openForm()"
             @import="importVisible = true"
-            @export="onExport"
+            @export="openExport"
             @batch-delete="onBatchDelete"
           />
           <MemberTablePanel
@@ -44,6 +44,13 @@
 
     <MemberFormDialog v-model="formVisible" :member="editingMember" @success="load" />
     <MemberImportDialog v-model="importVisible" @success="load" />
+    <MemberExportDialog
+      v-model="exportVisible"
+      :format="exportFormat"
+      :default-statuses="defaultExportStatuses"
+      :loading="exporting"
+      @confirm="confirmExport"
+    />
   </div>
 </template>
 
@@ -52,10 +59,12 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { MEMBER_STATUSES } from '@/utils/constants'
 import { useMemberList } from '@/composables/useMemberList'
 import type { MemberInfo } from '@/types/member'
 import AttendanceRatePanel from '@/components/members/AttendanceRatePanel.vue'
 import GameIdReviewPanel from '@/components/members/GameIdReviewPanel.vue'
+import MemberExportDialog from '@/components/members/MemberExportDialog.vue'
 import MemberFormDialog from '@/components/members/MemberFormDialog.vue'
 import MemberImportDialog from '@/components/members/MemberImportDialog.vue'
 import MemberStatsBar from '@/components/members/MemberStatsBar.vue'
@@ -119,6 +128,24 @@ const onMqChange = (e: MediaQueryListEvent) => {
 const formVisible = ref(false)
 const importVisible = ref(false)
 const editingMember = ref<MemberInfo | null>(null)
+const exportVisible = ref(false)
+const exportFormat = ref<'xlsx' | 'png'>('xlsx')
+
+// 导出类型默认值：列表已按状态筛选时沿用该类型，否则全选
+const defaultExportStatuses = computed(() => {
+  const current = query.status
+  if (current && MEMBER_STATUSES.some((item) => item.value === current)) return [current]
+  return MEMBER_STATUSES.map((item) => item.value)
+})
+
+function openExport(format: 'xlsx' | 'png') {
+  exportFormat.value = format
+  exportVisible.value = true
+}
+
+async function confirmExport(statuses: string[]) {
+  if (await onExport(exportFormat.value, statuses)) exportVisible.value = false
+}
 
 function openForm(member: MemberInfo | null = null) {
   editingMember.value = member

@@ -7,7 +7,7 @@ export interface GameIdOption {
   id: number
   name: string
   main_profession: string
-  status: 'formal' | 'substitute'
+  status: 'formal' | 'substitute' | 'external'
 }
 
 export interface GameIdOptionPage {

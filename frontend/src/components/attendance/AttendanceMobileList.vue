@@ -13,6 +13,7 @@
         <span class="ar-name">{{ row.member_name }}</span>
         <el-tag v-if="row.is_filler" type="warning" effect="light" size="small">补人</el-tag>
         <el-tag v-else-if="row.member_status === 'substitute'" type="info" effect="plain" size="small">替补</el-tag>
+        <el-tag v-else-if="row.member_status === 'external'" type="warning" effect="plain" size="small">编外</el-tag>
         <el-tag v-else type="primary" effect="plain" size="small">正式</el-tag>
         <el-switch
           class="ar-switch"

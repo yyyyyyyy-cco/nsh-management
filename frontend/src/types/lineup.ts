@@ -27,7 +27,7 @@ export interface LineupCandidate {
   member_id: number | null
   member_name: string
   profession: string
-  member_status: 'formal' | 'substitute' | 'filler' | 'deleted'
+  member_status: 'formal' | 'substitute' | 'external' | 'filler' | 'deleted'
   attendance_remark: string | null
 }
 

@@ -1,7 +1,7 @@
 <template>
   <el-dialog v-model="visible" title="Excel 导入成员" width="520px" destroy-on-close append-to-body>
     <el-alert type="info" :closable="false" class="tip">
-      表头格式：姓名、主职业、副职业（可选）、状态（正式/替补）、备注（可选）。重名成员自动跳过。
+      表头格式：姓名、主职业、副职业（可选）、状态（正式/替补/编外）、备注（可选）。重名成员自动跳过。
     </el-alert>
     <el-upload
       drag

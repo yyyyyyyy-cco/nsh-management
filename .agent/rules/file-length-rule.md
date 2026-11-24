@@ -78,7 +78,7 @@ utils/
 | `frontend/src/components/match-data/reportData.ts` | 327 | 战报数据组装同一数据流（我方判定 / 总览 / MVP / 榜单 / 逐局 / 小队聚合共用指标记录与排表、分析调整副本） |
 | `frontend/src/components/lineups/ImportHistoryDialog.vue` | 310 | 导入历史排表两步流程（选赛程 → 按小队多选）一体化 |
 | `frontend/src/components/match-data/OverviewTab.vue` | 301 | 单场比赛数据总览面板（统计卡 / 占比条 / 阵营卡 / 图表区同源） |
-| `backend/app/api/v1/members.py` | 188 | 单资源薄路由（CRUD + 导入导出端点声明同质） |
+| `backend/app/api/v1/members.py` | 229 | 单资源薄路由（CRUD + 导入导出端点声明同质） |
 | `backend/app/api/v1/attendance.py` | 173 | 单资源薄路由（列表操作 + 导入端点声明同质） |
 | `scripts/check_doc_numbers.py` | 211 | 检查脚本：单一关注点（与主体、其它检查项互不依赖），拆分会引入跨模块状态转发 |
 | `scripts/check_doc_refs.py` | 230 | 检查脚本：单一关注点（与主体、其它检查项互不依赖），拆分会引入跨模块状态转发 |

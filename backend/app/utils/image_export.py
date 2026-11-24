@@ -11,6 +11,7 @@ from math import ceil
 from PIL import Image, ImageDraw, ImageFont
 
 from app.models.member import Member
+from app.utils.constants import MEMBER_STATUS_ORDER
 
 # 画布与布局常量
 WIDTH = 960
@@ -35,6 +36,8 @@ INK = (43, 38, 32)
 INK_SOFT = (138, 131, 120)
 WHITE = (255, 255, 255)
 LINE = (230, 223, 206)
+STATUS_SUFFIX = {"substitute": "（替）", "external": "（编外）"}
+STATUS_COLORS = {"formal": INK, "substitute": INK_SOFT, "external": GOLD}
 
 _FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",  # 容器：fonts-wqy-microhei
@@ -70,9 +73,9 @@ def draw_members_png(members: list[Member], guild_name: str | None = None) -> by
     buckets: dict[str, list[Member]] = {}
     for member in members:
         buckets.setdefault(member.main_profession, []).append(member)
-    # 组内正式在前、替补在后，同状态按姓名；区块按人数多的职业在前
+    # 组内按正式→替补→编外、同状态按姓名；区块按人数多的职业在前
     groups = sorted(
-        ((p, sorted(g, key=lambda m: (m.status != "formal", m.name))) for p, g in buckets.items()),
+        ((p, sorted(g, key=lambda m: (MEMBER_STATUS_ORDER.get(m.status, 9), m.name))) for p, g in buckets.items()),
         key=lambda kv: -len(kv[1]),
     )
 
@@ -104,8 +107,10 @@ def draw_members_png(members: list[Member], guild_name: str | None = None) -> by
     y = HEADER_H
     for profession, group in groups:
         formal = sum(1 for m in group if m.status == "formal")
+        substitute = sum(1 for m in group if m.status == "substitute")
+        external = sum(1 for m in group if m.status == "external")
         draw.text((PADDING, y + 6), profession, font=section_font, fill=GOLD)
-        count_text = f"{len(group)} 人（正式 {formal} / 替补 {len(group) - formal}）"
+        count_text = f"{len(group)} 人（正式 {formal} / 替补 {substitute} / 编外 {external}）"
         cw = draw.textlength(count_text, font=sub_font)
         draw.text((WIDTH - PADDING - cw, y + 12), count_text, font=sub_font, fill=INK_SOFT)
         y += SECTION_TITLE_H
@@ -115,10 +120,9 @@ def draw_members_png(members: list[Member], guild_name: str | None = None) -> by
             row = index // COLUMNS
             x = PADDING + col * CELL_W
             cy = y + row * CELL_H
-            is_formal = member.status == "formal"
             draw.rectangle([x, cy, x + CELL_W - 8, cy + CELL_H - 8], fill=WHITE, outline=LINE)
-            name_color = INK if is_formal else INK_SOFT
-            name = member.name if is_formal else f"{member.name}（替）"
+            name_color = STATUS_COLORS.get(member.status, INK_SOFT)
+            name = f"{member.name}{STATUS_SUFFIX.get(member.status, '')}"
             draw.text((x + 10, cy + 6), name, font=name_font, fill=name_color)
             if member.sub_profession:
                 sub_text = f"副：{member.sub_profession}"

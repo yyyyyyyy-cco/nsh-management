@@ -40,7 +40,22 @@ export const PROF_ORDER: readonly string[] = [
 export const MEMBER_STATUSES = [
   { value: 'formal', label: '正式' },
   { value: 'substitute', label: '替补' },
+  { value: 'external', label: '编外' },
 ] as const
+
+export type MemberStatusTagType = 'primary' | 'success' | 'warning' | 'info' | 'danger'
+
+export const MEMBER_STATUS_LABELS: Record<string, string> = {
+  formal: '正式',
+  substitute: '替补',
+  external: '编外',
+}
+
+export const MEMBER_STATUS_TAG_TYPES: Record<string, MemberStatusTagType> = {
+  formal: 'primary',
+  substitute: 'info',
+  external: 'warning',
+}
 
 /** 比赛结果。 */
 export const SCHEDULE_RESULTS = [

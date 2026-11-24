@@ -40,6 +40,7 @@ import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 
 import { createMember, updateMember } from '@/api/members'
 import { MEMBER_STATUSES, PROFESSIONS } from '@/utils/constants'
+import type { MemberStatus } from '@/types/member'
 import { profColor } from '@/utils/profession'
 
 const props = defineProps<{ modelValue: boolean; member: unknown }>()
@@ -58,7 +59,7 @@ const form = reactive({
   name: '',
   main_profession: '',
   sub_profession: undefined as string | undefined,
-  status: 'formal' as 'formal' | 'substitute',
+  status: 'formal' as MemberStatus,
   remark: '',
 })
 
@@ -81,7 +82,7 @@ watch(
     form.name = member?.name || ''
     form.main_profession = member?.main_profession || ''
     form.sub_profession = member?.sub_profession || undefined
-    form.status = (member?.status as 'formal' | 'substitute') || 'formal'
+    form.status = (member?.status as MemberStatus) || 'formal'
     form.remark = member?.remark || ''
   },
 )

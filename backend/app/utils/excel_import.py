@@ -55,6 +55,8 @@ def _parse_status(value) -> str:
         return "formal"
     if text in ("替补", "substitute", "0"):
         return "substitute"
+    if text in ("编外", "external", "2"):
+        return "external"
     return "formal"
 
 

@@ -65,7 +65,7 @@ async def candidate_pool(session: AsyncSession, guild_id: int, schedule_id: int)
             "member_name": normalize_member_name(name) if mid is None else name,
             "profession": profession,
             # 三档判定：真补人 → filler；非补人但关联不到常驻库（成员已删除的姓名快照）→ deleted；
-            # 其余取常驻库状态（formal / substitute）
+            # 其余取常驻库状态（formal / substitute / external）
             "member_status": "filler" if is_filler else ("deleted" if member_status is None else member_status),
             "attendance_remark": attendance_remark,
         }

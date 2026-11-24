@@ -27,6 +27,9 @@
         <el-table-column label="类型" min-width="60">
           <template #default="{ row }">
             <el-tag v-if="row.member_status === 'substitute'" type="info" effect="plain" size="small">替补</el-tag>
+            <el-tag v-else-if="row.member_status === 'external'" type="warning" effect="plain" size="small"
+              >编外</el-tag
+            >
             <el-tag v-else type="primary" effect="plain" size="small">正式</el-tag>
           </template>
         </el-table-column>
